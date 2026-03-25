@@ -23,6 +23,14 @@ Remaining work:
 5. Makefile target: `extract-devices`, include in `extract` and `extract-full` pipelines
 6. Potential enrichment: cross-reference device architecture → inspect.json architecture names
 
+### Command diff tool (upgrade breakage diagnosis)
+
+A common real-world query pattern: "this used to work on my router, something broke after I upgraded." The LLM gets a vague prompt, needs to figure out if a command path changed or was removed between versions. We already have the data in `command_versions` — what's missing is a tool that diffs two versions directly.
+
+Proposed: `routeros_command_diff` — given two versions (e.g. `7.15` → `7.22`), return added/removed command paths. This is the SQL equivalent of restraml's [diff.html](https://tikoci.github.io/restraml/diff.html) tool. The MCP tool hints should guide agents toward this when the user describes something that stopped working after an upgrade.
+
+This could also pair with `routeros_search_callouts` — callouts often document breaking changes or version-specific behavior.
+
 ## To Investigate
 
 Items that need research or experimentation before they're actionable.

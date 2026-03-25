@@ -53,9 +53,23 @@ Don't overengineer until there's a second HTML export to compare against. When t
 
 | Project | Relationship |
 |---------|-------------|
-| [tikoci/restraml](https://github.com/tikoci/restraml) | Source of `inspect.json` command tree + RAML schema. PR #35 adds deep-inspect. |
+| [tikoci/restraml](https://github.com/tikoci/restraml) | Source of `inspect.json` command tree + RAML schema. PR #35 adds deep-inspect. Also publishes [GitHub Pages tools](https://tikoci.github.io/restraml/) (see below). |
+| [tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook) | RouterOS script notebook for VSCode. Potential consumer of this DB for Copilot-assisted scripting. |
 | [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) | Consumer: hover help, property docs, command path → URL mapping. |
 | [tikoci/netinstall](https://github.com/tikoci/netinstall) | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |
+
+### restraml GitHub Pages tools
+
+restraml publishes all `inspect.json` files and interactive tools on GitHub Pages:
+
+- **Index:** <https://tikoci.github.io/restraml/> — version list, links to raw JSON
+- **Lookup:** <https://tikoci.github.io/restraml/lookup.html> — command path lookup across versions
+- **Diff:** <https://tikoci.github.io/restraml/diff.html> — diff command trees between two versions
+- **Raw JSON:** `https://tikoci.github.io/restraml/<version>/extra/inspect.json` (e.g. [7.22](https://tikoci.github.io/restraml/7.22/extra/inspect.json))
+
+These tools use client-side JavaScript + GitHub API to navigate the inspect.json data. The lookup and diff tools are relatively popular — they answer questions like "was `/ip/firewall/raw` available in 7.15?" and "what changed between 7.21 and 7.22?".
+
+This project has the same data in SQL form, which is more powerful for programmatic queries but less accessible for quick browser lookups. The two are complementary — the GitHub Pages tools are the public-facing interface, while this MCP server is the agent-facing interface to the same underlying command tree data.
 
 ## History
 

@@ -198,8 +198,9 @@ The Makefile orchestrates the full pipeline. Each script drops and recreates its
 
 ## Related Projects
 
-See `DESIGN.md` for full cross-references and rationale. Key dependencies:
+See `DESIGN.md` for full cross-references, restraml GitHub Pages tools, and rationale.
 
-- **[tikoci/restraml](https://github.com/tikoci/restraml)** — source of `inspect.json` command tree data. Local path configurable via `RESTRAML` in Makefile.
+- **[tikoci/restraml](https://github.com/tikoci/restraml)** — source of `inspect.json` command tree data. Also publishes [interactive lookup/diff tools](https://tikoci.github.io/restraml/) on GitHub Pages. Local path configurable via `RESTRAML` in Makefile.
 - **[tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts)** — consumer of property/command data from this DB
+- **[tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook)** — RouterOS script notebook for VSCode. Potential consumer for Copilot-assisted scripting.
 - **[tikoci/netinstall](https://github.com/tikoci/netinstall)** — RouterOS REST API gotchas (HTTP verb mapping, property name differences)
