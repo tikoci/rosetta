@@ -1,5 +1,24 @@
+# Database (generated — rebuild with `make extract`)
+ros-help.db
 *.sqlite-shm
 *.sqlite-wal
 *.db-shm
 *.db-wal
+
+# Source data (not distributed — see README for instructions)
+box/
+
+# Dependencies
+node_modules/
+bun.lock
+
+# Python (archival scripts)
 __pycache__/
+*.pyc
+
+# OS
+.DS_Store
+
+# Claude Code local settings
+.claude/
+.mcp.json

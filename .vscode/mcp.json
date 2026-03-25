@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "mikrotik-docs": {
+      "command": "bun",
+      "args": ["run", "src/mcp.ts"],
+      "cwd": "${workspaceFolder}"
+    }
+  }
+}

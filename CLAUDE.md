@@ -1,108 +1,202 @@
-# mikrotik-pdf
+# mikrotik-docs
 
-RouterOS documentation extracted from the help.mikrotik.com PDF export into SQLite with FTS5 for LLM retrieval.
+RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP.
 
 ## What This Is
 
-The MikroTik help site (Confluence-based) exports a single ~104MB PDF of all RouterOS documentation (~1900 pages). This project extracts that PDF into a searchable SQLite database — the same **SQL-as-RAG** pattern used in `~/Lab/mcp-discourse` (see its `DESIGN.md` for the full architectural rationale: tokenization, BM25, FTS5 query syntax, snippet excerpts, etc.).
+MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML archive of all RouterOS documentation (~317 pages). This project extracts the **HTML export** into a searchable SQLite database and exposes it as an MCP server — the same **SQL-as-RAG** pattern used in `~/Lab/mcp-discourse` (see its `DESIGN.md` for the full architectural rationale).
 
-### Why PDF, Not Scraping
+Two outputs:
 
-The PDF is a known-good snapshot from MikroTik — one file, complete, versioned by export date. Scraping help.mikrotik.com is the alternative (cleaner HTML structure) but the PDF was already in hand and the extraction quality turned out to be sufficient for text search. Either source could populate the same SQLite schema.
+1. **SQL-as-RAG MCP Server** — 8 tools for LLM agents to search docs, look up properties, browse the command tree, and check version history
+2. **RouterOS Glossary** — command-tree → documentation mapping, feeding `~/lsp-routeros-ts` (hover help) and future Copilot integration
 
 ## Current State
 
-- **305 sections** extracted from the PDF's built-in TOC (bookmark tree), mapped to page ranges
-- **549K words**, **20K code lines** (identified by Courier font = RouterOS CLI examples)
-- **FTS5 index** with `porter unicode61` tokenizer over title, path, text, and code columns
-- The extraction is **repeatable** — get a fresh PDF export, re-run `ros-pdf-to-sqlite.py`
+- **317 pages** from Confluence HTML export (March 2026), with breadcrumb paths, page IDs, help.mikrotik.com URLs
+- **515K words**, **14K code lines** (identified by `brush: ros` code blocks)
+- **1,034 callouts** extracted (Note/Warning/Info) from Confluence callout macros
+- **4,860 properties** extracted from confluenceTable rows (name, type, default, description)
+- **40K command tree entries** from `inspect.json` (551 dirs, 5114 cmds, 34K args), primary version: 7.22 (latest stable)
+- **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
+- **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
+- **FTS5 indexes** with `porter unicode61` tokenizer, BM25-weighted ranking
+- **MCP server** with 8 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, command_version_check, stats
 
 ## Schema
 
 ```sql
-sections (
-    id, title, path,        -- path = breadcrumb like 'RouterOS > Firewall > Filter'
-    depth,                   -- TOC depth: 1=root, 2=chapter, 3=section, 4+=subsection
-    page_start, page_end, page_count,
-    text,                    -- full extracted text (ArialUnicodeMS spans)
-    code,                    -- just Courier spans (RouterOS CLI commands/examples)
-    word_count, code_lines
+-- Pages (from Confluence HTML export)
+pages (
+    id INTEGER PRIMARY KEY,  -- Confluence page ID
+    slug, title, path,       -- path = 'RouterOS > Firewall > Filter'
+    depth, parent_id,
+    url,                     -- help.mikrotik.com/docs/spaces/ROS/pages/{id}/{slug}
+    text, code, code_lang,
+    author, last_updated,
+    word_count, code_lines, html_file
 )
 
-sections_fts USING fts5(title, path, text, code,
-    content=sections, content_rowid=id,
+-- FTS5 over pages
+pages_fts USING fts5(title, path, text, code,
+    content=pages, content_rowid=id,
     tokenize='porter unicode61'
+)
+
+-- Callouts (Note/Warning/Info from Confluence callout macros)
+callouts (
+    id, page_id REFERENCES pages(id),
+    type,          -- 'Note' | 'Warning' | 'Info'
+    content TEXT,
+    sort_order
+)
+
+-- FTS5 over callouts
+callouts_fts USING fts5(content, ...)
+
+-- Property tables extracted from confluenceTable
+properties (
+    id, page_id, name, type, default_val,
+    description, section, sort_order,
+    UNIQUE(page_id, name, section)
+)
+
+-- FTS5 over properties
+properties_fts USING fts5(name, description, ...)
+
+-- RouterOS command tree (from inspect.json)
+commands (
+    id, path UNIQUE,     -- '/ip/firewall/filter'
+    name, type,          -- 'dir' | 'cmd' | 'arg'
+    parent_path,
+    page_id,             -- linked doc page (nullable)
+    description,         -- from inspect.json desc field
+    ros_version          -- primary version tag
+)
+
+-- Version tracking
+ros_versions (
+    version PRIMARY KEY, -- '7.22', '7.23beta2'
+    channel,             -- 'stable' | 'development'
+    extra_packages,      -- 0|1
+    extracted_at
+)
+
+command_versions (
+    command_path, ros_version,
+    PRIMARY KEY (command_path, ros_version)
 )
 ```
 
 ## Usage
 
-Quick search from Bun:
-
-```js
-import { Database } from "bun:sqlite";
-const db = new Database("ros-help.db", { readonly: true });
-const results = db.query(`
-  SELECT s.id, s.title, s.path, s.word_count,
-         snippet(sections_fts, 2, '>>>', '<<<', '...', 30) as excerpt
-  FROM sections_fts fts
-  JOIN sections s ON s.id = fts.rowid
-  WHERE sections_fts MATCH ?
-  ORDER BY rank LIMIT 5
-`).all("firewall filter");
-```
-
-From Python or CLI:
+### MCP Server
 
 ```sh
-sqlite3 ros-help.db "SELECT title, path FROM sections_fts WHERE sections_fts MATCH 'DHCP lease' ORDER BY rank LIMIT 5;"
+bun run src/mcp.ts   # stdio transport
+```
+
+Register in `.vscode/mcp.json` or Claude Code settings:
+
+```json
+{
+  "servers": {
+    "mikrotik-docs": {
+      "command": "bun",
+      "args": ["run", "src/mcp.ts"],
+      "cwd": "/Users/amm0/Lab/mikrotik-docs"
+    }
+  }
+}
+```
+
+### MCP Tools
+
+| Tool | Purpose |
+|------|---------|
+| `routeros_search` | FTS5 search across pages. NL query → BM25 ranked results with snippets + URLs |
+| `routeros_get_page` | Full page text by ID or title |
+| `routeros_lookup_property` | Property by exact name, optionally filtered by command path |
+| `routeros_search_properties` | FTS search across property names and descriptions |
+| `routeros_command_tree` | Browse command hierarchy at a given path |
+| `routeros_search_callouts` | FTS search across callout notes/warnings/info |
+| `routeros_command_version_check` | Check which RouterOS versions include a command path |
+| `routeros_stats` | DB health: page/property/command counts, link coverage |
+
+### CLI Search
+
+```sh
+bun run src/search.ts "DHCP server"
+```
+
+### Direct SQL
+
+```sh
+sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHCP lease' ORDER BY rank LIMIT 5;"
 ```
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `ros-pdf-to-sqlite.py` | Main extraction: PDF → SQLite with FTS5. Repeatable. |
-| `ros-pdf-assess.py` | Initial assessment script (font analysis, structure stats) |
-| `ros-help.db` | The SQLite database (6.5 MB, WAL mode) |
-| `ros-toc.json` | Extracted TOC as JSON (305 entries with page ranges) |
+| `src/mcp.ts` | MCP server — 8 tools, stdio transport |
+| `src/query.ts` | NL → FTS5 query planner, BM25 ranking, property lookup |
+| `src/db.ts` | Schema init, singleton DB, WAL mode |
+| `src/extract-html.ts` | HTML → pages + callouts tables (repeatable) |
+| `src/extract-properties.ts` | Property table parsing from HTML |
+| `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
+| `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
+| `src/link-commands.ts` | Command ↔ page mapping |
+| `src/assess-html.ts` | HTML archive assessment (run once) |
+| `src/search.ts` | CLI search tool |
+| `ros-help.db` | The SQLite database (WAL mode) |
+| `ros-pdf-to-sqlite.py` | Original PDF extraction (archival) |
+| `ros-pdf-assess.py` | Original PDF assessment (archival) |
 
 ## Re-extraction
 
-When a new PDF export is available:
+When a new HTML/PDF export is available:
 
 ```sh
-# Place new PDF in this directory or ~/Downloads, update path in script
-python3 ros-pdf-to-sqlite.py
+# Place new export in box/ directory
+make clean
+make extract       # runs extract-html, extract-commands, link (single version)
+make extract-full  # runs extract-html, extract-all-versions, link (all versions)
 ```
 
-The script drops and recreates tables — no migration needed. The PDF filename encodes the export date (e.g., `ROS-260625-1140-2328.pdf` = 2025-06-26).
+The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
+
+## Source Details
+
+### HTML Archive (Primary)
+
+- **Export:** Confluence space export, March 2026
+- **Format:** 317 HTML files + attachments in `box/documents-export-2026-3-25/ROS/`
+- **Structure:** Consistent Confluence classes (`confluenceTable`, `confluenceTh`, `syntaxhighlighter-pre`)
+- **Property tables:** 605 tables with "Property | Description" headers across 147 pages
+- **Code blocks:** `data-syntaxhighlighter-params="brush: ros"` for RouterOS CLI
+
+### Command Tree (inspect.json)
+
+- **Source:** `~/restraml/docs/*/extra/inspect.json` — 46 versions extracted
+- **Content:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 cmds, 34K args (primary: 7.22)
+- **Versions:** 7.9 through 7.23beta2 (stable + development channels)
+- **Primary version:** 7.22 (latest stable) — used for the `commands` table and linking
+- **Version tracking:** 1.67M entries in `command_versions` junction table
 
 ## Future Direction
 
-This is step one. The intended evolution:
-
-1. **Command-tree mapping** — Add a `commands` table linking RouterOS menu paths (`/ip/firewall/filter`, `/routing/ospf`, etc.) to section IDs. The command tree is already known from `~/lsp-routeros-ts` and `~/restraml`.
-
-2. **Attribute-level help** — MikroTik documents ~40K attributes across all commands. Parse the property tables from section text into a `properties` table (`command_path`, `name`, `type`, `description`, `default`). This would give per-attribute lookup — what the LSP ultimately needs.
-
-3. **MCP tool** — Expose as an MCP server (like `~/Lab/mcp-discourse`) so LLM agents can query RouterOS docs directly. The search tool pattern from mcp-discourse (NL → FTS5 MATCH, BM25 ranking, snippet excerpts) ports directly.
-
-4. **Cross-reference with forum** — Join with `~/Lab/mcp-discourse` data to find community discussion relevant to a given doc section.
+1. **List-format properties** — Some pages use `<ul><li>` for read-only properties instead of tables. Second extraction pass.
+2. **Cross-reference with forum** — Join with `~/Lab/mcp-discourse` data.
+3. **LSP integration** — `~/lsp-routeros-ts` hover handler consumes property data from this DB. Settings field for `routeros.helpDatabasePath`.
+4. **Copilot context** — VSCode extension client-side can provide doc context via MCP or direct DB queries.
+5. **Agent-assisted linking** — Improve the 92% dir coverage by having agents manually map remaining unlinked commands.
 
 ## Cross-References
 
 | Project | Relationship |
 |---------|-------------|
-| `~/Lab/mcp-discourse` | Same SQL-as-RAG pattern. Its `DESIGN.md` documents FTS5 tokenization, BM25 weights, query planner, and MCP tool design in detail — all applicable here. |
-| `~/restraml` | RouterOS REST API structure, endpoint tree, RAML schema. Source for command-tree mapping. |
-| `~/lsp-routeros-ts` | RouterOS language server — consumer of per-command/attribute help data. |
+| `~/Lab/mcp-discourse` | Same SQL-as-RAG pattern. Its `DESIGN.md` has the full FTS5/BM25 rationale. |
+| `~/restraml` | Source of `inspect.json` command tree + RAML schema. |
+| `~/lsp-routeros-ts` | Consumer: hover help, property docs, command path → URL mapping. |
 | `~/netinstall` | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |
-
-## PDF Source Details
-
-- **Producer:** OpenPDF 1.0.0 (Confluence export)
-- **Fonts:** ArialUnicodeMS (body text), Courier (code examples) — all embedded subsets
-- **Structure:** Valid PDF 1.5, 306 bookmarks (TOC entries), no internal links/annotations
-- **Not tagged** — no semantic PDF markup, but text extraction is clean
-- **Font-based code detection** works well: Courier spans reliably identify RouterOS CLI examples

@@ -1,0 +1,20 @@
+{
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "editor.defaultFormatter": "biomejs.biome",
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "files.exclude": {
+    "**/*.db-shm": true,
+    "**/*.db-wal": true,
+    "box/": true
+  },
+  "search.exclude": {
+    "ros-help.db": true,
+    "ros-html-assessment.json": true,
+    "ros-toc.json": true,
+    "box/": true,
+    "bun.lock": true
+  },
+  "biome.lspBin": "node_modules/@biomejs/biome/bin/biome"
+}

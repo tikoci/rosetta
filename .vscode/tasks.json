@@ -1,0 +1,85 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install Dependencies",
+      "type": "shell",
+      "command": "bun install",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Extract All",
+      "type": "shell",
+      "command": "make extract",
+      "group": "build",
+      "detail": "Full pipeline: HTML → DB → link commands",
+      "problemMatcher": []
+    },
+    {
+      "label": "Extract HTML",
+      "type": "shell",
+      "command": "make extract-html",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Extract Commands",
+      "type": "shell",
+      "command": "make extract-commands",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Link Commands",
+      "type": "shell",
+      "command": "make link",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start MCP Server",
+      "type": "shell",
+      "command": "bun run src/mcp.ts",
+      "group": "none",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "Search",
+      "type": "shell",
+      "command": "bun run src/search.ts \"${input:searchQuery}\"",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Type Check",
+      "type": "shell",
+      "command": "bun run typecheck",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "make lint",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Clean Database",
+      "type": "shell",
+      "command": "make clean",
+      "group": "none",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "searchQuery",
+      "type": "promptString",
+      "description": "Search query for RouterOS docs",
+      "default": "firewall filter"
+    }
+  ]
+}

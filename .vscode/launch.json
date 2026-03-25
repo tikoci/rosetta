@@ -1,0 +1,54 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "MCP Server",
+      "type": "bun",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/mcp.ts",
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false
+    },
+    {
+      "name": "CLI Search",
+      "type": "bun",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/search.ts",
+      "args": ["${input:searchQuery}"],
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false
+    },
+    {
+      "name": "Extract HTML",
+      "type": "bun",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/extract-html.ts",
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false
+    },
+    {
+      "name": "Extract Commands",
+      "type": "bun",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/extract-commands.ts",
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false
+    },
+    {
+      "name": "Link Commands",
+      "type": "bun",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/link-commands.ts",
+      "cwd": "${workspaceFolder}",
+      "stopOnEntry": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "searchQuery",
+      "type": "promptString",
+      "description": "Search query",
+      "default": "firewall filter"
+    }
+  ]
+}

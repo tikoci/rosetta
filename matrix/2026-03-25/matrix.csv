@@ -1,0 +1,145 @@
+﻿"Product name","Product code",Architecture,CPU,"CPU core count","CPU nominal frequency","License level","Operating system","Size of RAM","Storage size",Dimensions,"PoE in","PoE out","PoE out ports","PoE in input Voltage","Number of DC inputs","DC jack input Voltage","Max power consumption","Wireless 2.4 GHz number of chains","Antenna gain dBi for 2.4 GHz","Wireless 5 GHz number of chains","Antenna gain dBi for 5 GHz","10/100 Ethernet ports","10/100/1000 Ethernet ports","Number of 2.5G Ethernet ports","Number of USB ports","Ethernet Combo ports","SFP ports","SFP+ ports","Number of 1G/2.5G/5G/10G Ethernet ports","Number of SIM slots","Memory cards","USB slot type","MSRP (USD)"
+"ATL 5G R16",ATLGM&RG520F-EU,"ARM 64bit",88F3720,2,"800 MHz",3,"RouterOS v7","512 MB","32 MB",,802.3af/at,,,"12-56 V",1,,"10 W",,,,,,1,,,,,,,1,,,349.00
+"ATL LTE18 kit",ATLGM&EG18-EA,"ARM 64bit",88F3720,2,"800 MHz",3,"RouterOS v7","256 MB","16 MB",,802.3af/at,,,"12-57 V",1,,"8 W",,,,,,1,,,,,,,1,,,279.00
+Audience,RBD25G-5HPacQD2HPnD,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,RouterOS,"256 MB","128 MB","100 x 235 x 97 mm","Passive PoE",,,"24-57 V",2,"12-57 V","27 W",2,3.5,2,4.5,,2,,,,,,,,,,169.00
+"BaseBox 5",RB912UAG-5HPnD-OUT,MIPSBE,AR9342,1,"600 MHz",4,RouterOS,"64 MB","128 MB",246x135x50mm,"Passive PoE",,,"8-30 V",1,,"12 W",,,2,,,1,,1,,,,,1,,"USB type A",89.00
+cAP,RBcAP2nD,MIPSBE,QCA9533,1,"650 MHz",4,RouterOS,"64 MB","16 MB","185mm diameter, 31mm height",802.3af/at,,,"11-57 V",1,,"4 W",2,2,,,1,,,,,,,,,,,49.95
+"cAP ac",RBcAPGi-5acD2nD,"ARM 32bit",IPQ-4018,4,"488-896 (auto) MHz",4,RouterOS,"128 MB","16 MB","Round case: ⌀ 136 mm, height: 30 mm; Square case: 145 mm x 145 mm x 30 mm",802.3af/at,"Passive PoE up to 57V",Ether2,"17-57 V",1,,"24 W",2,2,2,2.5,,2,,,,,,,,,,85.00
+"cAP ax",cAPGi-5HaxD2HaxD,"ARM 64bit",IPQ-6010,4,"auto (864 - 1800) MHz",4,"RouterOS v7","1 GB","128 MB",,802.3af/at,"Passive PoE up to 57V",Ether2,"18-57 V",2,"18-57 V","36 W",2,6,2,5.5,,2,,,,,,,,,,129.00
+"cAP lite",RBcAPL-2nD,MIPSBE,QCA9533,1,"650 MHz",4,RouterOS,"64 MB","16 MB","Wall case: 88 x 52 x 20 mm Ceiling case: ⌀88 mm x 20 mm",802.3af/at,,,"10-60 V",2,,"4 W",2,1.5,,,1,,,,,,,,,,,29.00
+"cAP LTE12 ax",cAPGi-5HaxD2HaxD&EG12-EA,"ARM 64bit",IPQ-6010,4,"auto (864 - 1800) MHz",4,"RouterOS v7","1 GB","128 MB",,802.3af/at,"Passive PoE up to 57V",Ether2,"18-57 V",2,"18-57 V","34 W",2,6,2,5.5,,2,,,,,,,1,,,229.00
+"cAP XL ac",RBcAPGi-5acD2nD-XLr4,"ARM 32bit",IPQ-4018,4,"488-896 (auto) MHz",4,RouterOS,"128 MB","16 MB","191 x 42 mm",802.3af/at,"Passive PoE up to 57V",Ether2,"18-57 V",1,,"24 W",2,6,2,5.5,,2,,,,,,,,,,99.00
+CCR2004-1G-2XS-PCIe,CCR2004-1G-2XS-PCIe,"ARM 64bit",AL52400,4,"1500 MHz",6,"RouterOS v7","4 GB","128 MB","170 x 69 x 18 mm",,,,,,,"29 W",,,,,,1,,,,,,,,,,199.00
+CCR2004-1G-12S+2XS,CCR2004-1G-12S+2XS,"ARM 64bit",AL32400,4,"1700 MHz",6,"RouterOS v7","4 GB","128 MB","443 x 224 x 44 mm",,,,,,,"60 W",,,,,,1,,,,,12,,,,,595.00
+CCR2004-16G-2S+,CCR2004-16G-2S+r2,"ARM 64bit",AL32400,4,"1700 MHz",6,"RouterOS v7","4 GB","128 MB","443 x 210 x 44 mm",,,,,,,"48 W",,,,,,16,,1,,,2,,,,,465.00
+CCR2004-16G-2S+PC,CCR2004-16G-2S+PC,"ARM 64bit",AL32400,4,"1200 MHz",6,"RouterOS v7","4 GB","128 MB","272 x 195 x 44 mm",,,,,2,"36-57 V","36 W",,,,,,16,,1,,,2,,,,,465.00
+CCR2116-12G-4S+,CCR2116-12G-4S+,"ARM 64bit",AL73400,16,"2000 MHz",6,"RouterOS v7","16 GB","128 MB","443 x 199 x 44 mm",,,,,,,"83 W",,,,,,13,,,,,4,,,,,995.00
+CCR2216-1G-12XS-2XQ,CCR2216-1G-12XS-2XQ,"ARM 64bit",AL73400,16,"2000 MHz",6,"RouterOS v7","16 GB","128 MB","443 x 367 x 44 mm",,,,,,,"128 W",,,,,,1,,,,,,,,,,2795.00
+"Chateau 5G R17 ax",S53UG+5HaxD2HaxD-TC&RG650E-EU,"ARM 64bit",IPQ-6010,4,"864-1800 MHz",4,"RouterOS v7","1 GB","128 MB",,,,,,1,"12-28 V","27 W",2,3,2,6,,4,1,1,,,,,1,,"USB type A",349.00
+"Chateau LTE6-US",D53G-5HacD2HnD-TC&EG06-A,"ARM 32bit",IPQ-4019,4,"488-896 (auto) MHz",4,"RouterOS v7","256 MB","16 MB","240 x 156 x 44 mm",,,,,1,"12-28 V","19 W",2,3,2,5.5,,5,,1,,,,,1,,"USB type A",189.00
+"Chateau LTE7",D53G-5HacD2HnD-TC&R11e-LTE7,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,"RouterOS v7","256 MB","16 MB",,,,,,1,"12-28 V","20 W",2,2,2,4,,5,,1,,,,,1,,"USB type A",119.00
+"Chateau LTE7 ax",S53UG+5HaxD2HaxD-TC&R11e-LTE7,"ARM 64bit",IPQ-6010,4,"auto MHz",4,"RouterOS v7","1 GB","128 MB",,,,,,1,"12-28 V","21.5 W",2,3,2,6,,4,1,1,,,,,1,,"USB type A",169.00
+"Chateau LTE12 (2025)",D53G-5HacD2HnD-TC&EG120K-EA,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,"RouterOS v7","256 MB","32 MB",,,,,,1,"12-28 V","24 W",2,2,2,4,,5,,1,,,,,1,,"USB type A",179.00
+"Chateau LTE18 ax",S53UG+5HaxD2HaxD-TC&EG18-EA,"ARM 64bit",IPQ-6010,4,"auto (864 -1800) MHz",4,"RouterOS v7","1 GB","128 MB","240 x 156 x 44 mm",,,,,1,"12-28 V","19 W",2,3,2,6,,4,1,1,,,,,1,,"USB type A",299.00
+"Chateau PRO ax",H53UiG-5HaxQ2HaxQ,"ARM 64bit",IPQ-8072A,4,"2208 MHz",6,"RouterOS v7","1 GB","128 MB",,,"Passive PoE up to 57V",Ether5,,1,"18-57 V","55 W",4,5,4,6,,5,,1,,,,,,,"USB 3.0 type A",199.00
+"CME Gateway",CME22-2n-BG77,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","16 MB",,802.3af/at,"Passive PoE up to 57V",Ether2,"18-57 V",2,,"31 W",1,2,,,2,,,,,,,,1,,,89.00
+CRS106-1C-5S,CRS106-1C-5S,MIPSBE,QCA8511,1,"400 MHz",5,RouterOS,"128 MB","16 MB","114 x 137 x 29mm","Passive PoE",,,"11-30 V",2,"11-30 V","11 W",,,,,,,,,1,5,,,,,,59.00
+CRS112-8P-4S-IN,CRS112-8P-4S-IN,MIPSBE,QCA8511,1,"400 MHz",5,RouterOS,"128 MB","16 MB","200 x 142 x 44 mm",,802.3af/at,Ether1-Ether8,,2,"18-28 V / 48-57 V","160 W",,,,,,8,,,,4,,,,,,209.00
+CRS304-4XG-IN,CRS304-4XG-IN,"ARM 64bit",98DX2528,2,"1200 MHz",5,"RouterOS v7","512 MB","32 MB",,802.3af/at,,,"36-57 V",4,"12-57 V / 12-57 V","21 W",,,,,,1,,,,,,4,,,,199.00
+CRS305-1G-4S+IN,CRS305-1G-4S+IN,"ARM 32bit",98DX3236,2,"800 MHz",5,"RouterOS / SwitchOS","512 MB","16 MB","141 x 115 x 28 mm",802.3af/at,,,"12-57 V",3,"12-57 V","18 W",,,,,,1,,,,,4,,,,,149.00
+CRS309-1G-8S+IN,CRS309-1G-8S+IN,"ARM 32bit",98DX8208,2,"800 MHz",5,"RouterOS / SwitchOS","512 MB","16 MB","272 x 191 x 44 mm",802.3af/at,,,"18-57 V",2,"12-57 V","23 W",,,,,,1,,,,,8,,,,,269.00
+CRS310-1G-5S-4S+IN,CRS310-1G-5S-4S+IN,"ARM 32bit",98DX226S,2,"800 MHz",5,"RouterOS v7 / SwitchOS","256 MB","16 MB","200 x 166 x 44 mm",802.3af/at,,,"18-57 V",2,"18-57 V","20 W",,,,,,1,,,,5,4,,,,,199.00
+CRS310-8G+2S+IN,CRS310-8G+2S+IN,"ARM 32bit",98DX226S,2,"800 MHz",5,"RouterOS v7 / SwitchOS","256 MB","32 MB","200 x 206,1 x 44",,,,,1,"18-57 V","34 W",,,,,,,8,1,,,2,,,,"USB type A",219.00
+CRS312-4C+8XG-RM,CRS312-4C+8XG-RM,MIPSBE,QCA9531,1,"650 MHz",5,"RouterOS v7 / SwitchOS","64 MB","16 MB","443 x 183 x 44 mm",,,,,,,"60 W",,,,,1,,,1,,,,8,,,"USB type A",699.00
+CRS317-1G-16S+RM,CRS317-1G-16S+RM,"ARM 32bit",98DX8216,2,"800 MHz",6,"RouterOS / SwitchOS","1 GB","16 MB","443 x 224 x 44 mm",,,,,,,"44 W",,,,,,1,,,,,16,,,,,499.00
+CRS320-8P-8B-4S+RM,CRS320-8P-8B-4S+RM,"ARM 32bit",98DX226S,2,"800 MHz",5,"RouterOS v7 / SwitchOS","256 MB","32 MB",,,802.3af/at/bt,"Ether1-Ether8 (af/at), Ether9-Ether16 (bt)",,,,"600W (1150W with additional PSU)",,,,,,17,,,,,4,,,,,489.00
+CRS326-4C+20G+2Q+RM,CRS326-4C+20G+2Q+RM,MIPSBE,QCA9531,1,"650 MHz",6,"RouterOS v7","128 MB","32 MB",,,,,,,,"70 W",,,,,1,,20,,,,,,,,,999.00
+CRS326-24G-2S+IN,CRS326-24G-2S+INr2,"ARM 32bit",98DX3236,2,"800 MHz",5,"RouterOS / SwitchOS","512 MB","16 MB","285 x 144 x 44 mm","Passive PoE",,,"10-30 V",2,"10-30 V","21 W",,,,,,24,,,,,2,,,,,199.00
+CRS326-24G-2S+RM,CRS326-24G-2S+RM,"ARM 32bit",98DX3236,2,"800 MHz",5,"RouterOS / SwitchOS","512 MB","16 MB","443 x 144 x 44 mm","Passive PoE",,,"10-30 V",2,"10-30 V","24 W",,,,,,24,,,,,2,,,,,209.00
+CRS326-24S+2Q+RM,CRS326-24S+2Q+RM,MIPSBE,QCA9531,1,"650 MHz",5,"RouterOS v7 / SwitchOS","128 MB","32 MB","443 x 200 x 44 mm",,,,,,,"69 W",,,,,1,,,1,,,24,,,,"USB type A",599.00
+CRS328-4C-20S-4S+RM,CRS328-4C-20S-4S+RM,"ARM 32bit",98DX3236,2,"800 MHz",5,"RouterOS / SwitchOS","512 MB","16 MB","443 x 194 x 44 mm",,,,,,,"43 W",,,,,,,,,4,20,4,,,,,449.00
+CRS328-24P-4S+RM,CRS328-24P-4S+RM,"ARM 32bit",98DX3236,1,"800 MHz",5,"RouterOS / SwitchOS","512 MB","16 MB","443 x 300 x 44 mm",,802.3af/at,Ether1-Ether24,,,,"494 W",,,,,,24,,,,,4,,,,,489.00
+CRS354-48G-4S+2Q+RM,CRS354-48G-4S+2Q+RM,MIPSBE,QCA9531,1,"650 MHz",5,"RouterOS v7 / SwitchOS","128 MB","32 MB","297 x 443 x 44 mm",,,,,,,"60 W",,,,,1,48,,,,,4,,,,,599.00
+CRS354-48P-4S+2Q+RM,CRS354-48P-4S+2Q+RM,MIPSBE,QCA9531,1,"650 MHz",5,"RouterOS v7 / SwitchOS","128 MB","32 MB","443 x 382 x 44 mm",,802.3af/at,Ether1-Ether48,,,,"800 W",,,,,1,48,,,,,4,,,,,999.00
+CRS418-8P-8G-2S+5axQ2axQ-RM,CRS418-8P-8G-2S+5axQ2axQ-RM,"ARM 64bit",IPQ-8072A,4,"2208 MHz",5,"RouterOS v7","1 GB","128 MB",,,802.3af/at,Ether9-Ether16,,,,"227 W",4,5,4,6,,17,,1,,,2,,,,"USB 3.0 type A",499.00
+CRS418-8P-8G-2S+RM,CRS418-8P-8G-2S+RM,"ARM 64bit",IPQ-8072,4,"2208 MHz",5,"RouterOS v7","1 GB","128 MB",,,802.3af/at,"Ether9 - Ether16",,,,"215 W",,,,,,17,,1,,,2,,,,"USB 3.0 type A",449.00
+CRS504-4XQ-IN,CRS504-4XQ-IN,MIPSBE,QCA9531,1,"650 MHz",5,"RouterOS v7","64 MB","16 MB","320 x 185 x 44 mm","802.3 bt",,,"43-57 V",3,"36-57 V","41 W",,,,,1,,,,,,,,,,,799.00
+CRS504-4XQ-OUT,CRS504-4XQ-OUT,MIPSBE,QCA9531,1,"650 MHz",5,"RouterOS v7","128 MB","32 MB",,"802.3 bt",,,"43-57 V",3,"36-57 V","44 W",,,,,1,,,,,,,,,,,899.00
+CRS510-8XS-2XQ-IN,CRS510-8XS-2XQ-IN,MIPSBE,QCA9531,1,"650 MHz",5,"RouterOS v7","128 MB","32 MB",,"802.3 bt",,,"42.5-57 V",3,"36-57 V","45 W",,,,,1,,,,,,,,,,,999.00
+CRS518-16XS-2XQ-RM,CRS518-16XS-2XQ-RM,MIPSBE,QCA9531,1,"650 MHz",6,"RouterOS v7","64 MB","16 MB",,,,,,,,"95 W",,,,,1,,,1,,,,,,,"USB type A",1595.00
+CRS520-4XS-16XQ-RM,CRS520-4XS-16XQ-RM,"ARM 64bit",AL52400,4,"2 GHz",5,"RouterOS v7","4 GB","128 MB",,,,,,,,"150 W (220 W with both PSUs)",,,,,,,,,,,,"2 (supported: 10M/100M/1G/10G)",,,,2195.00
+"CRS804 DDQ",CRS804-4DDQ-hRM,"ARM 64bit",AL52400,4,"2000 MHz",6,"RouterOS v7","4 GB","512 MB",,,,,,,,"123 W",,,,,,,,,,,,"2 (supported: 10M/100M/1G/10G)",,,,1295.00
+"CRS812 DDQ",CRS812-8DS-2DQ-2DDQ-RM,"ARM 64bit",AL52400,4,"2000 MHz",6,"RouterOS v7","4 GB","512 MB",,,,,,,,"134 W",,,,,,,,,,,,"2 (supported: 10M/100M/1G/10G)",,,,1295.00
+"Cube 60Pro ac",CubeG-5ac60ay,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,RouterOS,"256 MB","64 MB","115 x 95 x 82 mm",802.3af/at,,,"18-48 V",1,,"10 W",,,1,11.5,,1,,,,,,,,,,149.00
+"CubeSA 60Pro ac",CubeG-5ac60ay-SA,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,RouterOS,"256 MB","64 MB","115 x 211 x 90 mm",802.3af/at,,,"18-48 V",1,,"13 W",,,1,11.5,,1,,,,,,,,,,199.00
+"FiberBox Plus",CRS305-1G-4S+OUTr2,"ARM 32bit",98DX226S,2,"800 MHz",5,"RouterOS v7 / SwOS","256 MB","16 MB",,802.3af/at,,,"42-57 V",3,"24-57 V","17 W",,,,,,1,,,,,4,,,,,229.00
+"Groove 52",RBGroove52HPnr2,MIPSBE,AR9342,1,"600 MHz",3,RouterOS,"64 MB","16 MB","180x49x44mm, 193g","Passive PoE",,,"9-30 V",1,,"6 W",1,,1,,1,,,,,,,,,,,59.00
+"GrooveA 52",RBGrooveA-52HPnr2,MIPSBE,AR9342,1,"600 MHz",4,RouterOS,"64 MB","16 MB","177x44x44mm, 193g","Passive PoE",,,"9-30 V",1,,"6 W",1,6,1,6,1,,,,,,,,,,,79.00
+"GrooveA 52 ac",RBGrooveGA-52HPacn,MIPSBE,QCA9556,1,"720 MHz",4,RouterOS,"64 MB","16 MB","177 x 44 x 44 mm","Passive PoE",,,"10-30 V",1,,"5 W",1,6,1,6,,1,,,,,,,,,,99.00
+hAP,RB951Ui-2nD,MIPSBE,QCA9531,1,"650 MHz",4,RouterOS,"64 MB","16 MB","113 x 89 x 28mm","Passive PoE","Passive PoE",Ether5,"10-28 V",2,"10-28 V","5 W",2,1.5,,,5,,,1,,,,,,,"USB type A",45.00
+"hAP ac",RB962UiGS-5HacT2HnT,MIPSBE,QCA9558,1,"720 MHz",4,"RouterOS v7","128 MB","16 MB","114 x 137 x 29mm","Passive PoE","Passive PoE",Ether5,"11-57 V",2,"11-57 V","17 W",3,2.5,3,2,,5,,1,,1,,,,,"USB type A",129.00
+"hAP ac lite",RB952Ui-5ac2nD,MIPSBE,QCA9531,1,"650 MHz",4,RouterOS,"64 MB","16 MB","113 x 89 x 28mm","Passive PoE","Passive PoE",Ether5,"10-28 V",2,"10-28 V","20 W",2,1.5,1,2,5,,,1,,,,,,,"USB type A",59.00
+"hAP ac lite TC",RB952Ui-5ac2nD-TC,MIPSBE,QCA9531,1,"650 MHz",4,RouterOS,"64 MB","16 MB","34 x 119 x 98mm","Passive PoE","Passive PoE",Ether5,"10-28 V",2,"10-28 V","20 W",2,1.5,1,2,5,,,1,,,,,,,"USB type A",59.00
+"hAP ac²",RBD52G-5HacD2HnD-TCr2,"ARM 32bit",IPQ-4018,4,"488-896 (auto) MHz",4,RouterOS,"128 MB","16 MB","34 x 119 x 98mm","Passive PoE",,,"18-28 V",2,"12-30 V","21 W",2,2.5,2,2.5,,5,,1,,,,,,,"USB type A",79.00
+"hAP ac³",RBD53iG-5HacD2HnD,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,RouterOS,"256 MB","128 MB","251 x 129 x 39 mm","Passive PoE","Passive PoE",Ether5,"18-28 V",2,"12-28 V","30 W",2,3,2,5.5,,5,,1,,,,,,,"USB type A",109.00
+"hAP ax lite",L41G-2axD,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,,,,,"1 (USB-C)",,"8 W",2,4.3,,,,4,,,,,,,,,,59.00
+"hAP ax S",E62iUGS-2axD5axT,"ARM 32bit",EN7562CT,2,"950 MHz",4,"RouterOS v7","512 MB","128 MB",,"Passive PoE","Passive PoE",Ether5,"18-28 V",2,"12-28 V","34 W",2,5.5,3,6.5,,5,,1,,"1 (2.5G supported)",,,,,"USB type A",79.00
+"hAP ax²",C52iG-5HaxD2HaxD-TC,"ARM 64bit",IPQ-6010,4,"864 MHz",4,"RouterOS v7","1 GB","128 MB",,"Passive PoE","Passive PoE","Ether 1","18-28 V",2,"12-28 V","27 W",2,4,2,4.5,,5,,,,,,,,,,99.00
+"hAP ax³",C53UiG+5HPaxD2HPaxD,"ARM 64bit",IPQ-6010,4,"auto (864 - 1800) MHz",6,"RouterOS v7","1 GB","128 MB",,"Passive PoE","Passive PoE","Ether 1","18-28 V",2,"12-28 V","38 W",2,3.3,2,5.5,,4,1,1,,,,,,,"USB 3.0 type A",139.00
+"hAP be³ Media",MA53UG+HbeH,"ARM 64bit",IPQ-5322,4,"Up to 1.5 GHz (auto)",6,"RouterOS v7","2 GB","512 MB",,802.3af/at,,,"24-57 V",2,"24-57 V","29 W",2,4,2,7.5,,,5,3,,,,,,,"USB 3.0 type A",179.00
+"hAP lite",RB941-2nD,SMIPS,QCA9533,1,"650 MHz",4,RouterOS,"32 MB","16 MB",,,,,,1,,"3.5 W",2,1.5,,,4,,,,,,,,,,,24.95
+"hAP lite TC",RB941-2nD-TC,SMIPS,QCA9533,1,"650 MHz",4,RouterOS,"32 MB","16 MB",,,,,,1,,"3.5 W",2,1.5,,,4,,,,,,,,,,,24.95
+hEX,RB750Gr3,MMIPS,MT7621A,2,"880 MHz",4,RouterOS,"256 MB","16 MB",113x89x28mm,"Passive PoE",,,"8-30 V",2,"8-30 V","10 W",,,,,,5,,1,,,,,,1,"USB type A",59.95
+"hEX lite",RB750r2,MIPSBE,QCA9533,1,"850 MHz",4,RouterOS,"64 MB","16 MB","113x89x28mm. Weight without packaging and cables: 129g","Passive PoE",,,"6-30 V",2,"6-30 V","2 W",,,,,5,,,,,,,,,,,39.95
+"hEX PoE",RB960PGS,MIPSBE,QCA9557,1,"800 MHz",4,RouterOS,"128 MB","16 MB",,"Passive PoE",802.3af/at,Ether2-Ether5,"12-57 V",2,"12-57 V","54 W",,,,,,5,,1,,1,,,,,"USB type A",89.00
+"hEX PoE lite",RB750UPr2,MIPSBE,QCA9531,1,"650 MHz",4,RouterOS,"64 MB","16 MB",113x89x28mm,"Passive PoE","Passive PoE",Ether2-Ether5,"8-30 V",2,"8-30 V","51 W",,,,,5,,,1,,,,,,,"USB type A",59.95
+"hEX refresh",E50UG,"ARM 32bit",EN7562CT,2,"950 MHz",4,"RouterOS v7","512 MB","128 MB",113x89x28mm,"Passive PoE",,,"12-28 V",2,"12-28 V","10 W",,,,,,5,,1,,,,,,,"USB type A",59.95
+"hEX S",RB760iGS,MMIPS,MT7621A,2,"880 MHz",4,RouterOS,"256 MB","16 MB","113 x 89 x 28 mm",802.3af/at,"Passive PoE up to 57V",Ether5,"12-57 V",2,"12-57 V","24 W",,,,,,5,,1,,1,,,,1,"USB type A",79.00
+"hEX S (2025)",E60iUGS,"ARM 32bit",EN7562CT,2,"950 MHz",4,"RouterOS v7","512 MB","128 MB",,802.3af/at,"Passive PoE up to 57V",Ether5,"18-57 V",2,"12-57 V","23 W",,,,,,5,,1,,"1 (2.5G supported)",,,,,"USB 3.0 type A",69.00
+KNOT,RB924i-2nD-BT5&BG77r2,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","128 MB","122 x 87 x 26 mm",802.3af/at,"Passive PoE up to 57V",Ether2,"18-57 V",3,"12-57 V","18 W",2,1.5,,,2,,,1,,,,,1,,"microUSB type AB",99.00
+"KNOT Embedded LTE4",EC25-EU&KNe,"ARM 32bit","CPU ARM 32-bit Cortex A7",1,"800 MHz",3,"RouterOS v7","256 MB","512 MB",,802.3af/at,,,"12-57 V",2,,"7 W",,,,,,1,,,,,,,1,,,79.00
+"KNOT Embedded LTE4 Global",EG25-G&KNe,"ARM 32bit",Unknown,1,"800 MHz",3,"RouterOS v7","256 MB","256 MB",,802.3af/at,,,"12-57 V",2,,"6 W",,,,,,1,,,,,,,1,,,89.00
+"KNOT LR8G kit",RB924iR-2nD-BT5&BG770A&R11e-LR8G,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","128 MB",,802.3af/at,"Passive PoE",Ether2,"18-57 V",3,"12-57 V","23 W",2,1.5,,,2,,,1,,,,,1,,"microUSB type AB",179.00
+"KNOT LR9G kit",RB924iR-2nD-BT5&BG770A&R11e-LR9G,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","128 MB",,802.3af/at,802.3af,Ether2,"18-57 V",3,"12-57 V","23 W",2,1.5,,,2,,,1,,,,,1,,"microUSB type AB",179.00
+L009UiGS-2HaxD-IN,L009UiGS-2HaxD-IN,"ARM 32bit",IPQ-5018,2,"800 MHz",5,"RouterOS v7","512 MB","128 MB",,802.3af/at,"Passive PoE",Ether8,"24-56 V",2,"24-56 V","47 W",2,4,,,,8,,1,,"1 (2.5G supported)",,,,,"USB 3.0 type A",129.00
+L009UiGS-RM,L009UiGS-RM,"ARM 32bit",IPQ-5018,2,"800 MHz",5,"RouterOS v7","512 MB","128 MB",,802.3af/at,"Passive PoE",Ether8,"24-56 V",2,"24-56 V","40 W",,,,,,8,,1,,"1 (2.5G supported)",,,,,"USB 3.0 type A",119.00
+L11UG-5HaxD,L11UG-5HaxD,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"18-28 V",2,"12-28 V","15 W",,,2,,,1,,1,,,,,,,"USB type A",79.00
+L23UGSR-5HaxD2HaxD,L23UGSR-5HaxD2HaxD,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"18-28 V",2,"12-28 V","25 W",2,,2,,,1,,1,,"1 (2.5G supported)",,,1,,"USB type A",99.00
+"LDF 5",RBLDF-5nD,MIPSBE,AR9344,1,"600 MHz",3,RouterOS,"64 MB","16 MB",84x84x115mm,"Passive PoE",,,"10-30 V",1,,"6 W",,,2,9,1,,,,,,,,,,,49.00
+"LHG 5",RBLHG-5nD,MIPSBE,AR9344,1,"600 MHz",3,RouterOS,"64 MB","16 MB","Ø 391 x 222 mm; package 450 x 450 x 145 mm","Passive PoE",,,"11-30 V",1,,"6 W",,,2,24.5,1,,,,,,,,,,,69.00
+"LHG 5 ax",LHG-5axD,"ARM 32bit",IPQ-5010,2,"800 MHz",3,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"12-28 V",1,,"5 W",,,2,24.5,,1,,,,,,,,,,99.00
+"LHG 60G",RBLHGG-60adr2,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",3,RouterOS,"256 MB","16 MB",,802.3af/at,,,"12-57 V",1,,"5 W",,,,,,1,,,,,,,,,,149.00
+"LHGG LTE7 kit",LHGGR&R11e-LTE7,"ARM 64bit",88F3720,2,"800 MHz",3,"RouterOS v7","256 MB","16 MB",,802.3af/at,,,"12-57 V",1,,"8 W",,,,,,1,,,,,,,1,,,169.00
+"LHG LTE18 kit",LHGGM&EG18-EA,"ARM 64bit",88F3720,2,"800 MHz",3,"RouterOS v7","256 MB","16 MB",,802.3af/at,,,"12-57 V",1,,"8 W",,,,,,1,,,,,,,1,,,279.00
+"LHG XL 5 ac",RBLHGG-5acD-XL,"ARM 32bit",IPQ-4018,4,"488-896 (auto) MHz",3,RouterOS,"256 MB","16 MB","Ø 550 x 245 mm;","Passive PoE",,,"10-30 V",1,,"8 W",,,2,27,,1,,,,,,,,,,117.00
+"LHG XL 5 ax",LHG-5axD-XL,"ARM 32bit",IPQ-5010,2,"800 MHz",3,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"12-28 V",1,,"5 W",,,2,27,,1,,,,,,,,,,119.00
+"LHG XL HP5",RBLHG-5HPnD-XL,MIPSBE,AR9344,1,"600 MHz",3,RouterOS,"64 MB","16 MB","Ø 550 x 245 mm;","Passive PoE",,,"10-28 V",1,,"7 W",,,2,27,1,,,,,,,,,,,89.00
+"LtAP mini",RB912R-2nD-LTm,MIPSBE,QCA9531,1,"650 MHz",4,RouterOS,"64 MB","16 MB","139 x 77 x 28,5 mm",802.3af/at,,,"12-57 V",3,"8-30 V","9 W",2,1.5,,,1,,,,,,,,2,,,99.00
+"LtAP mini LTE kit",RB912R-2nD-LTm&EC200A-EUr3,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","16 MB",,802.3af/at,,,"12-57 V",3,"8-30 V","8 W",2,1.5,,,1,,,,,,,,2,,,99.00
+"mANTBox 2 12s",RB911G-2HPnD-12Sr2,MIPSBE,AR9342,1,"600 MHz",4,RouterOS,"64 MB","128 MB","140 x 348 x 82 mm","Passive PoE",,,"10-28 V",2,"8-30 V","11 W",2,12,,,,1,,,,,,,,,,99.00
+"mANTBox ax 15s",L22UGS-5HaxD2HaxD-15S,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"18-28 V",2,"12-28 V","21 W",2,12,2,15,,1,,1,,"1 (2.5G supported)",,,,,"USB type A",179.00
+mAP,RBmAP2nD,MIPSBE,QCA9531,1,"650 MHz",4,RouterOS,"64 MB","16 MB",68x68x19mm,802.3af/at,"Passive PoE",Ether2,"12-57 V",3,"8-57 V","5 W",2,1.2,,,2,,,1,,,,,,,"microUSB type AB",45.00
+"mAP lite",RBmAPL-2nD,MIPSBE,QCA9533,1,"650 MHz",4,RouterOS,"64 MB","16 MB",48x49x11mm,802.3af/at,,,"10-60 V",2,,"3.5 W",2,1.5,,,1,,,,,,,,,,,30.00
+"Metal 52 ac",RBMetalG-52SHPacn,MIPSBE,QCA9556,1,"720 MHz",4,RouterOS,"64 MB","16 MB",215x60x38mm,"Passive PoE",,,"10-30 V",1,,"11 W",1,6,1,6,,1,,,,,,,,,,119.00
+"NetBox 5 ax",L11UG-5HaxD-NB,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"18-28 V",1,,"15 W",,,2,,,1,,1,,,,,,,"USB type A",109.00
+"netFiber 9",CRS310-1G-5S-4S+OUT,"ARM 32bit",98DX226S,2,"800 MHz",5,"RouterOS v7 / SwitchOS","256 MB","16 MB",,802.3af/at,,,"18-57 V",2,"18-57 V","17 W",,,,,,1,,,,5,4,,,,,249.00
+"NetMetal 5",RB922UAGS-5HPacD-NM,MIPSBE,QCA9557,1,"720 MHz",4,RouterOS,"128 MB","128 MB","143x247x48mm (PCB)","Passive PoE",,,"8-30 V",1,,"19 W",,,2,,,1,,1,,1,,,1,,"USB type A",149.00
+"NetMetal ax",L23UGSR-5HaxD2HaxD-NM,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"18-28 V",2,"12-28 V","25 W",2,,2,,,1,,1,,"1 (2.5G supported)",,,1,,"USB type A",169.00
+"netPower 15FR",CRS318-1Fi-15Fr-2S-OUT,"ARM 32bit",98DX224S,2,"800 MHz",5,"RouterOS / SwitchOS","256 MB","16 MB","304 x 212 x 71 mm","Passive PoE","Passive PoE",Ether15,"18-57 V (recommended 36-57V)",16,"18-57 V","29 W",,,,,16,,,,,2,,,,,,169.00
+"netPower 16P",CRS318-16P-2S+OUT,"ARM 32bit",98DX226S,2,"800 MHz",5,"RouterOS / SwitchOS","256 MB","16 MB","303 x 212 x 78 mm",,802.3af/at,Ether1-Ether16,,2,"18-30 V / 48-57 V","316 W",,,,,,16,,,,,2,,,,,279.00
+"OmniTIK 5 PoE ac",RBOmniTikPG-5HacD,MIPSBE,QCA9557,1,"720 MHz",4,RouterOS,"128 MB","16 MB","416 x 129 x 58 mm","Passive PoE",802.3af/at,Ether2-Ether5,"12-57 V",1,,"66 W",,,2,7.5,,5,,1,,,,,,,"USB type A",139.00
+"PowerBox Pro",RB960PGS-PB,MIPSBE,QCA9557,1,"800 MHz",4,RouterOS,"128 MB","16 MB","125 x 52 x 225 mm","Passive PoE",802.3af/at,Ether2-Ether5,"12-57 V",2,"12-57 V","54 W",,,,,,5,,,,1,,,,,,109.00
+"QRT 5",RB911G-5HPnD-QRT,MIPSBE,AR9342,1,"600 MHz",4,RouterOS,"64 MB","128 MB",309x320x50mm,"Passive PoE",,,"8-28 V",1,,"12 W",,,2,24,,1,,,,,,,,,,169.00
+RB450Gx4,RB450Gx4,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",5,RouterOS,"1 GB","512 MB","90 x 116 mm",802.3af/at,"Passive PoE",Ether5,"12-57 V",3,"10-57 V","16 W",,,,,,5,,,,,,,,,,99.00
+RB911G-5HPnD,RB911G-5HPnD,MIPSBE,AR9342,1,"600 MHz",3,RouterOS,"64 MB","128 MB",105x105mm,"Passive PoE",,,"8-28 V",2,"8-28 V","11 W",,,2,,,1,,,,,,,,,,55.00
+RB912UAG-2HPnD,RB912UAG-2HPnD,MIPSBE,AR9342,1,"600 MHz",4,RouterOS,"64 MB","128 MB",105x105mm,"Passive PoE",,,"8-30 V",2,"8-30 V","13.5 W",2,,,,,1,,1,,,,,1,,"USB type A",79.00
+RB912UAG-5HPnD,RB912UAG-5HPnD,MIPSBE,AR9342,1,"600 MHz",4,RouterOS,"64 MB","128 MB",105x105mm,"Passive PoE",,,"8-30 V",2,"8-30 V","12 W",,,2,,,1,,1,,,,,1,,"USB type A",79.00
+RB922UAGS-5HPacD,RB922UAGS-5HPacD,MIPSBE,QCA9557,1,"720 MHz",4,RouterOS,"128 MB","128 MB",105x105mm,"Passive PoE",,,"8-30 V",2,"8-30 V","17 W",,,2,,,1,,1,,1,,,1,,"USB type A",99.00
+RB951Ui-2HnD,RB951Ui-2HnD,MIPSBE,AR9344,1,"600 MHz",4,RouterOS,"128 MB","128 MB",113x138x29mm,"Passive PoE","Passive PoE",Ether5,"8-30 V",2,"8-30 V","24 W",2,2.5,,,5,,,1,,,,,,,"USB type A",59.95
+RB1100AHx4,RB1100x4,"ARM 32bit",AL21400,4,"1.4 GHz",6,RouterOS,"1 GB","128 MB","443 x 148 x 44 mm",802.3af/at,,,"20-57 V",2,,"20 W",,,,,,13,,,,,,,,1,,329.00
+"RB1100AHx4 Dude Edition",RB1100Dx4,"ARM 32bit",AL21400,4,"1.4 GHz",6,RouterOS,"1 GB","128 MB","443 x 148 x 44 mm",802.3af/at,,,"20-57 V",2,,"33 W",,,,,,13,,,,,,,,1,,385.00
+RB4011iGS+5HacQ2HnD-IN,RB4011iGS+5HacQ2HnD-IN,"ARM 32bit",AL21400,4,"auto (533 - 1900) MHz",5,"RouterOS v7","1 GB","512 MB","228 x 120 x 30 mm","Passive PoE","Passive PoE up to 57V",Ether10,"18-57 V",2,"12-57 V","44 W",2,3,4,3,,10,,,,,1,,,,,275.00
+RB4011iGS+RM,RB4011iGS+RM,"ARM 32bit",AL21400,4,"auto (533 - 1900) MHz",5,"RouterOS v7","1 GB","512 MB","228 x 120 x 30 mm","Passive PoE","Passive PoE up to 57V",Ether10,"18-57 V",2,"12-57 V","33 W",,,,,,10,,,,,1,,,,,219.00
+RB5009UG+S+IN,RB5009UG+S+IN,"ARM 64bit",88F7040,4,"350-1400 (auto) MHz",5,"RouterOS v7","1 GB","1 GB","220 x 125 x 22 mm",802.3af/at,,,"24-57 V",3,"24-57 V","25 W",,,,,,7,1,1,,,1,,,,"USB 3.0 type A",219.00
+RB5009UPr+S+IN,RB5009UPr+S+IN,"ARM 64bit",88F7040,4,"350-1400 (auto) MHz",5,"RouterOS v7","1 GB","1 GB",,"802.3af/at (ether1), Mode B (ether2-ether8)",802.3af/at,Ether1-Ether8,"24-57 V",3,"24-57 V","150 W",,,,,,7,1,1,,,1,,,,"USB 3.0 type A",299.00
+RB5009UPr+S+OUT,RB5009UPr+S+OUT,"ARM 64bit",88F7040,4,"350-1400 (auto) MHz",5,"RouterOS v7","1 GB","1 GB",,802.3af/at,802.3af/at,Ether1-Ether8,"24-57 V",2,,"150 W",,,,,,7,1,1,,,1,,,,"USB 3.0 type A",319.00
+RBM33G,RBM33G,MMIPS,MT7621A,2,"880 MHz",4,RouterOS,"256 MB","16 MB",,"Passive PoE",,,"11-28 V",2,"11-28 V","24 W",,,,,,3,,1,,,,,2,,"USB 3.0 type A",59.00
+"ROSE Data server (RDS)",RDS2216-2XG-4S+4XS-2XQ,"ARM 64bit",AL73400,16,"2000 MHz",6,"RouterOS v7 (Special ROSE edition)","32 GB","128 MB","476 x 443 x 44 mm",,,,,,,"286 W",,,,,,1,,2,,,4,2,,,"USB 3.0 type A",1950.00
+"SXT SA5 ac",RBSXTG-5HPacD-SAr2,MIPSBE,QCA9557,1,"720 MHz",4,RouterOS,"128 MB","128 MB",,802.3af/at,,,"12-57 V",1,,"12 W",,,2,14,,1,,1,,,,,,,"USB type A",119.00
+"SXTsq 5 ac",RBSXTsqG-5acD,"ARM 32bit",IPQ-4018,4,"488-896 (auto) MHz",3,RouterOS,"256 MB","16 MB","129 x 129 x 34 mm","Passive PoE",,,"10-28 V",1,,"7 W",,,2,16,,1,,,,,,,,,,65.00
+"SXTsq 5 ax",SXTsq-5axD,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,"Passive PoE",,,"12-28 V",1,,"6 W",,,2,16,,1,,,,,,,,,,65.00
+"SXTsq Lite2",RBSXTsq2nD,MIPSBE,QCA9533,1,"650 MHz",3,RouterOS,"64 MB","16 MB","129 x 129 x 34 mm","Passive PoE",,,"10-30 V",1,,"5 W",2,10,,,1,,,,,,,,,,,39.00
+"SXTsq Lite5",RBSXTsq5nD,MIPSBE,AR9344,1,"600 MHz",3,RouterOS,"64 MB","16 MB",129x129x34mm,"Passive PoE",,,"10-30 V",1,,"6 W",,,2,16,1,,,,,,,,,,,46.00
+"wAP 60G",RBwAPG-60ad,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",3,RouterOS,"256 MB","16 MB","185 x 85 x 30 mm",802.3af/at,,,"12-57 V",2,"12-57 V","5 W",,,,,,1,,,,,,,,,,114.00
+"wAP 60G AP",RBwAPG-60ad-A,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,RouterOS,"256 MB","16 MB","185 x 85 x 30 mm",802.3af/at,,,"11-57 V",2,"11-57 V","5 W",,,,,,1,,,,,,,,,,139.00
+"wAP ac LTE kit",wAPGR-5HacD2HnD&EC200A-EUr3,"ARM 32bit",IPQ-4018,4,"488-896 (auto) MHz",4,"RouterOS v7","128 MB","16 MB",,802.3af/at,,,"18-57 V",2,"10-57 V","12 W",2,2.5,2,2.5,,2,,,,,,,1,,,169.00
+"wAP ax",wAPG-5HaxD2HaxD,"ARM 32bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,802.3af/at,,,"18-57 V",2,"12-57 V","9 W",2,6.9,2,7,,2,,,,,,,,,,89.00
+"wAP ax LTE7 kit",wAPGR-5HaxD2HaxD&R11e-LTE7,"ARM 64bit",IPQ-5010,2,"800 MHz",4,"RouterOS v7","256 MB","128 MB",,802.3af/at,,,"18-57 V",2,"12-57 V","13 W",2,6.9,2,7,,2,,,,,,,1,,,169.00
+"wAP LR8G kit",RBwAPR-2nD&R11e-LR8G,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","16 MB",,"Passive PoE",,,"9-30 V",3,"9-30 V","5 W",2,2,,,1,,,,,,,,1,,,149.00
+"wAP LR9G kit",RBwAPR-2nD&R11e-LR9G,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","16 MB",,"Passive PoE",,,"9-28 V",3,"9-28 V","7 W",2,2,,,1,,,,,,,,1,,,149.00
+"wAP LTE kit",wAPR-2nD&EC200A-EUr2,MIPSBE,QCA9531,1,"650 MHz",4,"RouterOS v7","64 MB","16 MB",,"Passive PoE",,,"9-30 V",3,"9-30 V","7 W",2,2,,,1,,,,,,,,1,,,99.00
+"wAP R",RBwAPR-2nD,MIPSBE,QCA9531,1,"650 MHz",4,RouterOS,"64 MB","16 MB","185x85x30 mm","Passive PoE",,,"9-30 V",3,"9-30 V","6 W",2,2,,,1,,,,,,,,1,,,89.00
+"Wireless Wire",RBwAPG-60adkit,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",3,RouterOS,"256 MB","16 MB","185 x 85 x 30 mm",802.3af/at,,,"12-57 V",2,"12-57 V","5 W",,,,,,1,,,,,,,,,,228.00
+"Wireless Wire Cube Pro",CubeG-5ac60aypair,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",4,RouterOS,"256 MB","64 MB",,802.3af/at,,,"18-48 V",1,,"10 W",,,1,11.5,,1,,,,,,,,,,298.00
+"Wireless Wire Dish",RBLHGG-60adkit,"ARM 32bit",IPQ-4019,4,"448-896 (auto) MHz",3,RouterOS,"256 MB","16 MB","Ø 391 x 222 mm",802.3af/at,,,"12-57 V",1,,"5 W",,,,,,1,,,,,,,,,,298.00
+"Wireless Wire nRAY",nRAYG-60adpair,"ARM 64bit",88F3720,2,"1 GHz",3,RouterOS,"256 MB","16 MB","261 x 166 mm",802.3af/at,,,"12-57 V",1,,"7 W",,,,,,1,,,,,,,,,,298.00
