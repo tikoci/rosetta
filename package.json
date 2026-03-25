@@ -9,6 +9,7 @@
     "assess": "bun run src/assess-html.ts",
     "extract": "bun run src/extract-html.ts",
     "search": "bun run src/search.ts",
+    "test": "bun test",
     "typecheck": "bun tsc --noEmit",
     "lint": "biome check src/"
   },

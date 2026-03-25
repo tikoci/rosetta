@@ -85,7 +85,7 @@ const COMPOUND_TERMS: [string, string][] = [
   ["address", "list"],
 ];
 
-function extractTerms(question: string): string[] {
+export function extractTerms(question: string): string[] {
   return question
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ")
@@ -94,7 +94,7 @@ function extractTerms(question: string): string[] {
     .slice(0, MAX_TERMS);
 }
 
-function buildFtsQuery(terms: string[], mode: "AND" | "OR"): string {
+export function buildFtsQuery(terms: string[], mode: "AND" | "OR"): string {
   if (terms.length === 0) return "";
 
   // Check for compound terms and convert to NEAR expressions

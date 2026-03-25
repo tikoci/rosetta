@@ -3,7 +3,7 @@ HTML_DIR   := box/documents-export-2026-3-25/ROS
 INSPECT    := $(HOME)/restraml/docs/7.23beta2/extra/inspect.json
 RESTRAML   := $(HOME)/restraml/docs
 
-.PHONY: extract extract-html extract-properties extract-commands extract-all-versions link assess search serve lint clean install
+.PHONY: extract extract-html extract-properties extract-commands extract-all-versions link assess search serve lint test clean install
 
 install:
 	bun install
@@ -38,6 +38,9 @@ serve:
 
 lint:
 	bunx @biomejs/biome check src/
+
+test:
+	bun test
 
 clean:
 	rm -f $(DB) $(DB)-shm $(DB)-wal

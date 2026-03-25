@@ -161,6 +161,7 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
+| `src/query.test.ts` | Bun tests — query planner + DB integration (in-memory SQLite) |
 | `ros-help.db` | The SQLite database (WAL mode) |
 | `ros-pdf-to-sqlite.py` | Original PDF extraction (archival) |
 | `ros-pdf-assess.py` | Original PDF assessment (archival) |

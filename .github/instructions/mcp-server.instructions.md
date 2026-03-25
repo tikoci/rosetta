@@ -1,6 +1,6 @@
 ---
 description: "Use when working on MCP server tools, query logic, or FTS5 search. Covers BM25 ranking, compound terms, stop words, and tool schema conventions."
-applyTo: "src/mcp.ts, src/query.ts, src/search.ts"
+applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 ---
 # MCP Server & Query Engine
 
@@ -34,3 +34,4 @@ applyTo: "src/mcp.ts, src/query.ts, src/search.ts"
 1. Add query function in `src/query.ts`
 2. Register via `server.registerTool()` in `src/mcp.ts` with Zod input schema
 3. Update tool descriptions to include knowledge boundaries and help LLM agents pick the right tool
+4. Add tests in `src/query.test.ts` — pure-function tests + DB integration against in-memory SQLite
