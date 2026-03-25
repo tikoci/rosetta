@@ -2,14 +2,26 @@
 
 RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP.
 
+## Project Documentation
+
+Three files, three jobs — agents should use these, not create new top-level `.md` files:
+
+| File | What goes in it |
+|------|----------------|
+| `CLAUDE.md` | Architecture, schema, conventions — what the project **is** and how it works |
+| `DESIGN.md` | Decisions, data sources, constraints, cross-references — **why** things are the way they are |
+| `BACKLOG.md` | Ideas, considerations, future work — structured parking lot for anything not yet active |
+
+**Rule:** If it's a decision or rationale → `DESIGN.md`. If it's an idea, question, or future work → `BACKLOG.md`. If it's how the project works → `CLAUDE.md`.
+
 ## What This Is
 
-MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML archive of all RouterOS documentation (~317 pages). This project extracts the **HTML export** into a searchable SQLite database and exposes it as an MCP server — the same **SQL-as-RAG** pattern used in `~/Lab/mcp-discourse` (see its `DESIGN.md` for the full architectural rationale).
+MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML archive of all RouterOS documentation (~317 pages). This project extracts the **HTML export** into a searchable SQLite database and exposes it as an MCP server using the **SQL-as-RAG** pattern: SQLite FTS5 as the retrieval layer for retrieval-augmented generation, exposed over MCP so any LLM client can use it.
 
 Two outputs:
 
 1. **SQL-as-RAG MCP Server** — 8 tools for LLM agents to search docs, look up properties, browse the command tree, and check version history
-2. **RouterOS Glossary** — command-tree → documentation mapping, feeding `~/lsp-routeros-ts` (hover help) and future Copilot integration
+2. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration
 
 ## Current State
 
@@ -160,8 +172,8 @@ When a new HTML/PDF export is available:
 ```sh
 # Place new export in box/ directory
 make clean
-make extract       # runs extract-html, extract-commands, link (single version)
-make extract-full  # runs extract-html, extract-all-versions, link (all versions)
+make extract       # runs extract-html, extract-properties, extract-commands, link (single version)
+make extract-full  # runs extract-html, extract-properties, extract-all-versions, link (all versions)
 ```
 
 The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
@@ -178,25 +190,16 @@ The Makefile orchestrates the full pipeline. Each script drops and recreates its
 
 ### Command Tree (inspect.json)
 
-- **Source:** `~/restraml/docs/*/extra/inspect.json` — 46 versions extracted
+- **Source:** `inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml) — 46 versions extracted
 - **Content:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 cmds, 34K args (primary: 7.22)
 - **Versions:** 7.9 through 7.23beta2 (stable + development channels)
 - **Primary version:** 7.22 (latest stable) — used for the `commands` table and linking
 - **Version tracking:** 1.67M entries in `command_versions` junction table
 
-## Future Direction
+## Related Projects
 
-1. **List-format properties** — Some pages use `<ul><li>` for read-only properties instead of tables. Second extraction pass.
-2. **Cross-reference with forum** — Join with `~/Lab/mcp-discourse` data.
-3. **LSP integration** — `~/lsp-routeros-ts` hover handler consumes property data from this DB. Settings field for `routeros.helpDatabasePath`.
-4. **Copilot context** — VSCode extension client-side can provide doc context via MCP or direct DB queries.
-5. **Agent-assisted linking** — Improve the 92% dir coverage by having agents manually map remaining unlinked commands.
+See `DESIGN.md` for full cross-references and rationale. Key dependencies:
 
-## Cross-References
-
-| Project | Relationship |
-|---------|-------------|
-| `~/Lab/mcp-discourse` | Same SQL-as-RAG pattern. Its `DESIGN.md` has the full FTS5/BM25 rationale. |
-| `~/restraml` | Source of `inspect.json` command tree + RAML schema. |
-| `~/lsp-routeros-ts` | Consumer: hover help, property docs, command path → URL mapping. |
-| `~/netinstall` | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |
+- **[tikoci/restraml](https://github.com/tikoci/restraml)** — source of `inspect.json` command tree data. Local path configurable via `RESTRAML` in Makefile.
+- **[tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts)** — consumer of property/command data from this DB
+- **[tikoci/netinstall](https://github.com/tikoci/netinstall)** — RouterOS REST API gotchas (HTTP verb mapping, property name differences)

@@ -3,17 +3,20 @@ HTML_DIR   := box/documents-export-2026-3-25/ROS
 INSPECT    := $(HOME)/restraml/docs/7.23beta2/extra/inspect.json
 RESTRAML   := $(HOME)/restraml/docs
 
-.PHONY: extract extract-html extract-commands extract-all-versions link assess search serve lint clean install
+.PHONY: extract extract-html extract-properties extract-commands extract-all-versions link assess search serve lint clean install
 
 install:
 	bun install
 
-extract: extract-html extract-commands link
+extract: extract-html extract-properties extract-commands link
 
-extract-full: extract-html extract-all-versions link
+extract-full: extract-html extract-properties extract-all-versions link
 
 extract-html:
 	bun run src/extract-html.ts
+
+extract-properties:
+	bun run src/extract-properties.ts
 
 extract-commands:
 	bun run src/extract-commands.ts

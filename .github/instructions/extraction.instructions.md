@@ -12,12 +12,12 @@ Every extractor follows the same structure:
 
 ## Pipeline Order
 
-**Single version:** `extract-html` → `extract-commands` → `link-commands`
+**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `link-commands`
 ```sh
 make extract
 ```
 
-**All versions:** `extract-html` → `extract-all-versions` → `link-commands`
+**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `link-commands`
 ```sh
 make extract-full
 ```
@@ -39,7 +39,7 @@ make extract-full
 - Primary version = latest stable (currently 7.22)
 
 ## Batch Version Extraction (extract-all-versions.ts)
-- Discovers version dirs from `~/restraml/docs/*/extra/inspect.json`
+- Discovers version dirs from restraml's `docs/*/extra/inspect.json` (path configured via `RESTRAML` in Makefile, see [tikoci/restraml](https://github.com/tikoci/restraml))
 - Classifies channel: "beta"/"rc" → development, else stable
 - Runs primary extraction for latest stable, accumulate for all others
 - 46 versions: 7.9 through 7.23beta2

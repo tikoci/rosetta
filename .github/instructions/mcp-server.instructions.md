@@ -31,7 +31,6 @@ applyTo: "src/mcp.ts, src/query.ts, src/search.ts"
 - Porter unicode61 tokenizer — stemming is automatic
 
 ## Adding a New Tool
-1. Define Zod schema for inputs in `src/mcp.ts`
-2. Add query function in `src/query.ts`
-3. Register handler in the `server.setRequestHandler` block
-4. Update tool descriptions to help LLM agents pick the right tool
+1. Add query function in `src/query.ts`
+2. Register via `server.registerTool()` in `src/mcp.ts` with Zod input schema
+3. Update tool descriptions to include knowledge boundaries and help LLM agents pick the right tool

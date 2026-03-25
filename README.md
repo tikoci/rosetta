@@ -1,6 +1,6 @@
 # mikrotik-docs
 
-MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Extracts the official Confluence HTML export into a searchable SQLite database with FTS5 full-text search, then exposes it as 6 MCP tools for AI coding assistants.
+MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Extracts the official Confluence HTML export into a searchable SQLite database with FTS5 full-text search, then exposes it as 8 MCP tools for AI coding assistants.
 
 **What you get:** Ask your AI assistant about RouterOS configuration and it can search 317 documentation pages, 4,860 property definitions, and a 40K-entry command tree — with direct links back to help.mikrotik.com.
 
@@ -34,7 +34,7 @@ This runs the full pipeline: parse HTML → extract properties → load command 
 
 The repo includes `.vscode/mcp.json` — just open the folder in VS Code. Copilot Chat will automatically have access to the RouterOS documentation tools.
 
-The MCP server provides these tools:
+The MCP server provides 8 tools:
 
 | Tool | What it does |
 | ---- | ------------ |
@@ -43,6 +43,8 @@ The MCP server provides these tools:
 | `routeros_lookup_property` | Look up a property by exact name |
 | `routeros_search_properties` | Search across property names and descriptions |
 | `routeros_command_tree` | Browse the RouterOS command hierarchy |
+| `routeros_search_callouts` | Search note/warning/info callouts across all pages |
+| `routeros_command_version_check` | Check which RouterOS versions include a command |
 | `routeros_stats` | Database health and coverage stats |
 
 ### Use with Claude Code
@@ -80,14 +82,16 @@ The database is ~15MB and searches return in milliseconds.
 
 ```text
 src/
-├── mcp.ts              # MCP server (6 tools, stdio transport)
-├── query.ts            # NL → FTS5 query planner, BM25 ranking
-├── db.ts               # SQLite schema, WAL mode, FTS5 triggers
-├── extract-html.ts     # Confluence HTML → pages table
-├── extract-properties.ts  # Property table extraction
-├── extract-commands.ts # inspect.json → commands table
-├── link-commands.ts    # Command ↔ page mapping
-└── search.ts           # CLI search tool
+├── mcp.ts                  # MCP server (8 tools, stdio transport)
+├── query.ts                # NL → FTS5 query planner, BM25 ranking
+├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
+├── extract-html.ts         # Confluence HTML → pages + callouts tables
+├── extract-properties.ts   # Property table extraction from HTML
+├── extract-commands.ts     # inspect.json → commands table (version-aware)
+├── extract-all-versions.ts # Batch extract all 46 RouterOS versions
+├── link-commands.ts        # Command ↔ page mapping
+├── assess-html.ts          # HTML archive assessment (run once)
+└── search.ts               # CLI search tool
 ```
 
 ## Development

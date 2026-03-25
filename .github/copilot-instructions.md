@@ -6,11 +6,25 @@ RouterOS documentation as SQLite FTS5 — an MCP server providing RAG search + c
 
 See [CLAUDE.md](../CLAUDE.md) for full architecture, schema, and source details.
 
+## Project Documentation Convention
+
+Three files, three jobs — use these, don't create new top-level `.md` files:
+
+| File | What goes in it |
+|------|----------------|
+| [CLAUDE.md](../CLAUDE.md) | Architecture, schema, conventions — what the project **is** |
+| [DESIGN.md](../DESIGN.md) | Decisions, data sources, constraints — **why** things are the way they are |
+| [BACKLOG.md](../BACKLOG.md) | Ideas, considerations, future work — structured parking lot |
+
+**Rule:** Decision or rationale → `DESIGN.md`. Idea, question, or future work → `BACKLOG.md`. How the project works → `CLAUDE.md`.
+
+When deferring work or recording ideas, add them to `BACKLOG.md` under the appropriate heading.
+
 ## Build and Test
 
 ```sh
 bun install              # Install dependencies
-make extract             # Full pipeline: HTML → DB → link commands (single version)
+make extract             # Full pipeline: HTML → properties → commands → link
 make extract-full        # Full pipeline with all 46 RouterOS versions
 make serve               # Start MCP server (stdio transport)
 make search query="DHCP" # CLI search
@@ -19,7 +33,7 @@ make lint                # Biome linter
 make clean               # Remove DB files
 ```
 
-Individual extraction steps: `make extract-html`, `make extract-commands`, `make extract-all-versions`, `make link`.
+Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make link`.
 
 ## Architecture
 
@@ -36,20 +50,21 @@ Individual extraction steps: `make extract-html`, `make extract-commands`, `make
 
 **Data sources:**
 - HTML export from Confluence in `box/documents-export-2026-3-25/ROS/` (317 pages)
-- `inspect.json` from `~/restraml/` for the command tree (40K entries, 46 versions: 7.9–7.23beta2)
+- `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree (40K entries, 46 versions: 7.9–7.23beta2). Local path configured via `RESTRAML` in Makefile.
+- Product matrix CSV in `matrix/` (144 products — extraction not yet built, see BACKLOG.md)
 
 ## Code Style
 
 - **Runtime:** Bun (use `bun:sqlite` for DB, not better-sqlite3)
 - **Modules:** ESM with `.ts` extensions in imports (`import { foo } from './bar.ts'`)
-- **Validation:** Zod v4 for MCP tool input schemas
+- **Validation:** Zod for MCP tool input schemas
 - **DOM parsing:** linkedom (not jsdom)
 - **Linter:** Biome (formatter disabled — only linting rules apply)
 - **No emit:** TypeScript is type-checked only (`noEmit: true`), Bun runs `.ts` directly
 
 ## Conventions
 
-- Extractors are idempotent — they `DROP TABLE IF EXISTS` and rebuild
+- Extractors are idempotent — they `DELETE` existing data and rebuild
 - FTS5 indexes use `porter unicode61` tokenizer with content-sync triggers
 - BM25 weights: title=3.0, path=2.0, text=1.0, code=0.5
 - The MCP server name is `"mikrotik-docs"` — keep consistent across configs

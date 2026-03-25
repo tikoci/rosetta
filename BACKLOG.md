@@ -1,0 +1,92 @@
+# Backlog — mikrotik-docs
+
+> Ideas, considerations, and future work. Anything that isn't "how the project works" (→ `CLAUDE.md`) or "why it's built this way" (→ `DESIGN.md`) goes here.
+>
+> **Convention:** Agents should add items here under the appropriate heading rather than creating new files. Include enough context that a different agent (or human) can act on it later without the original conversation.
+
+## Ready to Build
+
+Items with clear scope and no blockers.
+
+### Device/product data (Phase 1)
+
+Source: `matrix/2026-03-25/matrix.csv` — 144 products, 34 columns. Column schema in `matrix/CLAUDE.md`.
+
+Remaining work:
+
+1. Add `devices` table + `devices_fts` to `src/db.ts` — FTS over product name + architecture + CPU
+2. Create `src/extract-devices.ts` — idempotent DELETE + INSERT from CSV, handle UTF-8 BOM
+3. Add MCP tools to `src/mcp.ts`:
+   - `routeros_device_lookup`: exact match by product name or product code
+   - `routeros_device_search`: FTS + optional structured filters (architecture, min ports, has_poe, etc.)
+4. Query functions in `src/query.ts` — FTS for name search, SQL WHERE for structured specs
+5. Makefile target: `extract-devices`, include in `extract` and `extract-full` pipelines
+6. Potential enrichment: cross-reference device architecture → inspect.json architecture names
+
+## To Investigate
+
+Items that need research or experimentation before they're actionable.
+
+### List-format properties
+
+Some pages use `<ul><li><strong>name</strong> (type; Default: value)</li></ul>` for read-only properties instead of `confluenceTable`. These are currently not extracted. Need to:
+
+- Quantify how many exist (`ros-html-assessment.json` has `listProperties` counts per page)
+- Decide: same `properties` table or separate? Same extraction pass or new script?
+- Check if the pattern is consistent enough for reliable parsing
+
+### Special hardware pages
+
+Several pages contain device-specific tables that are uniquely valuable for agents — they're the only structured source for "does this router actually support X":
+
+- **Switch Chip Features** (`ROS/pages/15302988`) — chip model → feature matrix
+- **Marvell Prestera** (`ROS/pages/30474317`) — Prestera switch chip model table
+- **Bridging and Switching** (`ROS/pages/328068`) — RouterBoard/Switch Chip Model table
+- **Peripherals** (`ROS/pages/13500447`) — supported USB/LTE/etc. peripherals
+
+These are worth extracting into dedicated tables or enriching the device data. If MikroTik renames/moves these pages, that's a signal "something important changed."
+
+Note: absence from the Peripherals page doesn't mean unsupported — most MBIM modems work without being listed.
+
+### `_completion` data from deep-inspect.json
+
+[tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices like `protocol=tcp,udp,icmp`). This would significantly enrich the command tree. Watch for that PR to ship, then design schema extension.
+
+### Cross-reference with forum data
+
+The MikroTik forum archive (also an SQL-as-RAG project using SQLite FTS5) could be cross-searched with official docs. A JOIN or cross-search could surface community knowledge alongside official documentation. Need to think about: same DB vs. separate MCP tools vs. query-time federation.
+
+## Deferred
+
+Items explicitly postponed until a trigger condition is met.
+
+### Documentation version tracking
+
+**Trigger:** Second HTML export is available.
+
+When it arrives:
+
+- Add `doc_exports` metadata table (export date, page count, hash)
+- Compare text hashes to detect changed pages
+- Watch the special hardware pages above for renames/moves — these are the ones that matter most if they change
+- Simple diff is fine; don't overengineer
+
+### Copilot context provider
+
+VSCode extension client-side can provide doc context via MCP or direct DB queries. Depends on `lsp-routeros-ts` integration being further along.
+
+## Improvements
+
+Smaller items that would make things better but aren't urgent.
+
+### Agent-assisted linking
+
+Currently ~92% of dirs are linked to documentation pages. The remaining ~8% could be mapped by having agents manually review unlinked commands and match them to pages. Low priority — 92% is good enough for most queries.
+
+### LSP integration
+
+[tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) hover handler should consume property data from this DB. Needs a settings field for `routeros.helpDatabasePath`. The data is ready; the consumer needs work.
+
+### Archival Python scripts
+
+`ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` are from the original PDF-based approach. They still work but are superseded by the HTML pipeline. Keep for reference but could be moved to a `legacy/` directory.

@@ -1,7 +1,7 @@
 /**
  * query.ts — Natural-language → FTS5 query planner for RouterOS documentation.
  *
- * Adapted from mcp-discourse/src/query.ts but simplified for docs:
+ * NL → FTS5 query planner for docs. SQL-as-RAG pattern:
  * no author/date/engagement signals — just text search with BM25 ranking.
  */
 

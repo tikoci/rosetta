@@ -2,7 +2,7 @@
 /**
  * extract-all-versions.ts — Extract command trees from all RouterOS versions.
  *
- * Iterates all version directories in ~/restraml/docs/, extracts their
+ * Iterates all version directories in the restraml docs dir, extracts their
  * inspect.json (preferring extra/ variant), and populates command_versions.
  *
  * The latest stable version is loaded as the primary commands table.

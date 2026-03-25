@@ -9,7 +9,7 @@ argument-hint: "Path to new HTML export directory (optional)"
 - A new Confluence HTML export is available
 - Database needs rebuilding from scratch
 - Schema changes require fresh extraction
-- New RouterOS versions available in ~/restraml/
+- New RouterOS versions available in restraml (see `RESTRAML` in Makefile)
 
 ## Procedure
 
@@ -17,7 +17,7 @@ argument-hint: "Path to new HTML export directory (optional)"
    - Bun is installed: `bun --version`
    - Dependencies installed: `bun install`
    - HTML export exists in `box/documents-export-*/ROS/`
-   - For commands: `~/restraml/docs/*/extra/inspect.json` exists (46+ versions)
+   - For commands: restraml `docs/*/extra/inspect.json` exists (46+ versions, path via `RESTRAML` in Makefile)
 
 2. **Clean existing database**
    ```sh
@@ -37,7 +37,8 @@ argument-hint: "Path to new HTML export directory (optional)"
    ```
 
    Pipeline order:
-   - `extract-html` — HTML → pages + callouts + properties tables
+   - `extract-html` — HTML → pages + callouts tables
+   - `extract-properties` — Property tables from HTML → properties table
    - `extract-commands` or `extract-all-versions` — inspect.json → commands + ros_versions + command_versions
    - `link` — command ↔ page mapping
 
