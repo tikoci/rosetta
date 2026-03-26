@@ -5,8 +5,8 @@
  *   version defaults to package.json version prefixed with "v"
  *
  * Produces:
- *   dist/<platform>/mikrotik-docs[.exe]  — compiled binary
- *   dist/mikrotik-docs-<platform>.zip    — release ZIP (binary + README)
+ *   dist/<platform>/rosetta[.exe]  — compiled binary
+ *   dist/rosetta-<platform>.zip    — release ZIP (binary + README)
  *   dist/ros-help.db.gz                  — compressed database (if DB exists)
  *
  * Then upload with:
@@ -26,7 +26,7 @@ import path from "node:path";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const DIST = path.join(ROOT, "dist");
 const ENTRY = path.join(ROOT, "src/mcp.ts");
-const REPO_URL = "tikoci/mikrotik-docs";
+const REPO_URL = "tikoci/rosetta";
 
 // Version from CLI arg or package.json
 const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf-8"));
@@ -39,10 +39,10 @@ interface Target {
 }
 
 const targets: Target[] = [
-  { name: "macos-arm64", bunTarget: "bun-darwin-arm64", exe: "mikrotik-docs" },
-  { name: "macos-x64", bunTarget: "bun-darwin-x64", exe: "mikrotik-docs" },
-  { name: "windows-x64", bunTarget: "bun-windows-x64", exe: "mikrotik-docs.exe" },
-  { name: "linux-x64", bunTarget: "bun-linux-x64", exe: "mikrotik-docs" },
+  { name: "macos-arm64", bunTarget: "bun-darwin-arm64", exe: "rosetta" },
+  { name: "macos-x64", bunTarget: "bun-darwin-x64", exe: "rosetta" },
+  { name: "windows-x64", bunTarget: "bun-windows-x64", exe: "rosetta.exe" },
+  { name: "linux-x64", bunTarget: "bun-linux-x64", exe: "rosetta" },
 ];
 
 const defines = [
@@ -55,15 +55,15 @@ const defines = [
 if (existsSync(DIST)) rmSync(DIST, { recursive: true });
 mkdirSync(DIST, { recursive: true });
 
-console.log(`Building mikrotik-docs ${version}`);
+console.log(`Building rosetta ${version}`);
 console.log();
 
 // Build README for inclusion in ZIP
-const readmeTxt = `mikrotik-docs ${version}
+const readmeTxt = `rosetta ${version}
 RouterOS documentation MCP server
 
 Quick Start:
-  1. Run:  ./mikrotik-docs --setup
+  1. Run:  ./rosetta --setup
      (On macOS: if blocked by Gatekeeper, go to System Settings > Privacy & Security > Allow)
      (On Windows: if SmartScreen warns, click "More info" > "Run anyway")
   2. This downloads the documentation database (~50 MB compressed)
@@ -101,7 +101,7 @@ for (const target of targets) {
   writeFileSync(path.join(dir, "README.txt"), readmeTxt);
 
   // Create ZIP
-  const zipName = `mikrotik-docs-${target.name}.zip`;
+  const zipName = `rosetta-${target.name}.zip`;
   const zipPath = path.join(DIST, zipName);
   console.log(`  Packaging ${zipName}...`);
 
@@ -142,7 +142,7 @@ console.log("Release artifacts:");
 console.log();
 const artifacts = [];
 for (const target of targets) {
-  const zipName = `mikrotik-docs-${target.name}.zip`;
+  const zipName = `rosetta-${target.name}.zip`;
   if (existsSync(path.join(DIST, zipName))) {
     console.log(`  dist/${zipName}`);
     artifacts.push(`dist/${zipName}`);

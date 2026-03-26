@@ -23,20 +23,20 @@ const args = process.argv.slice(2);
 
 if (args.includes("--version") || args.includes("-v")) {
   const ver = typeof VERSION !== "undefined" ? VERSION : "dev";
-  console.log(`mikrotik-docs ${ver}`);
+  console.log(`rosetta ${ver}`);
   process.exit(0);
 }
 
 if (args.includes("--help") || args.includes("-h")) {
   const ver = typeof VERSION !== "undefined" ? VERSION : "dev";
-  console.log(`mikrotik-docs ${ver} — MCP server for RouterOS documentation`);
+  console.log(`rosetta ${ver} — MCP server for RouterOS documentation`);
   console.log();
   console.log("Usage:");
-  console.log("  mikrotik-docs              Start MCP server (stdio transport)");
-  console.log("  mikrotik-docs --setup      Download database + print MCP client config");
-  console.log("  mikrotik-docs --setup --force  Re-download database");
-  console.log("  mikrotik-docs --version    Print version");
-  console.log("  mikrotik-docs --help       Print this help");
+  console.log("  rosetta              Start MCP server (stdio transport)");
+  console.log("  rosetta --setup      Download database + print MCP client config");
+  console.log("  rosetta --setup --force  Re-download database");
+  console.log("  rosetta --version    Print version");
+  console.log("  rosetta --help       Print this help");
   console.log();
   console.log("Environment:");
   console.log("  DB_PATH  Absolute path to ros-help.db (optional)");
@@ -71,7 +71,7 @@ import {
 initDb();
 
 const server = new McpServer({
-  name: "mikrotik-docs",
+  name: "rosetta",
   version: "0.1.0",
 });
 

@@ -1,6 +1,6 @@
 {
   "servers": {
-    "mikrotik-docs": {
+    "rosetta": {
       "command": "bun",
       "args": ["run", "src/mcp.ts"],
       "cwd": "${workspaceFolder}"

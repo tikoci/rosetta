@@ -1,4 +1,4 @@
-# Design — mikrotik-docs
+# Design — rosetta
 
 > **Audience:** LLM agents working on this codebase. Explains *why* things are the way they are.
 > For *what* the project is and how it works, see `CLAUDE.md`.

@@ -1,7 +1,7 @@
 /**
  * setup.ts — Download the RouterOS documentation database and print MCP client config.
  *
- * Called by `mikrotik-docs --setup` (compiled binary) or `bun run src/setup.ts` (dev).
+ * Called by `rosetta --setup` (compiled binary) or `bun run src/setup.ts` (dev).
  * Downloads ros-help.db.gz from the latest GitHub Release, decompresses it,
  * validates the DB, and prints config snippets for each MCP client.
  */
@@ -14,7 +14,7 @@ declare const REPO_URL: string;
 declare const VERSION: string;
 
 const GITHUB_REPO =
-  typeof REPO_URL !== "undefined" ? REPO_URL : "tikoci/mikrotik-docs";
+  typeof REPO_URL !== "undefined" ? REPO_URL : "tikoci/rosetta";
 const RELEASE_VERSION =
   typeof VERSION !== "undefined" ? VERSION : "dev";
 
@@ -53,7 +53,7 @@ export async function runSetup(force = false) {
   const serverCmd = getServerCommand();
   const isCompiled = serverCmd === process.execPath;
 
-  console.log(`mikrotik-docs ${RELEASE_VERSION}`);
+  console.log(`rosetta ${RELEASE_VERSION}`);
   console.log();
 
   // ── Download DB if needed ──
@@ -132,7 +132,7 @@ function printCompiledConfig(serverCmd: string) {
   console.log();
   console.log(`  {`);
   console.log(`    "mcpServers": {`);
-  console.log(`      "mikrotik-docs": {`);
+  console.log(`      "rosetta": {`);
   console.log(`        "command": ${cmdJson}`);
   console.log(`      }`);
   console.log(`    }`);
@@ -143,7 +143,7 @@ function printCompiledConfig(serverCmd: string) {
   // Claude Code
   console.log();
   console.log("▸ Claude Code");
-  console.log(`  claude mcp add mikrotik-docs ${serverCmd}`);
+  console.log(`  claude mcp add rosetta ${serverCmd}`);
 
   // VS Code Copilot
   console.log();
@@ -151,7 +151,7 @@ function printCompiledConfig(serverCmd: string) {
   console.log();
   console.log(`  "mcp": {`);
   console.log(`    "servers": {`);
-  console.log(`      "mikrotik-docs": {`);
+  console.log(`      "rosetta": {`);
   console.log(`        "command": ${cmdJson}`);
   console.log(`      }`);
   console.log(`    }`);
@@ -174,7 +174,7 @@ function printDevConfig(baseDir: string) {
   console.log();
   console.log(`  {`);
   console.log(`    "mcpServers": {`);
-  console.log(`      "mikrotik-docs": {`);
+  console.log(`      "rosetta": {`);
   console.log(`        "command": "bun",`);
   console.log(`        "args": ["run", "src/mcp.ts"],`);
   console.log(`        "cwd": ${cwdJson}`);
@@ -187,7 +187,7 @@ function printDevConfig(baseDir: string) {
   // Claude Code
   console.log();
   console.log("▸ Claude Code");
-  console.log(`  claude mcp add mikrotik-docs -- bun run src/mcp.ts`);
+  console.log(`  claude mcp add rosetta -- bun run src/mcp.ts`);
 
   // VS Code Copilot
   console.log();

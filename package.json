@@ -1,12 +1,12 @@
 {
-  "name": "mikrotik-docs",
+  "name": "rosetta",
   "version": "0.1.0",
   "description": "RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP",
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tikoci/mikrotik-docs.git"
+    "url": "https://github.com/tikoci/rosetta.git"
   },
   "scripts": {
     "start": "bun run src/mcp.ts",

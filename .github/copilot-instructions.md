@@ -69,7 +69,7 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 - Extractors are idempotent — they `DELETE` existing data and rebuild
 - FTS5 indexes use `porter unicode61` tokenizer with content-sync triggers
 - BM25 weights: title=3.0, path=2.0, text=1.0, code=0.5
-- The MCP server name is `"mikrotik-docs"` — keep consistent across configs
+- The MCP server name is `"rosetta"` — keep consistent across configs
 - Stop words are hardcoded in `query.ts` (~72 words)
 - Compound terms (~37 RouterOS pairs like firewall+filter) use FTS5 NEAR expressions
 

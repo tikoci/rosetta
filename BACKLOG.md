@@ -1,4 +1,4 @@
-# Backlog — mikrotik-docs
+# Backlog — rosetta
 
 > Ideas, considerations, and future work. Anything that isn't "how the project works" (→ `CLAUDE.md`) or "why it's built this way" (→ `DESIGN.md`) goes here.
 >

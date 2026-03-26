@@ -5,7 +5,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 # MCP Server & Query Engine
 
 ## MCP Tool Conventions
-- Server name: `"mikrotik-docs"` — never change
+- Server name: `"rosetta"` — never change
 - Zod v4 installed, but import from `"zod/v3"` — MCP SDK requires Zod v3 API
 - Transport: stdio only (`StdioServerTransport`)
 - Tools return structured objects, not raw SQL rows

@@ -1,4 +1,4 @@
-# mikrotik-docs
+# rosetta
 
 MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, 40,000-entry command tree, and 144 hardware product specs — with direct links to help.mikrotik.com.
 
@@ -24,32 +24,32 @@ The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools
 
 ## Quick Start
 
-Download a pre-built binary from [Releases](https://github.com/tikoci/mikrotik-docs/releases) — no Bun, Node.js, or other tools required.
+Download a pre-built binary from [Releases](https://github.com/tikoci/rosetta/releases) — no Bun, Node.js, or other tools required.
 
 ### 1. Download
 
-Go to the [latest release](https://github.com/tikoci/mikrotik-docs/releases/latest) and download the ZIP for your platform:
+Go to the [latest release](https://github.com/tikoci/rosetta/releases/latest) and download the ZIP for your platform:
 
 | Platform | File |
 |----------|------|
-| macOS (Apple Silicon) | `mikrotik-docs-macos-arm64.zip` |
-| macOS (Intel) | `mikrotik-docs-macos-x64.zip` |
-| Windows | `mikrotik-docs-windows-x64.zip` |
-| Linux | `mikrotik-docs-linux-x64.zip` |
+| macOS (Apple Silicon) | `rosetta-macos-arm64.zip` |
+| macOS (Intel) | `rosetta-macos-x64.zip` |
+| Windows | `rosetta-windows-x64.zip` |
+| Linux | `rosetta-linux-x64.zip` |
 
-Extract the ZIP to a permanent location (e.g., `~/mikrotik-docs` or `C:\mikrotik-docs`).
+Extract the ZIP to a permanent location (e.g., `~/rosetta` or `C:\rosetta`).
 
 ### 2. Run Setup
 
 Open a terminal in the extracted folder and run:
 
 ```sh
-./mikrotik-docs --setup
+./rosetta --setup
 ```
 
 On Windows:
 ```powershell
-.\mikrotik-docs.exe --setup
+.\rosetta.exe --setup
 ```
 
 This downloads the documentation database (~50 MB compressed, ~220 MB on disk) and prints configuration instructions for your MCP client.
@@ -73,19 +73,19 @@ Add (or merge into existing config):
 ```json
 {
   "mcpServers": {
-    "mikrotik-docs": {
-      "command": "/path/to/mikrotik-docs"
+    "rosetta": {
+      "command": "/path/to/rosetta"
     }
   }
 }
 ```
 
-Replace `/path/to/mikrotik-docs` with the actual path printed by `--setup`. Then **restart Claude Desktop**.
+Replace `/path/to/rosetta` with the actual path printed by `--setup`. Then **restart Claude Desktop**.
 
 #### Claude Code
 
 ```sh
-claude mcp add mikrotik-docs /path/to/mikrotik-docs
+claude mcp add rosetta /path/to/rosetta
 ```
 
 #### VS Code Copilot
@@ -95,8 +95,8 @@ Add to your User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settin
 ```json
 "mcp": {
   "servers": {
-    "mikrotik-docs": {
-      "command": "/path/to/mikrotik-docs"
+    "rosetta": {
+      "command": "/path/to/rosetta"
     }
   }
 }
@@ -144,8 +144,8 @@ For contributors or when you have access to the MikroTik HTML documentation expo
 ### Build
 
 ```sh
-git clone https://github.com/tikoci/mikrotik-docs.git
-cd mikrotik-docs
+git clone https://github.com/tikoci/rosetta.git
+cd rosetta
 bun install
 ```
 

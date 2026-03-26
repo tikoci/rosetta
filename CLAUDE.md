@@ -1,4 +1,4 @@
-# mikrotik-docs
+# rosetta
 
 RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP.
 
@@ -144,10 +144,10 @@ Register in `.vscode/mcp.json` or Claude Code settings:
 ```json
 {
   "servers": {
-    "mikrotik-docs": {
+    "rosetta": {
       "command": "bun",
       "args": ["run", "src/mcp.ts"],
-      "cwd": "/path/to/mikrotik-docs"
+      "cwd": "/path/to/rosetta"
     }
   }
 }
@@ -193,10 +193,10 @@ make release VERSION=v0.1.0   # cross-compile 4 platforms + compress DB
 ```
 
 Produces in `dist/`:
-- `mikrotik-docs-macos-arm64.zip` — macOS Apple Silicon
-- `mikrotik-docs-macos-x64.zip` — macOS Intel
-- `mikrotik-docs-windows-x64.zip` — Windows
-- `mikrotik-docs-linux-x64.zip` — Linux
+- `rosetta-macos-arm64.zip` — macOS Apple Silicon
+- `rosetta-macos-x64.zip` — macOS Intel
+- `rosetta-windows-x64.zip` — Windows
+- `rosetta-linux-x64.zip` — Linux
 - `ros-help.db.gz` — compressed database
 
 ### Publishing
@@ -208,7 +208,7 @@ gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --gener
 ### Tester Workflow
 
 1. Download platform ZIP from GitHub Releases
-2. Run `mikrotik-docs --setup` (downloads DB, prints config)
+2. Run `rosetta --setup` (downloads DB, prints config)
 3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot)
 
 ### CLI Flags

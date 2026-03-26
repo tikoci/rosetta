@@ -1,11 +1,11 @@
 ---
 description: "Search RouterOS documentation using the MCP server. Finds pages, properties, and command tree entries."
 agent: agent
-tools: [mikrotik-docs/*]
+tools: [rosetta/*]
 ---
 Search the RouterOS documentation for: $input
 
-Use the mikrotik-docs MCP tools to find relevant information:
+Use the rosetta MCP tools to find relevant information:
 1. Start with `routeros_search` for general queries
 2. Use `routeros_lookup_property` for specific property names
 3. Use `routeros_command_tree` to explore command hierarchy
