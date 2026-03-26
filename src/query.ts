@@ -162,8 +162,8 @@ function runFtsQuery(ftsQuery: string, limit: number): SearchResult[] {
   }
 }
 
-/** Get full page content by ID or title. */
-export function getPage(idOrTitle: string | number): {
+/** Get full page content by ID or title. Optional max_length truncates text+code. */
+export function getPage(idOrTitle: string | number, maxLength?: number): {
   id: number;
   title: string;
   path: string;
@@ -171,18 +171,35 @@ export function getPage(idOrTitle: string | number): {
   text: string;
   code: string;
   word_count: number;
+  code_lines: number;
   callouts: Array<{ type: string; content: string }>;
+  truncated?: { text_total: number; code_total: number };
 } | null {
   const row =
     typeof idOrTitle === "number" || /^\d+$/.test(String(idOrTitle))
-      ? db.prepare("SELECT id, title, path, url, text, code, word_count FROM pages WHERE id = ?").get(Number(idOrTitle))
-      : db.prepare("SELECT id, title, path, url, text, code, word_count FROM pages WHERE title = ? COLLATE NOCASE").get(idOrTitle);
+      ? db.prepare("SELECT id, title, path, url, text, code, word_count, code_lines FROM pages WHERE id = ?").get(Number(idOrTitle))
+      : db.prepare("SELECT id, title, path, url, text, code, word_count, code_lines FROM pages WHERE title = ? COLLATE NOCASE").get(idOrTitle);
   if (!row) return null;
-  const page = row as { id: number; title: string; path: string; url: string; text: string; code: string; word_count: number };
+  const page = row as { id: number; title: string; path: string; url: string; text: string; code: string; word_count: number; code_lines: number };
   const callouts = db
     .prepare("SELECT type, content FROM callouts WHERE page_id = ? ORDER BY sort_order")
     .all(page.id) as Array<{ type: string; content: string }>;
-  return { ...page, callouts };
+
+  // Truncate if max_length specified and content exceeds it
+  let truncated: { text_total: number; code_total: number } | undefined;
+  let { text, code } = page;
+  if (maxLength && (text.length + code.length) > maxLength) {
+    const textTotal = text.length;
+    const codeTotal = code.length;
+    // Give most budget to text, remainder to code
+    const codeBudget = Math.min(code.length, Math.floor(maxLength * 0.2));
+    const textBudget = maxLength - codeBudget;
+    text = `${text.slice(0, textBudget)}\n\n[... truncated — ${textTotal} chars total, showing first ${textBudget}]`;
+    code = codeTotal > codeBudget ? `${code.slice(0, codeBudget)}\n# [... truncated — ${codeTotal} chars total]` : code;
+    truncated = { text_total: textTotal, code_total: codeTotal };
+  }
+
+  return { id: page.id, title: page.title, path: page.path, url: page.url, text, code, word_count: page.word_count, code_lines: page.code_lines, callouts, ...(truncated ? { truncated } : {}) };
 }
 
 /** Lookup property by name, optionally filtered by command path. */
@@ -274,7 +291,32 @@ export function searchProperties(
 }> {
   const terms = extractTerms(query);
   if (terms.length === 0) return [];
-  const ftsQuery = buildFtsQuery(terms, "AND");
+
+  let ftsQuery = buildFtsQuery(terms, "AND");
+  if (!ftsQuery) return [];
+  let results = runPropertiesFtsQuery(ftsQuery, limit);
+
+  // Fallback to OR if AND returns nothing and we have multiple terms
+  if (results.length === 0 && terms.length > 1) {
+    ftsQuery = buildFtsQuery(terms, "OR");
+    results = runPropertiesFtsQuery(ftsQuery, limit);
+  }
+  return results;
+}
+
+function runPropertiesFtsQuery(
+  ftsQuery: string,
+  limit: number,
+): Array<{
+  name: string;
+  type: string | null;
+  default_val: string | null;
+  description: string;
+  section: string | null;
+  page_title: string;
+  page_url: string;
+  excerpt: string;
+}> {
   if (!ftsQuery) return [];
   try {
     return db
@@ -288,28 +330,72 @@ export function searchProperties(
          WHERE properties_fts MATCH ?
          ORDER BY rank LIMIT ?`,
       )
-      .all(ftsQuery, limit) as typeof searchProperties extends (...a: unknown[]) => infer R ? R : never;
+      .all(ftsQuery, limit) as Array<{
+        name: string;
+        type: string | null;
+        default_val: string | null;
+        description: string;
+        section: string | null;
+        page_title: string;
+        page_url: string;
+        excerpt: string;
+      }>;
   } catch {
     return [];
   }
 }
 
-/** Search callout content via FTS, optionally filtered by type. */
-export function searchCallouts(
-  query: string,
-  type?: string,
-  limit = 10,
-): Array<{
+type CalloutResult = {
   type: string;
   content: string;
   page_title: string;
   page_url: string;
   page_id: number;
   excerpt: string;
-}> {
+};
+
+/** Search callout content via FTS, optionally filtered by type. */
+export function searchCallouts(
+  query: string,
+  type?: string,
+  limit = 10,
+): CalloutResult[] {
   const terms = extractTerms(query);
+
+  // Type-only browse: no search terms but type filter provided
+  if (terms.length === 0 && type) {
+    return db
+      .prepare(
+        `SELECT c.type, c.content, pg.title as page_title, pg.url as page_url,
+                pg.id as page_id, substr(c.content, 1, 200) as excerpt
+         FROM callouts c
+         JOIN pages pg ON pg.id = c.page_id
+         WHERE c.type = ?
+         ORDER BY c.page_id, c.sort_order LIMIT ?`,
+      )
+      .all(type, limit) as CalloutResult[];
+  }
+
   if (terms.length === 0) return [];
-  const ftsQuery = buildFtsQuery(terms, "AND");
+
+  let ftsQuery = buildFtsQuery(terms, "AND");
+  if (!ftsQuery) return [];
+  let results = runCalloutsFtsQuery(ftsQuery, type, limit);
+
+  // Fallback to OR if AND returns nothing and we have multiple terms
+  if (results.length === 0 && terms.length > 1) {
+    ftsQuery = buildFtsQuery(terms, "OR");
+    results = runCalloutsFtsQuery(ftsQuery, type, limit);
+  }
+
+  return results;
+}
+
+function runCalloutsFtsQuery(
+  ftsQuery: string,
+  type: string | undefined,
+  limit: number,
+): CalloutResult[] {
   if (!ftsQuery) return [];
   try {
     const sql = type
@@ -328,8 +414,8 @@ export function searchCallouts(
          WHERE callouts_fts MATCH ?
          ORDER BY rank LIMIT ?`;
     return type
-      ? (db.prepare(sql).all(ftsQuery, type, limit) as Array<{ type: string; content: string; page_title: string; page_url: string; page_id: number; excerpt: string }>)
-      : (db.prepare(sql).all(ftsQuery, limit) as Array<{ type: string; content: string; page_title: string; page_url: string; page_id: number; excerpt: string }>);
+      ? (db.prepare(sql).all(ftsQuery, type, limit) as CalloutResult[])
+      : (db.prepare(sql).all(ftsQuery, limit) as CalloutResult[]);
   } catch {
     return [];
   }
@@ -343,21 +429,61 @@ export function checkCommandVersions(
   versions: string[];
   first_seen: string | null;
   last_seen: string | null;
+  note: string | null;
 } {
   const rows = db
     .prepare(
       `SELECT ros_version FROM command_versions
-       WHERE command_path = ?
-       ORDER BY ros_version`,
+       WHERE command_path = ?`,
     )
     .all(commandPath) as Array<{ ros_version: string }>;
-  const versions = rows.map((r) => r.ros_version);
+  const versions = rows.map((r) => r.ros_version).sort(compareVersions);
+
+  const allVersionRows = db
+    .prepare("SELECT version FROM ros_versions")
+    .all() as Array<{ version: string }>;
+  const allVersions = allVersionRows.map((r) => r.version).sort(compareVersions);
+  const minTracked = allVersions[0] ?? null;
+
+  const firstSeen = versions[0] ?? null;
+  const lastSeen = versions[versions.length - 1] ?? null;
+
+  // If first_seen equals our earliest tracked version, the command may predate our data
+  let note: string | null = null;
+  if (firstSeen && minTracked && firstSeen === minTracked) {
+    note = `Command exists in our earliest tracked version (${minTracked}). It likely existed in earlier versions too, but we have no data before ${minTracked}.`;
+  } else if (versions.length === 0) {
+    note = `No version data found. Our command tree covers ${minTracked ?? "7.9"}–7.23beta2. The command may exist outside this range, or the path may be wrong.`;
+  }
+
   return {
     command_path: commandPath,
     versions,
-    first_seen: versions[0] ?? null,
-    last_seen: versions[versions.length - 1] ?? null,
+    first_seen: firstSeen,
+    last_seen: lastSeen,
+    note,
   };
+}
+
+/** Compare RouterOS version strings numerically (e.g., "7.9" < "7.10.2" < "7.22"). */
+function compareVersions(a: string, b: string): number {
+  const normalize = (v: string) => {
+    const beta = v.includes("beta");
+    const rc = v.includes("rc");
+    const clean = v.replace(/beta\d*/, "").replace(/rc\d*/, "");
+    const parts = clean.split(".").map(Number);
+    // beta < rc < release for the same numeric version
+    const suffix = beta ? 0 : rc ? 1 : 2;
+    return { parts, suffix };
+  };
+  const na = normalize(a);
+  const nb = normalize(b);
+  for (let i = 0; i < Math.max(na.parts.length, nb.parts.length); i++) {
+    const pa = na.parts[i] ?? 0;
+    const pb = nb.parts[i] ?? 0;
+    if (pa !== pb) return pa - pb;
+  }
+  return na.suffix - nb.suffix;
 }
 
 /** Browse commands filtered by version (uses command_versions table). */

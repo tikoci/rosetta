@@ -26,10 +26,23 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 
 ## FTS5 Query Rules
 - BM25 weights: title=3.0, path=2.0, text=1.0, code=0.5
-- AND mode first, fallback to OR if zero results
+- AND mode first, fallback to OR if zero results (all search tools: pages, properties, callouts)
 - Stop words list in `query.ts` (~72 words) — do not duplicate elsewhere
 - Compound terms (~37 RouterOS pairs) → FTS5 NEAR expressions
 - Porter unicode61 tokenizer — stemming is automatic
+
+## Tool Description Patterns
+- **Workflow arrows**: each tool description lists `→ next_tool: when to use it` to guide agents through multi-step retrieval
+- **Empty-result hints**: tool handlers return actionable next-step suggestions when results are empty (e.g., "Try routeros_search to find the page, then routeros_get_page")
+- **Knowledge boundaries**: every tool description includes doc export date, version range, and v6 caveats
+- `get_page` supports `max_length` truncation (80% text, 20% code budget) — callouts always pass through in full
+- `search_callouts` supports type-only browse (no query, just type filter)
+- `command_version_check` returns boundary notes when command exists at earliest tracked version
+
+## Version Sorting
+- `compareVersions()` in `query.ts` sorts RouterOS versions numerically (e.g., 7.9 < 7.10 < 7.22)
+- Beta/RC ordering: beta < rc < release for the same numeric version
+- Use this instead of SQL `min()`/`max()` which sorts lexicographically
 
 ## Version Accuracy Guidance
 

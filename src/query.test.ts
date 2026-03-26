@@ -239,6 +239,31 @@ describe("getPage", () => {
     // page 2 has one callout in fixtures
     expect(Array.isArray(page?.callouts)).toBe(true);
   });
+
+  test("includes code_lines in response", () => {
+    const page = getPage(1);
+    expect(page?.code_lines).toBe(1);
+  });
+
+  test("truncates large pages with max_length", () => {
+    const full = getPage(1);
+    expect(full).not.toBeNull();
+    if (!full) return;
+    const fullLen = full.text.length + full.code.length;
+    // Request truncation well below actual page size
+    const truncated = getPage(1, 50);
+    expect(truncated).not.toBeNull();
+    if (!truncated) return;
+    expect(truncated.truncated).toBeDefined();
+    expect(truncated.text.length + truncated.code.length).toBeLessThan(fullLen + 100); // allow for truncation message
+    expect(truncated.truncated?.text_total).toBe(full.text.length);
+  });
+
+  test("no truncation when page fits within max_length", () => {
+    const page = getPage(1, 999999);
+    expect(page).not.toBeNull();
+    expect(page?.truncated).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -321,6 +346,19 @@ describe("searchCallouts", () => {
   test("returns empty for stop-word-only query", () => {
     expect(searchCallouts("how the")).toHaveLength(0);
   });
+
+  test("falls back to OR when AND returns nothing", () => {
+    // "lease" is in Note, "routing" is in Warning — no callout has both
+    // AND should fail, OR should find both
+    const rows = searchCallouts("lease routing");
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  test("type-only browse returns callouts without query", () => {
+    const notes = searchCallouts("", "Note");
+    expect(notes.length).toBeGreaterThan(0);
+    expect(notes.every((r) => r.type === "Note")).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -340,10 +378,17 @@ describe("checkCommandVersions", () => {
     expect(res.versions).toHaveLength(0);
     expect(res.first_seen).toBeNull();
     expect(res.last_seen).toBeNull();
+    expect(res.note).toContain("No version data found");
   });
 
   test("includes command_path in response", () => {
     const res = checkCommandVersions("/ip/dhcp-server");
     expect(res.command_path).toBe("/ip/dhcp-server");
+  });
+
+  test("adds note when command exists at earliest tracked version", () => {
+    // Our fixture only has version 7.22, which is the min. Expect note.
+    const res = checkCommandVersions("/ip/dhcp-server");
+    expect(res.note).toContain("earliest tracked version");
   });
 });

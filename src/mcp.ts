@@ -39,8 +39,7 @@ server.registerTool(
   {
     description: `Search RouterOS documentation using natural language.
 
-This is the primary discovery tool. Start here to find relevant documentation pages,
-then use routeros_get_page to retrieve full content.
+This is the **primary discovery tool**. Start here, then drill down with other tools.
 
 Capabilities:
 - Full-text search with BM25 ranking and Porter stemming
@@ -48,6 +47,12 @@ Capabilities:
 - Proximity matching for compound terms ("firewall filter", "bridge vlan")
 - Results include page title, breadcrumb path, help.mikrotik.com URL, and excerpt
 - If AND returns nothing, the engine automatically retries with OR
+
+Workflow — what to do next:
+→ routeros_get_page: retrieve full content for a result (use page ID from results)
+→ routeros_search_properties: find specific properties mentioned in results
+→ routeros_search_callouts: find warnings/notes about topics in results
+→ routeros_command_tree: browse the command hierarchy for a feature
 
 Tips:
 - Use specific technical terms: "DHCP relay agent" not "how to set up DHCP"
@@ -82,21 +87,35 @@ server.registerTool(
   {
     description: `Get the full text of a RouterOS documentation page.
 
-Use this after routeros_search identifies a relevant page. Pass either:
-- The numeric Confluence page ID (from search results)
-- The exact page title (case-insensitive)
+Use after routeros_search identifies a relevant page. Pass the numeric page ID
+(from search results) or the exact page title (case-insensitive).
 
-Returns the complete plain text, code blocks, and any callout blocks
-(notes, warnings, info) for the page. Callouts contain important caveats
-and edge-case details.`,
+Returns: plain text, code blocks, and callout blocks (notes, warnings, info, tips).
+Callouts contain crucial caveats and edge-case details — always review them.
+
+Some pages are very large (100K+ chars). Use max_length to truncate —
+the response indicates when content was truncated with total sizes.
+Recommended: set max_length=30000 for initial reads, omit for full page.
+
+Workflow — what to do with this content:
+→ routeros_search_properties: look up specific properties mentioned in text
+→ routeros_lookup_property: get exact details for a named property
+→ routeros_search_callouts: find related warnings across other pages
+→ routeros_command_tree: browse the command path for features on this page`,
     inputSchema: {
       page: z
         .string()
         .describe("Page ID (numeric) or exact page title"),
+      max_length: z
+        .number()
+        .int()
+        .min(1000)
+        .optional()
+        .describe("Max combined text+code length. Content is truncated with a note if exceeded. Omit for full page."),
     },
   },
-  async ({ page }) => {
-    const result = getPage(page);
+  async ({ page, max_length }) => {
+    const result = getPage(page, max_length);
     if (!result) {
       return {
         content: [{ type: "text", text: `Page not found: ${page}` }],
@@ -114,16 +133,18 @@ and edge-case details.`,
 server.registerTool(
   "routeros_lookup_property",
   {
-    description: `Look up a specific RouterOS configuration property by name.
+    description: `Look up a specific RouterOS configuration property by exact name.
 
-Returns the property's type, default value, description, and which documentation
-page it appears on. Useful for understanding what a specific setting does.
+Returns type, default value, description, and documentation page.
+Optionally filter by command path to disambiguate (e.g., "disabled" appears everywhere).
 
-Optionally filter by command path to disambiguate properties that appear in
-multiple contexts (e.g., "disabled" appears in many command menus).
+This requires the **exact property name**. If you don't know the name:
+→ routeros_search_properties: full-text search across property descriptions
+→ routeros_search: find the documentation page, then read it with routeros_get_page
 
 Examples:
 - name: "add-default-route" → DHCP client property
+- name: "dhcp-snooping" → bridge DHCP snooping toggle
 - name: "disabled", command_path: "/ip/firewall/filter" → firewall filter property
 - name: "chain" → shows all properties named "chain" across all pages`,
     inputSchema: {
@@ -141,7 +162,7 @@ Examples:
         content: [
           {
             type: "text",
-            text: `No property found: "${name}"${command_path ? ` under ${command_path}` : ""}`,
+            text: `No property found: "${name}"${command_path ? ` under ${command_path}` : ""}\n\nTry instead:\n- routeros_search_properties with a keyword from the property description\n- routeros_search to find the documentation page, then routeros_get_page to read it\n- routeros_command_tree at the command path to see available args`,
           },
         ],
       };
@@ -157,13 +178,21 @@ Examples:
 server.registerTool(
   "routeros_search_properties",
   {
-    description: `Search RouterOS properties by description text.
+    description: `Search RouterOS properties by name or description text.
 
-Unlike routeros_lookup_property (which matches by exact name), this does
-full-text search across property names and descriptions. Use when you don't
-know the exact property name but know what it does.
+Full-text search across ~5,000 property names and descriptions from 145 pages.
+Use when you don't know the exact property name but know what it does.
+If AND returns nothing, the engine automatically retries with OR.
 
-Example: "gateway reachability check" finds check-gateway properties.`,
+If this returns empty:
+→ routeros_search: find the documentation page containing the feature
+→ routeros_get_page: read the page — properties are embedded in page text
+→ routeros_command_tree: browse args at a command path for property names
+
+Examples:
+- "gateway reachability check" → finds check-gateway properties
+- "snooping" → finds dhcp-snooping, igmp-snooping properties
+- "trusted" → finds bridge port trusted property`,
     inputSchema: {
       query: z.string().describe("Search query for property descriptions"),
       limit: z
@@ -178,6 +207,11 @@ Example: "gateway reachability check" finds check-gateway properties.`,
   },
   async ({ query, limit }) => {
     const results = searchProperties(query, limit);
+    if (results.length === 0) {
+      return {
+        content: [{ type: "text", text: `No properties matched: "${query}"\n\nTry instead:\n- routeros_search to find the documentation page containing this feature\n- routeros_get_page to read properties directly from page text\n- routeros_command_tree to browse args at the command path\n- Shorter/different keywords (property descriptions are brief)` }],
+      };
+    }
     return {
       content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
     };
@@ -193,17 +227,21 @@ server.registerTool(
 
 Given a menu path, returns all direct children (subdirectories, commands, and
 arguments). Each child includes its type and linked documentation page if available.
+Useful for discovering what's available under a command path.
 
 Optionally filter by RouterOS version to check what exists in a specific release.
 Command data covers versions 7.9–7.23beta2. No v6 data.
-For versions below 7.9, no command tree data exists.
-For versions older than the current long-term, recommend upgrading (MikroTik does not
-patch older branches).
+
+Workflow — combine with other tools:
+→ routeros_get_page: read the linked documentation page for a command
+→ routeros_lookup_property: look up arg names as properties for details
+→ routeros_command_version_check: check when a command was added
+→ routeros_search_properties: search for properties under this path
 
 Examples:
-- path: "/ip" → shows address, arp, dhcp-client, dhcp-server, firewall, route, etc.
-- path: "/ip/firewall" → shows filter, nat, mangle, raw, address-list, etc.
-- path: "", version: "7.15" → shows top-level menus as of RouterOS 7.15`,
+- path: "/ip" → address, arp, dhcp-client, dhcp-server, firewall, route, etc.
+- path: "/ip/firewall" → filter, nat, mangle, raw, address-list, etc.
+- path: "", version: "7.15" → top-level menus as of RouterOS 7.15`,
     inputSchema: {
       path: z
         .string()
@@ -265,21 +303,29 @@ Knowledge boundaries:
 server.registerTool(
   "routeros_search_callouts",
   {
-    description: `Search note, warning, and info callout blocks across all RouterOS documentation.
+    description: `Search note, warning, tip, and info callout blocks across all RouterOS documentation.
 
-Callouts contain important caveats, edge cases, and non-obvious behavior.
+1,034 callouts containing important caveats, edge cases, and non-obvious behavior.
 Useful for finding warnings about hardware offloading, compatibility notes,
-or unexpected feature interactions.
+or unexpected feature interactions that aren't obvious from main page text.
 
-Optionally filter by callout type: "note", "warning", or "info".
+Query tips:
+- Use SHORT keyword queries (1-2 terms). Callouts are brief — multi-word NL phrases often miss.
+- "bridge" finds more than "bridge VLAN spanning tree conflict"
+- Pass type only (no query) to browse callouts of that type
+- If AND finds nothing, the engine automatically retries with OR
+
+Optionally filter by callout type: "note" (426), "info" (357), "warning" (213), or "tip" (38).
 
 Examples:
 - query: "hardware offload" → warnings about bridge HW offloading limitations
-- query: "VLAN", type: "warning" → only VLAN-related warnings`,
+- query: "VLAN", type: "warning" → only VLAN-related warnings
+- query: "bridge", type: "warning" → bridge-related warnings
+- type: "warning", limit: 20 → browse 20 warnings (no search term needed)`,
     inputSchema: {
-      query: z.string().describe("Search query for callout content"),
+      query: z.string().optional().default("").describe("Search keywords for callout content (keep short — 1-2 terms work best)"),
       type: z
-        .enum(["note", "warning", "info"])
+        .enum(["note", "warning", "info", "tip"])
         .optional()
         .describe("Filter by callout type"),
       limit: z
@@ -308,10 +354,15 @@ server.registerTool(
     description: `Check which RouterOS versions include a specific command path.
 
 Returns the list of versions where the command exists, plus first_seen/last_seen.
+If the command exists in our earliest tracked version, a note warns that it likely
+predates our data — check the documentation page for earlier version references.
+
 Useful for answering "is /container supported in 7.12?" or "when was /ip/firewall/raw added?".
 
 Command data covers versions 7.9–7.23beta2. No v6 data.
-For versions below 7.9, no command tree data exists.
+For versions below 7.9, no command tree data exists — the command may still exist there.
+Cross-reference with routeros_get_page or routeros_search_callouts for version mentions
+in documentation text.
 
 Examples:
 - command_path: "/container" → shows versions where container support exists
