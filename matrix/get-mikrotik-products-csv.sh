@@ -9,7 +9,7 @@
 # After downloading manually, copy the file here:
 #   cp ~/Downloads/products-*.csv <ISODATE>/matrix.csv
 
-ISODATE=$(gdate -u --rfc-3339=date 2>/dev/null || date -u +%Y-%m-%d)
+ISODATE=$(date -u +%Y-%m-%d)
 mkdir -p "$ISODATE"
 
 echo "Manual download required:"
