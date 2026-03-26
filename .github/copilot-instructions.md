@@ -48,7 +48,7 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 | CLI Search | `src/search.ts` | Quick search from terminal |
 | Tests | `src/query.test.ts` | Bun tests — query planner + DB integration (in-memory SQLite) |
 
-**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions` with FTS5 indexes on pages, callouts, and properties.
+**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions` with FTS5 indexes on pages, callouts, and properties.
 
 **Data sources:**
 - HTML export from Confluence in `box/documents-export-2026-3-25/ROS/` (317 pages)

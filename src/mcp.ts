@@ -85,7 +85,7 @@ Tips:
 server.registerTool(
   "routeros_get_page",
   {
-    description: `Get the full text of a RouterOS documentation page.
+    description: `Get the full text of a RouterOS documentation page by ID or title.
 
 Use after routeros_search identifies a relevant page. Pass the numeric page ID
 (from search results) or the exact page title (case-insensitive).
@@ -93,9 +93,21 @@ Use after routeros_search identifies a relevant page. Pass the numeric page ID
 Returns: plain text, code blocks, and callout blocks (notes, warnings, info, tips).
 Callouts contain crucial caveats and edge-case details — always review them.
 
-Some pages are very large (100K+ chars). Use max_length to truncate —
-the response indicates when content was truncated with total sizes.
-Recommended: set max_length=30000 for initial reads, omit for full page.
+**Large page handling:** Always set max_length (e.g., 30000) on the first call.
+Some pages are 100K+ chars. When max_length is set and the page exceeds it,
+pages with sections return a **table of contents** instead of truncated text.
+The TOC lists each section's heading, hierarchy level, character count, and
+deep-link URL. Re-call with the section parameter to retrieve specific sections.
+
+**Section parameter:** Pass a section heading or anchor_id (from the TOC)
+to get that section's content. Parent sections automatically include all
+sub-section content, so requesting a top-level heading gives you everything
+under it.
+
+Recommended workflow for large pages:
+1. Call with max_length=30000 → get TOC if page is large
+2. Review section headings to find the relevant section
+3. Call again with section="Section Name" to get that section's content
 
 Workflow — what to do with this content:
 → routeros_search_properties: look up specific properties mentioned in text
@@ -111,11 +123,15 @@ Workflow — what to do with this content:
         .int()
         .min(1000)
         .optional()
-        .describe("Max combined text+code length. Content is truncated with a note if exceeded. Omit for full page."),
+        .describe("Recommended: set to 30000. Max combined text+code length. If exceeded and page has sections, returns a TOC instead of truncated text. Omit only if you need the entire page."),
+      section: z
+        .string()
+        .optional()
+        .describe("Section heading or anchor_id from TOC. Returns only that section's content."),
     },
   },
-  async ({ page, max_length }) => {
-    const result = getPage(page, max_length);
+  async ({ page, max_length, section }) => {
+    const result = getPage(page, max_length, section);
     if (!result) {
       return {
         content: [{ type: "text", text: `Page not found: ${page}` }],

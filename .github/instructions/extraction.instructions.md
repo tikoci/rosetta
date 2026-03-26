@@ -30,7 +30,8 @@ make extract-full
   - Breadcrumbs: `#breadcrumbs`
   - Main content: `#main-content`
   - Callouts: `div[role="region"].confluence-information-macro` with `aria-label`
-- Callouts extracted in Pass 3, after pages and properties
+  - Headings with IDs: `h1[id], h2[id], h3[id]` — used for section extraction
+- Callouts extracted in Pass 3, sections in Pass 4, after pages and properties
 
 ## Version-Aware Commands (extract-commands.ts)
 - CLI flags: `--version`, `--channel`, `--extra`, `--accumulate`

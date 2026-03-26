@@ -114,7 +114,7 @@ This project has the same data in SQL form, which is more powerful for programma
 
 What was built, in rough order (March 2026):
 
-1. **PDF extraction** (archival) — `ros-pdf-to-sqlite.py`, `ros-pdf-assess.py`. Proved the concept but PDF parsing was lossy. Superseded by HTML extraction.
+1. **PDF extraction** (archival) — `ros-pdf-to-sqlite.py`, `ros-pdf-assess.py`. Proved the concept but PDF parsing was lossy. Superseded by HTML extraction. These files have been removed from the working tree; they exist in git history.
 2. **HTML extraction** — `extract-html.ts`, `extract-properties.ts`. 317 pages, 4,860 properties, 1,034 callouts.
 3. **Command tree** — `extract-commands.ts`. Single-version first, then multi-version with `extract-all-versions.ts` (46 versions, 1.67M junction entries).
 4. **Command linking** — `link-commands.ts`. Automated heuristic matching: code block paths + `<strong>`/`<code>` tag patterns. ~92% dir coverage.

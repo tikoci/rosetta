@@ -35,7 +35,8 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 - **Workflow arrows**: each tool description lists `→ next_tool: when to use it` to guide agents through multi-step retrieval
 - **Empty-result hints**: tool handlers return actionable next-step suggestions when results are empty (e.g., "Try routeros_search to find the page, then routeros_get_page")
 - **Knowledge boundaries**: every tool description includes doc export date, version range, and v6 caveats
-- `get_page` supports `max_length` truncation (80% text, 20% code budget) — callouts always pass through in full
+- `get_page` supports `max_length` — when exceeded and page has sections, returns a table of contents (heading, level, char_count, deep-link URL) instead of truncating. Agent re-calls with `section` param to get specific sections.
+- `get_page` supports `section` param — pass heading text or anchor_id to get a specific section's content. For pages without sections, `max_length` truncation still uses the 80% text / 20% code budget.
 - `search_callouts` supports type-only browse (no query, just type filter)
 - `command_version_check` returns boundary notes when command exists at earliest tracked version
 

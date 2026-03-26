@@ -28,6 +28,7 @@ Two outputs:
 - **317 pages** from Confluence HTML export (March 2026), with breadcrumb paths, page IDs, help.mikrotik.com URLs
 - **515K words**, **14K code lines** (identified by `brush: ros` code blocks)
 - **1,034 callouts** extracted (Note/Warning/Info/Tip) from Confluence callout macros
+- **~3,000 sections** extracted from h1–h3 headings across 275 pages, with anchor IDs for deep linking
 - **~5,000 properties** extracted from confluenceTable rows (name, type, default, description)
 - **40K command tree entries** from `inspect.json` (551 dirs, 5114 cmds, 34K args), primary version: 7.22 (latest stable)
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
@@ -65,6 +66,15 @@ callouts (
 
 -- FTS5 over callouts
 callouts_fts USING fts5(content, ...)
+
+-- Sections (page chunks split by h1–h3 headings)
+sections (
+    id, page_id REFERENCES pages(id),
+    heading, level,        -- heading text, 1/2/3
+    anchor_id,             -- Confluence heading ID for deep-link URLs
+    text, code,
+    word_count, sort_order
+)
 
 -- Property tables extracted from confluenceTable
 properties (
@@ -127,7 +137,7 @@ Register in `.vscode/mcp.json` or Claude Code settings:
 | Tool | Purpose |
 |------|---------|
 | `routeros_search` | FTS5 search across pages. BM25 ranked, AND→OR fallback |
-| `routeros_get_page` | Full page text by ID or title, optional `max_length` truncation |
+| `routeros_get_page` | Full page text by ID or title. Section-aware: large pages return TOC when `max_length` exceeded; `section` param retrieves specific sections |
 | `routeros_lookup_property` | Property by exact name, optionally filtered by command path |
 | `routeros_search_properties` | FTS across property names + descriptions, AND→OR fallback |
 | `routeros_command_tree` | Browse command hierarchy at a given path |
@@ -157,7 +167,7 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `src/mcp.ts` | MCP server — 9 tools, stdio transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
-| `src/extract-html.ts` | HTML → pages + callouts tables (repeatable) |
+| `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
 | `src/extract-properties.ts` | Property table parsing from HTML |
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
@@ -166,8 +176,7 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `src/search.ts` | CLI search tool |
 | `src/query.test.ts` | Bun tests — query planner + DB integration (in-memory SQLite) |
 | `ros-help.db` | The SQLite database (WAL mode) |
-| `ros-pdf-to-sqlite.py` | Original PDF extraction (archival) |
-| `ros-pdf-assess.py` | Original PDF assessment (archival) |
+
 
 ## Re-extraction
 

@@ -53,6 +53,74 @@ interface CalloutRow {
   sort_order: number;
 }
 
+interface SectionRow {
+  page_id: number;
+  heading: string;
+  level: number;
+  anchor_id: string;
+  text: string;
+  code: string;
+  word_count: number;
+  sort_order: number;
+}
+
+/**
+ * Split main content into sections by h1–h3 headings with id attributes.
+ * Uses innerHTML + regex to locate heading boundaries, then parses each
+ * section chunk independently for text and code extraction.
+ */
+function extractSections(mainContent: Element, pageId: number): SectionRow[] {
+  const html = mainContent.innerHTML;
+  const headingRe = /<h([1-3])\s[^>]*?id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g;
+
+  const headings: Array<{
+    level: number;
+    anchorId: string;
+    heading: string;
+    start: number;
+    end: number;
+  }> = [];
+
+  for (let m = headingRe.exec(html); m !== null; m = headingRe.exec(html)) {
+    if (m[2] === "title-heading") continue;
+    headings.push({
+      level: Number.parseInt(m[1], 10),
+      anchorId: m[2],
+      heading: parseHTML(`<span>${m[3]}</span>`).document.querySelector("span")?.textContent?.trim() || "",
+      start: m.index,
+      end: m.index + m[0].length,
+    });
+  }
+
+  if (headings.length === 0) return [];
+
+  return headings.map((h, i) => {
+    const sectionHtml = html.slice(h.end, headings[i + 1]?.start ?? html.length);
+    const { document: doc } = parseHTML(`<div>${sectionHtml}</div>`);
+    const root = doc.querySelector("div");
+
+    const codeEls = root?.querySelectorAll("pre.syntaxhighlighter-pre") ?? [];
+    const codeChunks: string[] = [];
+    for (const ce of codeEls) {
+      codeChunks.push(ce.textContent?.trim() || "");
+    }
+
+    const text = root?.textContent?.trim() || "";
+    const code = codeChunks.join("\n\n");
+
+    return {
+      page_id: pageId,
+      heading: h.heading,
+      level: h.level,
+      anchor_id: h.anchorId,
+      text,
+      code,
+      word_count: text.split(/\s+/).filter(Boolean).length,
+      sort_order: i,
+    };
+  });
+}
+
 function extractPageId(href: string): number | null {
   const m = basename(href).match(filenameRe);
   return m ? Number(m[2]) : null;
@@ -62,7 +130,7 @@ function textContent(el: Element | null): string {
   return el?.textContent?.trim() || "";
 }
 
-function extractPage(file: string, html: string): (PageRow & { callouts: CalloutRow[] }) | null {
+function extractPage(file: string, html: string): (PageRow & { callouts: CalloutRow[]; sections: SectionRow[] }) | null {
   const { document } = parseHTML(html);
 
   const match = basename(file).match(filenameRe);
@@ -137,6 +205,9 @@ function extractPage(file: string, html: string): (PageRow & { callouts: Callout
   const dateMatch = metaText.match(/on\s+(\w+ \d{1,2}, \d{4})/);
   const lastUpdated = dateMatch?.[1] || null;
 
+  // Sections: split content by h1–h3 headings
+  const sections = mainContent ? extractSections(mainContent, id) : [];
+
   return {
     id,
     slug,
@@ -154,6 +225,7 @@ function extractPage(file: string, html: string): (PageRow & { callouts: Callout
     code_lines: codeLines,
     html_file: file,
     callouts,
+    sections,
   };
 }
 
@@ -163,6 +235,7 @@ console.log("Initializing database...");
 initDb();
 
 // Drop existing data for clean re-extraction (respect FK order)
+db.run("DELETE FROM sections;");
 db.run("DELETE FROM callouts;");
 db.run("INSERT INTO callouts_fts(callouts_fts) VALUES('rebuild');");
 db.run("DELETE FROM properties;");
@@ -194,7 +267,7 @@ let totalWords = 0;
 let totalCodeLines = 0;
 let totalCallouts = 0;
 
-const allPages: (PageRow & { callouts: CalloutRow[] })[] = [];
+const allPages: (PageRow & { callouts: CalloutRow[]; sections: SectionRow[] })[] = [];
 
 // Pass 1: extract and insert all pages (parent_id = NULL)
 const insertAll = db.transaction(() => {
@@ -256,6 +329,26 @@ const insertCallouts = db.transaction(() => {
 });
 insertCallouts();
 
+// Pass 4: insert sections
+let totalSections = 0;
+let pagesWithSections = 0;
+const insertSection = db.prepare(`
+  INSERT INTO sections (page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`);
+const insertSections = db.transaction(() => {
+  for (const page of allPages) {
+    if (page.sections.length > 0) {
+      pagesWithSections++;
+      for (const s of page.sections) {
+        insertSection.run(s.page_id, s.heading, s.level, s.anchor_id, s.text, s.code, s.word_count, s.sort_order);
+        totalSections++;
+      }
+    }
+  }
+});
+insertSections();
+
 const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM pages_fts").get() as { c: number }).c;
 
 console.log(`\nExtraction complete:`);
@@ -264,6 +357,7 @@ console.log(`  Pages skipped:   ${skipped}`);
 console.log(`  Total words:     ${totalWords.toLocaleString()}`);
 console.log(`  Total code lines: ${totalCodeLines.toLocaleString()}`);
 console.log(`  Total callouts:  ${totalCallouts}`);
+console.log(`  Total sections:  ${totalSections} (across ${pagesWithSections} pages)`);
 console.log(`  FTS index rows:  ${ftsCount}`);
 
 // Quick search test

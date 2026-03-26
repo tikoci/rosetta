@@ -146,6 +146,29 @@ export function initDb() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_callouts_page ON callouts(page_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_callouts_type ON callouts(type);`);
 
+  // -- Sections (page chunks split by headings, for large-page retrieval) --
+
+  // Migration: drop legacy sections table (from PDF-era schema) if it lacks page_id
+  const secCols = db.prepare("SELECT name FROM pragma_table_info('sections')").all() as Array<{ name: string }>;
+  if (secCols.length > 0 && !secCols.some((c) => c.name === "page_id")) {
+    db.run("DROP TABLE sections;");
+  }
+
+  db.run(`CREATE TABLE IF NOT EXISTS sections (
+    id          INTEGER PRIMARY KEY,
+    page_id     INTEGER NOT NULL REFERENCES pages(id),
+    heading     TEXT NOT NULL,
+    level       INTEGER NOT NULL,
+    anchor_id   TEXT NOT NULL,
+    text        TEXT NOT NULL,
+    code        TEXT NOT NULL,
+    word_count  INTEGER NOT NULL,
+    sort_order  INTEGER NOT NULL
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sections_page ON sections(page_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sections_anchor ON sections(page_id, anchor_id);`);
+
   // -- Commands (from inspect.json) --
 
   db.run(`CREATE TABLE IF NOT EXISTS commands (
@@ -197,6 +220,7 @@ export function getDbStats() {
   return {
     db_path: DB_PATH,
     pages: count("SELECT COUNT(*) AS c FROM pages"),
+    sections: count("SELECT COUNT(*) AS c FROM sections"),
     properties: count("SELECT COUNT(*) AS c FROM properties"),
     callouts: count("SELECT COUNT(*) AS c FROM callouts"),
     commands: count("SELECT COUNT(*) AS c FROM commands"),

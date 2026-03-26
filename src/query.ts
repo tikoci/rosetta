@@ -162,8 +162,19 @@ function runFtsQuery(ftsQuery: string, limit: number): SearchResult[] {
   }
 }
 
-/** Get full page content by ID or title. Optional max_length truncates text+code. */
-export function getPage(idOrTitle: string | number, maxLength?: number): {
+/** Section TOC entry returned when a large page would be truncated. */
+export type SectionTocEntry = {
+  heading: string;
+  level: number;
+  anchor_id: string;
+  char_count: number;
+  url: string;
+};
+
+/** Get full page content by ID or title. Optional max_length truncates text+code.
+ *  If `section` is provided, returns only that section's content.
+ *  If content would be truncated and the page has sections, returns a TOC instead. */
+export function getPage(idOrTitle: string | number, maxLength?: number, section?: string): {
   id: number;
   title: string;
   path: string;
@@ -174,6 +185,9 @@ export function getPage(idOrTitle: string | number, maxLength?: number): {
   code_lines: number;
   callouts: Array<{ type: string; content: string }>;
   truncated?: { text_total: number; code_total: number };
+  sections?: SectionTocEntry[];
+  section?: { heading: string; level: number; anchor_id: string };
+  note?: string;
 } | null {
   const row =
     typeof idOrTitle === "number" || /^\d+$/.test(String(idOrTitle))
@@ -185,13 +199,100 @@ export function getPage(idOrTitle: string | number, maxLength?: number): {
     .prepare("SELECT type, content FROM callouts WHERE page_id = ? ORDER BY sort_order")
     .all(page.id) as Array<{ type: string; content: string }>;
 
-  // Truncate if max_length specified and content exceeds it
+  // Section-specific retrieval: return section content including descendants
+  if (section) {
+    const sec = db
+      .prepare(
+        `SELECT heading, level, anchor_id, text, code, word_count, sort_order
+         FROM sections WHERE page_id = ? AND (anchor_id = ? OR heading = ? COLLATE NOCASE)
+         ORDER BY sort_order LIMIT 1`,
+      )
+      .get(page.id, section, section) as { heading: string; level: number; anchor_id: string; text: string; code: string; word_count: number; sort_order: number } | null;
+
+    if (sec) {
+      // Include descendant sections (children under this heading)
+      const nextSibling = db
+        .prepare(
+          `SELECT min(sort_order) as next_order FROM sections
+           WHERE page_id = ? AND sort_order > ? AND level <= ?`,
+        )
+        .get(page.id, sec.sort_order, sec.level) as { next_order: number | null };
+      const upperBound = nextSibling?.next_order ?? 999999;
+
+      const descendants = db
+        .prepare(
+          `SELECT heading, level, text, code, word_count
+           FROM sections WHERE page_id = ? AND sort_order > ? AND level > ? AND sort_order < ?
+           ORDER BY sort_order`,
+        )
+        .all(page.id, sec.sort_order, sec.level, upperBound) as Array<{ heading: string; level: number; text: string; code: string; word_count: number }>;
+
+      let fullText = sec.text;
+      let fullCode = sec.code;
+      let totalWords = sec.word_count;
+      for (const child of descendants) {
+        const prefix = "#".repeat(Math.min(child.level + 1, 4));
+        fullText += `\n\n${prefix} ${child.heading}\n${child.text}`;
+        if (child.code) fullCode += `\n${child.code}`;
+        totalWords += child.word_count;
+      }
+
+      return {
+        id: page.id,
+        title: page.title,
+        path: page.path,
+        url: `${page.url}#${sec.anchor_id}`,
+        text: fullText,
+        code: fullCode,
+        word_count: totalWords,
+        code_lines: fullCode.split("\n").filter((l) => l.trim()).length,
+        callouts,
+        section: { heading: sec.heading, level: sec.level, anchor_id: sec.anchor_id },
+      };
+    }
+
+    // Section not found — return TOC if sections exist
+    const toc = getPageToc(page.id, page.url);
+    if (toc.length > 0) {
+      return {
+        id: page.id, title: page.title, path: page.path, url: page.url,
+        text: "", code: "",
+        word_count: page.word_count, code_lines: page.code_lines,
+        callouts, sections: toc,
+        note: `Section "${section}" not found. ${toc.length} sections available — use a heading or anchor_id from the list.`,
+      };
+    }
+    // No sections — return full page with note
+    return {
+      id: page.id, title: page.title, path: page.path, url: page.url,
+      text: page.text, code: page.code,
+      word_count: page.word_count, code_lines: page.code_lines,
+      callouts,
+      note: `Section "${section}" not found (this page has no sections). Returning full page.`,
+    };
+  }
+
+  // Truncation with TOC fallback: if page would be truncated and has sections,
+  // return a table of contents instead of a truncated blob
   let truncated: { text_total: number; code_total: number } | undefined;
   let { text, code } = page;
   if (maxLength && (text.length + code.length) > maxLength) {
+    const toc = getPageToc(page.id, page.url);
+    if (toc.length > 0) {
+      const totalChars = text.length + code.length;
+      return {
+        id: page.id, title: page.title, path: page.path, url: page.url,
+        text: "", code: "",
+        word_count: page.word_count, code_lines: page.code_lines,
+        callouts, sections: toc,
+        truncated: { text_total: text.length, code_total: code.length },
+        note: `Page content (${totalChars} chars) exceeds max_length (${maxLength}). Showing table of contents with ${toc.length} sections. Re-call with section parameter to retrieve specific sections.`,
+      };
+    }
+
+    // No sections — fall back to truncation
     const textTotal = text.length;
     const codeTotal = code.length;
-    // Give most budget to text, remainder to code
     const codeBudget = Math.min(code.length, Math.floor(maxLength * 0.2));
     const textBudget = maxLength - codeBudget;
     text = `${text.slice(0, textBudget)}\n\n[... truncated — ${textTotal} chars total, showing first ${textBudget}]`;
@@ -200,6 +301,23 @@ export function getPage(idOrTitle: string | number, maxLength?: number): {
   }
 
   return { id: page.id, title: page.title, path: page.path, url: page.url, text, code, word_count: page.word_count, code_lines: page.code_lines, callouts, ...(truncated ? { truncated } : {}) };
+}
+
+/** Build section TOC for a page. */
+function getPageToc(pageId: number, pageUrl: string): SectionTocEntry[] {
+  const rows = db
+    .prepare(
+      `SELECT heading, level, anchor_id, length(text) + length(code) as char_count
+       FROM sections WHERE page_id = ? ORDER BY sort_order`,
+    )
+    .all(pageId) as Array<{ heading: string; level: number; anchor_id: string; char_count: number }>;
+  return rows.map((r) => ({
+    heading: r.heading,
+    level: r.level,
+    anchor_id: r.anchor_id,
+    char_count: r.char_count,
+    url: `${pageUrl}#${r.anchor_id}`,
+  }));
 }
 
 /** Lookup property by name, optionally filtered by command path. */

@@ -8,20 +8,9 @@
 
 Items with clear scope and no blockers.
 
-### Section-level page chunks for large pages
+### ~~Section-level page chunks for large pages~~ ✓ DONE
 
-The 17 pages over 50K chars (Bridging=155K, Wireless=103K, WiFi=102K, IPsec=101K, DHCP=96K) overflow LLM context windows. The Confluence HTML has heading tags with stable anchor IDs in the format `{SlugNoSpaces}-{SectionTitle}` (e.g., `BridgingandSwitching-BridgeVLANFiltering`). These map directly to fragment URLs on help.mikrotik.com.
-
-Approach:
-1. During `extract-html`, parse `<h1>`–`<h3>` tags with `id` attributes. Store section boundaries in a new `sections` table: `(id, page_id, heading, level, anchor_id, text, code, sort_order)`.
-2. Add `sections_fts` for FTS over section text.
-3. Modify `routeros_get_page`: for pages above a size threshold (e.g., 30K chars), return a **table of contents** (heading + anchor + char count per section) instead of the full blob. The agent can then request a specific section.
-4. Add `routeros_get_section` tool or extend `get_page` with a `section` parameter.
-5. Section URLs: `{page_url}#{anchor_id}` — the agent can give users deep-links like `https://help.mikrotik.com/docs/spaces/ROS/pages/328068/Bridging+and+Switching#BridgingandSwitching-BridgeVLANFiltering`.
-
-Data from the largest page (Bridging and Switching, 328068): 36 headings (h1–h3) with IDs. WiFi: 20. DHCP: 26. Pattern is consistent across large pages.
-
-Current workaround: `max_length` parameter on `get_page` truncates with a note. This is sufficient for now but loses tail content. Section-level chunking would let agents get the right 5K instead of the first 30K.
+Implemented. 2,984 sections across 275 pages extracted from h1–h3 headings with anchor IDs. `get_page` returns a table of contents (heading + char_count + deep-link URL) when `max_length` is exceeded and sections exist. `section` parameter on `get_page` retrieves specific sections by heading text or anchor_id. No new MCP tool — extended `get_page` instead. Deferred `sections_fts` as unnecessary for current use case (TOC + section retrieval don't need FTS).
 
 ### Device/product data (Phase 1)
 
@@ -125,6 +114,6 @@ Currently ~92% of dirs are linked to documentation pages. The remaining ~8% coul
 
 [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) hover handler should consume property data from this DB. Needs a settings field for `routeros.helpDatabasePath`. The data is ready; the consumer needs work.
 
-### Archival Python scripts
+### ~~Archival Python scripts~~
 
-`ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` are from the original PDF-based approach. They still work but are superseded by the HTML pipeline. Keep for reference but could be moved to a `legacy/` directory.
+`ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` were from the original PDF-based approach. **Removed** — files are in git history if needed.

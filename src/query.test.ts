@@ -77,6 +77,47 @@ beforeAll(() => {
 
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.22')`);
+
+  // Page 3: a "large" page with sections for TOC testing
+  // Text is ~200 chars to keep fixture small, but we'll use max_length=50 to trigger truncation
+  db.run(`INSERT INTO pages
+    (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+     author, last_updated, word_count, code_lines, html_file)
+    VALUES
+    (3, 'Bridging', 'Bridging and Switching', 'RouterOS > Bridging', 1, NULL,
+     'https://help.mikrotik.com/docs/spaces/ROS/pages/3/Bridging',
+     'Bridging overview text that is moderately long for testing purposes. It covers bridge setup and VLAN configuration and STP protocol details.',
+     '/interface bridge add name=bridge1', NULL, NULL, NULL, 25, 1, 'test3.html')`);
+
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES
+    (1, 3, 'Summary', 1, 'BridgingandSwitching-Summary',
+     'Bridge summary text with basic overview.', '', 6, 0)`);
+
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES
+    (2, 3, 'Bridge Interface Setup', 1, 'BridgingandSwitching-BridgeInterfaceSetup',
+     'Setup instructions for bridge interfaces.', '/interface bridge add name=bridge1', 6, 1)`);
+
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES
+    (4, 3, 'Port Configuration', 2, 'BridgingandSwitching-PortConfiguration',
+     'Add ports to the bridge for switching.', '/interface bridge port add bridge=bridge1 interface=ether2', 7, 2)`);
+
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES
+    (5, 3, 'VLAN Setup', 2, 'BridgingandSwitching-VLANSetup',
+     'Configure VLANs on the bridge.', '/interface bridge vlan add bridge=bridge1 vlan-ids=10', 5, 3)`);
+
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES
+    (3, 3, 'Spanning Tree Protocol', 1, 'BridgingandSwitching-SpanningTreeProtocol',
+     'STP protocol configuration and monitoring.', '', 5, 4)`);
 });
 
 // ---------------------------------------------------------------------------
@@ -263,6 +304,122 @@ describe("getPage", () => {
     const page = getPage(1, 999999);
     expect(page).not.toBeNull();
     expect(page?.truncated).toBeUndefined();
+  });
+
+  test("returns TOC when page would be truncated and has sections", () => {
+    // Page 3 has sections + its text is ~135 chars. max_length=50 triggers truncation.
+    const result = getPage(3, 50);
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.sections).toBeDefined();
+    expect(result.sections?.length).toBe(5);
+    expect(result.sections?.[0].heading).toBe("Summary");
+    expect(result.sections?.[0].anchor_id).toBe("BridgingandSwitching-Summary");
+    expect(result.sections?.[0].char_count).toBeGreaterThan(0);
+    expect(result.sections?.[0].url).toContain("#BridgingandSwitching-Summary");
+    expect(result.text).toBe("");
+    expect(result.note).toContain("table of contents");
+    expect(result.truncated).toBeDefined();
+  });
+
+  test("truncates normally when page has no sections", () => {
+    // Page 1 has no sections — should truncate the old way
+    const result = getPage(1, 50);
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.sections).toBeUndefined();
+    expect(result.truncated).toBeDefined();
+    expect(result.text.length).toBeGreaterThan(0);
+  });
+
+  test("returns specific section by heading text", () => {
+    const result = getPage(3, undefined, "Summary");
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.section).toBeDefined();
+    expect(result.section?.heading).toBe("Summary");
+    expect(result.text).toContain("Bridge summary");
+    expect(result.url).toContain("#BridgingandSwitching-Summary");
+  });
+
+  test("returns specific section by anchor_id", () => {
+    const result = getPage(3, undefined, "BridgingandSwitching-BridgeInterfaceSetup");
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.section?.heading).toBe("Bridge Interface Setup");
+    expect(result.text).toContain("Setup instructions");
+    expect(result.code).toContain("bridge add");
+  });
+
+  test("parent section includes descendant content", () => {
+    // "Bridge Interface Setup" (level 1) has two level-2 children: Port Configuration, VLAN Setup
+    const result = getPage(3, undefined, "Bridge Interface Setup");
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.section?.heading).toBe("Bridge Interface Setup");
+    // Should include own content
+    expect(result.text).toContain("Setup instructions");
+    // Should include child section content
+    expect(result.text).toContain("Port Configuration");
+    expect(result.text).toContain("Add ports to the bridge");
+    expect(result.text).toContain("VLAN Setup");
+    expect(result.text).toContain("Configure VLANs");
+    // Should include child code
+    expect(result.code).toContain("bridge port add");
+    expect(result.code).toContain("bridge vlan add");
+    // word_count sums parent + children
+    expect(result.word_count).toBe(6 + 7 + 5);
+  });
+
+  test("leaf section does not include sibling content", () => {
+    // "Port Configuration" (level 2) should NOT include VLAN Setup content
+    const result = getPage(3, undefined, "Port Configuration");
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.section?.heading).toBe("Port Configuration");
+    expect(result.text).toContain("Add ports to the bridge");
+    expect(result.text).not.toContain("Configure VLANs");
+  });
+
+  test("last top-level section has no descendants", () => {
+    const result = getPage(3, undefined, "Spanning Tree Protocol");
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.section?.heading).toBe("Spanning Tree Protocol");
+    expect(result.text).toBe("STP protocol configuration and monitoring.");
+    // No child content contamination
+    expect(result.text).not.toContain("Port Configuration");
+  });
+
+  test("returns section by heading case-insensitive", () => {
+    const result = getPage(3, undefined, "summary");
+    expect(result).not.toBeNull();
+    expect(result?.section?.heading).toBe("Summary");
+  });
+
+  test("returns TOC when section not found on page with sections", () => {
+    const result = getPage(3, undefined, "Nonexistent Section");
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.sections).toBeDefined();
+    expect(result.sections?.length).toBe(5);
+    expect(result.note).toContain("not found");
+    expect(result.text).toBe("");
+  });
+
+  test("returns full page with note when section not found on page without sections", () => {
+    const result = getPage(1, undefined, "Nonexistent Section");
+    expect(result).not.toBeNull();
+    if (!result) return;
+    expect(result.note).toContain("no sections");
+    expect(result.text.length).toBeGreaterThan(0);
+    expect(result.sections).toBeUndefined();
+  });
+
+  test("section response includes callouts", () => {
+    const result = getPage(3, undefined, "Summary");
+    expect(result).not.toBeNull();
+    expect(Array.isArray(result?.callouts)).toBe(true);
   });
 });
 
