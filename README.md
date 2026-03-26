@@ -54,7 +54,7 @@ On Windows:
 
 This downloads the documentation database (~50 MB compressed, ~220 MB on disk) and prints configuration instructions for your MCP client.
 
-> **macOS Gatekeeper:** If macOS blocks the binary, go to **System Settings → Privacy & Security** and click **Allow Anyway**, then run again.
+> **macOS Gatekeeper:** If macOS blocks the binary, go to **System Settings → Privacy & Security** and click **Allow Anyway**, then run again. Or from Terminal: `xattr -d com.apple.quarantine ./rosetta`
 >
 > **Windows SmartScreen:** If Windows warns about an unrecognized app, click **More info → Run anyway**.
 

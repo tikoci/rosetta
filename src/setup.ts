@@ -199,5 +199,8 @@ function printDevConfig(baseDir: string) {
 // Run directly
 if (import.meta.main) {
   const force = process.argv.includes("--force");
-  await runSetup(force);
+  runSetup(force).catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
 }

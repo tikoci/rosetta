@@ -43,6 +43,9 @@ if (args.includes("--help") || args.includes("-h")) {
   process.exit(0);
 }
 
+// Wrap in async IIFE — bun build --compile does not support top-level await
+(async () => {
+
 if (args.includes("--setup")) {
   const { runSetup } = await import("./setup.ts");
   await runSetup(args.includes("--force"));
@@ -51,11 +54,15 @@ if (args.includes("--setup")) {
 
 // ── MCP Server ──
 
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod/v3";
-import { getDbStats, initDb } from "./db.ts";
-import {
+const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
+const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+const { z } = await import("zod/v3");
+
+// Dynamic imports — db.ts eagerly opens the DB file on import,
+// so we must import after the --setup guard to avoid creating
+// an empty ros-help.db on fresh installs.
+const { getDbStats, initDb } = await import("./db.ts");
+const {
   browseCommands,
   browseCommandsAtVersion,
   checkCommandVersions,
@@ -66,13 +73,13 @@ import {
   searchDevices,
   searchPages,
   searchProperties,
-} from "./query.ts";
+} = await import("./query.ts");
 
 initDb();
 
 const server = new McpServer({
   name: "rosetta",
-  version: "0.1.0",
+  version: typeof VERSION !== "undefined" ? VERSION : "0.1.0",
 });
 
 // ---- routeros_search ----
@@ -585,3 +592,5 @@ Requires network access to upgrade.mikrotik.com.`,
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
+
+})();
