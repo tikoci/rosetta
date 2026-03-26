@@ -17,7 +17,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 import { parseHTML } from "linkedom";
 
-const HTML_DIR = process.argv[2] || resolve(import.meta.dirname, "../box/documents-export-2026-3-25/ROS");
+const HTML_DIR = process.argv[2] || resolve(import.meta.dirname, "../box/latest/ROS");
 
 const htmlFiles = readdirSync(HTML_DIR)
   .filter((f) => f.endsWith(".html") && f !== "index.html")

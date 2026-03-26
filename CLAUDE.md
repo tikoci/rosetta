@@ -20,7 +20,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Two outputs:
 
-1. **SQL-as-RAG MCP Server** — 9 tools for LLM agents to search docs, look up properties, browse the command tree, check version history, and fetch current versions
+1. **SQL-as-RAG MCP Server** — 10 tools for LLM agents to search docs, look up properties, browse the command tree, check version history, and fetch current versions
 2. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration
 
 ## Current State
@@ -28,8 +28,8 @@ Two outputs:
 - **317 pages** from Confluence HTML export (March 2026), with breadcrumb paths, page IDs, help.mikrotik.com URLs
 - **515K words**, **14K code lines** (identified by `brush: ros` code blocks)
 - **1,034 callouts** extracted (Note/Warning/Info/Tip) from Confluence callout macros
-- **~3,000 sections** extracted from h1–h3 headings across 275 pages, with anchor IDs for deep linking
-- **~5,000 properties** extracted from confluenceTable rows (name, type, default, description)
+- **2,984 sections** extracted from h1–h3 headings across 275 pages, with anchor IDs for deep linking
+- **4,860 properties** extracted from confluenceTable rows (name, type, default, description)
 - **40K command tree entries** from `inspect.json` (551 dirs, 5114 cmds, 34K args), primary version: 7.22 (latest stable)
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
@@ -147,7 +147,7 @@ Register in `.vscode/mcp.json` or Claude Code settings:
     "mikrotik-docs": {
       "command": "bun",
       "args": ["run", "src/mcp.ts"],
-      "cwd": "/Users/amm0/Lab/mikrotik-docs"
+      "cwd": "/path/to/mikrotik-docs"
     }
   }
 }
@@ -247,7 +247,8 @@ gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --gener
 When a new HTML/PDF export is available:
 
 ```sh
-# Place new export in box/ directory
+# Place new export in box/ and update symlink
+# ln -s documents-export-<date> box/latest
 make clean
 make extract       # runs extract-html, extract-properties, extract-commands, extract-devices, link (single version)
 make extract-full  # runs extract-html, extract-properties, extract-all-versions, extract-devices, link (all versions)
@@ -260,7 +261,7 @@ The Makefile orchestrates the full pipeline. Each script drops and recreates its
 ### HTML Archive (Primary)
 
 - **Export:** Confluence space export, March 2026
-- **Format:** 317 HTML files + attachments in `box/documents-export-2026-3-25/ROS/`
+- **Format:** 317 HTML files + attachments in `box/latest/ROS/` (symlink → `box/documents-export-2026-3-25`)
 - **Structure:** Consistent Confluence classes (`confluenceTable`, `confluenceTh`, `syntaxhighlighter-pre`)
 - **Property tables:** 605 tables with "Property | Description" headers across 147 pages
 - **Code blocks:** `data-syntaxhighlighter-params="brush: ros"` for RouterOS CLI

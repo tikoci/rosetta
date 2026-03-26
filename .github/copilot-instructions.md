@@ -51,7 +51,7 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 **Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices` with FTS5 indexes on pages, callouts, properties, and devices.
 
 **Data sources:**
-- HTML export from Confluence in `box/documents-export-2026-3-25/ROS/` (317 pages)
+- HTML export from Confluence in `box/latest/ROS/` (317 pages)
 - `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree (40K entries, 46 versions: 7.9–7.23beta2). Local path configured via `RESTRAML` in Makefile.
 - Product matrix CSV in `matrix/` (144 products, 34 columns — hardware specs, license levels, pricing)
 

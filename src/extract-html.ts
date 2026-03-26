@@ -23,7 +23,7 @@ import { parseHTML } from "linkedom";
 import { db, initDb } from "./db.ts";
 
 const HTML_DIR =
-  process.argv[2] || resolve(import.meta.dirname, "../box/documents-export-2026-3-25/ROS");
+  process.argv[2] || resolve(import.meta.dirname, "../box/latest/ROS");
 
 // Filename pattern: Slug_PageID.html or just PageID.html
 const filenameRe = /^(?:(.+?)_)?(\d+)\.html$/;

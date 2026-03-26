@@ -1,5 +1,5 @@
 DB         := ros-help.db
-HTML_DIR   := box/documents-export-2026-3-25/ROS
+HTML_DIR   := box/latest/ROS
 RESTRAML   := $(HOME)/restraml/docs
 
 .PHONY: extract extract-html extract-properties extract-commands extract-all-versions extract-devices link assess search serve lint test clean install release setup

@@ -239,7 +239,7 @@ server.registerTool(
   {
     description: `Search RouterOS properties by name or description text.
 
-Full-text search across ~5,000 property names and descriptions from 145 pages.
+Full-text search across 4,860 property names and descriptions from 145 pages.
 Use when you don't know the exact property name but know what it does.
 If AND returns nothing, the engine automatically retries with OR.
 

@@ -14,7 +14,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 
 | Source | Location | Format | Coverage |
 |--------|----------|--------|----------|
-| Confluence HTML | `box/documents-export-2026-3-25/ROS/` | 317 HTML files | March 2026 export |
+| Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export |
 | inspect.json | [tikoci/restraml](https://github.com/tikoci/restraml) `docs/*/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
 | Product matrix | `matrix/2026-03-25/matrix.csv` | CSV, 34 columns | 144 products, March 2026 |
 

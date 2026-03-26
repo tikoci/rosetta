@@ -121,7 +121,7 @@ The server provides 10 tools, designed to work together:
 | `routeros_search` | **Start here.** Full-text search across all pages with BM25 ranking |
 | `routeros_get_page` | Retrieve full page content by ID or title. Section-aware for large pages |
 | `routeros_lookup_property` | Look up a property by exact name (type, default, description) |
-| `routeros_search_properties` | Search across ~5,000 property names and descriptions |
+| `routeros_search_properties` | Search across 4,860 property names and descriptions |
 | `routeros_command_tree` | Browse the `/ip/firewall/filter` style command hierarchy |
 | `routeros_search_callouts` | Search warnings, notes, and tips across all pages |
 | `routeros_command_version_check` | Check which RouterOS versions include a command |
@@ -149,7 +149,13 @@ cd mikrotik-docs
 bun install
 ```
 
-Place the Confluence HTML export in `box/documents-export-<date>/ROS/`, then:
+Place the Confluence HTML export in `box/documents-export-<date>/ROS/` and symlink `box/latest` to it:
+
+```sh
+ln -s documents-export-<date> box/latest
+```
+
+Then:
 
 ```sh
 make extract       # HTML → properties → commands (single version) → link
@@ -184,7 +190,7 @@ gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --gener
 
 ## Project Structure
 
-```
+```text
 src/
 ├── mcp.ts                  # MCP server (10 tools, stdio) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config

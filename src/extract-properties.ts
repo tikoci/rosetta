@@ -17,7 +17,7 @@ import { parseHTML } from "linkedom";
 import { db, initDb } from "./db.ts";
 
 const HTML_DIR =
-  process.argv[2] || resolve(import.meta.dirname, "../box/documents-export-2026-3-25/ROS");
+  process.argv[2] || resolve(import.meta.dirname, "../box/latest/ROS");
 
 /**
  * Parse the first cell of a property row to extract name, type, and default value.

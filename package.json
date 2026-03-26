@@ -4,6 +4,10 @@
   "description": "RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tikoci/mikrotik-docs.git"
+  },
   "scripts": {
     "start": "bun run src/mcp.ts",
     "assess": "bun run src/assess-html.ts",

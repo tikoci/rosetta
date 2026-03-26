@@ -28,6 +28,10 @@ This could also pair with `routeros_search_callouts` — callouts often document
 
 Items that need research or experimentation before they're actionable.
 
+### Fetch inspect.json from restraml GitHub Pages instead of local clone
+
+`extract-commands.ts` and `extract-all-versions.ts` default to `~/restraml/docs/` — a local clone of tikoci/restraml. But restraml publishes all inspect.json files to GitHub Pages (`tikoci.github.io/restraml/`), so there's no reason to require a local checkout. The extract scripts should fetch from the web by default and only fall back to local paths when explicitly passed as an argument. This removes the undocumented `~/restraml` dependency and makes `make extract` work for contributors without extra setup.
+
 ### List-format properties
 
 Some pages use `<ul><li><strong>name</strong> (type; Default: value)</li></ul>` for read-only properties instead of `confluenceTable`. These are currently not extracted. Need to:
@@ -72,7 +76,7 @@ To make tool descriptions more accurate, we should:
 
 The MCP spec supports **resources** — static or semi-static data that clients can fetch without a tool call. Worth investigating whether we should expose some data as resources rather than (or in addition to) tools:
 
-- **Product matrix CSV** — `matrix/2026-03-25/matrix.csv` (144 products, 34 columns). Currently not in the DB at all. Could be a resource that agents fetch when they need hardware specs.
+- **Product matrix CSV** — `matrix/2026-03-25/matrix.csv` (144 products, 34 columns). Already in the DB as the `devices` table, but the raw CSV might be useful as a resource for agents that want the full 34-column dataset.
 - **Versioned inspect.json** — raw command tree data. Some agents might want the raw JSON rather than our SQL interpretation.
 - **RouterOS YAML schema** — restraml also generates RAML/YAML schemas. Could expose as a resource for code generation use cases.
 
