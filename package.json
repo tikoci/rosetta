@@ -9,10 +9,6 @@
     "url": "https://github.com/tikoci/rosetta.git"
   },
   "scripts": {
-    "start": "bun run src/mcp.ts",
-    "assess": "bun run src/assess-html.ts",
-    "extract": "bun run src/extract-html.ts",
-    "search": "bun run src/search.ts",
     "test": "bun test",
     "typecheck": "bun tsc --noEmit",
     "lint": "biome check src/"

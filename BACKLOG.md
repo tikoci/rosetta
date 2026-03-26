@@ -18,6 +18,7 @@ The GitHub Actions workflow (`.github/workflows/test.yml`) runs typecheck, `bun 
 - `bun test` uses in-memory SQLite (no DB file needed) — this should already work. Investigate actual failure cause from the run log.
 - Typecheck and lint should also work without the DB. May just need `bun install` to succeed.
 - Once green, re-enable `push` / `pull_request` triggers.
+- Consider replacing the individual steps with `make preflight` (minus the dirty-tree and DB checks, which don't apply in CI). Or add a `make ci` target.
 - Also: actions/checkout@v4 emits a Node.js 20 deprecation warning — update to a version that supports Node.js 24 before the June 2026 deadline.
 
 ### ~~Section-level page chunks for large pages~~ ✓ DONE
@@ -97,6 +98,17 @@ Resources are a better fit than tools for large, infrequently-changing data that
 ### Cross-reference with forum data
 
 The MikroTik forum archive (also an SQL-as-RAG project using SQLite FTS5) could be cross-searched with official docs. A JOIN or cross-search could surface community knowledge alongside official documentation. Need to think about: same DB vs. separate MCP tools vs. query-time federation.
+
+### macOS code signing and notarization for compiled binaries
+
+Compiled Bun binaries trigger macOS Gatekeeper because they are unsigned and unnotarized. Current workaround is documented in README (System Settings → Privacy & Security → Allow Anyway, or `xattr -d com.apple.quarantine`). The "Run with Bun" install option avoids this entirely.
+
+To properly sign and notarize:
+- **Ad-hoc signing** (`codesign -s -`) — free, no account needed, but does NOT suppress Gatekeeper on other machines. Only useful for local development.
+- **Developer ID signing + notarization** — requires an **active** Apple Developer Program membership ($99/year). The certificate type needed is "Developer ID Application". The flow: `codesign --sign "Developer ID Application: ..."` → `xcrun notarytool submit` → `xcrun stapler staple`.
+- Windows SmartScreen has a similar story — EV code signing certificates (~$200-400/year) from a CA are needed to build SmartScreen reputation.
+
+**Recommendation:** The Bun-based install option is the pragmatic alternative. Code signing is worth doing if the compiled binaries get wider distribution, but not a blocker for early testers.
 
 ## Deferred
 

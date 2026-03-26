@@ -40,13 +40,16 @@ make extract             # Full pipeline: HTML → properties → commands → l
 make extract-full        # Full pipeline with all 46 RouterOS versions
 make serve               # Start MCP server (stdio transport)
 make search query="DHCP" # CLI search
-bun test                 # Run tests (query planner + DB integration)
-bun run typecheck        # Type checking (no emit)
+bun test                 # Run tests (query + schema + release readiness)
+make typecheck           # Type checking (no emit)
 make lint                # Biome linter
+make preflight           # All checks: clean tree, DB, typecheck, test, lint
 make clean               # Remove DB files
 ```
 
 Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make extract-devices`, `make link`.
+
+Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FORCE=1` (update existing). See `make build-release` for build-only (no git/upload).
 
 ## Architecture
 
@@ -58,7 +61,7 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 | Extractors | `src/extract-*.ts` | HTML/JSON → SQLite (each drops and recreates its tables) |
 | Linker | `src/link-commands.ts` | Command tree ↔ page matching (code paths + heuristics) |
 | CLI Search | `src/search.ts` | Quick search from terminal |
-| Tests | `src/query.test.ts` | Bun tests — query planner + DB integration (in-memory SQLite) |
+| Tests | `src/query.test.ts`, `src/release.test.ts` | Bun tests — query planner + DB integration + schema; release readiness |
 
 **Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices` with FTS5 indexes on pages, callouts, properties, and devices.
 

@@ -131,6 +131,75 @@ The server provides 10 tools, designed to work together:
 
 The AI assistant typically starts with `routeros_search`, then drills into specific pages, properties, or the command tree based on what it finds.
 
+## Alternative: Run with Bun
+
+If you have [Bun](https://bun.sh/) installed and prefer not to use the pre-built binary — for example, to avoid Gatekeeper/SmartScreen warnings, or to inspect the code you're running — you can run the MCP server directly from source. No HTML export or command tree data is needed; the database is downloaded from GitHub Releases just like the binary option.
+
+### 1. Install Bun
+
+```sh
+# macOS / Linux
+curl -fsSL https://bun.sh/install | bash
+# or: brew install oven-sh/bun/bun
+
+# Windows
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+### 2. Download and Install
+
+```sh
+git clone https://github.com/tikoci/rosetta.git
+cd rosetta
+bun install
+```
+
+Or download the source archive from the [latest release](https://github.com/tikoci/rosetta/releases/latest) ("Source code" ZIP or tarball), extract it, and run `bun install`.
+
+### 3. Run Setup
+
+```sh
+bun run src/mcp.ts --setup
+```
+
+This downloads the documentation database and prints MCP client configuration. The config uses `bun` as the command with `src/mcp.ts` as the entrypoint:
+
+#### Claude Desktop
+
+```json
+{
+  "mcpServers": {
+    "rosetta": {
+      "command": "bun",
+      "args": ["run", "src/mcp.ts"],
+      "cwd": "/path/to/rosetta"
+    }
+  }
+}
+```
+
+#### Claude Code
+
+```sh
+claude mcp add rosetta -- bun run src/mcp.ts --cwd /path/to/rosetta
+```
+
+#### VS Code Copilot
+
+```json
+"mcp": {
+  "servers": {
+    "rosetta": {
+      "command": "bun",
+      "args": ["run", "src/mcp.ts"],
+      "cwd": "/path/to/rosetta"
+    }
+  }
+}
+```
+
+Replace `/path/to/rosetta` with the actual path (printed by `--setup`).
+
 ## Building from Source
 
 For contributors or when you have access to the MikroTik HTML documentation export.

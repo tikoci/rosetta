@@ -711,3 +711,71 @@ describe("searchDevices", () => {
     expect(res.results).toHaveLength(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Schema health: verify initDb creates all expected tables and triggers
+// ---------------------------------------------------------------------------
+
+describe("schema", () => {
+  function tableNames(): string[] {
+    const rows = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name"
+    ).all() as { name: string }[];
+    return rows.map((r) => r.name);
+  }
+
+  function triggerNames(): string[] {
+    const rows = db.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name"
+    ).all() as { name: string }[];
+    return rows.map((r) => r.name);
+  }
+
+  test("all core tables exist", () => {
+    const names = tableNames();
+    const expected = [
+      "pages", "properties", "callouts", "sections",
+      "commands", "command_versions", "ros_versions",
+      "devices", "schema_migrations",
+    ];
+    for (const table of expected) {
+      expect(names).toContain(table);
+    }
+  });
+
+  test("all FTS5 virtual tables exist", () => {
+    const names = tableNames();
+    const expected = ["pages_fts", "properties_fts", "callouts_fts", "devices_fts"];
+    for (const fts of expected) {
+      expect(names).toContain(fts);
+    }
+  });
+
+  test("content-sync triggers exist for pages", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("pages_ai");
+    expect(triggers).toContain("pages_ad");
+    expect(triggers).toContain("pages_au");
+  });
+
+  test("content-sync triggers exist for properties", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("props_ai");
+    expect(triggers).toContain("props_ad");
+    expect(triggers).toContain("props_au");
+  });
+
+  test("content-sync triggers exist for callouts", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("callouts_ai");
+    expect(triggers).toContain("callouts_ad");
+    expect(triggers).toContain("callouts_au");
+  });
+
+  test("content-sync triggers exist for devices", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("devices_ai");
+    expect(triggers).toContain("devices_ad");
+    expect(triggers).toContain("devices_au");
+  });
+});

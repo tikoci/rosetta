@@ -1,11 +1,56 @@
 DB         := ros-help.db
 HTML_DIR   := box/latest/ROS
 RESTRAML   := $(HOME)/restraml/docs
+VERSION    ?=
+FORCE      ?=
 
-.PHONY: extract extract-html extract-properties extract-commands extract-all-versions extract-devices link assess search serve lint test clean install release setup
+.PHONY: extract extract-full extract-html extract-properties extract-commands \
+        extract-all-versions extract-devices link assess search serve \
+        typecheck lint test preflight build-release release \
+        install setup clean
+
+# ── Development ──
 
 install:
 	bun install
+
+serve:
+	bun run src/mcp.ts
+
+search:
+	bun run src/search.ts $(query)
+
+assess:
+	bun run src/assess-html.ts
+
+# ── Quality ──
+
+typecheck:
+	bun run typecheck
+
+test:
+	bun test
+
+lint:
+	bun run lint
+
+preflight:
+	@echo "── Preflight checks ──"
+	@git diff --quiet --exit-code || (echo "✗ Working tree has uncommitted changes" && exit 1)
+	@git diff --quiet --cached --exit-code || (echo "✗ Index has staged changes" && exit 1)
+	@echo "✓ Clean working tree"
+	@test -f $(DB) || (echo "✗ Database $(DB) not found" && exit 1)
+	@sqlite3 $(DB) "SELECT COUNT(*) FROM pages" > /dev/null 2>&1 || (echo "✗ Database has no page data" && exit 1)
+	@echo "✓ Database exists"
+	@$(MAKE) --no-print-directory typecheck
+	@echo "✓ Typecheck passed"
+	@$(MAKE) --no-print-directory test
+	@echo "✓ Tests passed"
+	@$(MAKE) --no-print-directory lint
+	@echo "✓ Lint passed"
+	@echo "── Preflight OK ──"
+
+# ── Extraction pipeline ──
 
 extract: extract-html extract-properties extract-commands extract-devices link
 
@@ -29,27 +74,35 @@ extract-devices:
 link:
 	bun run src/link-commands.ts
 
-assess:
-	bun run src/assess-html.ts
+# ── Release ──
+#
+# make build-release VERSION=v0.1.0          Build artifacts only (no git, no upload)
+# make release VERSION=v0.1.0               Preflight → build → tag → push → create release
+# make release VERSION=v0.1.0 FORCE=1       Preflight → build → force-move tag → push → update release
 
-search:
-	bun run src/search.ts $(query)
+build-release:
+	@test -n "$(VERSION)" || (echo "✗ VERSION is required: make build-release VERSION=v0.1.0" && exit 1)
+	bun run scripts/build-release.ts $(VERSION)
 
-serve:
-	bun run src/mcp.ts
-
-lint:
-	bunx @biomejs/biome check src/
-
-test:
-	bun test
+release: preflight build-release
+	@test -n "$(VERSION)" || (echo "✗ VERSION is required: make release VERSION=v0.1.0" && exit 1)
+ifdef FORCE
+	@echo "── Updating existing release $(VERSION) ──"
+	git tag -f $(VERSION)
+	git push origin $(VERSION) --force
+	gh release upload $(VERSION) dist/*.zip dist/ros-help.db.gz --clobber
+	@echo "✓ Release $(VERSION) updated"
+else
+	@echo "── Creating release $(VERSION) ──"
+	@git tag $(VERSION) 2>/dev/null || (echo "✗ Tag $(VERSION) already exists. Use FORCE=1 to update." && exit 1)
+	git push origin $(VERSION)
+	gh release create $(VERSION) dist/*.zip dist/ros-help.db.gz --title "$(VERSION)" --generate-notes
+	@echo "✓ Release $(VERSION) created"
+endif
 
 setup:
 	bun install
 	bun run src/setup.ts
-
-release:
-	bun run scripts/build-release.ts $(VERSION)
 
 clean:
 	rm -f $(DB) $(DB)-shm $(DB)-wal

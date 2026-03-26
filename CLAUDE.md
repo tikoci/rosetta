@@ -186,11 +186,17 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 Compiled single-file executables for testers. Database distributed via GitHub Releases.
 
-### Building a Release
+### Release Workflow
+
+The Makefile is the source of truth for releasing. It chains preflight checks, build, git tagging, and upload:
 
 ```sh
-make release VERSION=v0.1.0   # cross-compile 4 platforms + compress DB
+make build-release VERSION=v0.1.0          # Build artifacts only (no git, no upload)
+make release VERSION=v0.1.0                # Full flow: preflight → build → tag → push → create release
+make release VERSION=v0.1.0 FORCE=1        # Update existing: preflight → build → force-move tag → upload --clobber
 ```
+
+`make preflight` runs independently as a health check: clean working tree, DB exists, typecheck, tests, lint.
 
 Produces in `dist/`:
 - `rosetta-macos-arm64.zip` — macOS Apple Silicon
@@ -199,11 +205,12 @@ Produces in `dist/`:
 - `rosetta-linux-x64.zip` — Linux
 - `ros-help.db.gz` — compressed database
 
-### Publishing
+The `FORCE=1` flag:
+- Force-moves the git tag to HEAD (`git tag -f`)
+- Force-pushes the tag (`git push --force`)
+- Replaces release assets (`gh release upload --clobber`)
 
-```sh
-gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --generate-notes
-```
+Without `FORCE`, the release target errors if the tag already exists and uses `gh release create`.
 
 ### Tester Workflow
 
@@ -236,7 +243,8 @@ gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --gener
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
-| `src/query.test.ts` | Bun tests — query planner + DB integration (in-memory SQLite) |
+| `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
+| `src/release.test.ts` | Release readiness tests — file consistency, build constants, Makefile targets |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
 | `scripts/build-release.ts` | Cross-compile binaries for 4 platforms, package ZIPs |
 | `ros-help.db` | The SQLite database (WAL mode) |

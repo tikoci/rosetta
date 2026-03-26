@@ -16,5 +16,8 @@
     "box/": true,
     "bun.lock": true
   },
-  "biome.lspBin": "node_modules/@biomejs/biome/bin/biome"
+  "biome.lspBin": "node_modules/@biomejs/biome/bin/biome",
+  "chat.tools.terminal.autoApprove": {
+    "uname": true
+  }
 }
