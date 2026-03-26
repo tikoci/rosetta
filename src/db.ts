@@ -13,6 +13,8 @@
  *   commands         — RouterOS command tree from inspect.json (latest version)
  *   command_versions — junction: which commands exist in which RouterOS versions
  *   ros_versions     — metadata for each extracted RouterOS version
+ *   devices          — MikroTik product hardware specs from product matrix CSV
+ *   devices_fts      — FTS5 over product name, code, architecture, CPU
  */
 
 import sqlite from "bun:sqlite";
@@ -219,6 +221,70 @@ export function initDb() {
   );`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_cmdver_version ON command_versions(ros_version);`);
+
+  // -- Devices (MikroTik product matrix) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS devices (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_name      TEXT NOT NULL UNIQUE,
+    product_code      TEXT,
+    architecture      TEXT,
+    cpu               TEXT,
+    cpu_cores         INTEGER,
+    cpu_frequency     TEXT,
+    license_level     INTEGER,
+    operating_system  TEXT,
+    ram               TEXT,
+    ram_mb            INTEGER,
+    storage           TEXT,
+    storage_mb        INTEGER,
+    dimensions        TEXT,
+    poe_in            TEXT,
+    poe_out           TEXT,
+    poe_out_ports     TEXT,
+    poe_in_voltage    TEXT,
+    dc_inputs         INTEGER,
+    dc_jack_voltage   TEXT,
+    max_power_w       REAL,
+    wireless_24_chains INTEGER,
+    antenna_24_dbi    REAL,
+    wireless_5_chains INTEGER,
+    antenna_5_dbi     REAL,
+    eth_fast          INTEGER,
+    eth_gigabit       INTEGER,
+    eth_2500          INTEGER,
+    usb_ports         INTEGER,
+    combo_ports       INTEGER,
+    sfp_ports         INTEGER,
+    sfp_plus_ports    INTEGER,
+    eth_multigig      INTEGER,
+    sim_slots         INTEGER,
+    memory_cards      TEXT,
+    usb_type          TEXT,
+    msrp_usd          REAL
+  );`);
+
+  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS devices_fts USING fts5(
+    product_name, product_code, architecture, cpu,
+    content=devices,
+    content_rowid=id,
+    tokenize='porter unicode61'
+  );`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS devices_ai AFTER INSERT ON devices BEGIN
+    INSERT INTO devices_fts(rowid, product_name, product_code, architecture, cpu)
+    VALUES (new.id, new.product_name, new.product_code, new.architecture, new.cpu);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS devices_ad AFTER DELETE ON devices BEGIN
+    INSERT INTO devices_fts(devices_fts, rowid, product_name, product_code, architecture, cpu)
+    VALUES('delete', old.id, old.product_name, old.product_code, old.architecture, old.cpu);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS devices_au AFTER UPDATE ON devices BEGIN
+    INSERT INTO devices_fts(devices_fts, rowid, product_name, product_code, architecture, cpu)
+    VALUES('delete', old.id, old.product_name, old.product_code, old.architecture, old.cpu);
+    INSERT INTO devices_fts(rowid, product_name, product_code, architecture, cpu)
+    VALUES (new.id, new.product_name, new.product_code, new.architecture, new.cpu);
+  END;`);
 }
 
 export function getDbStats() {
@@ -236,6 +302,7 @@ export function getDbStats() {
     callouts: count("SELECT COUNT(*) AS c FROM callouts"),
     commands: count("SELECT COUNT(*) AS c FROM commands"),
     commands_linked: count("SELECT COUNT(*) AS c FROM commands WHERE page_id IS NOT NULL"),
+    devices: count("SELECT COUNT(*) AS c FROM devices"),
     ros_versions: count("SELECT COUNT(*) AS c FROM ros_versions"),
     ros_version_min: scalar("SELECT MIN(version) AS v FROM ros_versions"),
     ros_version_max: scalar("SELECT MAX(version) AS v FROM ros_versions"),

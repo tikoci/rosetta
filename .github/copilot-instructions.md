@@ -34,13 +34,13 @@ make lint                # Biome linter
 make clean               # Remove DB files
 ```
 
-Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make link`.
+Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make extract-devices`, `make link`.
 
 ## Architecture
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| MCP Server | `src/mcp.ts` | 9 tools via stdio transport using `@modelcontextprotocol/sdk` |
+| MCP Server | `src/mcp.ts` | 10 tools via stdio transport using `@modelcontextprotocol/sdk` |
 | Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition |
 | Database | `src/db.ts` | Schema init, WAL mode, FTS5 triggers, singleton pattern |
 | Extractors | `src/extract-*.ts` | HTML/JSON → SQLite (each drops and recreates its tables) |
@@ -48,12 +48,12 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 | CLI Search | `src/search.ts` | Quick search from terminal |
 | Tests | `src/query.test.ts` | Bun tests — query planner + DB integration (in-memory SQLite) |
 
-**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions` with FTS5 indexes on pages, callouts, and properties.
+**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices` with FTS5 indexes on pages, callouts, properties, and devices.
 
 **Data sources:**
 - HTML export from Confluence in `box/documents-export-2026-3-25/ROS/` (317 pages)
 - `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree (40K entries, 46 versions: 7.9–7.23beta2). Local path configured via `RESTRAML` in Makefile.
-- Product matrix CSV in `matrix/` (144 products — extraction not yet built, see BACKLOG.md)
+- Product matrix CSV in `matrix/` (144 products, 34 columns — hardware specs, license levels, pricing)
 
 ## Code Style
 

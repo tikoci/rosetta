@@ -2,14 +2,14 @@ DB         := ros-help.db
 HTML_DIR   := box/documents-export-2026-3-25/ROS
 RESTRAML   := $(HOME)/restraml/docs
 
-.PHONY: extract extract-html extract-properties extract-commands extract-all-versions link assess search serve lint test clean install release setup
+.PHONY: extract extract-html extract-properties extract-commands extract-all-versions extract-devices link assess search serve lint test clean install release setup
 
 install:
 	bun install
 
-extract: extract-html extract-properties extract-commands link
+extract: extract-html extract-properties extract-commands extract-devices link
 
-extract-full: extract-html extract-properties extract-all-versions link
+extract-full: extract-html extract-properties extract-all-versions extract-devices link
 
 extract-html:
 	bun run src/extract-html.ts
@@ -22,6 +22,9 @@ extract-commands:
 
 extract-all-versions:
 	bun run src/extract-all-versions.ts $(RESTRAML)
+
+extract-devices:
+	bun run src/extract-devices.ts
 
 link:
 	bun run src/link-commands.ts

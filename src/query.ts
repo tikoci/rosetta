@@ -629,6 +629,150 @@ export function browseCommandsAtVersion(
     .all(cmdPath, version) as Array<{ path: string; name: string; type: string; description: string | null; page_title: string | null; page_url: string | null }>;
 }
 
+// ── Device lookup and search ──
+
+export type DeviceResult = {
+  id: number;
+  product_name: string;
+  product_code: string | null;
+  architecture: string | null;
+  cpu: string | null;
+  cpu_cores: number | null;
+  cpu_frequency: string | null;
+  license_level: number | null;
+  operating_system: string | null;
+  ram: string | null;
+  ram_mb: number | null;
+  storage: string | null;
+  storage_mb: number | null;
+  dimensions: string | null;
+  poe_in: string | null;
+  poe_out: string | null;
+  max_power_w: number | null;
+  wireless_24_chains: number | null;
+  wireless_5_chains: number | null;
+  eth_fast: number | null;
+  eth_gigabit: number | null;
+  eth_2500: number | null;
+  sfp_ports: number | null;
+  sfp_plus_ports: number | null;
+  eth_multigig: number | null;
+  usb_ports: number | null;
+  sim_slots: number | null;
+  msrp_usd: number | null;
+};
+
+export type DeviceFilters = {
+  architecture?: string;
+  min_ram_mb?: number;
+  min_storage_mb?: number;
+  license_level?: number;
+  has_poe?: boolean;
+  has_wireless?: boolean;
+  has_lte?: boolean;
+};
+
+const DEVICE_SELECT = `SELECT id, product_name, product_code, architecture, cpu,
+    cpu_cores, cpu_frequency, license_level, operating_system,
+    ram, ram_mb, storage, storage_mb, dimensions, poe_in, poe_out,
+    max_power_w, wireless_24_chains, wireless_5_chains,
+    eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+    eth_multigig, usb_ports, sim_slots, msrp_usd
+  FROM devices`;
+
+/** Look up a device by exact name or product code, then fall back to FTS + filters. */
+export function searchDevices(
+  query: string,
+  filters: DeviceFilters = {},
+  limit = 10,
+): { results: DeviceResult[]; mode: "exact" | "fts" | "filter" | "fts+or"; total: number } {
+  // 1. Try exact match on product_name or product_code
+  if (query) {
+    const exact = db
+      .prepare(`${DEVICE_SELECT} WHERE product_name = ? COLLATE NOCASE OR product_code = ? COLLATE NOCASE`)
+      .all(query, query) as DeviceResult[];
+    if (exact.length > 0) {
+      return { results: exact, mode: "exact", total: exact.length };
+    }
+  }
+
+  // 2. FTS + structured filters
+  const whereClauses: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (filters.architecture) {
+    whereClauses.push("d.architecture = ?");
+    params.push(filters.architecture);
+  }
+  if (filters.min_ram_mb) {
+    whereClauses.push("d.ram_mb >= ?");
+    params.push(filters.min_ram_mb);
+  }
+  if (filters.min_storage_mb) {
+    whereClauses.push("d.storage_mb >= ?");
+    params.push(filters.min_storage_mb);
+  }
+  if (filters.license_level) {
+    whereClauses.push("d.license_level = ?");
+    params.push(filters.license_level);
+  }
+  if (filters.has_poe) {
+    whereClauses.push("(d.poe_in IS NOT NULL OR d.poe_out IS NOT NULL)");
+  }
+  if (filters.has_wireless) {
+    whereClauses.push("(d.wireless_24_chains IS NOT NULL OR d.wireless_5_chains IS NOT NULL)");
+  }
+  if (filters.has_lte) {
+    whereClauses.push("d.sim_slots > 0");
+  }
+
+  const terms = query ? extractTerms(query) : [];
+
+  if (terms.length > 0) {
+    // FTS with filters
+    const ftsQuery = buildFtsQuery(terms, "AND");
+    if (ftsQuery) {
+      const filterWhere = whereClauses.length > 0 ? ` AND ${whereClauses.join(" AND ")}` : "";
+      const sql = `SELECT d.id, d.product_name, d.product_code, d.architecture, d.cpu,
+          d.cpu_cores, d.cpu_frequency, d.license_level, d.operating_system,
+          d.ram, d.ram_mb, d.storage, d.storage_mb, d.dimensions, d.poe_in, d.poe_out,
+          d.max_power_w, d.wireless_24_chains, d.wireless_5_chains,
+          d.eth_fast, d.eth_gigabit, d.eth_2500, d.sfp_ports, d.sfp_plus_ports,
+          d.eth_multigig, d.usb_ports, d.sim_slots, d.msrp_usd
+        FROM devices_fts fts
+        JOIN devices d ON d.id = fts.rowid
+        WHERE devices_fts MATCH ?${filterWhere}
+        ORDER BY rank LIMIT ?`;
+      try {
+        const results = db.prepare(sql).all(ftsQuery, ...params, limit) as DeviceResult[];
+        if (results.length > 0) {
+          return { results, mode: "fts", total: results.length };
+        }
+      } catch { /* fall through to OR */ }
+
+      // Fallback to OR
+      if (terms.length > 1) {
+        const orQuery = buildFtsQuery(terms, "OR");
+        try {
+          const results = db.prepare(sql).all(orQuery, ...params, limit) as DeviceResult[];
+          if (results.length > 0) {
+            return { results, mode: "fts+or", total: results.length };
+          }
+        } catch { /* fall through */ }
+      }
+    }
+  }
+
+  // 3. Filter-only (no FTS query)
+  if (whereClauses.length > 0) {
+    const sql = `${DEVICE_SELECT} d WHERE ${whereClauses.join(" AND ")} ORDER BY d.product_name LIMIT ?`;
+    const results = db.prepare(sql).all(...params, limit) as DeviceResult[];
+    return { results, mode: "filter", total: results.length };
+  }
+
+  return { results: [], mode: "fts", total: 0 };
+}
+
 const VERSION_CHANNELS = ["stable", "long-term", "testing", "development"] as const;
 const VERSION_BASE_URL = "https://upgrade.mikrotik.com/routeros/NEWESTa7";
 

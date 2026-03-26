@@ -18,6 +18,7 @@ applyTo: "src/db.ts"
 - `commands` — 40K command tree entries from inspect.json (FK → pages for linked dirs)
 - `ros_versions` — 46 RouterOS versions (7.9–7.23beta2) with channel metadata
 - `command_versions` — 1.67M junction table entries (command_path × ros_version)
+- `devices` + `devices_fts` — 144 MikroTik products with hardware specs (from product matrix CSV)
 
 ## FTS5 Triggers
 Content-sync triggers on `pages`, `callouts`, and `properties` tables handle INSERT/UPDATE/DELETE automatically. Do not manually insert into `*_fts` tables.

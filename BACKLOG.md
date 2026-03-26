@@ -12,20 +12,9 @@ Items with clear scope and no blockers.
 
 Implemented. 2,984 sections across 275 pages extracted from h1–h3 headings with anchor IDs. `get_page` returns a table of contents (heading + char_count + deep-link URL) when `max_length` is exceeded and sections exist. `section` parameter on `get_page` retrieves specific sections by heading text or anchor_id. No new MCP tool — extended `get_page` instead. Deferred `sections_fts` as unnecessary for current use case (TOC + section retrieval don't need FTS).
 
-### Device/product data (Phase 1)
+### ~~Device/product data (Phase 1)~~ ✓ DONE
 
-Source: `matrix/2026-03-25/matrix.csv` — 144 products, 34 columns. Column schema in `matrix/CLAUDE.md`.
-
-Remaining work:
-
-1. Add `devices` table + `devices_fts` to `src/db.ts` — FTS over product name + architecture + CPU
-2. Create `src/extract-devices.ts` — idempotent DELETE + INSERT from CSV, handle UTF-8 BOM
-3. Add MCP tools to `src/mcp.ts`:
-   - `routeros_device_lookup`: exact match by product name or product code
-   - `routeros_device_search`: FTS + optional structured filters (architecture, min ports, has_poe, etc.)
-4. Query functions in `src/query.ts` — FTS for name search, SQL WHERE for structured specs
-5. Makefile target: `extract-devices`, include in `extract` and `extract-full` pipelines
-6. Potential enrichment: cross-reference device architecture → inspect.json architecture names
+Implemented. 144 products from `matrix/2026-03-25/matrix.csv` loaded into `devices` table with `devices_fts` FTS5 index. Single MCP tool `routeros_device_lookup` combines exact match (by product name/code) with FTS search + structured filters (architecture, min_ram_mb, license_level, has_poe, has_wireless). Extractor `src/extract-devices.ts` is idempotent (DELETE + INSERT), handles UTF-8 BOM, normalizes RAM/storage to MB integers. Added to `extract` and `extract-full` Makefile pipelines. 69 tests passing (15 new for device queries). CSV stored in git — manually downloaded from mikrotik.com/products/matrix.
 
 ### Command diff tool (upgrade breakage diagnosis)
 

@@ -63,6 +63,7 @@ import {
   getPage,
   lookupProperty,
   searchCallouts,
+  searchDevices,
   searchPages,
   searchProperties,
 } from "./query.ts";
@@ -433,6 +434,120 @@ Examples:
   },
   async ({ command_path }) => {
     const result = checkCommandVersions(command_path);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_device_lookup ----
+
+server.registerTool(
+  "routeros_device_lookup",
+  {
+    description: `Look up MikroTik hardware specs or search for devices matching criteria.
+
+144 products from mikrotik.com/products/matrix (March 2026). Returns hardware specs
+including CPU, RAM, storage, ports, PoE, wireless, license level, and price.
+
+**How it works:**
+- If query matches a product name or code exactly → returns full specs for that device
+- Otherwise → FTS search + optional structured filters → returns matching devices
+- Filters can be used alone (no query) to find devices by capability
+
+**License levels** determine feature availability:
+- L3: CPE/home (no routing protocols, limited queues)
+- L4: standard (OSPF, BGP, all firewall features)
+- L5: ISP (unlimited tunnels, no peer limits)
+- L6: controller (CAPsMAN unlimited, full cluster)
+
+**Architecture** determines available packages and performance characteristics:
+- ARM 64bit: modern high-end (CCR2xxx, CRS5xx, hAP ax², RB5009)
+- ARM 32bit: mid-range (Audience, cAP ax, some switches)
+- MMIPS: budget gigabit (hEX, hEX S)
+- MIPSBE: legacy (older hAP, BaseBox, SXT)
+- SMIPS: lowest-end (hAP lite)
+
+Workflow — combine with other tools:
+→ routeros_search: find documentation for features relevant to a device
+→ routeros_command_tree: check commands available for a feature
+→ routeros_current_versions: check latest firmware for the device
+
+Data: 144 products, March 2026 snapshot. Not all MikroTik products ever made — only currently listed products.`,
+    inputSchema: {
+      query: z
+        .string()
+        .optional()
+        .default("")
+        .describe("Product name, code, or search terms (e.g., 'hAP ax³', 'CCR2216', 'ARM 64bit router')"),
+      architecture: z
+        .string()
+        .optional()
+        .describe("Filter: ARM 64bit, ARM 32bit, MIPSBE, MMIPS, or SMIPS"),
+      min_ram_mb: z
+        .number()
+        .int()
+        .optional()
+        .describe("Filter: minimum RAM in megabytes (e.g., 256, 1024)"),
+      license_level: z
+        .number()
+        .int()
+        .optional()
+        .describe("Filter: exact license level (3, 4, 5, or 6)"),
+      min_storage_mb: z
+        .number()
+        .int()
+        .optional()
+        .describe("Filter: minimum storage in megabytes (e.g., 128). Devices with 16 MB storage can't fit extra packages"),
+      has_poe: z
+        .boolean()
+        .optional()
+        .describe("Filter: device has PoE in or PoE out"),
+      has_wireless: z
+        .boolean()
+        .optional()
+        .describe("Filter: device has wireless radios (2.4 GHz and/or 5 GHz)"),
+      has_lte: z
+        .boolean()
+        .optional()
+        .describe("Filter: device has LTE/cellular capability (SIM slot)"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .optional()
+        .default(10)
+        .describe("Max results (default 10)"),
+    },
+  },
+  async ({ query, architecture, min_ram_mb, min_storage_mb, license_level, has_poe, has_wireless, has_lte, limit }) => {
+    const filters = {
+      ...(architecture ? { architecture } : {}),
+      ...(min_ram_mb ? { min_ram_mb } : {}),
+      ...(min_storage_mb ? { min_storage_mb } : {}),
+      ...(license_level ? { license_level } : {}),
+      ...(has_poe ? { has_poe } : {}),
+      ...(has_wireless ? { has_wireless } : {}),
+      ...(has_lte ? { has_lte } : {}),
+    };
+    const result = searchDevices(query || "", filters, limit);
+
+    if (result.results.length === 0) {
+      const hints = [
+        query ? "Try a shorter or different product name" : null,
+        Object.keys(filters).length > 0 ? "Try removing some filters" : null,
+        "Use routeros_search to find documentation pages about this topic",
+      ].filter(Boolean);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No devices matched${query ? `: "${query}"` : ""}${Object.keys(filters).length > 0 ? ` (with ${Object.keys(filters).length} filter${Object.keys(filters).length > 1 ? "s" : ""})` : ""}\n\nTry:\n${hints.map((h) => `- ${h}`).join("\n")}`,
+          },
+        ],
+      };
+    }
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };

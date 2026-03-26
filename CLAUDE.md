@@ -33,8 +33,9 @@ Two outputs:
 - **40K command tree entries** from `inspect.json` (551 dirs, 5114 cmds, 34K args), primary version: 7.22 (latest stable)
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
+- **144 devices** from MikroTik product matrix CSV (hardware specs, license levels, pricing)
 - **FTS5 indexes** with `porter unicode61` tokenizer, BM25-weighted ranking
-- **MCP server** with 9 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, command_version_check, stats, current_versions
+- **MCP server** with 10 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, command_version_check, device_lookup, stats, current_versions
 
 ## Schema
 
@@ -108,6 +109,26 @@ command_versions (
     command_path, ros_version,
     PRIMARY KEY (command_path, ros_version)
 )
+
+-- MikroTik product hardware specs (from product matrix CSV)
+devices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_name UNIQUE, product_code,
+    architecture,        -- ARM 64bit, ARM 32bit, MIPSBE, MMIPS, SMIPS
+    cpu, cpu_cores, cpu_frequency,
+    license_level,       -- 3/4/5/6
+    operating_system,    -- RouterOS, RouterOS v7, RouterOS / SwitchOS
+    ram, ram_mb,         -- original text + normalized MB
+    storage, storage_mb,
+    poe_in, poe_out, max_power_w,
+    wireless_24_chains, wireless_5_chains,
+    eth_fast, eth_gigabit, eth_2500,
+    sfp_ports, sfp_plus_ports, eth_multigig,
+    usb_ports, sim_slots, msrp_usd
+)
+
+-- FTS5 over devices
+devices_fts USING fts5(product_name, product_code, architecture, cpu, ...)
 ```
 
 ## Usage
@@ -143,7 +164,8 @@ Register in `.vscode/mcp.json` or Claude Code settings:
 | `routeros_command_tree` | Browse command hierarchy at a given path |
 | `routeros_search_callouts` | FTS across callouts, type-only browse, AND→OR fallback |
 | `routeros_command_version_check` | Version range for a command path, boundary notes |
-| `routeros_stats` | DB health: page/property/command counts, link coverage |
+| `routeros_device_lookup` | Hardware specs by product name/code, FTS search with structured filters (architecture, RAM, license, PoE, wireless) |
+| `routeros_stats` | DB health: page/property/command/device counts, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions per channel |
 
 Tool descriptions include workflow arrows (→ next tool) and empty-result hints to guide LLM agents between tools.
@@ -203,13 +225,14 @@ gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --gener
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 9 tools, stdio transport |
+| `src/mcp.ts` | MCP server — 10 tools, stdio transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
 | `src/extract-properties.ts` | Property table parsing from HTML |
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
+| `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
@@ -226,8 +249,8 @@ When a new HTML/PDF export is available:
 ```sh
 # Place new export in box/ directory
 make clean
-make extract       # runs extract-html, extract-properties, extract-commands, link (single version)
-make extract-full  # runs extract-html, extract-properties, extract-all-versions, link (all versions)
+make extract       # runs extract-html, extract-properties, extract-commands, extract-devices, link (single version)
+make extract-full  # runs extract-html, extract-properties, extract-all-versions, extract-devices, link (all versions)
 ```
 
 The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
@@ -251,6 +274,16 @@ The Makefile orchestrates the full pipeline. Each script drops and recreates its
 - **Primary version:** 7.22 (latest stable) — used for the `commands` table and linking
 - **Version tracking:** 1.67M entries in `command_versions` junction table
 - **Coverage gap:** CHR doesn't have Wi-Fi hardware, so wireless driver packages (`wifi-qcom`, etc.) are missing from inspect.json. Some packages like `zerotier` are also absent. The HTML docs cover these — inspect.json doesn't.
+
+### Product Matrix (CSV)
+
+- **Source:** Manual browser export from `https://mikrotik.com/products/matrix` (PowerGrid table)
+- **Format:** CSV with UTF-8 BOM, 34 columns, 144 products (March 2026)
+- **Location:** `matrix/2026-03-25/matrix.csv` — date-stamped snapshots stored in git
+- **Download:** Open the URL, click the export/download icon (top-left), choose "All", save to `matrix/<ISODATE>/matrix.csv`
+- **Columns:** Product name, product code, architecture, CPU, cores, frequency, license level, OS, RAM, storage, dimensions, PoE in/out, power, wireless chains/antenna, ethernet/SFP/combo ports, USB, SIM, price
+- **Architectures:** ARM 64bit, ARM 32bit, MIPSBE, MMIPS, SMIPS
+- **Normalized fields:** RAM and storage parsed to MB integers at extraction time for structured filtering
 
 ## Related Projects
 

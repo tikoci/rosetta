@@ -23,6 +23,7 @@ const {
   browseCommands,
   searchCallouts,
   checkCommandVersions,
+  searchDevices,
 } = await import("./query.ts");
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,59 @@ beforeAll(() => {
 
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.22')`);
+
+  // Device fixtures for searchDevices tests
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('hAP ax3', 'C53UiG+5HPaxD2HPaxD', 'ARM 64bit', 'IPQ-6010', 4, 'auto (864 - 1800) MHz',
+     4, 'RouterOS v7', '1 GB', 1024, '128 MB', 128,
+     '802.3af/at', NULL, 2, 2,
+     NULL, 4, 1, NULL, NULL,
+     NULL, 1, NULL, 139.00)`);
+
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('CCR2216-1G-12XS-2XQ', 'CCR2216-1G-12XS-2XQ', 'ARM 64bit', 'AL73400', 16, '2000 MHz',
+     6, 'RouterOS v7', '16 GB', 16384, '128 MB', 128,
+     NULL, NULL, NULL, NULL,
+     NULL, 1, NULL, NULL, 12,
+     NULL, 1, NULL, 2795.00)`);
+
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('hAP lite', 'RB941-2nD', 'SMIPS', 'QCA9533', 1, '650 MHz',
+     4, 'RouterOS', '32 MB', 32, '16 MB', 16,
+     NULL, NULL, 1, NULL,
+     4, NULL, NULL, NULL, NULL,
+     NULL, NULL, NULL, 24.95)`);
+
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('Chateau LTE18 ax', 'S53UG+5HaxD2HaxD-TC&EG18-EA', 'ARM 64bit', 'IPQ-6010', 4, 'auto (864 - 1800) MHz',
+     4, 'RouterOS v7', '1 GB', 1024, '128 MB', 128,
+     NULL, NULL, 2, 2,
+     NULL, 4, 1, NULL, NULL,
+     NULL, 1, 2, 599.00)`);
 
   // Page 3: a "large" page with sections for TOC testing
   // Text is ~200 chars to keep fixture small, but we'll use max_length=50 to trigger truncation
@@ -547,5 +601,113 @@ describe("checkCommandVersions", () => {
     // Our fixture only has version 7.22, which is the min. Expect note.
     const res = checkCommandVersions("/ip/dhcp-server");
     expect(res.note).toContain("earliest tracked version");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DB integration: searchDevices
+// ---------------------------------------------------------------------------
+
+describe("searchDevices", () => {
+  test("exact match by product name", () => {
+    const res = searchDevices("hAP ax3");
+    expect(res.mode).toBe("exact");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax3");
+    expect(res.results[0].ram_mb).toBe(1024);
+  });
+
+  test("exact match by product code", () => {
+    const res = searchDevices("CCR2216-1G-12XS-2XQ");
+    expect(res.mode).toBe("exact");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].license_level).toBe(6);
+  });
+
+  test("exact match is case-insensitive", () => {
+    const res = searchDevices("hap ax3");
+    expect(res.mode).toBe("exact");
+    expect(res.results).toHaveLength(1);
+  });
+
+  test("FTS search finds devices by CPU", () => {
+    const res = searchDevices("IPQ-6010");
+    expect(res.results.length).toBeGreaterThan(0);
+    expect(res.results[0].product_name).toBe("hAP ax3");
+  });
+
+  test("FTS search by architecture keyword", () => {
+    const res = searchDevices("SMIPS");
+    expect(res.results.length).toBeGreaterThan(0);
+    expect(res.results[0].architecture).toBe("SMIPS");
+  });
+
+  test("filter by architecture", () => {
+    const res = searchDevices("", { architecture: "ARM 64bit" });
+    expect(res.mode).toBe("filter");
+    expect(res.results.length).toBe(3);
+    expect(res.results.every((d) => d.architecture === "ARM 64bit")).toBe(true);
+  });
+
+  test("filter by min_ram_mb", () => {
+    const res = searchDevices("", { min_ram_mb: 1024 });
+    expect(res.mode).toBe("filter");
+    expect(res.results.length).toBe(3); // hAP ax3 (1024) + CCR2216 (16384) + Chateau (1024)
+    expect(res.results.every((d) => (d.ram_mb ?? 0) >= 1024)).toBe(true);
+  });
+
+  test("filter by license level", () => {
+    const res = searchDevices("", { license_level: 6 });
+    expect(res.mode).toBe("filter");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toContain("CCR");
+  });
+
+  test("filter by has_poe", () => {
+    const res = searchDevices("", { has_poe: true });
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax3");
+  });
+
+  test("filter by has_wireless", () => {
+    const res = searchDevices("", { has_wireless: true });
+    expect(res.results).toHaveLength(3); // hAP ax3 + hAP lite + Chateau LTE18
+  });
+
+  test("filter by min_storage_mb", () => {
+    const res = searchDevices("", { min_storage_mb: 128 });
+    expect(res.mode).toBe("filter");
+    expect(res.results.length).toBe(3); // hAP ax3 (128) + CCR2216 (128) + Chateau (128)
+    expect(res.results.every((d) => (d.storage_mb ?? 0) >= 128)).toBe(true);
+  });
+
+  test("filter by min_storage_mb excludes low-storage devices", () => {
+    const res = searchDevices("", { min_storage_mb: 64 });
+    expect(res.results.every((d) => (d.storage_mb ?? 0) >= 64)).toBe(true);
+    // hAP lite has 16 MB, should be excluded
+    expect(res.results.find((d) => d.product_name === "hAP lite")).toBeUndefined();
+  });
+
+  test("filter by has_lte", () => {
+    const res = searchDevices("", { has_lte: true });
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("Chateau LTE18 ax");
+    expect(res.results[0].sim_slots).toBe(2);
+  });
+
+  test("combined FTS + filter", () => {
+    const res = searchDevices("hAP", { has_wireless: true });
+    expect(res.results.length).toBeGreaterThan(0);
+    expect(res.results.every((d) => d.wireless_24_chains != null || d.wireless_5_chains != null)).toBe(true);
+  });
+
+  test("returns empty for no match", () => {
+    const res = searchDevices("nonexistent-device-xyz");
+    expect(res.results).toHaveLength(0);
+  });
+
+  test("returns empty with no query and no filters", () => {
+    const res = searchDevices("");
+    expect(res.results).toHaveLength(0);
   });
 });

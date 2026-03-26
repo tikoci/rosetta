@@ -1,6 +1,6 @@
 # mikrotik-docs
 
-MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, and a 40,000-entry command tree — with direct links to help.mikrotik.com.
+MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, 40,000-entry command tree, and 144 hardware product specs — with direct links to help.mikrotik.com.
 
 Works with **Claude Desktop**, **Claude Code**, **VS Code Copilot**, and any MCP-compatible client.
 
@@ -10,7 +10,7 @@ Most retrieval-augmented generation (RAG) systems use vector embeddings to searc
 
 For structured technical documentation like RouterOS, full-text search with BM25 ranking beats vector similarity. Technical terms like "dhcp-snooping" or "/ip/firewall/filter" are exact tokens — stemming and proximity matching handle the rest. No embedding pipeline, no vector database, no API keys. Just a single SQLite file that searches in milliseconds.
 
-The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 9 search tools over stdio transport.
+The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 10 search tools over stdio transport.
 
 ## What's Inside
 
@@ -18,6 +18,7 @@ The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools
 - **4,860 property definitions** with types, defaults, and descriptions
 - **5,114 commands** in the RouterOS command hierarchy (551 directories, 34K arguments)
 - **1,034 callout blocks** — warnings, notes, and tips with important caveats
+- **144 hardware products** — CPU, RAM, storage, ports, PoE, wireless, license level, pricing
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) for command history
 - Direct links to help.mikrotik.com for every page and section
 
@@ -113,7 +114,7 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server provides 9 tools, designed to work together:
+The server provides 10 tools, designed to work together:
 
 | Tool | What it does |
 |------|-------------|
@@ -124,6 +125,7 @@ The server provides 9 tools, designed to work together:
 | `routeros_command_tree` | Browse the `/ip/firewall/filter` style command hierarchy |
 | `routeros_search_callouts` | Search warnings, notes, and tips across all pages |
 | `routeros_command_version_check` | Check which RouterOS versions include a command |
+| `routeros_device_lookup` | Hardware specs for 144 MikroTik products — filter by architecture, RAM, storage, PoE, wireless, LTE |
 | `routeros_stats` | Database health: page/property/command counts, coverage stats |
 | `routeros_current_versions` | Fetch current RouterOS versions from MikroTik (live) |
 
@@ -184,7 +186,7 @@ gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --gener
 
 ```
 src/
-├── mcp.ts                  # MCP server (9 tools, stdio) + CLI dispatch
+├── mcp.ts                  # MCP server (10 tools, stdio) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
@@ -192,6 +194,7 @@ src/
 ├── extract-properties.ts   # Property table extraction
 ├── extract-commands.ts     # inspect.json → commands (version-aware)
 ├── extract-all-versions.ts # Batch extract all 46 versions
+├── extract-devices.ts      # Product matrix CSV → devices table
 ├── link-commands.ts        # Command ↔ page mapping
 └── query.test.ts           # Tests (in-memory SQLite fixtures)
 
@@ -203,6 +206,7 @@ scripts/
 
 - **HTML Archive** — Confluence space export from help.mikrotik.com (March 2026, 317 pages, ~515K words)
 - **Command Tree** — `inspect.json` from RouterOS `/console/inspect` via [tikoci/restraml](https://github.com/tikoci/restraml) (46 versions: 7.9–7.23beta2)
+- **Product Matrix** — CSV export from mikrotik.com/products/matrix (144 products, 34 columns — hardware specs, license levels, pricing)
 
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
 
