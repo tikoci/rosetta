@@ -60,6 +60,21 @@ Note: absence from the Peripherals page doesn't mean unsupported — most MBIM m
 
 [tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices like `protocol=tcp,udp,icmp`). This would significantly enrich the command tree. Watch for that PR to ship, then design schema extension.
 
+### inspect.json extra-package coverage gaps
+
+Our inspect.json data comes from CHR (x86_64) with extra-packages enabled. CHR does not have all packages — known gaps:
+
+- **Wi-Fi driver packages** — `wifi-qcom.npk`, `wifi-qcom-ac.npk`, and other wireless driver packages. VMs don't have wireless hardware so these aren't present on CHR.
+- **zerotier.npk** — not available on CHR builds.
+- **Architecture-specific packages** — some packages exist only for certain hardware architectures (ARM, MIPS, etc.) and aren't in the CHR build.
+
+The HTML documentation covers all packages including these. The `Packages` page lists the full set of available packages.
+
+To make tool descriptions more accurate, we should:
+1. Extract the definitive package list from the Packages doc page
+2. Cross-reference with what inspect.json actually contains
+3. Document which command paths come from missing packages (so agents know to check docs instead of command tree for those features)
+
 ### Cross-reference with forum data
 
 The MikroTik forum archive (also an SQL-as-RAG project using SQLite FTS5) could be cross-searched with official docs. A JOIN or cross-search could surface community knowledge alongside official documentation. Need to think about: same DB vs. separate MCP tools vs. query-time federation.

@@ -384,3 +384,32 @@ export function browseCommandsAtVersion(
     )
     .all(cmdPath, version) as Array<{ path: string; name: string; type: string; description: string | null; page_title: string | null; page_url: string | null }>;
 }
+
+const VERSION_CHANNELS = ["stable", "long-term", "testing", "development"] as const;
+const VERSION_BASE_URL = "https://upgrade.mikrotik.com/routeros/NEWESTa7";
+
+/** Fetch current RouterOS versions from MikroTik's upgrade server. */
+export async function fetchCurrentVersions(): Promise<{
+  channels: Record<string, string | null>;
+  fetched_at: string;
+}> {
+  const channels: Record<string, string | null> = {};
+  await Promise.all(
+    VERSION_CHANNELS.map(async (channel) => {
+      try {
+        const resp = await fetch(`${VERSION_BASE_URL}.${channel}`, {
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (resp.ok) {
+          const text = await resp.text();
+          channels[channel] = text.trim().split(/\s+/)[0] || null;
+        } else {
+          channels[channel] = null;
+        }
+      } catch {
+        channels[channel] = null;
+      }
+    }),
+  );
+  return { channels, fetched_at: new Date().toISOString() };
+}

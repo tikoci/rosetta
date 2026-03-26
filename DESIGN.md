@@ -23,7 +23,29 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 ## Key Decisions
 
 ### v6 is out of scope
-No inspect.json data exists for RouterOS v6. Document as unknown territory in tool descriptions. Oldest version with data is 7.9.
+No inspect.json data exists for RouterOS v6. The documentation covers v7 only. Syntax, commands, and major subsystems (routing/BGP, firewall, bridging) all changed in v7 — v6 answers from this DB are significantly less reliable. Document as unknown territory in tool descriptions. Oldest version with command data is 7.9.
+
+### Version accuracy degrades below long-term
+The HTML docs aren't versioned — they reflect the then-current long-term release (~7.22, specifically 7.22.1 at export time). They don't pin to a version. This is why the extraction pipeline is careful about version tracking: the `commands` table and `command_versions` junction table provide structured version data that the prose docs don't.
+
+**Accuracy tiers:**
+- **Current long-term and above:** High confidence. Docs + command tree align well.
+- **7.9–older stable:** Command tree data exists, but docs may not reflect older behavior. Callouts sometimes note version-specific differences — this is why we extract them.
+- **Older than current long-term:** MikroTik does not backport fixes below the current long-term release. If a vulnerability is found in e.g. 7.11 and fixed in 7.11.1, it might get backported to the long-term branch but not to older stable branches. Recommend upgrading to at least the current long-term.
+- **Below 7.9:** No command tree data at all.
+- **v6:** Different syntax, different subsystems. Answers will be unreliable.
+
+### RouterOS version scheme
+MikroTik publishes current versions per channel at predictable URLs:
+
+```
+https://upgrade.mikrotik.com/routeros/NEWESTa7.stable
+https://upgrade.mikrotik.com/routeros/NEWESTa7.long-term
+https://upgrade.mikrotik.com/routeros/NEWESTa7.testing
+https://upgrade.mikrotik.com/routeros/NEWESTa7.development
+```
+
+Each returns a plain-text response with the version string (e.g., `7.22.1`). The **long-term** channel is our northstar — docs align best with whatever version is current there. The actual version at extraction was ~7.22.
 
 ### Junction table for version tracking
 `command_versions` is a (command_path, ros_version) junction table — not per-version columns or per-version rows in `commands`. This scales to hundreds of versions without schema changes. The `commands` table holds only the primary version (latest stable, currently 7.22).
@@ -40,6 +62,21 @@ Pages, callouts, and properties use FTS5 for natural language search. Device spe
 ### Callout FK ordering
 Callouts have FK to pages. On re-extraction, delete callouts before pages. `extract-html.ts` handles this.
 
+### Extra-packages and inspect.json coverage
+
+RouterOS ships a base image (`routeros.npk`) and optional **extra-packages** (`iot.npk`, `container.npk`, `zerotier.npk`, `gps.npk`, `wifi-qcom.npk`, etc.). The term "extra" comes from MikroTik's download page: users download `routeros.npk` plus an `extra-packages.zip` containing the extras. Despite the name, some extras aren't optional — Wi-Fi driver packages like `wifi-qcom.npk` are required for wireless to function on hardware using that chipset. The current way to install extra packages in RouterOS is via `/system/package/enable <name>` after running a version check that fetches the available list.
+
+The `inspect.json` files from restraml are generated via GitHub Actions that run RouterOS CHR under QEMU. Two builds are performed per version:
+1. **Base build** — only `routeros.npk` → published at `<version>/inspect.json`
+2. **Extra build** — all extra-packages available on CHR → published at `<version>/extra/inspect.json`
+
+We prefer the `extra/` variant (see `extract-all-versions.ts` which checks for `extra/inspect.json` first). However, the extra-package list is architecture-dependent — CHR (x86_64) has most packages but misses some:
+- **Wi-Fi driver packages** (VMs don't have wireless hardware, but MikroTik devices have several different wireless drivers)
+- **zerotier.npk** and potentially other third-party integrations
+- Architecture-specific packages not available on CHR
+
+The documentation pages cover all packages regardless of architecture, so the HTML extraction has broader coverage than inspect.json for extra-package commands. See BACKLOG.md for the gap analysis item.
+
 ### `_completion` data deferred
 [tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices, etc.). Schema stub TBD when that ships. This would enrich the `commands` table significantly.
 
@@ -53,7 +90,7 @@ Don't overengineer until there's a second HTML export to compare against. When t
 
 | Project | Relationship |
 |---------|-------------|
-| [tikoci/restraml](https://github.com/tikoci/restraml) | Source of `inspect.json` command tree + RAML schema. PR #35 adds deep-inspect. Also publishes [GitHub Pages tools](https://tikoci.github.io/restraml/) (see below). |
+| [tikoci/restraml](https://github.com/tikoci/restraml) | Source of `inspect.json` command tree + RAML schema. GitHub Actions run CHR under QEMU to extract command AST via `/console/inspect`, daily checks for new versions. PR #35 adds deep-inspect. Also publishes [GitHub Pages tools](https://tikoci.github.io/restraml/) (see below). |
 | [tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook) | RouterOS script notebook for VSCode. Potential consumer of this DB for Copilot-assisted scripting. |
 | [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) | Consumer: hover help, property docs, command path → URL mapping. |
 | [tikoci/netinstall](https://github.com/tikoci/netinstall) | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |
@@ -66,6 +103,8 @@ restraml publishes all `inspect.json` files and interactive tools on GitHub Page
 - **Lookup:** <https://tikoci.github.io/restraml/lookup.html> — command path lookup across versions
 - **Diff:** <https://tikoci.github.io/restraml/diff.html> — diff command trees between two versions
 - **Raw JSON:** `https://tikoci.github.io/restraml/<version>/extra/inspect.json` (e.g. [7.22](https://tikoci.github.io/restraml/7.22/extra/inspect.json))
+  - Base (no extras): `<version>/inspect.json`
+  - With extra-packages: `<version>/extra/inspect.json` (preferred — what we extract)
 
 These tools use client-side JavaScript + GitHub API to navigate the inspect.json data. The lookup and diff tools are relatively popular — they answer questions like "was `/ip/firewall/raw` available in 7.15?" and "what changed between 7.21 and 7.22?".
 
@@ -79,5 +118,5 @@ What was built, in rough order (March 2026):
 2. **HTML extraction** — `extract-html.ts`, `extract-properties.ts`. 317 pages, 4,860 properties, 1,034 callouts.
 3. **Command tree** — `extract-commands.ts`. Single-version first, then multi-version with `extract-all-versions.ts` (46 versions, 1.67M junction entries).
 4. **Command linking** — `link-commands.ts`. Automated heuristic matching: code block paths + `<strong>`/`<code>` tag patterns. ~92% dir coverage.
-5. **MCP server** — `mcp.ts` + `query.ts`. 8 tools with compound term recognition, BM25 ranking, AND→OR fallback.
+5. **MCP server** — `mcp.ts` + `query.ts`. 9 tools with compound term recognition, BM25 ranking, AND→OR fallback.
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).

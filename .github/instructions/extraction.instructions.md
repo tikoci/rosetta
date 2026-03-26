@@ -40,9 +40,11 @@ make extract-full
 
 ## Batch Version Extraction (extract-all-versions.ts)
 - Discovers version dirs from restraml's `docs/*/extra/inspect.json` (path configured via `RESTRAML` in Makefile, see [tikoci/restraml](https://github.com/tikoci/restraml))
+- Prefers `extra/inspect.json` (all extra-packages on CHR) over base `inspect.json`
 - Classifies channel: "beta"/"rc" → development, else stable
 - Runs primary extraction for latest stable, accumulate for all others
 - 46 versions: 7.9 through 7.23beta2
+- **Coverage gap:** CHR misses some extra-packages (Wi-Fi drivers, zerotier) — HTML docs cover those
 
 ## Heuristics in link-commands.ts
 - Extracts `/path/like/this` patterns from code blocks and `<strong>`/`<code>` tags

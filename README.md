@@ -1,6 +1,6 @@
 # mikrotik-docs
 
-MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Extracts the official Confluence HTML export into a searchable SQLite database with FTS5 full-text search, then exposes it as 8 MCP tools for AI coding assistants.
+MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Extracts the official Confluence HTML export into a searchable SQLite database with FTS5 full-text search, then exposes it as 9 MCP tools for AI coding assistants.
 
 **What you get:** Ask your AI assistant about RouterOS configuration and it can search 317 documentation pages, 4,860 property definitions, and a 40K-entry command tree — with direct links back to help.mikrotik.com.
 
@@ -34,7 +34,7 @@ This runs the full pipeline: parse HTML → extract properties → load command 
 
 The repo includes `.vscode/mcp.json` — just open the folder in VS Code. Copilot Chat will automatically have access to the RouterOS documentation tools.
 
-The MCP server provides 8 tools:
+The MCP server provides 9 tools:
 
 | Tool | What it does |
 | ---- | ------------ |
@@ -46,6 +46,7 @@ The MCP server provides 8 tools:
 | `routeros_search_callouts` | Search note/warning/info callouts across all pages |
 | `routeros_command_version_check` | Check which RouterOS versions include a command |
 | `routeros_stats` | Database health and coverage stats |
+| `routeros_current_versions` | Fetch current RouterOS versions from MikroTik |
 
 ### Use with Claude Code
 
@@ -82,7 +83,7 @@ The database is ~15MB and searches return in milliseconds.
 
 ```text
 src/
-├── mcp.ts                  # MCP server (8 tools, stdio transport)
+├── mcp.ts                  # MCP server (9 tools, stdio transport)
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
 ├── extract-html.ts         # Confluence HTML → pages + callouts tables

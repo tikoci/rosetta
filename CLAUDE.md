@@ -20,7 +20,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Two outputs:
 
-1. **SQL-as-RAG MCP Server** — 8 tools for LLM agents to search docs, look up properties, browse the command tree, and check version history
+1. **SQL-as-RAG MCP Server** — 9 tools for LLM agents to search docs, look up properties, browse the command tree, check version history, and fetch current versions
 2. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration
 
 ## Current State
@@ -33,7 +33,7 @@ Two outputs:
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
 - **FTS5 indexes** with `porter unicode61` tokenizer, BM25-weighted ranking
-- **MCP server** with 8 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, command_version_check, stats
+- **MCP server** with 9 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, command_version_check, stats, current_versions
 
 ## Schema
 
@@ -134,6 +134,7 @@ Register in `.vscode/mcp.json` or Claude Code settings:
 | `routeros_search_callouts` | FTS search across callout notes/warnings/info |
 | `routeros_command_version_check` | Check which RouterOS versions include a command path |
 | `routeros_stats` | DB health: page/property/command counts, link coverage |
+| `routeros_current_versions` | Live-fetch current RouterOS versions per channel |
 
 ### CLI Search
 
@@ -151,7 +152,7 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 8 tools, stdio transport |
+| `src/mcp.ts` | MCP server — 9 tools, stdio transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, property lookup |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts tables (repeatable) |
@@ -192,10 +193,12 @@ The Makefile orchestrates the full pipeline. Each script drops and recreates its
 ### Command Tree (inspect.json)
 
 - **Source:** `inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml) — 46 versions extracted
+- **Generation:** GitHub Actions run RouterOS CHR under QEMU, daily version checks. Two builds per version: base (`routeros.npk` only) and extra (all extra-packages available on CHR). We use the `extra/` variant.
 - **Content:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 cmds, 34K args (primary: 7.22)
 - **Versions:** 7.9 through 7.23beta2 (stable + development channels)
 - **Primary version:** 7.22 (latest stable) — used for the `commands` table and linking
 - **Version tracking:** 1.67M entries in `command_versions` junction table
+- **Coverage gap:** CHR doesn't have Wi-Fi hardware, so wireless driver packages (`wifi-qcom`, etc.) are missing from inspect.json. Some packages like `zerotier` are also absent. The HTML docs cover these — inspect.json doesn't.
 
 ## Related Projects
 

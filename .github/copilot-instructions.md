@@ -40,7 +40,7 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| MCP Server | `src/mcp.ts` | 8 tools via stdio transport using `@modelcontextprotocol/sdk` |
+| MCP Server | `src/mcp.ts` | 9 tools via stdio transport using `@modelcontextprotocol/sdk` |
 | Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition |
 | Database | `src/db.ts` | Schema init, WAL mode, FTS5 triggers, singleton pattern |
 | Extractors | `src/extract-*.ts` | HTML/JSON → SQLite (each drops and recreates its tables) |
@@ -59,7 +59,7 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 
 - **Runtime:** Bun (use `bun:sqlite` for DB, not better-sqlite3)
 - **Modules:** ESM with `.ts` extensions in imports (`import { foo } from './bar.ts'`)
-- **Validation:** Zod for MCP tool input schemas
+- **Validation:** Zod v4 installed; import from `"zod/v3"` for MCP SDK compatibility
 - **DOM parsing:** linkedom (not jsdom)
 - **Linter:** Biome (formatter disabled — only linting rules apply)
 - **No emit:** TypeScript is type-checked only (`noEmit: true`), Bun runs `.ts` directly
@@ -72,3 +72,14 @@ Individual extraction steps: `make extract-html`, `make extract-properties`, `ma
 - The MCP server name is `"mikrotik-docs"` — keep consistent across configs
 - Stop words are hardcoded in `query.ts` (~72 words)
 - Compound terms (~37 RouterOS pairs like firewall+filter) use FTS5 NEAR expressions
+
+## Version Accuracy
+
+- Documentation covers **v7 only**, aligned with the long-term release (~7.22) at export time
+- Docs are not versioned — they reflect the then-current long-term release, not a specific point release
+- **Command data: 7.9–7.23beta2.** Below 7.9 there is no command tree data. Below 7.0 (v6) is a different world — syntax, routing/BGP, firewall, bridging all changed in v7
+- For v6 questions, answers will be significantly less accurate — tool descriptions should flag this
+- **Older than current long-term:** MikroTik does not patch versions older than the current long-term release. Recommend upgrading to at least long-term, both for security and to align with our data.
+- Callouts sometimes document older-version differences, which is why we extract them
+- **Extra-packages:** RouterOS has a base image (`routeros.npk`) plus extras (`container.npk`, `iot.npk`, etc.). Our inspect.json data uses the extra-packages build from CHR, but some packages (Wi-Fi drivers, zerotier) are missing from CHR. The HTML docs cover those.
+- Current versions per channel: `https://upgrade.mikrotik.com/routeros/NEWESTa7.{stable,long-term,testing,development}`

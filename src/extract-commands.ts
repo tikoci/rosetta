@@ -8,7 +8,7 @@
  * Also populates command_versions for version tracking.
  *
  * Usage:
- *   bun run src/extract-commands.ts [inspect.json-path] [--version=7.23beta2] [--channel=development] [--extra]
+ *   bun run src/extract-commands.ts [inspect.json-path] [--version=7.22] [--channel=stable] [--extra]
  *   bun run src/extract-commands.ts --accumulate [inspect.json-path] [--version=X]
  *
  * In default mode: replaces commands table and sets as primary version.
@@ -32,7 +32,7 @@ const flagArgs = Object.fromEntries(
 
 const INSPECT_PATH =
   positional[0] ||
-  resolve(process.env.HOME || "~", "restraml/docs/7.23beta2/extra/inspect.json");
+  resolve(process.env.HOME || "~", "restraml/docs/7.22/extra/inspect.json");
 
 // Derive version from path if not explicitly set
 function deriveVersion(filepath: string): string {

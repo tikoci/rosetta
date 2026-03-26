@@ -17,6 +17,7 @@ import {
   browseCommands,
   browseCommandsAtVersion,
   checkCommandVersions,
+  fetchCurrentVersions,
   getPage,
   lookupProperty,
   searchCallouts,
@@ -51,7 +52,9 @@ Capabilities:
 Tips:
 - Use specific technical terms: "DHCP relay agent" not "how to set up DHCP"
 - Documentation: 317 pages from March 2026 Confluence export (~515K words)
-- Command data: RouterOS 7.9–7.23beta2. No v6 data available.`,
+- Docs reflect the then-current long-term release (~7.22), not version-pinned
+- Command data: RouterOS 7.9–7.23beta2. No v6 data available.
+- v6 had different syntax and subsystems — answers for v6 are unreliable.`,
     inputSchema: {
       query: z.string().describe("Natural language search query"),
       limit: z
@@ -193,6 +196,9 @@ arguments). Each child includes its type and linked documentation page if availa
 
 Optionally filter by RouterOS version to check what exists in a specific release.
 Command data covers versions 7.9–7.23beta2. No v6 data.
+For versions below 7.9, no command tree data exists.
+For versions older than the current long-term, recommend upgrading (MikroTik does not
+patch older branches).
 
 Examples:
 - path: "/ip" → shows address, arp, dhcp-client, dhcp-server, firewall, route, etc.
@@ -238,9 +244,11 @@ Returns page count, property count, callout count, command count, link coverage,
 version range, and documentation export date.
 
 Knowledge boundaries:
-- Documentation: March 2026 Confluence HTML export (317 pages)
-- Command tree: RouterOS 7.9–7.23beta2 from inspect.json
-- No RouterOS v6 data available
+- Documentation: March 2026 Confluence HTML export (317 pages), aligned with long-term ~7.22
+- Command tree: RouterOS 7.9–7.23beta2 from inspect.json (with extra-packages from CHR)
+- No RouterOS v6 data available — v6 syntax and subsystems differ significantly from v7
+- For versions older than 7.9, no command tree data exists
+- Versions older than current long-term are unpatched by MikroTik
 - Absence of a peripheral in docs doesn't mean unsupported — most MBIM modems work`,
     inputSchema: {},
   },
@@ -303,6 +311,7 @@ Returns the list of versions where the command exists, plus first_seen/last_seen
 Useful for answering "is /container supported in 7.12?" or "when was /ip/firewall/raw added?".
 
 Command data covers versions 7.9–7.23beta2. No v6 data.
+For versions below 7.9, no command tree data exists.
 
 Examples:
 - command_path: "/container" → shows versions where container support exists
@@ -315,6 +324,33 @@ Examples:
   },
   async ({ command_path }) => {
     const result = checkCommandVersions(command_path);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_current_versions ----
+
+server.registerTool(
+  "routeros_current_versions",
+  {
+    description: `Fetch current RouterOS version numbers from MikroTik's upgrade server.
+
+Returns the latest version for each release channel: stable, long-term, testing, development.
+Useful for determining if a user's version is current, outdated, or unpatched.
+
+Key context for version reasoning:
+- The long-term channel is the recommended minimum — MikroTik does not patch older branches
+- Our documentation aligns with the long-term release at export time (~7.22)
+- Our command tree data covers 7.9–7.23beta2
+- If a user's version is older than the current long-term, recommend upgrading
+
+Requires network access to upgrade.mikrotik.com.`,
+    inputSchema: {},
+  },
+  async () => {
+    const result = await fetchCurrentVersions();
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
