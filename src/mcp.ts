@@ -5,9 +5,51 @@
  * enabling LLM agents to search documentation, look up properties,
  * and browse the command tree.
  *
+ * CLI flags (for compiled binary or `bun run src/mcp.ts`):
+ *   --setup [--force]  Download database + print MCP client config
+ *   --version          Print version
+ *   --help             Print usage
+ *   (default)          Start MCP server (stdio transport)
+ *
  * Environment variables:
- *   DB_PATH — absolute path to ros-help.db (default: <workspace>/ros-help.db)
+ *   DB_PATH — absolute path to ros-help.db (default: next to binary or project root)
  */
+
+declare const VERSION: string;
+
+// ── CLI dispatch (before MCP server init) ──
+
+const args = process.argv.slice(2);
+
+if (args.includes("--version") || args.includes("-v")) {
+  const ver = typeof VERSION !== "undefined" ? VERSION : "dev";
+  console.log(`mikrotik-docs ${ver}`);
+  process.exit(0);
+}
+
+if (args.includes("--help") || args.includes("-h")) {
+  const ver = typeof VERSION !== "undefined" ? VERSION : "dev";
+  console.log(`mikrotik-docs ${ver} — MCP server for RouterOS documentation`);
+  console.log();
+  console.log("Usage:");
+  console.log("  mikrotik-docs              Start MCP server (stdio transport)");
+  console.log("  mikrotik-docs --setup      Download database + print MCP client config");
+  console.log("  mikrotik-docs --setup --force  Re-download database");
+  console.log("  mikrotik-docs --version    Print version");
+  console.log("  mikrotik-docs --help       Print this help");
+  console.log();
+  console.log("Environment:");
+  console.log("  DB_PATH  Absolute path to ros-help.db (optional)");
+  process.exit(0);
+}
+
+if (args.includes("--setup")) {
+  const { runSetup } = await import("./setup.ts");
+  await runSetup(args.includes("--force"));
+  process.exit(0);
+}
+
+// ── MCP Server ──
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";

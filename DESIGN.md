@@ -110,6 +110,35 @@ These tools use client-side JavaScript + GitHub API to navigate the inspect.json
 
 This project has the same data in SQL form, which is more powerful for programmatic queries but less accessible for quick browser lookups. The two are complementary — the GitHub Pages tools are the public-facing interface, while this MCP server is the agent-facing interface to the same underlying command tree data.
 
+## Distribution
+
+### Compiled binaries (no runtime dependencies)
+
+Testers are network admins, not developers — they won't have `bun`, `make`, or `git`. Compiled single-file executables via `bun build --compile` bundle the Bun runtime, `bun:sqlite`, and all dependencies into one binary per platform (~50–80 MB). Testers download a ZIP, run `--setup`, and paste a JSON snippet.
+
+Cross-compilation from macOS to darwin-arm64, darwin-x64, windows-x64, linux-x64. The `--define` flag injects build-time constants (`VERSION`, `REPO_URL`, `IS_COMPILED`) so the binary knows its version and where to find the DB.
+
+### `import.meta.dirname` problem
+
+Bun bakes `import.meta.dirname` at compile time — a compiled binary looks for `ros-help.db` at the *original build path*, not next to the executable. Fixed by detecting the `IS_COMPILED` build-time constant and using `path.dirname(process.execPath)` instead.
+
+### Database via GitHub Releases
+
+The SQLite DB is ~222 MB on disk, ~50 MB gzipped. GitHub Releases has no bandwidth cap for public repos and allows 2 GB per asset. The `--setup` flag downloads from the "latest" release URL (`/releases/latest/download/ros-help.db.gz`), which means we can push new DB versions without changing the binary.
+
+Alternatives considered:
+- **Git LFS:** Bandwidth-limited on free tier, clones include all versions
+- **GitHub Pages:** 1 GB site limit, 100 MB per file
+- **S3/R2:** Extra infrastructure for a testing release
+
+### Binary doubles as setup tool
+
+The `--setup` flag downloads the DB and prints MCP client config snippets for Claude Desktop, Claude Code, and VS Code Copilot. This avoids a separate install script and keeps the tester workflow to two steps: run binary, paste config.
+
+### Code signing deferred
+
+macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 testing, documented workarounds are sufficient. Signing can be added when distribution goes wider.
+
 ## History
 
 What was built, in rough order (March 2026):
@@ -120,3 +149,4 @@ What was built, in rough order (March 2026):
 4. **Command linking** — `link-commands.ts`. Automated heuristic matching: code block paths + `<strong>`/`<code>` tag patterns. ~92% dir coverage.
 5. **MCP server** — `mcp.ts` + `query.ts`. 9 tools with compound term recognition, BM25 ranking, AND→OR fallback.
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).
+7. **Distribution** — Compiled single-file binaries via `bun build --compile`, `--setup` mode for DB download + MCP client config, GitHub Releases for assets.

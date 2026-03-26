@@ -18,9 +18,20 @@
 import sqlite from "bun:sqlite";
 import path from "node:path";
 
-const workspaceRoot = path.resolve(import.meta.dirname, "..");
+declare const IS_COMPILED: boolean;
 
-export const DB_PATH = process.env.DB_PATH?.trim() || path.join(workspaceRoot, "ros-help.db");
+/**
+ * Resolve the base directory for finding ros-help.db:
+ * - Compiled binary: directory containing the executable
+ * - Dev mode: project root (one level up from src/)
+ */
+const baseDir =
+  typeof IS_COMPILED !== "undefined" && IS_COMPILED
+    ? path.dirname(process.execPath)
+    : path.resolve(import.meta.dirname, "..");
+
+export const DB_PATH =
+  process.env.DB_PATH?.trim() || path.join(baseDir, "ros-help.db");
 
 export const db = new sqlite(DB_PATH);
 

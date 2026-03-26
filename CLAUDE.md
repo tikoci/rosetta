@@ -160,6 +160,45 @@ bun run src/search.ts "DHCP server"
 sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHCP lease' ORDER BY rank LIMIT 5;"
 ```
 
+## Distribution
+
+Compiled single-file executables for testers. Database distributed via GitHub Releases.
+
+### Building a Release
+
+```sh
+make release VERSION=v0.1.0   # cross-compile 4 platforms + compress DB
+```
+
+Produces in `dist/`:
+- `mikrotik-docs-macos-arm64.zip` — macOS Apple Silicon
+- `mikrotik-docs-macos-x64.zip` — macOS Intel
+- `mikrotik-docs-windows-x64.zip` — Windows
+- `mikrotik-docs-linux-x64.zip` — Linux
+- `ros-help.db.gz` — compressed database
+
+### Publishing
+
+```sh
+gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --generate-notes
+```
+
+### Tester Workflow
+
+1. Download platform ZIP from GitHub Releases
+2. Run `mikrotik-docs --setup` (downloads DB, prints config)
+3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot)
+
+### CLI Flags
+
+| Flag | Purpose |
+|------|---------||
+| `--setup` | Download DB + print MCP config |
+| `--setup --force` | Re-download DB |
+| `--version` | Print version |
+| `--help` | Print usage |
+| *(none)* | Start MCP server (stdio) |
+
 ## Files
 
 | File | Purpose |
@@ -175,6 +214,8 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
 | `src/query.test.ts` | Bun tests — query planner + DB integration (in-memory SQLite) |
+| `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
+| `scripts/build-release.ts` | Cross-compile binaries for 4 platforms, package ZIPs |
 | `ros-help.db` | The SQLite database (WAL mode) |
 
 

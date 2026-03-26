@@ -2,7 +2,7 @@ DB         := ros-help.db
 HTML_DIR   := box/documents-export-2026-3-25/ROS
 RESTRAML   := $(HOME)/restraml/docs
 
-.PHONY: extract extract-html extract-properties extract-commands extract-all-versions link assess search serve lint test clean install
+.PHONY: extract extract-html extract-properties extract-commands extract-all-versions link assess search serve lint test clean install release setup
 
 install:
 	bun install
@@ -41,5 +41,13 @@ lint:
 test:
 	bun test
 
+setup:
+	bun install
+	bun run src/setup.ts
+
+release:
+	bun run scripts/build-release.ts $(VERSION)
+
 clean:
 	rm -f $(DB) $(DB)-shm $(DB)-wal
+	rm -rf dist/

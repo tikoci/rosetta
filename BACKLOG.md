@@ -79,6 +79,16 @@ To make tool descriptions more accurate, we should:
 2. Cross-reference with what inspect.json actually contains
 3. Document which command paths come from missing packages (so agents know to check docs instead of command tree for those features)
 
+### MCP resources (beyond tools)
+
+The MCP spec supports **resources** — static or semi-static data that clients can fetch without a tool call. Worth investigating whether we should expose some data as resources rather than (or in addition to) tools:
+
+- **Product matrix CSV** — `matrix/2026-03-25/matrix.csv` (144 products, 34 columns). Currently not in the DB at all. Could be a resource that agents fetch when they need hardware specs.
+- **Versioned inspect.json** — raw command tree data. Some agents might want the raw JSON rather than our SQL interpretation.
+- **RouterOS YAML schema** — restraml also generates RAML/YAML schemas. Could expose as a resource for code generation use cases.
+
+Resources are a better fit than tools for large, infrequently-changing data that agents consume wholesale rather than querying.
+
 ### Cross-reference with forum data
 
 The MikroTik forum archive (also an SQL-as-RAG project using SQLite FTS5) could be cross-searched with official docs. A JOIN or cross-search could surface community knowledge alongside official documentation. Need to think about: same DB vs. separate MCP tools vs. query-time federation.

@@ -1,115 +1,210 @@
 # mikrotik-docs
 
-MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Extracts the official Confluence HTML export into a searchable SQLite database with FTS5 full-text search, then exposes it as 9 MCP tools for AI coding assistants.
+MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, and a 40,000-entry command tree — with direct links to help.mikrotik.com.
 
-**What you get:** Ask your AI assistant about RouterOS configuration and it can search 317 documentation pages, 4,860 property definitions, and a 40K-entry command tree — with direct links back to help.mikrotik.com.
+Works with **Claude Desktop**, **Claude Code**, **VS Code Copilot**, and any MCP-compatible client.
+
+## What is SQL-as-RAG?
+
+Most retrieval-augmented generation (RAG) systems use vector embeddings to search documentation. This project takes a different approach: **SQLite FTS5 full-text search as the retrieval layer** — what we call SQL-as-RAG.
+
+For structured technical documentation like RouterOS, full-text search with BM25 ranking beats vector similarity. Technical terms like "dhcp-snooping" or "/ip/firewall/filter" are exact tokens — stemming and proximity matching handle the rest. No embedding pipeline, no vector database, no API keys. Just a single SQLite file that searches in milliseconds.
+
+The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 9 search tools over stdio transport.
+
+## What's Inside
+
+- **317 documentation pages** from MikroTik's official help site (~515K words)
+- **4,860 property definitions** with types, defaults, and descriptions
+- **5,114 commands** in the RouterOS command hierarchy (551 directories, 34K arguments)
+- **1,034 callout blocks** — warnings, notes, and tips with important caveats
+- **46 RouterOS versions tracked** (7.9 through 7.23beta2) for command history
+- Direct links to help.mikrotik.com for every page and section
 
 ## Quick Start
 
-### Prerequisites
+Download a pre-built binary from [Releases](https://github.com/tikoci/mikrotik-docs/releases) — no Bun, Node.js, or other tools required.
 
-- [Bun](https://bun.sh/) v1.1+
-- A MikroTik RouterOS HTML documentation export (Confluence space export)
-- *(Optional)* `inspect.json` from RouterOS `/console/inspect` for the command tree
+### 1. Download
 
-### Setup
+Go to the [latest release](https://github.com/tikoci/mikrotik-docs/releases/latest) and download the ZIP for your platform:
+
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `mikrotik-docs-macos-arm64.zip` |
+| macOS (Intel) | `mikrotik-docs-macos-x64.zip` |
+| Windows | `mikrotik-docs-windows-x64.zip` |
+| Linux | `mikrotik-docs-linux-x64.zip` |
+
+Extract the ZIP to a permanent location (e.g., `~/mikrotik-docs` or `C:\mikrotik-docs`).
+
+### 2. Run Setup
+
+Open a terminal in the extracted folder and run:
 
 ```sh
-git clone https://github.com/TIKOCI/mikrotik-docs.git
-cd mikrotik-docs
-bun install
+./mikrotik-docs --setup
 ```
 
-### Build the Database
-
-Place your Confluence HTML export in `box/documents-export-<date>/ROS/`, then:
-
-```sh
-make extract
+On Windows:
+```powershell
+.\mikrotik-docs.exe --setup
 ```
 
-This runs the full pipeline: parse HTML → extract properties → load command tree → link commands to pages.
+This downloads the documentation database (~50 MB compressed, ~220 MB on disk) and prints configuration instructions for your MCP client.
 
-### Use with VS Code (Copilot)
+> **macOS Gatekeeper:** If macOS blocks the binary, go to **System Settings → Privacy & Security** and click **Allow Anyway**, then run again.
+>
+> **Windows SmartScreen:** If Windows warns about an unrecognized app, click **More info → Run anyway**.
 
-The repo includes `.vscode/mcp.json` — just open the folder in VS Code. Copilot Chat will automatically have access to the RouterOS documentation tools.
+### 3. Configure Your MCP Client
 
-The MCP server provides 9 tools:
+The `--setup` command prints the exact config for your platform. Here's what it looks like for each client:
 
-| Tool | What it does |
-| ---- | ------------ |
-| `routeros_search` | Full-text search with BM25 ranking and snippets |
-| `routeros_get_page` | Retrieve a full documentation page by ID or title |
-| `routeros_lookup_property` | Look up a property by exact name |
-| `routeros_search_properties` | Search across property names and descriptions |
-| `routeros_command_tree` | Browse the RouterOS command hierarchy |
-| `routeros_search_callouts` | Search note/warning/info callouts across all pages |
-| `routeros_command_version_check` | Check which RouterOS versions include a command |
-| `routeros_stats` | Database health and coverage stats |
-| `routeros_current_versions` | Fetch current RouterOS versions from MikroTik |
+#### Claude Desktop
 
-### Use with Claude Code
+Edit your Claude Desktop config file:
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-Add to your Claude Code MCP settings (or use the included `.mcp.json`):
+Add (or merge into existing config):
 
 ```json
 {
   "mcpServers": {
     "mikrotik-docs": {
-      "command": "bun",
-      "args": ["run", "src/mcp.ts"],
-      "cwd": "/path/to/mikrotik-docs"
+      "command": "/path/to/mikrotik-docs"
     }
   }
 }
 ```
 
-### CLI Search
+Replace `/path/to/mikrotik-docs` with the actual path printed by `--setup`. Then **restart Claude Desktop**.
+
+#### Claude Code
 
 ```sh
-bun run src/search.ts "DHCP server"
+claude mcp add mikrotik-docs /path/to/mikrotik-docs
 ```
 
-## How It Works
+#### VS Code Copilot
 
-1. **Extract** — Parses Confluence HTML files into SQLite tables (pages, properties, commands)
-2. **Index** — FTS5 full-text indexes with porter stemming and BM25 ranking
-3. **Link** — Maps the RouterOS command tree (`/ip/firewall/filter`) to documentation pages
-4. **Serve** — Exposes everything as MCP tools over stdio transport
+Add to your User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
 
-The database is ~15MB and searches return in milliseconds.
+```json
+"mcp": {
+  "servers": {
+    "mikrotik-docs": {
+      "command": "/path/to/mikrotik-docs"
+    }
+  }
+}
+```
+
+### 4. Try It
+
+Ask your AI assistant questions like:
+
+- *"What are the DHCP server properties in RouterOS?"*
+- *"How do I set up a bridge VLAN?"*
+- *"Is the /container command available in RouterOS 7.12?"*
+- *"What are the firewall filter default chains?"*
+- *"Show me warnings about hardware offloading"*
+
+## MCP Tools
+
+The server provides 9 tools, designed to work together:
+
+| Tool | What it does |
+|------|-------------|
+| `routeros_search` | **Start here.** Full-text search across all pages with BM25 ranking |
+| `routeros_get_page` | Retrieve full page content by ID or title. Section-aware for large pages |
+| `routeros_lookup_property` | Look up a property by exact name (type, default, description) |
+| `routeros_search_properties` | Search across ~5,000 property names and descriptions |
+| `routeros_command_tree` | Browse the `/ip/firewall/filter` style command hierarchy |
+| `routeros_search_callouts` | Search warnings, notes, and tips across all pages |
+| `routeros_command_version_check` | Check which RouterOS versions include a command |
+| `routeros_stats` | Database health: page/property/command counts, coverage stats |
+| `routeros_current_versions` | Fetch current RouterOS versions from MikroTik (live) |
+
+The AI assistant typically starts with `routeros_search`, then drills into specific pages, properties, or the command tree based on what it finds.
+
+## Building from Source
+
+For contributors or when you have access to the MikroTik HTML documentation export.
+
+### Prerequisites
+
+- [Bun](https://bun.sh/) v1.1+
+- RouterOS HTML documentation export (Confluence space export)
+- *(Optional)* `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree
+
+### Build
+
+```sh
+git clone https://github.com/tikoci/mikrotik-docs.git
+cd mikrotik-docs
+bun install
+```
+
+Place the Confluence HTML export in `box/documents-export-<date>/ROS/`, then:
+
+```sh
+make extract       # HTML → properties → commands (single version) → link
+# or
+make extract-full  # Same but with all 46 RouterOS versions
+```
+
+### Development
+
+```sh
+bun test             # Run tests (in-memory SQLite, no DB needed)
+bun run typecheck    # Type check
+make lint            # Biome linter
+bun run src/mcp.ts   # Start MCP server in dev mode
+```
+
+The repo includes `.vscode/mcp.json` — opening the folder in VS Code automatically configures Copilot to use the dev server.
+
+### Creating a Release
+
+Build binaries for all platforms and compress the database:
+
+```sh
+make release VERSION=v0.1.0
+```
+
+This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, and compresses the database. Then publish:
+
+```sh
+gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --generate-notes
+```
 
 ## Project Structure
 
-```text
+```
 src/
-├── mcp.ts                  # MCP server (9 tools, stdio transport)
+├── mcp.ts                  # MCP server (9 tools, stdio) + CLI dispatch
+├── setup.ts                # --setup: DB download + MCP client config
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
-├── extract-html.ts         # Confluence HTML → pages + callouts tables
-├── extract-properties.ts   # Property table extraction from HTML
-├── extract-commands.ts     # inspect.json → commands table (version-aware)
-├── extract-all-versions.ts # Batch extract all 46 RouterOS versions
+├── extract-html.ts         # Confluence HTML → pages + callouts
+├── extract-properties.ts   # Property table extraction
+├── extract-commands.ts     # inspect.json → commands (version-aware)
+├── extract-all-versions.ts # Batch extract all 46 versions
 ├── link-commands.ts        # Command ↔ page mapping
-├── assess-html.ts          # HTML archive assessment (run once)
-└── search.ts               # CLI search tool
-```
+└── query.test.ts           # Tests (in-memory SQLite fixtures)
 
-## Development
-
-```sh
-bun run typecheck    # Type check (no emit — Bun runs .ts directly)
-make lint            # Biome linter
-make clean           # Remove database files
-make extract         # Rebuild from source HTML
+scripts/
+└── build-release.ts        # Cross-compile + package releases
 ```
 
 ## Data Sources
 
-- **HTML Archive** — Confluence space export from help.mikrotik.com (317 pages, ~515K words)
-- **Command Tree** — `inspect.json` from RouterOS `/console/inspect` (549 dirs, 5,090 commands, 34K args)
+- **HTML Archive** — Confluence space export from help.mikrotik.com (March 2026, 317 pages, ~515K words)
+- **Command Tree** — `inspect.json` from RouterOS `/console/inspect` via [tikoci/restraml](https://github.com/tikoci/restraml) (46 versions: 7.9–7.23beta2)
 
-> **Note:** The HTML export and `inspect.json` are not included in this repo. You need your own copy of the MikroTik documentation export.
+Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
 
 ## License
 
