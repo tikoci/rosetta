@@ -8,6 +8,18 @@
 
 Items with clear scope and no blockers.
 
+### Fix CI workflow so tests actually pass
+
+The GitHub Actions workflow (`.github/workflows/test.yml`) runs typecheck, `bun test`, and lint — but the test suite needs `ros-help.db` which isn't in the repo and can't be built in CI without the HTML export and inspect.json sources. The first run failed immediately on push to main ([actions/runs/23613230018](https://github.com/tikoci/rosetta/actions/runs/23613230018)).
+
+**Current state:** Trigger changed to `workflow_dispatch` only so it doesn't fire on every push. The workflow itself is untouched — it will still fail if dispatched manually.
+
+**To fix:**
+- `bun test` uses in-memory SQLite (no DB file needed) — this should already work. Investigate actual failure cause from the run log.
+- Typecheck and lint should also work without the DB. May just need `bun install` to succeed.
+- Once green, re-enable `push` / `pull_request` triggers.
+- Also: actions/checkout@v4 emits a Node.js 20 deprecation warning — update to a version that supports Node.js 24 before the June 2026 deadline.
+
 ### ~~Section-level page chunks for large pages~~ ✓ DONE
 
 Implemented. 2,984 sections across 275 pages extracted from h1–h3 headings with anchor IDs. `get_page` returns a table of contents (heading + char_count + deep-link URL) when `max_length` is exceeded and sections exist. `section` parameter on `get_page` retrieves specific sections by heading text or anchor_id. No new MCP tool — extended `get_page` instead. Deferred `sections_fts` as unnecessary for current use case (TOC + section retrieval don't need FTS).

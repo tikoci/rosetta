@@ -20,6 +20,18 @@ Three files, three jobs — use these, don't create new top-level `.md` files:
 
 When deferring work or recording ideas, add them to `BACKLOG.md` under the appropriate heading.
 
+### Capture everything that isn't done
+
+**This is a hard rule, not a suggestion.** If your work surfaces any of the following, you must record it in the appropriate doc file *before finishing your response* — do not leave it as a verbal aside in conversation:
+
+- **Known breakage or degradation** — something that's broken, will break, or works differently than expected. Include what failed, why, and what would fix it. → `BACKLOG.md` (Ready to Build) if actionable, or (To Investigate) if unclear.
+- **Workarounds applied** — if you worked around a problem instead of fixing it, document both the workaround and the root cause. → `BACKLOG.md`
+- **Deferred or incomplete work** — anything you explicitly chose not to do, or that's blocked on something external. Include the trigger condition ("do this when X happens"). → `BACKLOG.md` (Deferred)
+- **Gotchas and footguns** — non-obvious constraints, compatibility issues, deprecation timelines, or things that will surprise the next person. → `DESIGN.md` if it's a project-level constraint; `BACKLOG.md` if it's a future risk to mitigate.
+- **Schema or architecture changes** — if you changed how the project works, update `CLAUDE.md` to match.
+
+**The test:** if you deleted the entire conversation history, would a new agent (or the maintainer) be able to discover this information from the project files alone? If not, you haven't captured it.
+
 ## Build and Test
 
 ```sh
