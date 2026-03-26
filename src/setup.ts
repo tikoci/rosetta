@@ -47,6 +47,48 @@ function getServerCommand(): string {
   return path.resolve(import.meta.dirname, "mcp.ts");
 }
 
+/** Check if a DB file exists and has actual page data */
+function dbHasData(dbPath: string): boolean {
+  if (!existsSync(dbPath)) return false;
+  try {
+    const { default: sqlite } = require("bun:sqlite");
+    const check = new sqlite(dbPath, { readonly: true });
+    const row = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
+    check.close();
+    return row.c > 0;
+  } catch {
+    return false;
+  }
+}
+
+/** Download ros-help.db.gz from GitHub Releases, decompress, and write to dbPath */
+export async function downloadDb(
+  dbPath: string,
+  log: (msg: string) => void = console.log,
+) {
+  const url = `https://github.com/${GITHUB_REPO}/releases/latest/download/ros-help.db.gz`;
+  log(`Downloading database from GitHub Releases...`);
+  log(`  ${url}`);
+
+  const response = await fetch(url, { redirect: "follow" });
+  if (!response.ok) {
+    throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+  }
+
+  const contentLength = response.headers.get("content-length");
+  const totalMB = contentLength ? (Number(contentLength) / 1024 / 1024).toFixed(1) : "?";
+  log(`  Downloading ${totalMB} MB (compressed)...`);
+
+  const compressed = new Uint8Array(await response.arrayBuffer());
+  log(`  Decompressing...`);
+
+  const decompressed = gunzipSync(compressed);
+  writeFileSync(dbPath, decompressed);
+
+  const sizeMB = (decompressed.byteLength / 1024 / 1024).toFixed(1);
+  log(`  Wrote ${sizeMB} MB to ${dbPath}`);
+}
+
 export async function runSetup(force = false) {
   const baseDir = getBaseDir();
   const dbPath = path.join(baseDir, "ros-help.db");
@@ -57,36 +99,12 @@ export async function runSetup(force = false) {
   console.log();
 
   // ── Download DB if needed ──
-  if (existsSync(dbPath) && !force) {
+  const needsDownload = force || !dbHasData(dbPath);
+  if (!needsDownload) {
     console.log(`Database already exists: ${dbPath}`);
     console.log(`  (use --setup --force to re-download)`);
   } else {
-    const url = `https://github.com/${GITHUB_REPO}/releases/latest/download/ros-help.db.gz`;
-    console.log(`Downloading database from GitHub Releases...`);
-    console.log(`  ${url}`);
-    console.log();
-
-    const response = await fetch(url, { redirect: "follow" });
-    if (!response.ok) {
-      console.error(`Download failed: ${response.status} ${response.statusText}`);
-      console.error();
-      console.error(`If this is a new installation, the database may not be published yet.`);
-      console.error(`Build it from source: make extract (requires HTML export + Bun)`);
-      process.exit(1);
-    }
-
-    const contentLength = response.headers.get("content-length");
-    const totalMB = contentLength ? (Number(contentLength) / 1024 / 1024).toFixed(1) : "?";
-    console.log(`  Downloading ${totalMB} MB (compressed)...`);
-
-    const compressed = new Uint8Array(await response.arrayBuffer());
-    console.log(`  Decompressing...`);
-
-    const decompressed = gunzipSync(compressed);
-    writeFileSync(dbPath, decompressed);
-
-    const sizeMB = (decompressed.byteLength / 1024 / 1024).toFixed(1);
-    console.log(`  Wrote ${sizeMB} MB to ${dbPath}`);
+    await downloadDb(dbPath);
   }
 
   // ── Validate DB ──
@@ -123,7 +141,7 @@ function printCompiledConfig(serverCmd: string) {
   // Claude Desktop
   const isMac = process.platform === "darwin";
   const configPath = isMac
-    ? "~/Library/Application Support/Claude/claude_desktop_config.json"
+    ? "~/Library/Application\\ Support/Claude/claude_desktop_config.json"
     : "%APPDATA%\\Claude\\claude_desktop_config.json";
 
   console.log();
@@ -165,7 +183,7 @@ function printDevConfig(baseDir: string) {
   // Claude Desktop
   const isMac = process.platform === "darwin";
   const configPath = isMac
-    ? "~/Library/Application Support/Claude/claude_desktop_config.json"
+    ? "~/Library/Application\\ Support/Claude/claude_desktop_config.json"
     : "%APPDATA%\\Claude\\claude_desktop_config.json";
 
   console.log();

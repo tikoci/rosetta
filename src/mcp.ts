@@ -16,6 +16,7 @@
  */
 
 declare const VERSION: string;
+declare const IS_COMPILED: boolean;
 
 // ── CLI dispatch (before MCP server init) ──
 
@@ -61,6 +62,41 @@ const { z } = await import("zod/v3");
 // Dynamic imports — db.ts eagerly opens the DB file on import,
 // so we must import after the --setup guard to avoid creating
 // an empty ros-help.db on fresh installs.
+//
+// Check if DB has data BEFORE importing db.ts. If empty/missing,
+// auto-download so db.ts opens the real database.
+const _baseDir =
+  typeof IS_COMPILED !== "undefined" && IS_COMPILED
+    ? (await import("node:path")).dirname(process.execPath)
+    : (await import("node:path")).resolve(import.meta.dirname, "..");
+const _dbPath =
+  process.env.DB_PATH?.trim() || (await import("node:path")).join(_baseDir, "ros-help.db");
+
+const _pageCount = (() => {
+  try {
+    const check = new (require("bun:sqlite").default)(_dbPath, { readonly: true });
+    const row = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
+    check.close();
+    return row.c;
+  } catch {
+    return 0;
+  }
+})();
+
+if (_pageCount === 0) {
+  const { downloadDb } = await import("./setup.ts");
+  // Use stderr — stdout is the MCP stdio transport
+  const log = (msg: string) => process.stderr.write(msg + "\n");
+  try {
+    await downloadDb(_dbPath, log);
+    log("Database downloaded successfully.");
+  } catch (e) {
+    log(`Auto-download failed: ${e}`);
+    log(`Run: ${process.argv[0]} --setup`);
+  }
+}
+
+// Now import db.ts (opens the DB) and query.ts
 const { getDbStats, initDb } = await import("./db.ts");
 const {
   browseCommands,
