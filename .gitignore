@@ -23,6 +23,9 @@ __pycache__/
 dist/
 *.bun-build
 
+# potentially ros-help.db.gz from `gh` ops
+ros-help.db.gz
+
 # Claude Code local settings
 .claude/
 .mcp.json
