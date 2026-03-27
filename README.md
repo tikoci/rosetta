@@ -2,13 +2,13 @@
 
 MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, 40,000-entry command tree, and 144 hardware product specs — with direct links to help.mikrotik.com.
 
-Works with **Claude Desktop**, **Claude Code**, **VS Code Copilot**, and any MCP-compatible client.
+Tested with **Claude Desktop**, **Claude Code**, **VS Code Copilot** (including Copilot CLI), and **VS Code** on macOS and Linux.
 
 ## What is SQL-as-RAG?
 
-Most retrieval-augmented generation (RAG) systems use vector embeddings to search documentation. This project takes a different approach: **SQLite FTS5 full-text search as the retrieval layer** — what we call SQL-as-RAG.
+Most retrieval-augmented generation (RAG) systems use vector embeddings to search documentation. This project takes a different approach: **SQLite [FTS5](https://www.sqlite.org/fts5.html) full-text search as the retrieval layer** — what we call SQL-as-RAG.
 
-For structured technical documentation like RouterOS, full-text search with BM25 ranking beats vector similarity. Technical terms like "dhcp-snooping" or "/ip/firewall/filter" are exact tokens — stemming and proximity matching handle the rest. No embedding pipeline, no vector database, no API keys. Just a single SQLite file that searches in milliseconds.
+For structured technical documentation like RouterOS, full-text search with [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function) beats vector similarity. Technical terms like "dhcp-snooping" or "/ip/firewall/filter" are exact tokens — [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) and proximity matching handle the rest. No embedding pipeline, no vector database, no API keys. Just a single SQLite file that searches in milliseconds.
 
 The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 10 search tools over stdio transport.
 
@@ -52,7 +52,7 @@ On Windows:
 .\rosetta.exe --setup
 ```
 
-This downloads the documentation database (~50 MB compressed, ~220 MB on disk) and prints configuration instructions for your MCP client.
+This downloads the documentation database (~50 MB compressed, ~230 MB on disk) and prints configuration instructions for your MCP client.
 
 > **macOS Gatekeeper:** If macOS blocks the binary, go to **System Settings → Privacy & Security** and click **Allow Anyway**, then run again. Or from Terminal: `xattr -d com.apple.quarantine ./rosetta`
 >
@@ -90,7 +90,9 @@ claude mcp add rosetta /path/to/rosetta
 
 #### VS Code Copilot
 
-Add to your User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
+The simplest way: open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`), choose **"MCP: Add Server…"**, select **"Command (stdio)"**, and enter the full path to the `rosetta` binary.
+
+Or add to your User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
 
 ```json
 "mcp": {
@@ -111,6 +113,7 @@ Ask your AI assistant questions like:
 - *"Is the /container command available in RouterOS 7.12?"*
 - *"What are the firewall filter default chains?"*
 - *"Show me warnings about hardware offloading"*
+- *"Which MikroTik routers have L3HW offload, and more than 8 ports of 48V PoE? Include cost."*
 
 ## MCP Tools
 
@@ -129,7 +132,7 @@ The server provides 10 tools, designed to work together:
 | `routeros_stats` | Database health: page/property/command counts, coverage stats |
 | `routeros_current_versions` | Fetch current RouterOS versions from MikroTik (live) |
 
-The AI assistant typically starts with `routeros_search`, then drills into specific pages, properties, or the command tree based on what it finds.
+The AI assistant typically starts with `routeros_search`, then drills into specific pages, properties, or the command tree based on what it finds. Each tool's description includes workflow hints (e.g., "→ use `routeros_get_page` to read full content") and empty-result suggestions so the AI knows how to chain tools together — this is where most of the tuning effort goes.
 
 ## Alternative: Run with Bun
 
@@ -185,6 +188,10 @@ claude mcp add rosetta -- bun run src/mcp.ts --cwd /path/to/rosetta
 ```
 
 #### VS Code Copilot
+
+Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`), choose **"MCP: Add Server…"**, select **"Command (stdio)"**, and enter `bun run src/mcp.ts` with the working directory set to the rosetta folder.
+
+Or add to your User Settings JSON:
 
 ```json
 "mcp": {
@@ -252,17 +259,13 @@ The repo includes `.vscode/mcp.json` — opening the folder in VS Code automatic
 
 ### Creating a Release
 
-Build binaries for all platforms and compress the database:
+The Makefile handles the full release flow — preflight checks, cross-compile, git tag, push, and GitHub Release upload:
 
 ```sh
 make release VERSION=v0.1.0
 ```
 
-This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, and compresses the database. Then publish:
-
-```sh
-gh release create v0.1.0 dist/*.zip dist/ros-help.db.gz --title "v0.1.0" --generate-notes
-```
+This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, compresses the database, tags the commit, and creates a GitHub Release with all artifacts.
 
 ## Project Structure
 
@@ -286,11 +289,44 @@ scripts/
 
 ## Data Sources
 
-- **HTML Archive** — Confluence space export from help.mikrotik.com (March 2026, 317 pages, ~515K words)
-- **Command Tree** — `inspect.json` from RouterOS `/console/inspect` via [tikoci/restraml](https://github.com/tikoci/restraml) (46 versions: 7.9–7.23beta2)
-- **Product Matrix** — CSV export from mikrotik.com/products/matrix (144 products, 34 columns — hardware specs, license levels, pricing)
+The database combines three sources of MikroTik data into a single SQLite file with full-text search ([FTS5](https://www.sqlite.org/fts5.html) with [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) and [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function)):
+
+- **HTML Documentation** — Confluence space export from help.mikrotik.com (March 2026). The 317 pages are broken out several ways: by section heading, callout boxes (warnings, tips, notes), and property tables (attribute name/type/default/description). This is the richest source — ~515K words of official documentation with direct links back to help.mikrotik.com.
+
+- **Command Tree** — `inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml), which runs `/console/inspect` requests (`child`, `syntax`, `completion`) against RouterOS CHR under QEMU via GitHub Actions for every version since 7.9. This gives the MCP server structured knowledge of whether a command or argument exists in a particular version (46 versions tracked: 7.9–7.23beta2). The blind spot: these come from CHR with all extra-packages on x86, so commands from packages not available on CHR (like `zerotier` and Wi-Fi driver packages) are missing — the HTML docs cover those.
+
+- **Product Matrix** — CSV export from mikrotik.com/products/matrix (144 products, 34 columns). Hardware specs, license levels, and pricing — lets the AI answer questions like *"Which routers have L3HW offload and 8+ ports of 48V PoE?"* The CSV requires manual download (the old POST API was removed when the site was redesigned in late 2025).
 
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
+
+## Database (Standalone)
+
+The SQLite database is distributed separately from the MCP server code via GitHub Releases:
+
+```text
+https://github.com/tikoci/rosetta/releases/latest/download/ros-help.db.gz
+```
+
+The MCP server downloads this automatically on first run (or via `--setup`), but the database is usable on its own with any SQLite client:
+
+```sh
+sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHCP lease' ORDER BY rank LIMIT 5;"
+```
+
+### Tables
+
+| Table | Rows | What's in it |
+|-------|------|-------------|
+| `pages` | 317 | Documentation pages — title, breadcrumb path, full text, code blocks, help.mikrotik.com URL |
+| `sections` | 2,984 | Page chunks split by h1–h3 headings, with anchor IDs for deep linking |
+| `callouts` | 1,034 | Warning/Note/Info/Tip boxes extracted from Confluence callout macros |
+| `properties` | 4,860 | Command properties — name, type, default value, description (from doc tables) |
+| `commands` | 40K+ | RouterOS command hierarchy — dirs, commands, arguments from `/console/inspect` |
+| `command_versions` | 1.67M | Junction table: which command paths exist in which RouterOS versions (7.9–7.23beta2) |
+| `ros_versions` | 46 | Tracked RouterOS versions with channel (stable/development) |
+| `devices` | 144 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
+
+Each content table has a corresponding [FTS5](https://www.sqlite.org/fts5.html) index (e.g., `pages_fts`, `properties_fts`, `devices_fts`) using the [porter](https://www.sqlite.org/fts5.html#porter_tokenizer) stemming tokenizer for natural language search with [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function).
 
 ## License
 

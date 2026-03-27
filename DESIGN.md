@@ -126,7 +126,7 @@ Bun bakes `import.meta.dirname` at compile time — a compiled binary looks for 
 
 ### Database via GitHub Releases
 
-The SQLite DB is ~222 MB on disk, ~50 MB gzipped. GitHub Releases has no bandwidth cap for public repos and allows 2 GB per asset. The `--setup` flag downloads from the "latest" release URL (`/releases/latest/download/ros-help.db.gz`), which means we can push new DB versions without changing the binary.
+The SQLite DB is ~230 MB on disk, ~50 MB gzipped. GitHub Releases has no bandwidth cap for public repos and allows 2 GB per asset. The `--setup` flag downloads from the "latest" release URL (`/releases/latest/download/ros-help.db.gz`), which means we can push new DB versions without changing the binary.
 
 Alternatives considered:
 - **Git LFS:** Bandwidth-limited on free tier, clones include all versions
