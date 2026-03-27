@@ -59,7 +59,11 @@ The `commands` table is populated from the latest stable version. All other vers
 46 versions including betas and RCs. Prefer more data over less. The `channel` column in `ros_versions` allows filtering to stable-only if needed.
 
 ### FTS5 for text, SQL WHERE for structured queries
-Pages, callouts, and properties use FTS5 for natural language search. Device specs (when built) will need both: FTS for name search, SQL WHERE for structured filters like "ARM 64bit AND ports >= 8".
+Pages, callouts, and properties use FTS5 with `porter unicode61` for natural language search. Device specs use a different strategy: `devices_fts` uses `unicode61` **without** Porter stemming, plus a LIKE-based substring fallback before FTS.
+
+**Why no Porter for devices:** Product names/codes are model numbers (RB1100AHx4, CCR2216-1G-12XS-2XQ, C53UiG+5HPaxD2HPaxD), not natural language. Porter stemming is unpredictable on alphanumeric identifiers — it could mangle "RB1100AHx4" in ways that break matching. Plain `unicode61` gives case-folding and Unicode normalization without destructive stemming.
+
+**Why LIKE fallback:** FTS5 does whole-token matching, so searching "RB1100" won't find token "RB1100AHx4". FTS5 prefix queries (`RB1100*`) handle the case where the search term is a prefix of a token, but LIKE handles arbitrary substrings. For 144 devices this is instant — no index overhead concerns. The search cascade is: exact match → LIKE substring → FTS prefix → FTS OR fallback → structured filters only.
 
 ### Callout FK ordering
 Callouts have FK to pages. On re-extraction, delete callouts before pages. `extract-html.ts` handles this.

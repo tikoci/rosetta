@@ -268,7 +268,7 @@ export function initDb() {
     product_name, product_code, architecture, cpu,
     content=devices,
     content_rowid=id,
-    tokenize='porter unicode61'
+    tokenize='unicode61'
   );`);
 
   db.run(`CREATE TRIGGER IF NOT EXISTS devices_ai AFTER INSERT ON devices BEGIN

@@ -680,12 +680,21 @@ const DEVICE_SELECT = `SELECT id, product_name, product_code, architecture, cpu,
     eth_multigig, usb_ports, sim_slots, msrp_usd
   FROM devices`;
 
-/** Look up a device by exact name or product code, then fall back to FTS + filters. */
+/** Build FTS5 query for devices — appends prefix '*' to every term.
+ *  Model numbers like "RB1100" need prefix matching to find "RB1100AHx4".
+ *  No compound term handling (not relevant for device names). */
+function buildDeviceFtsQuery(terms: string[], mode: "AND" | "OR"): string {
+  if (terms.length === 0) return "";
+  const parts = terms.map((t) => `"${t}"*`);
+  return parts.join(mode === "AND" ? " AND " : " OR ");
+}
+
+/** Look up a device by exact name or product code, then fall back to LIKE/FTS + filters. */
 export function searchDevices(
   query: string,
   filters: DeviceFilters = {},
   limit = 10,
-): { results: DeviceResult[]; mode: "exact" | "fts" | "filter" | "fts+or"; total: number } {
+): { results: DeviceResult[]; mode: "exact" | "fts" | "like" | "filter" | "fts+or"; total: number } {
   // 1. Try exact match on product_name or product_code
   if (query) {
     const exact = db
@@ -696,7 +705,29 @@ export function searchDevices(
     }
   }
 
-  // 2. FTS + structured filters
+  // 2. LIKE-based prefix/substring match on product_name and product_code.
+  //    For 144 rows this is instant and catches model number substrings
+  //    that FTS5 token matching misses (e.g. "RB1100" → "RB1100AHx4").
+  if (query) {
+    const likeTerms = query
+      .trim()
+      .split(/\s+/)
+      .filter((t) => t.length >= 2)
+      .map((t) => `%${t}%`);
+    if (likeTerms.length > 0) {
+      const likeConditions = likeTerms.map(
+        () => "(d.product_name LIKE ? COLLATE NOCASE OR d.product_code LIKE ? COLLATE NOCASE)",
+      );
+      const likeParams = likeTerms.flatMap((t) => [t, t]);
+      const likeSql = `${DEVICE_SELECT} d WHERE ${likeConditions.join(" AND ")} ORDER BY d.product_name LIMIT ?`;
+      const likeResults = db.prepare(likeSql).all(...likeParams, limit) as DeviceResult[];
+      if (likeResults.length > 0) {
+        return { results: likeResults, mode: "like", total: likeResults.length };
+      }
+    }
+  }
+
+  // 3. FTS + structured filters
   const whereClauses: string[] = [];
   const params: (string | number)[] = [];
 
@@ -729,8 +760,8 @@ export function searchDevices(
   const terms = query ? extractTerms(query) : [];
 
   if (terms.length > 0) {
-    // FTS with filters
-    const ftsQuery = buildFtsQuery(terms, "AND");
+    // FTS with filters — use prefix matching for device model numbers
+    const ftsQuery = buildDeviceFtsQuery(terms, "AND");
     if (ftsQuery) {
       const filterWhere = whereClauses.length > 0 ? ` AND ${whereClauses.join(" AND ")}` : "";
       const sql = `SELECT d.id, d.product_name, d.product_code, d.architecture, d.cpu,
@@ -752,7 +783,7 @@ export function searchDevices(
 
       // Fallback to OR
       if (terms.length > 1) {
-        const orQuery = buildFtsQuery(terms, "OR");
+        const orQuery = buildDeviceFtsQuery(terms, "OR");
         try {
           const results = db.prepare(sql).all(orQuery, ...params, limit) as DeviceResult[];
           if (results.length > 0) {
@@ -763,7 +794,7 @@ export function searchDevices(
     }
   }
 
-  // 3. Filter-only (no FTS query)
+  // 4. Filter-only (no FTS query)
   if (whereClauses.length > 0) {
     const sql = `${DEVICE_SELECT} d WHERE ${whereClauses.join(" AND ")} ORDER BY d.product_name LIMIT ?`;
     const results = db.prepare(sql).all(...params, limit) as DeviceResult[];

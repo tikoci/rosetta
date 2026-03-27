@@ -132,6 +132,33 @@ beforeAll(() => {
      NULL, 4, 1, NULL, NULL,
      NULL, 1, 2, 599.00)`);
 
+  // Device fixture: model number without hyphens (substring matching needed)
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('RB1100AHx4', 'RB1100x4', 'ARM 32bit', 'AL21400', 4, '1400 MHz',
+     6, 'RouterOS', '1 GB', 1024, '128 MB', 128,
+     NULL, NULL, NULL, NULL,
+     NULL, 13, NULL, NULL, NULL,
+     NULL, NULL, NULL, 299.00)`);
+
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('RB1100AHx4 Dude Edition', 'RB1100Dx4', 'ARM 32bit', 'AL21400', 4, '1400 MHz',
+     6, 'RouterOS', '1 GB', 1024, '512 MB', 512,
+     NULL, NULL, NULL, NULL,
+     NULL, 13, NULL, NULL, NULL,
+     NULL, NULL, NULL, 369.00)`);
+
   // Page 3: a "large" page with sections for TOC testing
   // Text is ~200 chars to keep fixture small, but we'll use max_length=50 to trigger truncation
   db.run(`INSERT INTO pages
@@ -652,15 +679,15 @@ describe("searchDevices", () => {
   test("filter by min_ram_mb", () => {
     const res = searchDevices("", { min_ram_mb: 1024 });
     expect(res.mode).toBe("filter");
-    expect(res.results.length).toBe(3); // hAP ax3 (1024) + CCR2216 (16384) + Chateau (1024)
+    expect(res.results.length).toBe(5); // hAP ax3 (1024) + CCR2216 (16384) + Chateau (1024) + RB1100AHx4 (1024) + RB1100AHx4 Dude (1024)
     expect(res.results.every((d) => (d.ram_mb ?? 0) >= 1024)).toBe(true);
   });
 
   test("filter by license level", () => {
     const res = searchDevices("", { license_level: 6 });
     expect(res.mode).toBe("filter");
-    expect(res.results).toHaveLength(1);
-    expect(res.results[0].product_name).toContain("CCR");
+    expect(res.results).toHaveLength(3); // CCR2216 + RB1100AHx4 + RB1100AHx4 Dude
+    expect(res.results.every((d) => d.license_level === 6)).toBe(true);
   });
 
   test("filter by has_poe", () => {
@@ -677,7 +704,7 @@ describe("searchDevices", () => {
   test("filter by min_storage_mb", () => {
     const res = searchDevices("", { min_storage_mb: 128 });
     expect(res.mode).toBe("filter");
-    expect(res.results.length).toBe(3); // hAP ax3 (128) + CCR2216 (128) + Chateau (128)
+    expect(res.results.length).toBe(5); // hAP ax3 (128) + CCR2216 (128) + Chateau (128) + RB1100AHx4 (128) + RB1100AHx4 Dude (512)
     expect(res.results.every((d) => (d.storage_mb ?? 0) >= 128)).toBe(true);
   });
 
@@ -704,6 +731,36 @@ describe("searchDevices", () => {
   test("returns empty for no match", () => {
     const res = searchDevices("nonexistent-device-xyz");
     expect(res.results).toHaveLength(0);
+  });
+
+  test("LIKE match finds substring in product name", () => {
+    const res = searchDevices("RB1100");
+    expect(res.mode).toBe("like");
+    expect(res.results.length).toBe(2);
+    expect(res.results.every((d) => d.product_name.includes("RB1100"))).toBe(true);
+  });
+
+  test("LIKE match finds substring in product code", () => {
+    const res = searchDevices("RB1100D");
+    expect(res.mode).toBe("like");
+    expect(res.results.length).toBeGreaterThanOrEqual(1);
+    expect(res.results[0].product_code).toBe("RB1100Dx4");
+  });
+
+  test("LIKE match is case-insensitive", () => {
+    const res = searchDevices("rb1100");
+    expect(res.mode).toBe("like");
+    expect(res.results.length).toBe(2);
+  });
+
+  test("natural language query finds device via LIKE", () => {
+    // Simulates: "get me the specs for the routerboard model RB1100"
+    // After stop word removal, extractTerms gets ["specs", "routerboard", "rb1100"]
+    // LIKE matches on "RB1100" substring in product_name
+    const res = searchDevices("RB1100");
+    expect(res.results.length).toBe(2);
+    expect(res.results.some((d) => d.product_name === "RB1100AHx4")).toBe(true);
+    expect(res.results.some((d) => d.product_name === "RB1100AHx4 Dude Edition")).toBe(true);
   });
 
   test("returns empty with no query and no filters", () => {

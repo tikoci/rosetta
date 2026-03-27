@@ -30,7 +30,8 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 - AND mode first, fallback to OR if zero results (all search tools: pages, properties, callouts)
 - Stop words list in `query.ts` (~72 words) — do not duplicate elsewhere
 - Compound terms (~37 RouterOS pairs) → FTS5 NEAR expressions
-- Porter unicode61 tokenizer — stemming is automatic
+- Porter unicode61 tokenizer for pages/properties/callouts — stemming is automatic
+- Device search uses unicode61 only (no porter) + LIKE substring fallback + FTS prefix matching
 
 ## Tool Description Patterns
 - **Workflow arrows**: each tool description lists `→ next_tool: when to use it` to guide agents through multi-step retrieval

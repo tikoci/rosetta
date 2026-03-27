@@ -82,7 +82,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 ## Conventions
 
 - Extractors are idempotent — they `DELETE` existing data and rebuild
-- FTS5 indexes use `porter unicode61` tokenizer with content-sync triggers
+- FTS5 indexes use `porter unicode61` tokenizer with content-sync triggers (pages, callouts, properties); devices use `unicode61` only (no porter — model numbers shouldn't be stemmed)
 - BM25 weights: title=3.0, path=2.0, text=1.0, code=0.5
 - The MCP server name is `"rosetta"` — keep consistent across configs
 - Stop words are hardcoded in `query.ts` (~72 words)

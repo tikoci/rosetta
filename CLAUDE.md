@@ -34,7 +34,7 @@ Two outputs:
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
 - **144 devices** from MikroTik product matrix CSV (hardware specs, license levels, pricing)
-- **FTS5 indexes** with `porter unicode61` tokenizer, BM25-weighted ranking
+- **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts) and `unicode61` without porter (devices), BM25-weighted ranking
 - **MCP server** with 10 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, command_version_check, device_lookup, stats, current_versions
 
 ## Schema
@@ -127,7 +127,7 @@ devices (
     usb_ports, sim_slots, msrp_usd
 )
 
--- FTS5 over devices
+-- FTS5 over devices (unicode61 only — no porter stemming for model numbers)
 devices_fts USING fts5(product_name, product_code, architecture, cpu, ...)
 ```
 
