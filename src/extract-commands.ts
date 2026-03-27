@@ -8,15 +8,15 @@
  * Also populates command_versions for version tracking.
  *
  * Usage:
- *   bun run src/extract-commands.ts [inspect.json-path] [--version=7.22] [--channel=stable] [--extra]
+ *   bun run src/extract-commands.ts [inspect.json-path-or-url] [--version=7.22] [--channel=stable] [--extra]
  *   bun run src/extract-commands.ts --accumulate [inspect.json-path] [--version=X]
  *
  * In default mode: replaces commands table and sets as primary version.
  * With --accumulate: only adds to command_versions, does not touch commands table.
  */
 
-import { resolve } from "node:path";
 import { db, initDb } from "./db.ts";
+import { RESTRAML_PAGES_URL, loadJson } from "./restraml.ts";
 
 // Parse flags
 const cliArgs = process.argv.slice(2);
@@ -30,9 +30,8 @@ const flagArgs = Object.fromEntries(
   }),
 );
 
-const INSPECT_PATH =
-  positional[0] ||
-  resolve(process.env.HOME || "~", "restraml/docs/7.22/extra/inspect.json");
+const DEFAULT_INSPECT_URL = `${RESTRAML_PAGES_URL}/7.22.1/extra/inspect.json`;
+const INSPECT_SOURCE = positional[0] || DEFAULT_INSPECT_URL;
 
 // Derive version from path if not explicitly set
 function deriveVersion(filepath: string): string {
@@ -47,12 +46,12 @@ function deriveChannel(version: string): string {
   return "stable";
 }
 
-const version = flagArgs.version || deriveVersion(INSPECT_PATH);
+const version = flagArgs.version || deriveVersion(INSPECT_SOURCE);
 const channel = flagArgs.channel || deriveChannel(version);
 
-console.log(`Loading inspect.json from ${INSPECT_PATH}...`);
+console.log(`Loading inspect.json from ${INSPECT_SOURCE}...`);
 console.log(`Version: ${version}, Channel: ${channel}, Extra: ${extraPackages}, Accumulate: ${accumulate}`);
-const inspectData = await Bun.file(INSPECT_PATH).json();
+const inspectData = await loadJson<Record<string, unknown>>(INSPECT_SOURCE);
 
 interface CommandRow {
   path: string;

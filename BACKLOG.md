@@ -41,9 +41,15 @@ This could also pair with `routeros_search_callouts` — callouts often document
 
 Items that need research or experimentation before they're actionable.
 
-### Fetch inspect.json from restraml GitHub Pages instead of local clone
+### Debounce inspect.json fetches during extract-all-versions
 
-`extract-commands.ts` and `extract-all-versions.ts` default to `~/restraml/docs/` — a local clone of tikoci/restraml. But restraml publishes all inspect.json files to GitHub Pages (`tikoci.github.io/restraml/`), so there's no reason to require a local checkout. The extract scripts should fetch from the web by default and only fall back to local paths when explicitly passed as an argument. This removes the undocumented `~/restraml` dependency and makes `make extract` work for contributors without extra setup.
+`extract-all-versions.ts` spawns `extract-commands.ts` for each version sequentially, and each invocation fetches its inspect.json from GitHub Pages. With ~48 versions this means ~48 sequential HTTP fetches. Consider:
+
+- Batch-prefetch all inspect.json files with concurrency control (e.g. 5 at a time) before spawning extractors
+- Cache fetched files in a temp dir so re-runs don't re-download
+- Pass fetched data via stdin or temp file instead of having each subprocess fetch independently
+
+Not urgent — the current sequential approach works and GitHub Pages has no rate limit. But it's slower than necessary.
 
 ### List-format properties
 

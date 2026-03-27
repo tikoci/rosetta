@@ -9,7 +9,7 @@ argument-hint: "Path to new HTML export directory (optional)"
 - A new Confluence HTML export is available
 - Database needs rebuilding from scratch
 - Schema changes require fresh extraction
-- New RouterOS versions available in restraml (see `RESTRAML` in Makefile)
+- New RouterOS versions available in restraml GitHub Pages
 
 ## Procedure
 
@@ -17,7 +17,7 @@ argument-hint: "Path to new HTML export directory (optional)"
    - Bun is installed: `bun --version`
    - Dependencies installed: `bun install`
    - HTML export exists in `box/documents-export-*/ROS/`
-   - For commands: restraml `docs/*/extra/inspect.json` exists (46+ versions, path via `RESTRAML` in Makefile)
+   - For commands: internet access to `https://tikoci.github.io/restraml/` (or provide a local docs path explicitly)
 
 2. **Clean existing database**
    ```sh
@@ -58,6 +58,6 @@ argument-hint: "Path to new HTML export directory (optional)"
 
 ## Troubleshooting
 - If HTML directory changed, update `HTML_DIR` in the root Makefile
-- If inspect.json path changed, update `RESTRAML` in the root Makefile
+- If using offline/local data, pass explicit source paths to `extract-commands.ts` or `extract-all-versions.ts`
 - Each extractor is idempotent — safe to re-run individually
 - FK deletion order matters: callouts → properties → pages

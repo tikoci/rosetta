@@ -2,22 +2,20 @@
 /**
  * extract-all-versions.ts — Extract command trees from all RouterOS versions.
  *
- * Iterates all version directories in the restraml docs dir, extracts their
- * inspect.json (preferring extra/ variant), and populates command_versions.
+ * Discovers RouterOS versions from restraml and extracts each inspect.json
+ * (preferring extra/ variant) into command_versions.
  *
  * The latest stable version is loaded as the primary commands table.
  *
  * Usage:
- *   bun run src/extract-all-versions.ts [restraml-docs-dir]
+ *   bun run src/extract-all-versions.ts [restraml-base-url-or-local-docs-dir]
  */
 
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { RESTRAML_PAGES_URL, discoverRemoteVersions as discoverRemoteVersionList, isHttpUrl } from "./restraml.ts";
 
-const DOCS_DIR = process.argv[2] || resolve(process.env.HOME || "~", "restraml/docs");
-
-// Discover version directories (match 7.x patterns)
-const entries = readdirSync(DOCS_DIR).filter((name) => /^\d+\.\d+/.test(name));
+const SOURCE = process.argv[2];
 
 interface VersionInfo {
   version: string;
@@ -53,27 +51,60 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-const versions: VersionInfo[] = entries
-  .map((name) => {
-    const dir = resolve(DOCS_DIR, name);
-    const extraPath = resolve(dir, "extra/inspect.json");
-    const basePath = resolve(dir, "inspect.json");
-    const hasExtra = existsSync(extraPath);
-    const inspectPath = hasExtra ? extraPath : basePath;
+async function discoverRemoteVersions(): Promise<VersionInfo[]> {
+  const versionNames = await discoverRemoteVersionList();
+  const baseUrl = RESTRAML_PAGES_URL;
 
-    if (!existsSync(inspectPath)) return null;
-
-    return {
+  // restraml publishes extra/ for every version that has extra-packages,
+  // and the GitHub API listing already confirmed these dirs exist.
+  // Assume extra/inspect.json is available (restraml always generates it for CHR builds).
+  return versionNames
+    .filter((name) => /^\d+\.\d+/.test(name))
+    .map((name) => ({
       version: name,
       channel: classifyChannel(name),
-      inspectPath,
-      hasExtra,
-    };
-  })
-  .filter((v): v is VersionInfo => v !== null)
-  .sort((a, b) => compareVersions(a.version, b.version));
+      inspectPath: `${baseUrl}/${name}/extra/inspect.json`,
+      hasExtra: true,
+    }))
+    .sort((a, b) => compareVersions(a.version, b.version));
+}
 
-console.log(`Found ${versions.length} RouterOS versions in ${DOCS_DIR}`);
+function discoverLocalVersions(docsDir: string): VersionInfo[] {
+  const entries = readdirSync(docsDir).filter((name) => /^\d+\.\d+/.test(name));
+  return entries
+    .map((name) => {
+      const dir = resolve(docsDir, name);
+      const extraPath = resolve(dir, "extra/inspect.json");
+      const basePath = resolve(dir, "inspect.json");
+      const hasExtra = existsSync(extraPath);
+      const inspectPath = hasExtra ? extraPath : basePath;
+
+      if (!existsSync(inspectPath)) return null;
+
+      return {
+        version: name,
+        channel: classifyChannel(name),
+        inspectPath,
+        hasExtra,
+      };
+    })
+    .filter((v): v is VersionInfo => v !== null)
+    .sort((a, b) => compareVersions(a.version, b.version));
+}
+
+const localMode = SOURCE && !isHttpUrl(SOURCE);
+
+const versions = localMode
+  ? discoverLocalVersions(resolve(SOURCE))
+  : await discoverRemoteVersions();
+
+console.log(
+  `Found ${versions.length} RouterOS versions${localMode ? ` in ${resolve(SOURCE)}` : " from restraml GitHub"}`,
+);
+
+if (versions.length === 0) {
+  throw new Error(`No inspect.json files found${localMode ? ` in ${resolve(SOURCE)}` : " from restraml GitHub"}`);
+}
 
 // Determine the latest stable version for primary extraction
 const latestStable = [...versions].filter((v) => v.channel === "stable").pop();

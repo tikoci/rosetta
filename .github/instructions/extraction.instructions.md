@@ -40,7 +40,7 @@ make extract-full
 - Primary version = latest stable (currently 7.22)
 
 ## Batch Version Extraction (extract-all-versions.ts)
-- Discovers version dirs from restraml's `docs/*/extra/inspect.json` (path configured via `RESTRAML` in Makefile, see [tikoci/restraml](https://github.com/tikoci/restraml))
+- Discovers versions from restraml GitHub Pages index (`https://tikoci.github.io/restraml/`) by default; accepts explicit local `docs/` path override when passed as CLI arg
 - Prefers `extra/inspect.json` (all extra-packages on CHR) over base `inspect.json`
 - Classifies channel: "beta"/"rc" → development, else stable
 - Runs primary extraction for latest stable, accumulate for all others

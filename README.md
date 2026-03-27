@@ -208,7 +208,14 @@ For contributors or when you have access to the MikroTik HTML documentation expo
 
 - [Bun](https://bun.sh/) v1.1+
 - RouterOS HTML documentation export (Confluence space export)
-- *(Optional)* `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree
+- Internet access to [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) for command-tree extraction
+
+`make extract` and `make extract-full` fetch `inspect.json` from restraml GitHub Pages by default. You can still pass a local source explicitly:
+
+```sh
+bun run src/extract-commands.ts /path/to/restraml/docs/7.22.1/extra/inspect.json
+bun run src/extract-all-versions.ts /path/to/restraml/docs
+```
 
 ### Build
 

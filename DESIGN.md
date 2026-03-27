@@ -15,10 +15,12 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Source | Location | Format | Coverage |
 |--------|----------|--------|----------|
 | Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export |
-| inspect.json | [tikoci/restraml](https://github.com/tikoci/restraml) `docs/*/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
+| inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
 | Product matrix | `matrix/2026-03-25/matrix.csv` | CSV, 34 columns | 144 products, March 2026 |
 
-**restraml dependency:** The extraction scripts read `inspect.json` files from a local clone of tikoci/restraml. The path is configured via the `RESTRAML` variable in the Makefile (defaults to `$(HOME)/restraml/docs`).
+**restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
+
+**Version cadence:** HTML docs are pinned to a specific export (currently March 2026 / 7.22). inspect.json versions update automatically via restraml's CI — new versions appear weekly. The primary `commands` table uses the latest stable from inspect.json, which may be newer than the HTML docs export.
 
 ## Key Decisions
 

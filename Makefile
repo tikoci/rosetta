@@ -1,6 +1,5 @@
 DB         := ros-help.db
 HTML_DIR   := box/latest/ROS
-RESTRAML   := $(HOME)/restraml/docs
 VERSION    ?=
 FORCE      ?=
 
@@ -66,7 +65,7 @@ extract-commands:
 	bun run src/extract-commands.ts
 
 extract-all-versions:
-	bun run src/extract-all-versions.ts $(RESTRAML)
+	bun run src/extract-all-versions.ts
 
 extract-devices:
 	bun run src/extract-devices.ts

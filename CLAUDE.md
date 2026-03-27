@@ -237,6 +237,7 @@ Without `FORCE`, the release target errors if the tag already exists and uses `g
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
 | `src/extract-properties.ts` | Property table parsing from HTML |
+| `src/restraml.ts` | Shared helpers for fetching from tikoci/restraml (GitHub API + Pages) |
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
 | `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |
@@ -277,10 +278,11 @@ The Makefile orchestrates the full pipeline. Each script drops and recreates its
 ### Command Tree (inspect.json)
 
 - **Source:** `inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml) — 46 versions extracted
+- **Access path:** version discovery via GitHub API (1 call to `api.github.com/repos/tikoci/restraml/contents/docs`), inspect.json fetched from GitHub Pages (`https://tikoci.github.io/restraml/<version>/extra/inspect.json`) — no rate limit on the actual data. Optional local path override for offline extraction.
 - **Generation:** GitHub Actions run RouterOS CHR under QEMU, daily version checks. Two builds per version: base (`routeros.npk` only) and extra (all extra-packages available on CHR). We use the `extra/` variant.
 - **Content:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 cmds, 34K args (primary: 7.22)
-- **Versions:** 7.9 through 7.23beta2 (stable + development channels)
-- **Primary version:** 7.22 (latest stable) — used for the `commands` table and linking
+- **Versions:** 7.9 through 7.23beta2 (stable + development channels). New versions appear weekly; the latest stable is auto-detected as primary.
+- **Primary version:** latest stable from inspect.json (currently 7.22.1) — used for the `commands` table and linking. Note: this is newer than the HTML docs export (pinned to 7.22) since HTML exports are manual/monthly while inspect.json versions are automated/daily.
 - **Version tracking:** 1.67M entries in `command_versions` junction table
 - **Coverage gap:** CHR doesn't have Wi-Fi hardware, so wireless driver packages (`wifi-qcom`, etc.) are missing from inspect.json. Some packages like `zerotier` are also absent. The HTML docs cover these — inspect.json doesn't.
 
@@ -298,7 +300,7 @@ The Makefile orchestrates the full pipeline. Each script drops and recreates its
 
 See `DESIGN.md` for full cross-references, restraml GitHub Pages tools, and rationale.
 
-- **[tikoci/restraml](https://github.com/tikoci/restraml)** — source of `inspect.json` command tree data. Also publishes [interactive lookup/diff tools](https://tikoci.github.io/restraml/) on GitHub Pages. Local path configurable via `RESTRAML` in Makefile.
+- **[tikoci/restraml](https://github.com/tikoci/restraml)** — source of `inspect.json` command tree data. Also publishes [interactive lookup/diff tools](https://tikoci.github.io/restraml/) and raw JSON on GitHub Pages.
 - **[tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts)** — consumer of property/command data from this DB
 - **[tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook)** — RouterOS script notebook for VSCode. Potential consumer for Copilot-assisted scripting.
 - **[tikoci/netinstall](https://github.com/tikoci/netinstall)** — RouterOS REST API gotchas (HTTP verb mapping, property name differences)

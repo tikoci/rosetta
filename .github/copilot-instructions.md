@@ -67,7 +67,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 
 **Data sources:**
 - HTML export from Confluence in `box/latest/ROS/` (317 pages)
-- `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree (40K entries, 46 versions: 7.9–7.23beta2). Local path configured via `RESTRAML` in Makefile.
+- `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree (40K entries, 46 versions: 7.9–7.23beta2), fetched from `https://tikoci.github.io/restraml/` by default.
 - Product matrix CSV in `matrix/` (144 products, 34 columns — hardware specs, license levels, pricing)
 
 ## Code Style
