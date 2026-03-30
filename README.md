@@ -2,7 +2,7 @@
 
 MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, 40,000-entry command tree, and 144 hardware product specs — with direct links to help.mikrotik.com.
 
-Tested with **Claude Desktop**, **Claude Code**, **VS Code Copilot** (including Copilot CLI), and **Cursor** on macOS, Linux, and Windows.
+Tested with **Claude Desktop**, **Claude Code**, **VS Code Copilot** (including Copilot CLI), **Cursor**, and **OpenAI Codex** on macOS, Linux, and Windows.
 
 ## What is SQL-as-RAG?
 
@@ -98,9 +98,13 @@ Then **restart Claude Desktop**.
 <details>
 <summary><b>GitHub Copilot CLI</b></summary>
 
-```sh
-copilot mcp add rosetta -- bunx @tikoci/rosetta
-```
+Inside a `copilot` session, type `/mcp add` to open the interactive form:
+
+- **Server Name:** `routeros-rosetta`
+- **Server Type:** 2 (STDIO)
+- **Command:** `bunx @tikoci/rosetta`
+
+Press <kbd>Tab</kbd> to navigate fields, <kbd>Ctrl+S</kbd> to save.
 
 </details>
 
@@ -119,6 +123,17 @@ Open **Settings → MCP** and add a new server:
   }
 }
 ```
+
+</details>
+
+<details>
+<summary><b>OpenAI Codex</b></summary>
+
+```sh
+codex mcp add rosetta -- bunx @tikoci/rosetta
+```
+
+> **Note:** ChatGPT Apps require a remote HTTPS MCP endpoint and cannot use local stdio servers like this one. Codex (CLI and desktop app) supports stdio and works with `bunx`.
 
 </details>
 
@@ -195,6 +210,7 @@ The AI assistant typically starts with `routeros_search`, then drills into speci
 | **First launch is slow** | One-time database download (~50 MB). Subsequent starts are instant. |
 | **`npx @tikoci/rosetta` fails** | This package requires Bun, not Node.js. Use `bunx` instead of `npx`. |
 | **`npm install -g` then `rosetta` fails** | Global npm install works if Bun is on PATH — it delegates to `bun` at runtime. But prefer `bunx` — it's simpler and auto-updates. |
+| **ChatGPT Apps can't connect with `bunx @tikoci/rosetta`** | Expected: ChatGPT Apps supports remote HTTPS MCP endpoints, not local stdio command launch. Use OpenAI Codex for local stdio, or deploy/tunnel a remote MCP URL for ChatGPT. |
 | **Claude Desktop can't find `bunx`** | Claude Desktop on macOS may not inherit shell PATH. Use the full path to bunx (run `which bunx` to find it, typically `~/.bun/bin/bunx`). `bunx @tikoci/rosetta --setup` prints the full-path config. |
 | **macOS Gatekeeper blocks binary** | Use `bunx` install (no Gatekeeper issues), or: `xattr -d com.apple.quarantine ./rosetta` |
 | **Windows SmartScreen warning** | Use `bunx` install (no SmartScreen issues), or click **More info → Run anyway** |

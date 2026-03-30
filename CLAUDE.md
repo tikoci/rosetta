@@ -257,7 +257,7 @@ bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 
 1. Download platform ZIP from GitHub Releases
 2. Run `rosetta --setup` (downloads DB, prints config)
-3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot / Copilot CLI)
+3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot / Copilot CLI / Cursor / Codex)
 
 ### CLI Flags
 

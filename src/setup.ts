@@ -159,7 +159,13 @@ function printCompiledConfig(serverCmd: string) {
 
   // Copilot CLI
   console.log("▸ GitHub Copilot CLI");
-  console.log(`  copilot mcp add rosetta -- ${serverCmd}`);
+  console.log(`  Inside a copilot session, type /mcp add:`);
+  console.log(`    Name: routeros-rosetta  |  Type: STDIO  |  Command: ${serverCmd}`);
+  console.log();
+
+  // OpenAI Codex
+  console.log("▸ OpenAI Codex");
+  console.log(`  codex mcp add rosetta -- ${serverCmd}`);
   console.log();
 }
 
@@ -214,7 +220,13 @@ function printPackageConfig() {
 
   // Copilot CLI (inherits PATH)
   console.log("▸ GitHub Copilot CLI");
-  console.log(`  copilot mcp add rosetta -- bunx @tikoci/rosetta`);
+  console.log(`  Inside a copilot session, type /mcp add:`);
+  console.log(`    Name: routeros-rosetta  |  Type: STDIO  |  Command: bunx @tikoci/rosetta`);
+  console.log();
+
+  // OpenAI Codex (inherits PATH)
+  console.log("▸ OpenAI Codex");
+  console.log(`  codex mcp add rosetta -- bunx @tikoci/rosetta`);
   console.log();
 }
 
@@ -256,7 +268,13 @@ function printDevConfig(baseDir: string) {
 
   // Copilot CLI
   console.log("▸ GitHub Copilot CLI");
-  console.log(`  copilot mcp add rosetta -- bun run src/mcp.ts`);
+  console.log(`  Inside a copilot session, type /mcp add:`);
+  console.log(`    Name: routeros-rosetta  |  Type: STDIO  |  Command: bun run src/mcp.ts`);
+  console.log();
+
+  // OpenAI Codex
+  console.log("▸ OpenAI Codex");
+  console.log(`  codex mcp add rosetta -- bun run src/mcp.ts`);
   console.log();
 }
 

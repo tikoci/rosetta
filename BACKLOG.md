@@ -30,6 +30,18 @@ Proposed: `routeros_command_diff` — given two versions (e.g. `7.15` → `7.22`
 
 This could also pair with `routeros_search_callouts` — callouts often document breaking changes or version-specific behavior. Now also pairs with `routeros_search_changelogs` — changelogs have per-entry parsed descriptions with category and breaking flags, enabling precise "what changed in subsystem X between versions A and B" queries.
 
+### Add remote MCP transport mode for ChatGPT Apps
+
+Current server runtime is stdio-only (`StdioServerTransport`), which works for local MCP clients (Claude/Copilot/Cursor/Codex) but not ChatGPT Apps/custom connectors, which require a remote HTTPS MCP endpoint.
+
+Scope for implementation:
+
+- Add HTTP/Streamable-HTTP (and/or HTTP SSE) transport mode in `src/mcp.ts` behind a CLI flag/env.
+- Document dev tunnel workflow (`ngrok`/Cloudflare Tunnel) and production deployment target.
+- Keep stdio as default so local clients remain zero-config.
+
+Status now: README and `--setup` output explicitly call out this limitation, but server runtime still needs remote transport support.
+
 ## To Investigate
 
 Items that need research or experimentation before they're actionable.

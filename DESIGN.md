@@ -159,7 +159,7 @@ Alternatives considered:
 
 ### Binary doubles as setup tool
 
-The `--setup` flag downloads the DB and prints MCP client config snippets for Claude Desktop, Claude Code, and VS Code Copilot. This avoids a separate install script and keeps the tester workflow to two steps: run binary, paste config.
+The `--setup` flag downloads the DB and prints MCP client config snippets for Claude Desktop, Claude Code, VS Code Copilot, Copilot CLI, Cursor, and Codex. This avoids a separate install script and keeps the tester workflow to two steps: run binary, paste config.
 
 ### Code signing deferred
 

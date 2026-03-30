@@ -2,6 +2,51 @@
 # These are project documentation files (CLAUDE.md, DESIGN.md, BACKLOG.md),
 # not README-style docs — prose paragraphs routinely exceed 80 chars.
 
+# Duplicate headings — allow in different sections (GitHub auto-suffixes anchors)
+MD024:
+  siblings_only: true
+
+# Inline HTML — allow semantic elements GitHub renders
+MD033:
+  allowed_elements:
+    # interactive
+    - details
+    - summary
+    # inline semantic
+    - b
+    - kbd
+    - mark
+    - abbr
+    - sub
+    - sup
+    - ins
+    - del
+    - s
+    - var
+    - samp
+    - dfn
+    - cite
+    - q
+    - small
+    - time
+    - ruby
+    - rt
+    - rp
+    - bdo
+    - bdi
+    - wbr
+    # block semantic
+    - br
+    - dl
+    - dt
+    - dd
+    - figure
+    - figcaption
+    - caption
+    - picture
+    - source
+    - section
+
 # --- Disabled rules --------------------------------------------------------
 
 # Line length — 80-char limit doesn't apply to prose documentation
