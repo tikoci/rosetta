@@ -116,7 +116,7 @@ initDb();
 
 const server = new McpServer({
   name: "rosetta",
-  version: typeof VERSION !== "undefined" ? VERSION : "0.1.0",
+  version: typeof VERSION !== "undefined" ? VERSION : "0.2.0",
 });
 
 // ---- routeros_search ----

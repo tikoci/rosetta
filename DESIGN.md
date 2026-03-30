@@ -149,6 +149,14 @@ The `--setup` flag downloads the DB and prints MCP client config snippets for Cl
 
 macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 testing, documented workarounds are sufficient. Signing can be added when distribution goes wider.
 
+### CI release workflow for provenance
+
+Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same extraction pipeline from a remote HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance. Local release continues to work as an alternative path.
+
+### npm via npmjs.org
+
+Published as `@tikoci/rosetta` to the public npm registry. This provides a zero-friction install path for users who have Bun (or Node + Bun): `bunx @tikoci/rosetta --setup`. The `bin/rosetta.js` shim detects the runtime — under Bun it imports `src/mcp.ts` directly, under Node it spawns `bun` as a subprocess (since the server requires `bun:sqlite`). The `files` whitelist includes `bin/`, `src/`, and `matrix/` — no database, no build artifacts. Published from the `release.yml` workflow using an `NPM_TOKEN` org secret.
+
 ## History
 
 What was built, in rough order (March 2026):
@@ -160,3 +168,4 @@ What was built, in rough order (March 2026):
 5. **MCP server** — `mcp.ts` + `query.ts`. 9 tools with compound term recognition, BM25 ranking, AND→OR fallback.
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).
 7. **Distribution** — Compiled single-file binaries via `bun build --compile`, `--setup` mode for DB download + MCP client config, GitHub Releases for assets.
+8. **CI release workflow** — `release.yml` workflow_dispatch: download HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.

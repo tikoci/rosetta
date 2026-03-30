@@ -1,13 +1,21 @@
 {
-  "name": "rosetta",
-  "version": "0.1.0",
+  "name": "@tikoci/rosetta",
+  "version": "0.2.0",
   "description": "RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP",
   "type": "module",
   "license": "MIT",
+  "bin": {
+    "rosetta": "bin/rosetta.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/tikoci/rosetta.git"
   },
+  "files": [
+    "bin/",
+    "src/",
+    "matrix/"
+  ],
   "scripts": {
     "test": "bun test",
     "typecheck": "bun tsc --noEmit",

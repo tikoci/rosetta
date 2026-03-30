@@ -1,0 +1,192 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      html_url:
+        description: >
+          Direct download URL for Confluence HTML export (.zip).
+          For box.mikrotik.com Seafile links, append &dl=1 to get the actual file.
+        required: true
+        type: string
+      version:
+        description: 'Release version tag (e.g. v0.2.0)'
+        required: true
+        type: string
+      docs_date:
+        description: 'Export date or presumed RouterOS version for traceability (e.g. 2026-03-25)'
+        required: false
+        type: string
+        default: ''
+      full_versions:
+        description: 'Extract all RouterOS versions (true) or single primary only (false)'
+        required: false
+        type: boolean
+        default: true
+      force:
+        description: 'Overwrite existing release (--clobber)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - run: bun install
+
+      # ── Download and validate HTML export ──
+
+      - name: Download HTML export
+        run: |
+          echo "Downloading: ${{ inputs.html_url }}"
+          curl -fSL --max-time 600 -o export.zip "${{ inputs.html_url }}"
+          # Validate zip magic bytes (PK = 0x504b)
+          MAGIC=$(xxd -l 2 -p export.zip)
+          if [ "$MAGIC" != "504b" ]; then
+            echo "::error::Downloaded file is not a valid ZIP archive (magic: $MAGIC)"
+            if echo "${{ inputs.html_url }}" | grep -q "box.mikrotik.com"; then
+              echo "::error::Hint: Seafile share links need &dl=1 appended for direct download"
+            fi
+            exit 1
+          fi
+          SIZE=$(du -h export.zip | cut -f1)
+          echo "✓ Downloaded ZIP ($SIZE)"
+
+      - name: Extract HTML and locate ROS directory
+        id: locate
+        run: |
+          unzip -q export.zip -d html-export
+          # Find the ROS directory containing Confluence HTML files
+          ROS_DIR=$(find html-export -type d -name "ROS" | head -1)
+          if [ -z "$ROS_DIR" ]; then
+            # Fallback: find any directory with many .html files
+            ROS_DIR=$(find html-export -name "*.html" -type f | head -1 | xargs dirname)
+          fi
+          if [ -z "$ROS_DIR" ] || [ ! -d "$ROS_DIR" ]; then
+            echo "::error::Could not find HTML directory in ZIP archive"
+            exit 1
+          fi
+          HTML_COUNT=$(find "$ROS_DIR" -maxdepth 1 -name "*.html" -type f | wc -l)
+          echo "✓ Found $HTML_COUNT HTML files in $ROS_DIR"
+          if [ "$HTML_COUNT" -lt 50 ]; then
+            echo "::warning::Expected ~317 HTML files but found only $HTML_COUNT"
+          fi
+          echo "ros_dir=$ROS_DIR" >> "$GITHUB_OUTPUT"
+
+      # ── Extraction pipeline ──
+
+      - name: Extract HTML pages
+        run: bun run src/extract-html.ts "${{ steps.locate.outputs.ros_dir }}"
+
+      - name: Extract properties
+        run: bun run src/extract-properties.ts
+
+      - name: Extract command tree
+        run: |
+          if [ "${{ inputs.full_versions }}" = "true" ]; then
+            bun run src/extract-all-versions.ts
+          else
+            bun run src/extract-commands.ts
+          fi
+
+      - name: Extract devices
+        run: bun run src/extract-devices.ts
+
+      - name: Extract changelogs
+        run: bun run src/extract-changelogs.ts
+
+      - name: Link commands to pages
+        run: bun run src/link-commands.ts
+
+      # ── Quality gate ──
+
+      - name: Type check
+        run: bun run typecheck
+
+      - name: Run tests
+        run: bun test
+
+      - name: Lint
+        run: bun run lint
+
+      # ── Build and release ──
+
+      - name: Collect DB stats
+        id: stats
+        run: |
+          PAGES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM pages")
+          COMMANDS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM commands WHERE type='cmd'")
+          VERSIONS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM ros_versions")
+          DEVICES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM devices")
+          PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
+          echo "pages=$PAGES" >> "$GITHUB_OUTPUT"
+          echo "commands=$COMMANDS" >> "$GITHUB_OUTPUT"
+          echo "versions=$VERSIONS" >> "$GITHUB_OUTPUT"
+          echo "devices=$DEVICES" >> "$GITHUB_OUTPUT"
+          echo "properties=$PROPERTIES" >> "$GITHUB_OUTPUT"
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties"
+
+      - name: Build release artifacts
+        run: bun run scripts/build-release.ts ${{ inputs.version }}
+
+      - name: Upload DB as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ros-help-db
+          path: ros-help.db
+          retention-days: 7
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          DOCS_DATE="${{ inputs.docs_date }}"
+          NOTES="## Database Stats
+          - **Pages:** ${{ steps.stats.outputs.pages }}
+          - **Commands:** ${{ steps.stats.outputs.commands }}
+          - **RouterOS Versions:** ${{ steps.stats.outputs.versions }}
+          - **Devices:** ${{ steps.stats.outputs.devices }}
+          - **Properties:** ${{ steps.stats.outputs.properties }}
+
+          ## Build Info
+          - **Commit:** ${{ github.sha }}
+          - **Docs date:** ${DOCS_DATE:-not specified}
+          - **Full version extraction:** ${{ inputs.full_versions }}
+          - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          if [ "${{ inputs.force }}" = "true" ]; then
+            # Create release if it doesn't exist, then upload with clobber
+            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" 2>/dev/null || true
+            gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh release edit "$VERSION" --notes "$NOTES"
+            echo "✓ Release $VERSION updated"
+          else
+            gh release create "$VERSION" dist/*.zip dist/ros-help.db.gz \
+              --title "$VERSION" --notes "$NOTES"
+            echo "✓ Release $VERSION created"
+          fi
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

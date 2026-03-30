@@ -234,6 +234,12 @@ Without `FORCE`, the release target errors if the tag already exists and uses `g
 
 ### Tester Workflow
 
+**Option A: npm (requires Bun or Node)**
+```sh
+bunx @tikoci/rosetta --setup   # or: npx @tikoci/rosetta --setup
+```
+
+**Option B: Compiled binary (no runtime needed)**
 1. Download platform ZIP from GitHub Releases
 2. Run `rosetta --setup` (downloads DB, prints config)
 3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot)
@@ -269,6 +275,9 @@ Without `FORCE`, the release target errors if the tag already exists and uses `g
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, Makefile targets |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
 | `scripts/build-release.ts` | Cross-compile binaries for 4 platforms, package ZIPs |
+| `bin/rosetta.js` | npm bin shim — Bun: direct import, Node: spawns `bun` subprocess |
+| `.github/workflows/test.yml` | CI: typecheck + test + lint on push/PR/manual |
+| `.github/workflows/release.yml` | CI: build DB from HTML export URL + create GitHub Release + npm publish |
 | `ros-help.db` | The SQLite database (WAL mode) |
 
 
@@ -285,6 +294,16 @@ make extract-full  # runs extract-html, extract-properties, extract-all-versions
 ```
 
 The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
+
+## CI Release Workflow
+
+The `release.yml` workflow (`workflow_dispatch`) builds the database from a remote HTML export URL and creates a GitHub Release — same pipeline as local, but traceable to a specific commit and CI log.
+
+**Inputs:** `html_url` (required — direct download URL to `.zip`), `version` (required — tag like `v0.2.0`), `docs_date` (optional — export date for traceability), `full_versions` (default: true — all 46 RouterOS versions), `force` (default: false — overwrite existing release).
+
+**Steps:** download + validate zip → extract HTML → run full extraction pipeline → quality gate (typecheck + test + lint) → build release artifacts → create GitHub Release with DB stats in release notes.
+
+For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Product matrix CSV uses the committed copy in `matrix/`.
 
 ## Source Details
 

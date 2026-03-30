@@ -8,18 +8,11 @@
 
 Items with clear scope and no blockers.
 
-### Fix CI workflow so tests actually pass
+### ~~Fix CI workflow so tests actually pass~~ ✓ DONE
 
-The GitHub Actions workflow (`.github/workflows/test.yml`) runs typecheck, `bun test`, and lint — but the test suite needs `ros-help.db` which isn't in the repo and can't be built in CI without the HTML export and inspect.json sources. The first run failed immediately on push to main ([actions/runs/23613230018](https://github.com/tikoci/rosetta/actions/runs/23613230018)).
+Fixed in v0.2.0. Tests use in-memory SQLite — no DB file needed. The original failure was from an earlier codebase state. Re-enabled `push` and `pull_request` triggers on `main` branch. Also added `release.yml` workflow for CI-built database + release artifacts.
 
-**Current state:** Trigger changed to `workflow_dispatch` only so it doesn't fire on every push. The workflow itself is untouched — it will still fail if dispatched manually.
-
-**To fix:**
-- `bun test` uses in-memory SQLite (no DB file needed) — this should already work. Investigate actual failure cause from the run log.
-- Typecheck and lint should also work without the DB. May just need `bun install` to succeed.
-- Once green, re-enable `push` / `pull_request` triggers.
-- Consider replacing the individual steps with `make preflight` (minus the dirty-tree and DB checks, which don't apply in CI). Or add a `make ci` target.
-- Also: actions/checkout@v4 emits a Node.js 20 deprecation warning — update to a version that supports Node.js 24 before the June 2026 deadline.
+Note: actions/checkout@v4 emits a Node.js 20 deprecation warning — update to a version that supports Node.js 24 before the June 2026 deadline.
 
 ### ~~Section-level page chunks for large pages~~ ✓ DONE
 
@@ -100,6 +93,10 @@ The MCP spec supports **resources** — static or semi-static data that clients 
 - **RouterOS YAML schema** — restraml also generates RAML/YAML schemas. Could expose as a resource for code generation use cases.
 
 Resources are a better fit than tools for large, infrequently-changing data that agents consume wholesale rather than querying.
+
+### Product matrix CSV automation
+
+The product matrix CSV is downloaded manually via browser from `https://mikrotik.com/products/matrix` (PowerGrid table with export button). There is no stable URL for direct download. A GitHub agent could potentially automate this: navigate the site, trigger the export, and open a PR with the updated CSV — no URL input needed in the release workflow.
 
 ### Cross-reference with forum data
 

@@ -26,8 +26,8 @@ describe("package.json", () => {
     expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
   });
 
-  test("name is rosetta", () => {
-    expect(pkg.name).toBe("rosetta");
+  test("name is @tikoci/rosetta", () => {
+    expect(pkg.name).toBe("@tikoci/rosetta");
   });
 
   test("repository URL contains tikoci/rosetta", () => {
@@ -45,6 +45,41 @@ describe("package.json", () => {
     expect(pkg.scripts.test).toBeDefined();
     expect(pkg.scripts.typecheck).toBeDefined();
     expect(pkg.scripts.lint).toBeDefined();
+  });
+
+  test("bin points to JS shim", () => {
+    expect(pkg.bin.rosetta).toBe("bin/rosetta.js");
+  });
+
+  test("files includes bin/, src/, matrix/", () => {
+    expect(pkg.files).toContain("bin/");
+    expect(pkg.files).toContain("src/");
+    expect(pkg.files).toContain("matrix/");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// npm bin shim
+// ---------------------------------------------------------------------------
+
+describe("bin/rosetta.js", () => {
+  test("shim exists", () => {
+    expect(existsSync(path.join(ROOT, "bin/rosetta.js"))).toBe(true);
+  });
+
+  test("has node shebang", () => {
+    const src = readText("bin/rosetta.js");
+    expect(src.startsWith("#!/usr/bin/env node")).toBe(true);
+  });
+
+  test("detects Bun runtime", () => {
+    const src = readText("bin/rosetta.js");
+    expect(src).toContain('typeof Bun !== "undefined"');
+  });
+
+  test("falls back to spawning bun for Node", () => {
+    const src = readText("bin/rosetta.js");
+    expect(src).toContain('spawn("bun"');
   });
 });
 
@@ -169,6 +204,52 @@ describe("Makefile", () => {
     expect(makefile).toContain("FORCE");
     expect(makefile).toContain("git tag -f");
     expect(makefile).toContain("--clobber");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CI release workflow
+// ---------------------------------------------------------------------------
+
+describe("release.yml", () => {
+  test("workflow file exists", () => {
+    expect(existsSync(path.join(ROOT, ".github/workflows/release.yml"))).toBe(
+      true,
+    );
+  });
+
+  test("has required inputs", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("html_url:");
+    expect(src).toContain("version:");
+  });
+
+  test("runs extraction pipeline", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("extract-html.ts");
+    expect(src).toContain("extract-properties.ts");
+    expect(src).toContain("extract-commands.ts");
+    expect(src).toContain("extract-devices.ts");
+    expect(src).toContain("extract-changelogs.ts");
+    expect(src).toContain("link-commands.ts");
+  });
+
+  test("runs quality gate before release", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("bun run typecheck");
+    expect(src).toContain("bun test");
+    expect(src).toContain("bun run lint");
+  });
+
+  test("creates GitHub Release", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("gh release create");
+  });
+
+  test("publishes to npm", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("npm publish");
+    expect(src).toContain("NPM_TOKEN");
   });
 });
 
