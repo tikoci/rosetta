@@ -12,12 +12,12 @@ Every extractor follows the same structure:
 
 ## Pipeline Order
 
-**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `extract-devices` → `link-commands`
+**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `extract-devices` → `extract-changelogs` → `link-commands`
 ```sh
 make extract
 ```
 
-**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `extract-devices` → `link-commands`
+**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `extract-devices` → `extract-changelogs` → `link-commands`
 ```sh
 make extract-full
 ```

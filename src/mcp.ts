@@ -106,6 +106,7 @@ const {
   getPage,
   lookupProperty,
   searchCallouts,
+  searchChangelogs,
   searchDevices,
   searchPages,
   searchProperties,
@@ -380,7 +381,7 @@ server.registerTool(
   {
     description: `Get database statistics for the RouterOS documentation index.
 
-Returns page count, property count, callout count, command count, link coverage,
+Returns page count, property count, callout count, changelog count, command count, link coverage,
 version range, and documentation export date.
 
 Knowledge boundaries:
@@ -448,6 +449,98 @@ Examples:
   },
 );
 
+// ---- routeros_search_changelogs ----
+
+server.registerTool(
+  "routeros_search_changelogs",
+  {
+    description: `Search MikroTik RouterOS changelogs — parsed per-entry with category and breaking-change flags.
+
+Each entry is one *) or !) line from MikroTik's official changelogs, parsed into category + description.
+Entries marked !) are breaking changes that may require config adjustments after upgrade.
+
+**Upgrade-breakage workflow**: User says "X broke after upgrading from A to B":
+1. Search changelogs with from_version=A, to_version=B, and the subsystem as query
+2. Look for !) breaking changes that explain the behavior change
+3. → routeros_get_page for the subsystem's documentation
+4. → routeros_search_callouts for version-specific warnings
+5. → routeros_command_version_check to see if commands were added/removed
+
+Supports: FTS keyword search, version range filtering, category filtering, breaking-only mode.
+Categories are subsystem names: bgp, bridge, dhcpv4-server, wifi, ipsec, console, container, etc.
+
+Empty query with filters → browse mode (e.g., all breaking changes in 7.22).
+Coverage depends on which versions were extracted — typically matches ros_versions table.`,
+    inputSchema: {
+      query: z
+        .string()
+        .optional()
+        .default("")
+        .describe("Search text (FTS). Omit for filter-only browse"),
+      version: z
+        .string()
+        .optional()
+        .describe("Exact version (e.g., '7.22'). Mutually exclusive with from/to"),
+      from_version: z
+        .string()
+        .optional()
+        .describe("Start of version range, inclusive (e.g., '7.21')"),
+      to_version: z
+        .string()
+        .optional()
+        .describe("End of version range, inclusive (e.g., '7.22.1')"),
+      category: z
+        .string()
+        .optional()
+        .describe("Filter by subsystem category (e.g., 'bgp', 'bridge', 'wifi')"),
+      breaking_only: z
+        .boolean()
+        .optional()
+        .describe("Only return !) breaking/important changes"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .default(20)
+        .describe("Max results (default 20)"),
+    },
+  },
+  async ({ query, version, from_version, to_version, category, breaking_only, limit }) => {
+    const results = searchChangelogs(query || "", {
+      version,
+      fromVersion: from_version,
+      toVersion: to_version,
+      category,
+      breakingOnly: breaking_only,
+      limit,
+    });
+
+    if (results.length === 0) {
+      const hints = [
+        query ? "Try broader search terms or remove the query to browse by filters" : null,
+        version ? `No changelog data for version ${version} — it may not have been extracted` : null,
+        from_version || to_version ? "Try widening the version range" : null,
+        category ? `Try without category filter, or check spelling (categories are lowercase: bgp, bridge, wifi, etc.)` : null,
+        breaking_only ? "Try without breaking_only — the change may not be marked as breaking" : null,
+        "Use routeros_search or routeros_search_callouts for documentation-based answers",
+      ].filter(Boolean);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No changelog entries matched${query ? `: "${query}"` : ""}${version ? ` (version: ${version})` : ""}${from_version || to_version ? ` (range: ${from_version || "?"} → ${to_version || "?"})` : ""}\n\nTry:\n${hints.map((h) => `- ${h}`).join("\n")}`,
+          },
+        ],
+      };
+    }
+    return {
+      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+    };
+  },
+);
+
 // ---- routeros_command_version_check ----
 
 server.registerTool(
@@ -464,7 +557,7 @@ Useful for answering "is /container supported in 7.12?" or "when was /ip/firewal
 Command data covers versions 7.9–7.23beta2. No v6 data.
 For versions below 7.9, no command tree data exists — the command may still exist there.
 Cross-reference with routeros_get_page or routeros_search_callouts for version mentions
-in documentation text.
+in documentation text. → routeros_search_changelogs to see what changed between versions.
 
 Examples:
 - command_path: "/container" → shows versions where container support exists

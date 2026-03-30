@@ -34,8 +34,9 @@ Two outputs:
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
 - **144 devices** from MikroTik product matrix CSV (hardware specs, license levels, pricing)
-- **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 10 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, command_version_check, device_lookup, stats, current_versions
+- **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
+- **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
+- **MCP server** with 11 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, device_lookup, stats, current_versions
 
 ## Schema
 
@@ -129,6 +130,24 @@ devices (
 
 -- FTS5 over devices (unicode61 only — no porter stemming for model numbers)
 devices_fts USING fts5(product_name, product_code, architecture, cpu, ...)
+
+-- Changelogs (parsed per-entry from MikroTik download server)
+changelogs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    version TEXT NOT NULL,    -- '7.22', '7.22.1'
+    released TEXT,            -- '2026-Mar-09 10:38'
+    category TEXT NOT NULL,   -- subsystem: 'bgp', 'bridge', 'wifi'
+    is_breaking INTEGER NOT NULL DEFAULT 0,  -- 1 for !) entries
+    description TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    UNIQUE(version, sort_order)
+)
+
+-- FTS5 over changelogs
+changelogs_fts USING fts5(category, description,
+    content=changelogs, content_rowid=id,
+    tokenize='porter unicode61'
+)
 ```
 
 ## Usage
@@ -163,6 +182,7 @@ Register in `.vscode/mcp.json` or Claude Code settings:
 | `routeros_search_properties` | FTS across property names + descriptions, AND→OR fallback |
 | `routeros_command_tree` | Browse command hierarchy at a given path |
 | `routeros_search_callouts` | FTS across callouts, type-only browse, AND→OR fallback |
+| `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
 | `routeros_command_version_check` | Version range for a command path, boundary notes |
 | `routeros_device_lookup` | Hardware specs by product name/code, FTS search with structured filters (architecture, RAM, license, PoE, wireless) |
 | `routeros_stats` | DB health: page/property/command/device counts, link coverage |
@@ -241,6 +261,7 @@ Without `FORCE`, the release target errors if the tag already exists and uses `g
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
 | `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |
+| `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |

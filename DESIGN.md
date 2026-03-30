@@ -17,6 +17,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
 | Product matrix | `matrix/2026-03-25/matrix.csv` | CSV, 34 columns | 144 products, March 2026 |
+| Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
@@ -91,6 +92,9 @@ The old `curl -X POST -d "ax=matrix"` API is dead (late 2025). MikroTik's produc
 
 ### HTML doc versioning is simple
 Don't overengineer until there's a second HTML export to compare against. When that arrives, hash-based page diffing is sufficient. See BACKLOG.md for details.
+
+### Changelogs: parsed entries, not blobs
+MikroTik publishes per-version changelogs at `https://download.mikrotik.com/routeros/{version}/CHANGELOG` as plain text. Each entry is one `*)` (regular) or `!)` (breaking) line with a category prefix (subsystem name before ` - `). We parse into one row per entry rather than storing the whole changelog text per version — this enables FTS search across entries, category filtering, and breaking-only queries. The `is_breaking` flag corresponds to `!)` entries only; security-related entries are findable via FTS keyword search (no separate flag). Multi-line entries are concatenated into a single description. No FK to `ros_versions` — changelogs may be fetched for patch versions not in the command tree.
 
 ## Cross-References
 

@@ -584,7 +584,7 @@ export function checkCommandVersions(
 }
 
 /** Compare RouterOS version strings numerically (e.g., "7.9" < "7.10.2" < "7.22"). */
-function compareVersions(a: string, b: string): number {
+export function compareVersions(a: string, b: string): number {
   const normalize = (v: string) => {
     const beta = v.includes("beta");
     const rc = v.includes("rc");
@@ -805,6 +805,160 @@ export function searchDevices(
 }
 
 const VERSION_CHANNELS = ["stable", "long-term", "testing", "development"] as const;
+
+// ── Changelog search ──
+
+export type ChangelogResult = {
+  version: string;
+  released: string | null;
+  category: string;
+  is_breaking: number;
+  description: string;
+  excerpt: string;
+};
+
+/** Get all versions that have changelog data, sorted numerically. */
+function getChangelogVersions(): string[] {
+  const rows = db
+    .prepare("SELECT DISTINCT version FROM changelogs")
+    .all() as Array<{ version: string }>;
+  return rows.map((r) => r.version).sort(compareVersions);
+}
+
+/** Filter versions to those within [fromVersion, toVersion] range (inclusive). */
+function filterVersionRange(
+  versions: string[],
+  fromVersion?: string,
+  toVersion?: string,
+): string[] {
+  return versions.filter((v) => {
+    if (fromVersion && compareVersions(v, fromVersion) < 0) return false;
+    if (toVersion && compareVersions(v, toVersion) > 0) return false;
+    return true;
+  });
+}
+
+/** Search changelogs with FTS, version range, category, and breaking-only filters. */
+export function searchChangelogs(
+  query: string,
+  options: {
+    version?: string;
+    fromVersion?: string;
+    toVersion?: string;
+    category?: string;
+    breakingOnly?: boolean;
+    limit?: number;
+  } = {},
+): ChangelogResult[] {
+  const limit = options.limit ?? 20;
+  const terms = extractTerms(query);
+
+  // Build version filter
+  let versionList: string[] | null = null;
+  if (options.version) {
+    versionList = [options.version];
+  } else if (options.fromVersion || options.toVersion) {
+    const all = getChangelogVersions();
+    versionList = filterVersionRange(all, options.fromVersion, options.toVersion);
+    if (versionList.length === 0) return [];
+  }
+
+  // No FTS query — browse by filters only
+  if (terms.length === 0) {
+    return browseChangelogs(versionList, options.category, options.breakingOnly, limit);
+  }
+
+  // FTS search with AND, then fallback to OR
+  let ftsQuery = buildFtsQuery(terms, "AND");
+  if (!ftsQuery) return [];
+  let results = runChangelogFtsQuery(ftsQuery, versionList, options.category, options.breakingOnly, limit);
+
+  if (results.length === 0 && terms.length > 1) {
+    ftsQuery = buildFtsQuery(terms, "OR");
+    results = runChangelogFtsQuery(ftsQuery, versionList, options.category, options.breakingOnly, limit);
+  }
+
+  return results;
+}
+
+/** Browse changelogs without FTS — just filters. */
+function browseChangelogs(
+  versionList: string[] | null,
+  category: string | undefined,
+  breakingOnly: boolean | undefined,
+  limit: number,
+): ChangelogResult[] {
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (versionList) {
+    where.push(`c.version IN (${versionList.map(() => "?").join(",")})`);
+    params.push(...versionList);
+  }
+  if (category) {
+    where.push("c.category = ?");
+    params.push(category);
+  }
+  if (breakingOnly) {
+    where.push("c.is_breaking = 1");
+  }
+
+  if (where.length === 0) {
+    // No filters at all — return recent entries
+    where.push("1=1");
+  }
+
+  const sql = `SELECT c.version, c.released, c.category, c.is_breaking,
+      c.description, substr(c.description, 1, 200) as excerpt
+    FROM changelogs c
+    WHERE ${where.join(" AND ")}
+    ORDER BY c.version DESC, c.sort_order
+    LIMIT ?`;
+
+  return db.prepare(sql).all(...params, limit) as ChangelogResult[];
+}
+
+function runChangelogFtsQuery(
+  ftsQuery: string,
+  versionList: string[] | null,
+  category: string | undefined,
+  breakingOnly: boolean | undefined,
+  limit: number,
+): ChangelogResult[] {
+  if (!ftsQuery) return [];
+  try {
+    const where: string[] = ["changelogs_fts MATCH ?"];
+    const params: (string | number)[] = [ftsQuery];
+
+    if (versionList) {
+      where.push(`c.version IN (${versionList.map(() => "?").join(",")})`);
+      params.push(...versionList);
+    }
+    if (category) {
+      where.push("c.category = ?");
+      params.push(category);
+    }
+    if (breakingOnly) {
+      where.push("c.is_breaking = 1");
+    }
+
+    const sql = `SELECT c.version, c.released, c.category, c.is_breaking,
+        c.description,
+        snippet(changelogs_fts, 1, '**', '**', '...', 25) as excerpt
+      FROM changelogs_fts fts
+      JOIN changelogs c ON c.id = fts.rowid
+      WHERE ${where.join(" AND ")}
+      ORDER BY rank
+      LIMIT ?`;
+
+    return db.prepare(sql).all(...params, limit) as ChangelogResult[];
+  } catch {
+    return [];
+  }
+}
+
+// ── Current versions ──
+
 const VERSION_BASE_URL = "https://upgrade.mikrotik.com/routeros/NEWESTa7";
 
 /** Fetch current RouterOS versions from MikroTik's upgrade server. */

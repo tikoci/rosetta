@@ -15,6 +15,8 @@
  *   ros_versions     — metadata for each extracted RouterOS version
  *   devices          — MikroTik product hardware specs from product matrix CSV
  *   devices_fts      — FTS5 over product name, code, architecture, CPU
+ *   changelogs       — parsed changelog entries per RouterOS version
+ *   changelogs_fts   — FTS5 over category, description
  */
 
 import sqlite from "bun:sqlite";
@@ -285,6 +287,44 @@ export function initDb() {
     INSERT INTO devices_fts(rowid, product_name, product_code, architecture, cpu)
     VALUES (new.id, new.product_name, new.product_code, new.architecture, new.cpu);
   END;`);
+
+  // -- Changelogs (parsed per-entry from MikroTik download server) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS changelogs (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    version     TEXT NOT NULL,
+    released    TEXT,
+    category    TEXT NOT NULL,
+    is_breaking INTEGER NOT NULL DEFAULT 0,
+    description TEXT NOT NULL,
+    sort_order  INTEGER NOT NULL,
+    UNIQUE(version, sort_order)
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_changelogs_version ON changelogs(version);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_changelogs_category ON changelogs(category);`);
+
+  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS changelogs_fts USING fts5(
+    category, description,
+    content=changelogs,
+    content_rowid=id,
+    tokenize='porter unicode61'
+  );`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS changelogs_ai AFTER INSERT ON changelogs BEGIN
+    INSERT INTO changelogs_fts(rowid, category, description)
+    VALUES (new.id, new.category, new.description);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS changelogs_ad AFTER DELETE ON changelogs BEGIN
+    INSERT INTO changelogs_fts(changelogs_fts, rowid, category, description)
+    VALUES('delete', old.id, old.category, old.description);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS changelogs_au AFTER UPDATE ON changelogs BEGIN
+    INSERT INTO changelogs_fts(changelogs_fts, rowid, category, description)
+    VALUES('delete', old.id, old.category, old.description);
+    INSERT INTO changelogs_fts(rowid, category, description)
+    VALUES (new.id, new.category, new.description);
+  END;`);
 }
 
 export function getDbStats() {
@@ -303,6 +343,8 @@ export function getDbStats() {
     commands: count("SELECT COUNT(*) AS c FROM commands"),
     commands_linked: count("SELECT COUNT(*) AS c FROM commands WHERE page_id IS NOT NULL"),
     devices: count("SELECT COUNT(*) AS c FROM devices"),
+    changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
+    changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
     ros_versions: count("SELECT COUNT(*) AS c FROM ros_versions"),
     ros_version_min: scalar("SELECT MIN(version) AS v FROM ros_versions"),
     ros_version_max: scalar("SELECT MAX(version) AS v FROM ros_versions"),

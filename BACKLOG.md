@@ -35,7 +35,7 @@ A common real-world query pattern: "this used to work on my router, something br
 
 Proposed: `routeros_command_diff` — given two versions (e.g. `7.15` → `7.22`), return added/removed command paths. This is the SQL equivalent of restraml's [diff.html](https://tikoci.github.io/restraml/diff.html) tool. The MCP tool hints should guide agents toward this when the user describes something that stopped working after an upgrade.
 
-This could also pair with `routeros_search_callouts` — callouts often document breaking changes or version-specific behavior.
+This could also pair with `routeros_search_callouts` — callouts often document breaking changes or version-specific behavior. Now also pairs with `routeros_search_changelogs` — changelogs have per-entry parsed descriptions with category and breaking flags, enabling precise "what changed in subsystem X between versions A and B" queries.
 
 ## To Investigate
 

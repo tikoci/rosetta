@@ -22,9 +22,11 @@ const {
   lookupProperty,
   browseCommands,
   searchCallouts,
+  searchChangelogs,
   checkCommandVersions,
   searchDevices,
 } = await import("./query.ts");
+const { parseChangelog } = await import("./extract-changelogs.ts");
 
 // ---------------------------------------------------------------------------
 // Fixtures: one "DHCP Server" page + one "Firewall Filter" page
@@ -199,6 +201,20 @@ beforeAll(() => {
     VALUES
     (3, 3, 'Spanning Tree Protocol', 1, 'BridgingandSwitching-SpanningTreeProtocol',
      'STP protocol configuration and monitoring.', '', 5, 4)`);
+
+  // Changelog fixtures
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.21', '2025-Oct-15 12:00', 'bgp', 0, 'fixed BGP output sometimes not being cleaned after session restart', 0)`);
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.21', '2025-Oct-15 12:00', 'bridge', 0, 'fixed performance regression in complex setups with vlan-filtering', 1)`);
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.22', '2026-Mar-09 10:38', 'certificate', 1, 'added support for multiple ACME certificates (services that use a previously generated certificate need to be reconfigured after the certificate expires)', 0)`);
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.22', '2026-Mar-09 10:38', 'bgp', 0, 'added BGP unnumbered support', 1)`);
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.22', '2026-Mar-09 10:38', 'bridge', 0, 'added local and static MAC synchronization for MLAG', 2)`);
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.22.1', '2026-Apr-01 09:00', 'wifi', 0, 'fixed channel switching for MediaTek access points', 0)`);
 });
 
 // ---------------------------------------------------------------------------
@@ -770,6 +786,139 @@ describe("searchDevices", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Changelog Parser: parseChangelog
+// ---------------------------------------------------------------------------
+
+describe("parseChangelog", () => {
+  test("parses header, regular and breaking entries", () => {
+    const text = `What's new in 7.22 (2026-Mar-09 10:38):
+
+!) certificate - added support for multiple ACME certificates
+*) bgp - added BGP unnumbered support
+*) bridge - added local and static MAC synchronization for MLAG`;
+
+    const entries = parseChangelog(text);
+    expect(entries).toHaveLength(3);
+    expect(entries[0].version).toBe("7.22");
+    expect(entries[0].released).toBe("2026-Mar-09 10:38");
+    expect(entries[0].category).toBe("certificate");
+    expect(entries[0].is_breaking).toBe(1);
+    expect(entries[1].category).toBe("bgp");
+    expect(entries[1].is_breaking).toBe(0);
+    expect(entries[2].sort_order).toBe(2);
+  });
+
+  test("handles multi-line continuation", () => {
+    const text = `What's new in 7.22 (2026-Mar-09 10:38):
+
+*) bridge - added MLAG support per bridge interface (/interface/bridge/mlag menu is moved to
+/interface/bridge; configuration is automatically updated after upgrade;
+downgrading to an older version will result in MLAG configuration loss)`;
+
+    const entries = parseChangelog(text);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].description).toContain("MLAG configuration loss");
+    expect(entries[0].description).toContain("added MLAG support");
+  });
+
+  test("extracts category correctly with comma-separated subsystems", () => {
+    const text = `What's new in 7.22 (2026-Mar-09 10:38):
+
+*) ike1,ike2 - improved netlink update handling`;
+
+    const entries = parseChangelog(text);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].category).toBe("ike1,ike2");
+  });
+
+  test("overrides version when expectedVersion is provided and header version differs", () => {
+    const text = `What's new in 7.22 (2026-Mar-09 10:38):
+
+*) bgp - some change`;
+
+    const entries = parseChangelog(text, "7.22.1");
+    // Header says 7.22, expectedVersion is 7.22.1 — since no entry has version 7.22.1,
+    // the override applies
+    expect(entries[0].version).toBe("7.22.1");
+  });
+
+  test("returns empty for non-changelog text", () => {
+    const entries = parseChangelog("This is not a changelog.");
+    expect(entries).toHaveLength(0);
+  });
+
+  test("handles entry without clear category separator", () => {
+    const text = `What's new in 7.22 (2026-Mar-09 10:38):
+
+*) fixed some general issue without a category separator`;
+
+    const entries = parseChangelog(text);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].category).toBe("other");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Changelog Search: searchChangelogs (DB integration)
+// ---------------------------------------------------------------------------
+
+describe("searchChangelogs", () => {
+  test("FTS search finds entries by keyword", () => {
+    const results = searchChangelogs("BGP");
+    expect(results.length).toBeGreaterThanOrEqual(1);
+    expect(results.some((r) => r.category === "bgp")).toBe(true);
+  });
+
+  test("version filter returns only that version", () => {
+    const results = searchChangelogs("", { version: "7.22" });
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.version).toBe("7.22");
+    }
+  });
+
+  test("version range filter works", () => {
+    const results = searchChangelogs("", { fromVersion: "7.22", toVersion: "7.22.1" });
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(["7.22", "7.22.1"]).toContain(r.version);
+    }
+    // Should not include 7.21
+    expect(results.some((r) => r.version === "7.21")).toBe(false);
+  });
+
+  test("category filter returns only that category", () => {
+    const results = searchChangelogs("", { version: "7.22", category: "bgp" });
+    expect(results.length).toBe(1);
+    expect(results[0].category).toBe("bgp");
+  });
+
+  test("breaking_only filter returns only breaking entries", () => {
+    const results = searchChangelogs("", { breakingOnly: true });
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.is_breaking).toBe(1);
+    }
+  });
+
+  test("FTS combined with version range", () => {
+    const results = searchChangelogs("MLAG", { fromVersion: "7.22", toVersion: "7.22" });
+    expect(results.length).toBe(1);
+    expect(results[0].category).toBe("bridge");
+  });
+
+  test("returns empty for non-matching query", () => {
+    const results = searchChangelogs("nonexistent-feature-xyz");
+    expect(results).toHaveLength(0);
+  });
+
+  test("returns empty for version with no data", () => {
+    const results = searchChangelogs("", { version: "6.49" });
+    expect(results).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Schema health: verify initDb creates all expected tables and triggers
 // ---------------------------------------------------------------------------
 
@@ -793,7 +942,7 @@ describe("schema", () => {
     const expected = [
       "pages", "properties", "callouts", "sections",
       "commands", "command_versions", "ros_versions",
-      "devices", "schema_migrations",
+      "devices", "changelogs", "schema_migrations",
     ];
     for (const table of expected) {
       expect(names).toContain(table);
@@ -802,7 +951,7 @@ describe("schema", () => {
 
   test("all FTS5 virtual tables exist", () => {
     const names = tableNames();
-    const expected = ["pages_fts", "properties_fts", "callouts_fts", "devices_fts"];
+    const expected = ["pages_fts", "properties_fts", "callouts_fts", "devices_fts", "changelogs_fts"];
     for (const fts of expected) {
       expect(names).toContain(fts);
     }
@@ -834,5 +983,12 @@ describe("schema", () => {
     expect(triggers).toContain("devices_ai");
     expect(triggers).toContain("devices_ad");
     expect(triggers).toContain("devices_au");
+  });
+
+  test("content-sync triggers exist for changelogs", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("changelogs_ai");
+    expect(triggers).toContain("changelogs_ad");
+    expect(triggers).toContain("changelogs_au");
   });
 });

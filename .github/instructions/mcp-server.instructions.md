@@ -11,7 +11,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 - Tools return structured objects, not raw SQL rows
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 
-## 10 Tools
+## 11 Tools
 | Tool | Purpose |
 |------|---------|  
 | `routeros_search` | FTS5 across pages, BM25 ranked |
@@ -20,6 +20,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 | `routeros_search_properties` | FTS across property names + descriptions |
 | `routeros_command_tree` | Browse command hierarchy, optional version param |
 | `routeros_search_callouts` | FTS across callout notes/warnings/info, optional type filter |
+| `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
 | `routeros_command_version_check` | Which RouterOS versions include a command path |
 | `routeros_device_lookup` | Hardware specs by name/code, FTS + structured filters |
 | `routeros_stats` | DB health: counts, version range, link coverage |
@@ -27,10 +28,10 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 
 ## FTS5 Query Rules
 - BM25 weights: title=3.0, path=2.0, text=1.0, code=0.5
-- AND mode first, fallback to OR if zero results (all search tools: pages, properties, callouts)
+- AND mode first, fallback to OR if zero results (all search tools: pages, properties, callouts, changelogs)
 - Stop words list in `query.ts` (~72 words) — do not duplicate elsewhere
 - Compound terms (~37 RouterOS pairs) → FTS5 NEAR expressions
-- Porter unicode61 tokenizer for pages/properties/callouts — stemming is automatic
+- Porter unicode61 tokenizer for pages/properties/callouts/changelogs — stemming is automatic
 - Device search uses unicode61 only (no porter) + LIKE substring fallback + FTS prefix matching
 
 ## Tool Description Patterns
