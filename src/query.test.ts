@@ -877,13 +877,13 @@ describe("searchChangelogs", () => {
     }
   });
 
-  test("version range filter works", () => {
-    const results = searchChangelogs("", { fromVersion: "7.22", toVersion: "7.22.1" });
+  test("version range filter works (from_version exclusive, to_version inclusive)", () => {
+    const results = searchChangelogs("", { fromVersion: "7.21", toVersion: "7.22.1" });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(["7.22", "7.22.1"]).toContain(r.version);
     }
-    // Should not include 7.21
+    // Should not include 7.21 (from_version is exclusive)
     expect(results.some((r) => r.version === "7.21")).toBe(false);
   });
 
@@ -902,7 +902,8 @@ describe("searchChangelogs", () => {
   });
 
   test("FTS combined with version range", () => {
-    const results = searchChangelogs("MLAG", { fromVersion: "7.22", toVersion: "7.22" });
+    // from_version is exclusive, so use 7.21 to include 7.22
+    const results = searchChangelogs("MLAG", { fromVersion: "7.21", toVersion: "7.22" });
     expect(results.length).toBe(1);
     expect(results[0].category).toBe("bridge");
   });

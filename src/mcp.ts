@@ -451,6 +451,29 @@ Examples:
 
 // ---- routeros_search_changelogs ----
 
+/** Group flat changelog results by version for compact output. */
+function groupChangelogsByVersion(results: Array<{ version: string; released: string | null; category: string; is_breaking: number; description: string }>) {
+  const byVersion = new Map<string, { released: string | null; entries: Array<{ category: string; is_breaking: number; description: string }> }>();
+  for (const r of results) {
+    let group = byVersion.get(r.version);
+    if (!group) {
+      group = { released: r.released, entries: [] };
+      byVersion.set(r.version, group);
+    }
+    group.entries.push({ category: r.category, is_breaking: r.is_breaking, description: r.description });
+  }
+  return {
+    total_entries: results.length,
+    versions: Array.from(byVersion.entries()).map(([version, { released, entries }]) => ({
+      version,
+      released,
+      entry_count: entries.length,
+      breaking_count: entries.filter(e => e.is_breaking).length,
+      entries,
+    })),
+  };
+}
+
 server.registerTool(
   "routeros_search_changelogs",
   {
@@ -484,7 +507,7 @@ Coverage depends on which versions were extracted — typically matches ros_vers
       from_version: z
         .string()
         .optional()
-        .describe("Start of version range, inclusive (e.g., '7.21')"),
+        .describe("Start of version range, EXCLUSIVE — returns changes AFTER this version (e.g., from_version='7.21.3' excludes 7.21.3 entries, includes 7.22+)"),
       to_version: z
         .string()
         .optional()
@@ -501,10 +524,10 @@ Coverage depends on which versions were extracted — typically matches ros_vers
         .number()
         .int()
         .min(1)
-        .max(100)
+        .max(500)
         .optional()
-        .default(20)
-        .describe("Max results (default 20)"),
+        .default(50)
+        .describe("Max results (default 50, max 500). Version-range queries often need higher limits."),
     },
   },
   async ({ query, version, from_version, to_version, category, breaking_only, limit }) => {
@@ -535,8 +558,10 @@ Coverage depends on which versions were extracted — typically matches ros_vers
         ],
       };
     }
+    // Group by version for compact output — avoids repeating version/released on every entry
+    const grouped = groupChangelogsByVersion(results);
     return {
-      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+      content: [{ type: "text", text: JSON.stringify(grouped, null, 2) }],
     };
   },
 );

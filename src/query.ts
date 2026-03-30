@@ -825,14 +825,14 @@ function getChangelogVersions(): string[] {
   return rows.map((r) => r.version).sort(compareVersions);
 }
 
-/** Filter versions to those within [fromVersion, toVersion] range (inclusive). */
+/** Filter versions to those within (fromVersion, toVersion] range (fromVersion exclusive, toVersion inclusive). */
 function filterVersionRange(
   versions: string[],
   fromVersion?: string,
   toVersion?: string,
 ): string[] {
   return versions.filter((v) => {
-    if (fromVersion && compareVersions(v, fromVersion) < 0) return false;
+    if (fromVersion && compareVersions(v, fromVersion) <= 0) return false;
     if (toVersion && compareVersions(v, toVersion) > 0) return false;
     return true;
   });

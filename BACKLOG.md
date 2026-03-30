@@ -144,6 +144,24 @@ Currently ~92% of dirs are linked to documentation pages. The remaining ~8% coul
 
 [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) hover handler should consume property data from this DB. Needs a settings field for `routeros.helpDatabasePath`. The data is ready; the consumer needs work.
 
+### npm package experience (`bunx @tikoci/rosetta`)
+
+Now that the npm package is published and works as an MCP server via `bunx @tikoci/rosetta`, several things need alignment:
+
+- **README** — update install/setup instructions to reflect the npm package as the primary install method. `bunx @tikoci/rosetta` should be front-and-center, compiled binaries secondary.
+- **`--setup` flow** — currently downloads the DB and prints MCP config. Needs revisiting now that bunx works: the printed config should use `bunx @tikoci/rosetta` as the command (not a local path). Consider whether `--setup` should detect if it was invoked via bunx and adjust the config output accordingly.
+- **Node.js fallback** — `bin/rosetta.js` spawns `bun` as a subprocess when run under Node. This fails silently or confusingly if Bun isn't installed. Should either: (a) detect missing Bun and print a clear error with install instructions, or (b) consider if `bunx` can be recommended as the canonical invocation to sidestep this.
+- **`bunx` as canonical** — if users run `bunx @tikoci/rosetta`, Bun is guaranteed present. This may be the simplest recommendation. Document this clearly.
+- **Copilot CLI MCP** — verified working via `/mcp add` in Copilot CLI with `bunx @tikoci/rosetta`. Document this path.
+
+### Changelog tool output size and version-range queries
+
+Observed in a real Copilot CLI session: querying changelogs between 7.21.3 and 7.22.1 produced 802 lines / 23.2KB of JSON output, which Copilot CLI saved to a temp file as "too large to read at once." Issues:
+
+- **Output too verbose** — each entry returns full `description` + `excerpt` + `released` date. For version-range queries spanning multiple releases, this produces a wall of JSON. Consider a compact summary mode: group by version, then by category, with counts and only the descriptions (no excerpt duplication).
+- **`limit` max of 100 may be too low** — the model's first attempt used limit > 100 and hit a validation error. For "what changed between X and Y" queries spanning 3+ releases, 100 entries may genuinely not be enough. Consider raising to 200 or 500, or making the grouped summary the default for range queries.
+- **No `exclude_version` parameter** — asking for changes between 7.21.3 and 7.22.1 likely includes 7.21.3 entries too, which the user already has. Consider making `from_version` exclusive (changes *after* 7.21.3) or adding an `exclude_from` flag.
+
 ### ~~Archival Python scripts~~
 
 `ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` were from the original PDF-based approach. **Removed** — files are in git history if needed.
