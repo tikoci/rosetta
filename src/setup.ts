@@ -1,51 +1,22 @@
 /**
  * setup.ts — Download the RouterOS documentation database and print MCP client config.
  *
- * Called by `rosetta --setup` (compiled binary) or `bun run src/setup.ts` (dev).
+ * Called by `rosetta --setup` (compiled binary), `bunx @tikoci/rosetta --setup`,
+ * or `bun run src/setup.ts` (dev).
  * Downloads ros-help.db.gz from the latest GitHub Release, decompresses it,
  * validates the DB, and prints config snippets for each MCP client.
  */
 
+import { execSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
-import path from "node:path";
 import { gunzipSync } from "bun";
+import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion } from "./paths.ts";
 
 declare const REPO_URL: string;
-declare const VERSION: string;
 
 const GITHUB_REPO =
   typeof REPO_URL !== "undefined" ? REPO_URL : "tikoci/rosetta";
-const RELEASE_VERSION =
-  typeof VERSION !== "undefined" ? VERSION : "dev";
-
-/** Where the binary (or dev project root) lives */
-function getBaseDir(): string {
-  // If IS_COMPILED is defined, use the executable's directory
-  // Otherwise use project root (one level up from src/)
-  try {
-    // @ts-expect-error IS_COMPILED defined at build time
-    if (typeof IS_COMPILED !== "undefined" && IS_COMPILED) {
-      return path.dirname(process.execPath);
-    }
-  } catch {
-    // not compiled
-  }
-  return path.resolve(import.meta.dirname, "..");
-}
-
-/** The binary/script path for MCP config */
-function getServerCommand(): string {
-  try {
-    // @ts-expect-error IS_COMPILED defined at build time
-    if (typeof IS_COMPILED !== "undefined" && IS_COMPILED) {
-      return process.execPath;
-    }
-  } catch {
-    // not compiled
-  }
-  // Dev mode — bun run src/mcp.ts
-  return path.resolve(import.meta.dirname, "mcp.ts");
-}
+const RELEASE_VERSION = resolveVersion(import.meta.dirname);
 
 /** Check if a DB file exists and has actual page data */
 function dbHasData(dbPath: string): boolean {
@@ -90,10 +61,8 @@ export async function downloadDb(
 }
 
 export async function runSetup(force = false) {
-  const baseDir = getBaseDir();
-  const dbPath = path.join(baseDir, "ros-help.db");
-  const serverCmd = getServerCommand();
-  const isCompiled = serverCmd === process.execPath;
+  const mode = detectMode(import.meta.dirname);
+  const dbPath = resolveDbPath(import.meta.dirname);
 
   console.log(`rosetta ${RELEASE_VERSION}`);
   console.log();
@@ -118,7 +87,8 @@ export async function runSetup(force = false) {
     console.log(`✓ Database ready (${row.c} pages, ${cmdRow.c} commands)`);
   } catch (e) {
     console.error(`✗ Database validation failed: ${e}`);
-    console.error(`  Try re-downloading with: ${isCompiled ? path.basename(serverCmd) : "bun run src/setup.ts"} --setup --force`);
+    const retryCmd = mode === "compiled" ? "rosetta" : mode === "package" ? "bunx @tikoci/rosetta" : "bun run src/setup.ts";
+    console.error(`  Try re-downloading with: ${retryCmd} --setup --force`);
     process.exit(1);
   }
 
@@ -128,10 +98,21 @@ export async function runSetup(force = false) {
   console.log("Configure your MCP client:");
   console.log("─".repeat(60));
 
-  if (isCompiled) {
-    printCompiledConfig(serverCmd);
+  if (mode === "compiled") {
+    printCompiledConfig(process.execPath);
+  } else if (mode === "package") {
+    printPackageConfig();
   } else {
-    printDevConfig(baseDir);
+    printDevConfig(resolveBaseDir(import.meta.dirname));
+  }
+}
+
+/** Try to resolve the absolute path to bunx (for clients that don't inherit PATH) */
+function resolveBunxPath(): string | null {
+  try {
+    return execSync("which bunx", { encoding: "utf-8" }).trim() || null;
+  } catch {
+    return null;
   }
 }
 
@@ -175,6 +156,66 @@ function printCompiledConfig(serverCmd: string) {
   console.log(`    }`);
   console.log(`  }`);
   console.log();
+
+  // Copilot CLI
+  console.log("▸ GitHub Copilot CLI");
+  console.log(`  copilot mcp add rosetta -- ${serverCmd}`);
+  console.log();
+}
+
+function printPackageConfig() {
+  // Resolve full path to bunx — Claude Desktop doesn't inherit shell PATH
+  const bunxFullPath = resolveBunxPath();
+
+  // Claude Desktop
+  const isMac = process.platform === "darwin";
+  const configPath = isMac
+    ? "~/Library/Application\\ Support/Claude/claude_desktop_config.json"
+    : "%APPDATA%\\Claude\\claude_desktop_config.json";
+
+  const bunxCmd = bunxFullPath ? JSON.stringify(bunxFullPath) : "\"bunx\"";
+  console.log();
+  console.log("▸ Claude Desktop");
+  console.log(`  Edit: ${configPath}`);
+  console.log();
+  console.log(`  {`);
+  console.log(`    "mcpServers": {`);
+  console.log(`      "rosetta": {`);
+  console.log(`        "command": ${bunxCmd},`);
+  console.log(`        "args": ["@tikoci/rosetta"]`);
+  console.log(`      }`);
+  console.log(`    }`);
+  console.log(`  }`);
+  console.log();
+  if (bunxFullPath) {
+    console.log(`  Note: Full path used because Claude Desktop may not inherit shell PATH.`);
+    console.log();
+  }
+  console.log(`  Then restart Claude Desktop.`);
+
+  // Claude Code (inherits PATH — short form is fine)
+  console.log();
+  console.log("▸ Claude Code");
+  console.log(`  claude mcp add rosetta -- bunx @tikoci/rosetta`);
+
+  // VS Code Copilot (inherits PATH)
+  console.log();
+  console.log("▸ VS Code Copilot (User Settings JSON)");
+  console.log();
+  console.log(`  "mcp": {`);
+  console.log(`    "servers": {`);
+  console.log(`      "rosetta": {`);
+  console.log(`        "command": "bunx",`);
+  console.log(`        "args": ["@tikoci/rosetta"]`);
+  console.log(`      }`);
+  console.log(`    }`);
+  console.log(`  }`);
+  console.log();
+
+  // Copilot CLI (inherits PATH)
+  console.log("▸ GitHub Copilot CLI");
+  console.log(`  copilot mcp add rosetta -- bunx @tikoci/rosetta`);
+  console.log();
 }
 
 function printDevConfig(baseDir: string) {
@@ -211,6 +252,11 @@ function printDevConfig(baseDir: string) {
   console.log();
   console.log("▸ VS Code Copilot");
   console.log(`  The repo includes .vscode/mcp.json — just open the folder in VS Code.`);
+  console.log();
+
+  // Copilot CLI
+  console.log("▸ GitHub Copilot CLI");
+  console.log(`  copilot mcp add rosetta -- bun run src/mcp.ts`);
   console.log();
 }
 

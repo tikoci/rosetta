@@ -15,22 +15,21 @@
  *   DB_PATH — absolute path to ros-help.db (default: next to binary or project root)
  */
 
-declare const VERSION: string;
-declare const IS_COMPILED: boolean;
+import { resolveVersion } from "./paths.ts";
+
+const RESOLVED_VERSION = resolveVersion(import.meta.dirname);
 
 // ── CLI dispatch (before MCP server init) ──
 
 const args = process.argv.slice(2);
 
 if (args.includes("--version") || args.includes("-v")) {
-  const ver = typeof VERSION !== "undefined" ? VERSION : "dev";
-  console.log(`rosetta ${ver}`);
+  console.log(`rosetta ${RESOLVED_VERSION}`);
   process.exit(0);
 }
 
 if (args.includes("--help") || args.includes("-h")) {
-  const ver = typeof VERSION !== "undefined" ? VERSION : "dev";
-  console.log(`rosetta ${ver} — MCP server for RouterOS documentation`);
+  console.log(`rosetta ${RESOLVED_VERSION} — MCP server for RouterOS documentation`);
   console.log();
   console.log("Usage:");
   console.log("  rosetta              Start MCP server (stdio transport)");
@@ -65,12 +64,8 @@ const { z } = await import("zod/v3");
 //
 // Check if DB has data BEFORE importing db.ts. If empty/missing,
 // auto-download so db.ts opens the real database.
-const _baseDir =
-  typeof IS_COMPILED !== "undefined" && IS_COMPILED
-    ? (await import("node:path")).dirname(process.execPath)
-    : (await import("node:path")).resolve(import.meta.dirname, "..");
-const _dbPath =
-  process.env.DB_PATH?.trim() || (await import("node:path")).join(_baseDir, "ros-help.db");
+const { resolveDbPath } = await import("./paths.ts");
+const _dbPath = resolveDbPath(import.meta.dirname);
 
 const _pageCount = (() => {
   try {
@@ -116,7 +111,7 @@ initDb();
 
 const server = new McpServer({
   name: "rosetta",
-  version: typeof VERSION !== "undefined" ? VERSION : "0.2.0",
+  version: RESOLVED_VERSION,
 });
 
 // ---- routeros_search ----

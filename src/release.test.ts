@@ -88,25 +88,27 @@ describe("bin/rosetta.js", () => {
 // ---------------------------------------------------------------------------
 
 describe("build-time constants", () => {
-  test("mcp.ts declares VERSION", () => {
+  test("mcp.ts imports resolveVersion from paths.ts", () => {
     const src = readText("src/mcp.ts");
+    expect(src).toContain("resolveVersion");
+  });
+
+  test("mcp.ts does not have hardcoded version fallback", () => {
+    const src = readText("src/mcp.ts");
+    expect(src).not.toContain('"0.2.0"');
+    expect(src).not.toContain("\"dev\"");
+  });
+
+  test("paths.ts declares IS_COMPILED and VERSION", () => {
+    const src = readText("src/paths.ts");
+    expect(src).toContain("declare const IS_COMPILED");
     expect(src).toContain("declare const VERSION");
   });
 
-  test("mcp.ts declares IS_COMPILED", () => {
-    const src = readText("src/mcp.ts");
-    expect(src).toContain("declare const IS_COMPILED");
-  });
-
-  test("db.ts declares IS_COMPILED", () => {
-    const src = readText("src/db.ts");
-    expect(src).toContain("declare const IS_COMPILED");
-  });
-
-  test("setup.ts declares REPO_URL and VERSION", () => {
+  test("setup.ts declares REPO_URL and imports resolveVersion", () => {
     const src = readText("src/setup.ts");
     expect(src).toContain("declare const REPO_URL");
-    expect(src).toContain("declare const VERSION");
+    expect(src).toContain("resolveVersion");
   });
 
   test("build script injects all three constants", () => {

@@ -134,6 +134,14 @@ When it arrives:
 
 VSCode extension client-side can provide doc context via MCP or direct DB queries. Depends on `lsp-routeros-ts` integration being further along.
 
+### DB schema version check for bunx auto-updates
+
+`bunx` auto-updates to the latest published package version on each session. If a future version drops or renames a table, the existing `~/.rosetta/ros-help.db` could be incompatible. The current `initDb()` uses `CREATE TABLE IF NOT EXISTS` and has migration logic (e.g., `ros_version` column), which handles additive changes. But destructive schema changes would break.
+
+**Trigger:** Next time we make a breaking schema change (drop/rename table or column).
+
+Proposed approach: store a schema version integer in the DB (e.g., `PRAGMA user_version` or a metadata table). On startup, compare against the expected version. If mismatch, auto-re-download the DB from GitHub Releases. Simple and handles the bunx upgrade case cleanly.
+
 ## Improvements
 
 Smaller items that would make things better but aren't urgent.
@@ -146,15 +154,9 @@ Currently ~92% of dirs are linked to documentation pages. The remaining ~8% coul
 
 [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) hover handler should consume property data from this DB. Needs a settings field for `routeros.helpDatabasePath`. The data is ready; the consumer needs work.
 
-### npm package experience (`bunx @tikoci/rosetta`)
+### ~~npm package experience (`bunx @tikoci/rosetta`)~~ ✓ DONE
 
-Now that the npm package is published and works as an MCP server via `bunx @tikoci/rosetta`, several things need alignment:
-
-- **README** — update install/setup instructions to reflect the npm package as the primary install method. `bunx @tikoci/rosetta` should be front-and-center, compiled binaries secondary.
-- **`--setup` flow** — currently downloads the DB and prints MCP config. Needs revisiting now that bunx works: the printed config should use `bunx @tikoci/rosetta` as the command (not a local path). Consider whether `--setup` should detect if it was invoked via bunx and adjust the config output accordingly.
-- **Node.js fallback** — `bin/rosetta.js` spawns `bun` as a subprocess when run under Node. This fails silently or confusingly if Bun isn't installed. Should either: (a) detect missing Bun and print a clear error with install instructions, or (b) consider if `bunx` can be recommended as the canonical invocation to sidestep this.
-- **`bunx` as canonical** — if users run `bunx @tikoci/rosetta`, Bun is guaranteed present. This may be the simplest recommendation. Document this clearly.
-- **Copilot CLI MCP** — verified working via `/mcp add` in Copilot CLI with `bunx @tikoci/rosetta`. Document this path.
+Implemented. Three-mode DB path resolution (`src/paths.ts`): compiled → next to executable, dev → project root, package → `~/.rosetta/`. `setup.ts` detects mode and prints `bunx @tikoci/rosetta` configs for package mode (VS Code Copilot, Claude Desktop, Claude Code, Copilot CLI, Cursor). `bin/rosetta.js` Node error path now prints clear message directing to `bunx`. README restructured with bunx as primary Quick Start option, compiled binaries as secondary. `package.json` has `engines: {bun: ">=1.1"}` field.
 
 ### Changelog tool output size and version-range queries
 

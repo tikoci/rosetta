@@ -171,7 +171,23 @@ Local `make release` works but builds are only as trustworthy as the laptop. The
 
 ### npm via npmjs.org
 
-Published as `@tikoci/rosetta` to the public npm registry. This provides a zero-friction install path for users who have Bun (or Node + Bun): `bunx @tikoci/rosetta --setup`. The `bin/rosetta.js` shim detects the runtime — under Bun it imports `src/mcp.ts` directly, under Node it spawns `bun` as a subprocess (since the server requires `bun:sqlite`). The `files` whitelist includes `bin/`, `src/`, and `matrix/` — no database, no build artifacts. Published from the `release.yml` workflow using an `NPM_TOKEN` org secret.
+Published as `@tikoci/rosetta` to the public npm registry. The canonical install command is `bunx @tikoci/rosetta` — this is the primary recommendation in the README and in `--setup` output.
+
+The `bin/rosetta.js` shim detects the runtime — under Bun it imports `src/mcp.ts` directly, under Node it spawns `bun` as a subprocess (since the server requires `bun:sqlite`). If Bun is not installed, the Node path prints a clear error directing the user to install Bun and use `bunx`. The `files` whitelist includes `bin/`, `src/`, and `matrix/` — no database, no build artifacts. Published from the `release.yml` workflow using an `NPM_TOKEN` org secret.
+
+### DB path routing (`src/paths.ts`)
+
+Three invocation modes with different DB default locations:
+
+| Mode | Detection | DB location | Config output |
+|------|-----------|-------------|---------------|
+| **Compiled** | `IS_COMPILED` build-time constant | Next to executable | Full path to binary |
+| **Dev** | `.git` exists in project root | Project root | `bun run src/mcp.ts` with `cwd` |
+| **Package** | Neither compiled nor dev | `~/.rosetta/ros-help.db` | `bunx @tikoci/rosetta` |
+
+`DB_PATH` env var overrides all modes. Package mode creates `~/.rosetta/` on first run. The `~/.rosetta/` path was chosen over platform-native data dirs (XDG, `~/Library/Application Support`, `%APPDATA%`) for simplicity — same path on all OSes, visible and predictable.
+
+This logic is shared via `src/paths.ts` (used by `db.ts`, `mcp.ts`, `setup.ts`) to avoid divergence between the three path resolution copies. `paths.ts` also exports `resolveVersion()` — reads `package.json` at runtime when the compile-time `VERSION` constant isn't defined, so `bunx @tikoci/rosetta --version` shows a real version number instead of "dev".
 
 ## History
 
@@ -181,7 +197,7 @@ What was built, in rough order (March 2026):
 2. **HTML extraction** — `extract-html.ts`, `extract-properties.ts`. 317 pages, 4,860 properties, 1,034 callouts.
 3. **Command tree** — `extract-commands.ts`. Single-version first, then multi-version with `extract-all-versions.ts` (46 versions, 1.67M junction entries).
 4. **Command linking** — `link-commands.ts`. Automated heuristic matching: code block paths + `<strong>`/`<code>` tag patterns. ~92% dir coverage.
-5. **MCP server** — `mcp.ts` + `query.ts`. 9 tools with compound term recognition, BM25 ranking, AND→OR fallback.
+5. **MCP server** — `mcp.ts` + `query.ts`. 11 tools with compound term recognition, BM25 ranking, AND→OR fallback.
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).
 7. **Distribution** — Compiled single-file binaries via `bun build --compile`, `--setup` mode for DB download + MCP client config, GitHub Releases for assets.
 8. **CI release workflow** — `release.yml` workflow_dispatch: download HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.

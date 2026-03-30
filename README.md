@@ -2,7 +2,7 @@
 
 MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, 40,000-entry command tree, and 144 hardware product specs — with direct links to help.mikrotik.com.
 
-Tested with **Claude Desktop**, **Claude Code**, **VS Code Copilot** (including Copilot CLI), and **VS Code** on macOS and Linux.
+Tested with **Claude Desktop**, **Claude Code**, **VS Code Copilot** (including Copilot CLI), and **Cursor** on macOS, Linux, and Windows.
 
 ## What is SQL-as-RAG?
 
@@ -10,7 +10,7 @@ Most retrieval-augmented generation (RAG) systems use vector embeddings to searc
 
 For structured technical documentation like RouterOS, full-text search with [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function) beats vector similarity. Technical terms like "dhcp-snooping" or "/ip/firewall/filter" are exact tokens — [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) and proximity matching handle the rest. No embedding pipeline, no vector database, no API keys. Just a single SQLite file that searches in milliseconds.
 
-The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 10 search tools over stdio transport.
+The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 11 search tools over stdio transport.
 
 ## What's Inside
 
@@ -24,45 +24,53 @@ The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools
 
 ## Quick Start
 
-Download a pre-built binary from [Releases](https://github.com/tikoci/rosetta/releases) — no Bun, Node.js, or other tools required.
+### Option A: Install with Bun (recommended)
 
-### 1. Download
+Zero install, zero config, no binary signing issues. Requires [Bun](https://bun.sh/) — no Gatekeeper or SmartScreen warnings since there's no compiled binary to sign.
 
-Go to the [latest release](https://github.com/tikoci/rosetta/releases/latest) and download the ZIP for your platform:
-
-| Platform | File |
-|----------|------|
-| macOS (Apple Silicon) | `rosetta-macos-arm64.zip` |
-| macOS (Intel) | `rosetta-macos-x64.zip` |
-| Windows | `rosetta-windows-x64.zip` |
-| Linux | `rosetta-linux-x64.zip` |
-
-Extract the ZIP to a permanent location (e.g., `~/rosetta` or `C:\rosetta`).
-
-### 2. Run Setup
-
-Open a terminal in the extracted folder and run:
+**1. Install Bun** (if you don't have it):
 
 ```sh
-./rosetta --setup
+# macOS / Linux
+curl -fsSL https://bun.sh/install | bash
+
+# Windows
+powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
-On Windows:
-```powershell
-.\rosetta.exe --setup
+**2. Configure your MCP client** with `bunx @tikoci/rosetta` as the command. No setup step needed — the database downloads automatically on first launch (~50 MB compressed).
+
+<details>
+<summary><b>VS Code Copilot</b></summary>
+
+Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`), choose **"MCP: Add Server…"**, select **"Command (stdio)"**, enter `bunx` as the command, and `@tikoci/rosetta` as the argument.
+
+Or add to User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
+
+```json
+"mcp": {
+  "servers": {
+    "rosetta": {
+      "command": "bunx",
+      "args": ["@tikoci/rosetta"]
+    }
+  }
+}
 ```
 
-This downloads the documentation database (~50 MB compressed, ~230 MB on disk) and prints configuration instructions for your MCP client.
+</details>
 
-> **macOS Gatekeeper:** If macOS blocks the binary, go to **System Settings → Privacy & Security** and click **Allow Anyway**, then run again. Or from Terminal: `xattr -d com.apple.quarantine ./rosetta`
->
-> **Windows SmartScreen:** If Windows warns about an unrecognized app, click **More info → Run anyway**.
+<details>
+<summary><b>Claude Code</b></summary>
 
-### 3. Configure Your MCP Client
+```sh
+claude mcp add rosetta -- bunx @tikoci/rosetta
+```
 
-The `--setup` command prints the exact config for your platform. Here's what it looks like for each client:
+</details>
 
-#### Claude Desktop
+<details>
+<summary><b>Claude Desktop</b></summary>
 
 Edit your Claude Desktop config file:
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -74,37 +82,82 @@ Add (or merge into existing config):
 {
   "mcpServers": {
     "rosetta": {
-      "command": "/path/to/rosetta"
+      "command": "bunx",
+      "args": ["@tikoci/rosetta"]
     }
   }
 }
 ```
 
-Replace `/path/to/rosetta` with the actual path printed by `--setup`. Then **restart Claude Desktop**.
+> **PATH note:** Claude Desktop on macOS doesn't always inherit your shell PATH. If `bunx` isn't found, use the full path — typically `~/.bun/bin/bunx`. Run `which bunx` to find it, or use `bunx @tikoci/rosetta --setup` which prints the full-path config for you.
 
-#### Claude Code
+Then **restart Claude Desktop**.
+
+</details>
+
+<details>
+<summary><b>GitHub Copilot CLI</b></summary>
 
 ```sh
-claude mcp add rosetta /path/to/rosetta
+copilot mcp add rosetta -- bunx @tikoci/rosetta
 ```
 
-#### VS Code Copilot
+</details>
 
-The simplest way: open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`), choose **"MCP: Add Server…"**, select **"Command (stdio)"**, and enter the full path to the `rosetta` binary.
+<details>
+<summary><b>Cursor</b></summary>
 
-Or add to your User Settings JSON (`Cmd+Shift+P` → "Preferences: Open User Settings (JSON)"):
+Open **Settings → MCP** and add a new server:
 
 ```json
-"mcp": {
-  "servers": {
+{
+  "mcpServers": {
     "rosetta": {
-      "command": "/path/to/rosetta"
+      "command": "bunx",
+      "args": ["@tikoci/rosetta"]
     }
   }
 }
 ```
 
-### 4. Try It
+</details>
+
+**That's it.** First launch takes a moment to download the database; subsequent starts are instant. The database is stored in `~/.rosetta/ros-help.db`.
+
+> **Verify it works:** Run `bunx @tikoci/rosetta --setup` to see the database status and print config for all MCP clients.
+>
+> **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. No manual update needed. (Note: the `~/.rosetta/ros-help.db` database persists across updates — it's re-downloaded only when missing or when you run `--setup --force`.)
+
+### Option B: Pre-built binary (no runtime needed)
+
+Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/releases) — no Bun, Node.js, or other tools required.
+
+**1. Download** the ZIP for your platform from the [latest release](https://github.com/tikoci/rosetta/releases/latest):
+
+| Platform | File |
+|----------|------|
+| macOS (Apple Silicon) | `rosetta-macos-arm64.zip` |
+| macOS (Intel) | `rosetta-macos-x64.zip` |
+| Windows | `rosetta-windows-x64.zip` |
+| Linux | `rosetta-linux-x64.zip` |
+
+Extract the ZIP to a permanent location (e.g., `~/rosetta` or `C:\rosetta`).
+
+**2. Run setup** to download the database and see MCP client config:
+
+```sh
+./rosetta --setup
+```
+
+On Windows: `.\rosetta.exe --setup`
+
+> **macOS Gatekeeper:** If macOS blocks the binary: `xattr -d com.apple.quarantine ./rosetta` or go to **System Settings → Privacy & Security → Allow Anyway**.
+>
+> **Windows SmartScreen:** Click **More info → Run anyway**.
+
+**3. Configure your MCP client** using the config printed by `--setup`. It uses the full path to the binary — paste it into your MCP client's config as shown.
+
+### Try It
 
 Ask your AI assistant questions like:
 
@@ -117,7 +170,7 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server provides 10 tools, designed to work together:
+The server provides 11 tools, designed to work together:
 
 | Tool | What it does |
 |------|-------------|
@@ -127,6 +180,7 @@ The server provides 10 tools, designed to work together:
 | `routeros_search_properties` | Search across 4,860 property names and descriptions |
 | `routeros_command_tree` | Browse the `/ip/firewall/filter` style command hierarchy |
 | `routeros_search_callouts` | Search warnings, notes, and tips across all pages |
+| `routeros_search_changelogs` | Search parsed changelog entries — filter by version range, category, breaking changes |
 | `routeros_command_version_check` | Check which RouterOS versions include a command |
 | `routeros_device_lookup` | Hardware specs for 144 MikroTik products — filter by architecture, RAM, storage, PoE, wireless, LTE |
 | `routeros_stats` | Database health: page/property/command counts, coverage stats |
@@ -134,78 +188,17 @@ The server provides 10 tools, designed to work together:
 
 The AI assistant typically starts with `routeros_search`, then drills into specific pages, properties, or the command tree based on what it finds. Each tool's description includes workflow hints (e.g., "→ use `routeros_get_page` to read full content") and empty-result suggestions so the AI knows how to chain tools together — this is where most of the tuning effort goes.
 
-## Alternative: Run with Bun
+## Troubleshooting
 
-If you have [Bun](https://bun.sh/) installed and prefer not to use the pre-built binary — for example, to avoid Gatekeeper/SmartScreen warnings, or to inspect the code you're running — you can run the MCP server directly from source. No HTML export or command tree data is needed; the database is downloaded from GitHub Releases just like the binary option.
-
-### 1. Install Bun
-
-```sh
-# macOS / Linux
-curl -fsSL https://bun.sh/install | bash
-# or: brew install oven-sh/bun/bun
-
-# Windows
-powershell -c "irm bun.sh/install.ps1 | iex"
-```
-
-### 2. Download and Install
-
-```sh
-git clone https://github.com/tikoci/rosetta.git
-cd rosetta
-bun install
-```
-
-Or download the source archive from the [latest release](https://github.com/tikoci/rosetta/releases/latest) ("Source code" ZIP or tarball), extract it, and run `bun install`.
-
-### 3. Run Setup
-
-```sh
-bun run src/mcp.ts --setup
-```
-
-This downloads the documentation database and prints MCP client configuration. The config uses `bun` as the command with `src/mcp.ts` as the entrypoint:
-
-#### Claude Desktop
-
-```json
-{
-  "mcpServers": {
-    "rosetta": {
-      "command": "bun",
-      "args": ["run", "src/mcp.ts"],
-      "cwd": "/path/to/rosetta"
-    }
-  }
-}
-```
-
-#### Claude Code
-
-```sh
-claude mcp add rosetta -- bun run src/mcp.ts --cwd /path/to/rosetta
-```
-
-#### VS Code Copilot
-
-Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`), choose **"MCP: Add Server…"**, select **"Command (stdio)"**, and enter `bun run src/mcp.ts` with the working directory set to the rosetta folder.
-
-Or add to your User Settings JSON:
-
-```json
-"mcp": {
-  "servers": {
-    "rosetta": {
-      "command": "bun",
-      "args": ["run", "src/mcp.ts"],
-      "cwd": "/path/to/rosetta"
-    }
-  }
-}
-```
-
-Replace `/path/to/rosetta` with the actual path (printed by `--setup`).
+| Issue | Solution |
+|-------|----------|
+| **First launch is slow** | One-time database download (~50 MB). Subsequent starts are instant. |
+| **`npx @tikoci/rosetta` fails** | This package requires Bun, not Node.js. Use `bunx` instead of `npx`. |
+| **`npm install -g` then `rosetta` fails** | Global npm install works if Bun is on PATH — it delegates to `bun` at runtime. But prefer `bunx` — it's simpler and auto-updates. |
+| **Claude Desktop can't find `bunx`** | Claude Desktop on macOS may not inherit shell PATH. Use the full path to bunx (run `which bunx` to find it, typically `~/.bun/bin/bunx`). `bunx @tikoci/rosetta --setup` prints the full-path config. |
+| **macOS Gatekeeper blocks binary** | Use `bunx` install (no Gatekeeper issues), or: `xattr -d com.apple.quarantine ./rosetta` |
+| **Windows SmartScreen warning** | Use `bunx` install (no SmartScreen issues), or click **More info → Run anyway** |
+| **How to update** | `bunx` always uses the latest published version. For binaries, re-download from [Releases](https://github.com/tikoci/rosetta/releases/latest). |
 
 ## Building from Source
 
@@ -271,7 +264,7 @@ This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), crea
 
 ```text
 src/
-├── mcp.ts                  # MCP server (10 tools, stdio) + CLI dispatch
+├── mcp.ts                  # MCP server (11 tools, stdio) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers

@@ -20,7 +20,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Two outputs:
 
-1. **SQL-as-RAG MCP Server** — 10 tools for LLM agents to search docs, look up properties, browse the command tree, check version history, and fetch current versions
+1. **SQL-as-RAG MCP Server** — 11 tools for LLM agents to search docs, look up properties, browse the command tree, check version history, and fetch current versions
 2. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration
 
 ## Current State
@@ -155,18 +155,19 @@ changelogs_fts USING fts5(category, description,
 ### MCP Server
 
 ```sh
-bun run src/mcp.ts   # stdio transport
+bunx @tikoci/rosetta           # npm package (recommended)
+bun run src/mcp.ts             # dev mode (stdio transport)
+./rosetta                      # compiled binary
 ```
 
-Register in `.vscode/mcp.json` or Claude Code settings:
+Register in MCP client config (bunx example — no paths needed):
 
 ```json
 {
   "servers": {
     "rosetta": {
-      "command": "bun",
-      "args": ["run", "src/mcp.ts"],
-      "cwd": "/path/to/rosetta"
+      "command": "bunx",
+      "args": ["@tikoci/rosetta"]
     }
   }
 }
@@ -204,7 +205,15 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 ## Distribution
 
-Compiled single-file executables for testers. Database distributed via GitHub Releases.
+Three install paths, all downloading the database from GitHub Releases on first run:
+
+### Option A: npm package (primary — `bunx @tikoci/rosetta`)
+
+Requires [Bun](https://bun.sh/). MCP clients use `bunx @tikoci/rosetta` as the command — no paths to configure. Database auto-downloads to `~/.rosetta/ros-help.db`. No Gatekeeper/SmartScreen issues since there's no standalone binary.
+
+### Option B: Compiled binary (no runtime needed)
+
+Single-file executables from GitHub Releases. User runs `--setup` to download DB and print MCP config.
 
 ### Release Workflow
 
@@ -236,17 +245,19 @@ Without `FORCE`, the release target errors if the tag already exists and uses `g
 
 ### Tester Workflow
 
-**Option A: npm (requires Bun or Node)**
+**Option A: npm (requires Bun — recommended)**
+
+Configure MCP client with `bunx @tikoci/rosetta` as the command. Database auto-downloads on first launch to `~/.rosetta/ros-help.db`. No setup step needed.
 
 ```sh
-bunx @tikoci/rosetta --setup   # or: npx @tikoci/rosetta --setup
+bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 ```
 
 **Option B: Compiled binary (no runtime needed)**
 
 1. Download platform ZIP from GitHub Releases
 2. Run `rosetta --setup` (downloads DB, prints config)
-3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot)
+3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot / Copilot CLI)
 
 ### CLI Flags
 
@@ -262,7 +273,7 @@ bunx @tikoci/rosetta --setup   # or: npx @tikoci/rosetta --setup
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 10 tools, stdio transport |
+| `src/mcp.ts` | MCP server — 11 tools, stdio transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
@@ -278,6 +289,7 @@ bunx @tikoci/rosetta --setup   # or: npx @tikoci/rosetta --setup
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, Makefile targets |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
+| `src/paths.ts` | Shared DB path + version resolution — three modes: compiled / dev / package (`~/.rosetta/`) |
 | `scripts/build-release.ts` | Cross-compile binaries for 4 platforms, package ZIPs |
 | `bin/rosetta.js` | npm bin shim — Bun: direct import, Node: spawns `bun` subprocess |
 | `.github/workflows/test.yml` | CI: typecheck + test + lint on push/PR/manual |
