@@ -1,0 +1,41 @@
+# markdownlint configuration for rosetta
+# These are project documentation files (CLAUDE.md, DESIGN.md, BACKLOG.md),
+# not README-style docs — prose paragraphs routinely exceed 80 chars.
+
+# --- Disabled rules --------------------------------------------------------
+
+# Line length — 80-char limit doesn't apply to prose documentation
+MD013: false
+
+# Emphasis as heading — "**Option A:**" / "**Option B:**" is intentional
+MD036: false
+
+# --- Signal rules -----------------------------------------------------------
+# These aid greppability, machine-readability, and correct GitHub rendering.
+
+# Fenced code language — lang tags are grep-able and provide semantic signal
+MD040: true
+
+# Code block style — fenced blocks are explicit, searchable, and lang-taggable
+MD046:
+  style: fenced
+
+# Code fence style — backticks only; consistent fence markers aid search
+MD048:
+  style: backtick
+
+# Link fragments — catch broken #anchor references
+MD051: true
+
+# Table pipe style — require both leading and trailing pipes
+MD055:
+  style: leading_and_trailing
+
+# Table column count — mismatched columns silently break GitHub rendering
+MD056: true
+
+# Blanks around tables — required for GitHub to render tables at all
+MD058: true
+
+# Table column spacing — disable; GitHub renders regardless of spacing
+MD060: false

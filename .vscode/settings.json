@@ -17,6 +17,11 @@
     "bun.lock": true
   },
   "biome.lspBin": "node_modules/@biomejs/biome/bin/biome",
+  "markdown.validate.ignoredLinks": [
+    "../CLAUDE.md",
+    "../DESIGN.md",
+    "../BACKLOG.md"
+  ],
   "chat.tools.terminal.autoApprove": {
     "uname": true
   }

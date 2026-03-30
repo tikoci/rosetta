@@ -26,12 +26,15 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 ## Key Decisions
 
 ### v6 is out of scope
+
 No inspect.json data exists for RouterOS v6. The documentation covers v7 only. Syntax, commands, and major subsystems (routing/BGP, firewall, bridging) all changed in v7 — v6 answers from this DB are significantly less reliable. Document as unknown territory in tool descriptions. Oldest version with command data is 7.9.
 
 ### Version accuracy degrades below long-term
+
 The HTML docs aren't versioned — they reflect the then-current long-term release (~7.22, specifically 7.22.1 at export time). They don't pin to a version. This is why the extraction pipeline is careful about version tracking: the `commands` table and `command_versions` junction table provide structured version data that the prose docs don't.
 
 **Accuracy tiers:**
+
 - **Current long-term and above:** High confidence. Docs + command tree align well.
 - **7.9–older stable:** Command tree data exists, but docs may not reflect older behavior. Callouts sometimes note version-specific differences — this is why we extract them.
 - **Older than current long-term:** MikroTik does not backport fixes below the current long-term release. If a vulnerability is found in e.g. 7.11 and fixed in 7.11.1, it might get backported to the long-term branch but not to older stable branches. Recommend upgrading to at least the current long-term.
@@ -39,9 +42,10 @@ The HTML docs aren't versioned — they reflect the then-current long-term relea
 - **v6:** Different syntax, different subsystems. Answers will be unreliable.
 
 ### RouterOS version scheme
+
 MikroTik publishes current versions per channel at predictable URLs:
 
-```
+```text
 https://upgrade.mikrotik.com/routeros/NEWESTa7.stable
 https://upgrade.mikrotik.com/routeros/NEWESTa7.long-term
 https://upgrade.mikrotik.com/routeros/NEWESTa7.testing
@@ -51,15 +55,19 @@ https://upgrade.mikrotik.com/routeros/NEWESTa7.development
 Each returns a plain-text response with the version string (e.g., `7.22.1`). The **long-term** channel is our northstar — docs align best with whatever version is current there. The actual version at extraction was ~7.22.
 
 ### Junction table for version tracking
+
 `command_versions` is a (command_path, ros_version) junction table — not per-version columns or per-version rows in `commands`. This scales to hundreds of versions without schema changes. The `commands` table holds only the primary version (latest stable, currently 7.22).
 
 ### Primary version = latest stable
+
 The `commands` table is populated from the latest stable version. All other versions go into `command_versions` only (via `--accumulate` flag). This means `browseCommands()` always shows current-stable, while `browseCommandsAtVersion()` can show any tracked version.
 
 ### All versions extracted, filter at query time
+
 46 versions including betas and RCs. Prefer more data over less. The `channel` column in `ros_versions` allows filtering to stable-only if needed.
 
 ### FTS5 for text, SQL WHERE for structured queries
+
 Pages, callouts, and properties use FTS5 with `porter unicode61` for natural language search. Device specs use a different strategy: `devices_fts` uses `unicode61` **without** Porter stemming, plus a LIKE-based substring fallback before FTS.
 
 **Why no Porter for devices:** Product names/codes are model numbers (RB1100AHx4, CCR2216-1G-12XS-2XQ, C53UiG+5HPaxD2HPaxD), not natural language. Porter stemming is unpredictable on alphanumeric identifiers — it could mangle "RB1100AHx4" in ways that break matching. Plain `unicode61` gives case-folding and Unicode normalization without destructive stemming.
@@ -67,6 +75,7 @@ Pages, callouts, and properties use FTS5 with `porter unicode61` for natural lan
 **Why LIKE fallback:** FTS5 does whole-token matching, so searching "RB1100" won't find token "RB1100AHx4". FTS5 prefix queries (`RB1100*`) handle the case where the search term is a prefix of a token, but LIKE handles arbitrary substrings. For 144 devices this is instant — no index overhead concerns. The search cascade is: exact match → LIKE substring → FTS prefix → FTS OR fallback → structured filters only.
 
 ### Callout FK ordering
+
 Callouts have FK to pages. On re-extraction, delete callouts before pages. `extract-html.ts` handles this.
 
 ### Extra-packages and inspect.json coverage
@@ -74,10 +83,12 @@ Callouts have FK to pages. On re-extraction, delete callouts before pages. `extr
 RouterOS ships a base image (`routeros.npk`) and optional **extra-packages** (`iot.npk`, `container.npk`, `zerotier.npk`, `gps.npk`, `wifi-qcom.npk`, etc.). The term "extra" comes from MikroTik's download page: users download `routeros.npk` plus an `extra-packages.zip` containing the extras. Despite the name, some extras aren't optional — Wi-Fi driver packages like `wifi-qcom.npk` are required for wireless to function on hardware using that chipset. The current way to install extra packages in RouterOS is via `/system/package/enable <name>` after running a version check that fetches the available list.
 
 The `inspect.json` files from restraml are generated via GitHub Actions that run RouterOS CHR under QEMU. Two builds are performed per version:
+
 1. **Base build** — only `routeros.npk` → published at `<version>/inspect.json`
 2. **Extra build** — all extra-packages available on CHR → published at `<version>/extra/inspect.json`
 
 We prefer the `extra/` variant (see `extract-all-versions.ts` which checks for `extra/inspect.json` first). However, the extra-package list is architecture-dependent — CHR (x86_64) has most packages but misses some:
+
 - **Wi-Fi driver packages** (VMs don't have wireless hardware, but MikroTik devices have several different wireless drivers)
 - **zerotier.npk** and potentially other third-party integrations
 - Architecture-specific packages not available on CHR
@@ -85,15 +96,19 @@ We prefer the `extra/` variant (see `extract-all-versions.ts` which checks for `
 The documentation pages cover all packages regardless of architecture, so the HTML extraction has broader coverage than inspect.json for extra-package commands. See BACKLOG.md for the gap analysis item.
 
 ### `_completion` data deferred
+
 [tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices, etc.). Schema stub TBD when that ships. This would enrich the `commands` table significantly.
 
 ### CSV requires manual download
+
 The old `curl -X POST -d "ax=matrix"` API is dead (late 2025). MikroTik's product matrix is now a Laravel Livewire/PowerGrid table. Export via browser: visit `mikrotik.com/products/matrix`, click export, choose "All". See `matrix/CLAUDE.md` for column schema.
 
 ### HTML doc versioning is simple
+
 Don't overengineer until there's a second HTML export to compare against. When that arrives, hash-based page diffing is sufficient. See BACKLOG.md for details.
 
 ### Changelogs: parsed entries, not blobs
+
 MikroTik publishes per-version changelogs at `https://download.mikrotik.com/routeros/{version}/CHANGELOG` as plain text. Each entry is one `*)` (regular) or `!)` (breaking) line with a category prefix (subsystem name before ` - `). We parse into one row per entry rather than storing the whole changelog text per version — this enables FTS search across entries, category filtering, and breaking-only queries. The `is_breaking` flag corresponds to `!)` entries only; security-related entries are findable via FTS keyword search (no separate flag). Multi-line entries are concatenated into a single description. No FK to `ros_versions` — changelogs may be fetched for patch versions not in the command tree.
 
 ## Cross-References
@@ -137,6 +152,7 @@ Bun bakes `import.meta.dirname` at compile time — a compiled binary looks for 
 The SQLite DB is ~230 MB on disk, ~50 MB gzipped. GitHub Releases has no bandwidth cap for public repos and allows 2 GB per asset. The `--setup` flag downloads from the "latest" release URL (`/releases/latest/download/ros-help.db.gz`), which means we can push new DB versions without changing the binary.
 
 Alternatives considered:
+
 - **Git LFS:** Bandwidth-limited on free tier, clones include all versions
 - **GitHub Pages:** 1 GB site limit, 100 MB per file
 - **S3/R2:** Extra infrastructure for a testing release

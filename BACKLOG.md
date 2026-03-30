@@ -80,6 +80,7 @@ Our inspect.json data comes from CHR (x86_64) with extra-packages enabled. CHR d
 The HTML documentation covers all packages including these. The `Packages` page lists the full set of available packages.
 
 To make tool descriptions more accurate, we should:
+
 1. Extract the definitive package list from the Packages doc page
 2. Cross-reference with what inspect.json actually contains
 3. Document which command paths come from missing packages (so agents know to check docs instead of command tree for those features)
@@ -107,6 +108,7 @@ The MikroTik forum archive (also an SQL-as-RAG project using SQLite FTS5) could 
 Compiled Bun binaries trigger macOS Gatekeeper because they are unsigned and unnotarized. Current workaround is documented in README (System Settings → Privacy & Security → Allow Anyway, or `xattr -d com.apple.quarantine`). The "Run with Bun" install option avoids this entirely.
 
 To properly sign and notarize:
+
 - **Ad-hoc signing** (`codesign -s -`) — free, no account needed, but does NOT suppress Gatekeeper on other machines. Only useful for local development.
 - **Developer ID signing + notarization** — requires an **active** Apple Developer Program membership ($99/year). The certificate type needed is "Developer ID Application". The flow: `codesign --sign "Developer ID Application: ..."` → `xcrun notarytool submit` → `xcrun stapler staple`.
 - Windows SmartScreen has a similar story — EV code signing certificates (~$200-400/year) from a CA are needed to build SmartScreen reputation.

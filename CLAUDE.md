@@ -219,6 +219,7 @@ make release VERSION=v0.1.0 FORCE=1        # Update existing: preflight → buil
 `make preflight` runs independently as a health check: clean working tree, DB exists, typecheck, tests, lint.
 
 Produces in `dist/`:
+
 - `rosetta-macos-arm64.zip` — macOS Apple Silicon
 - `rosetta-macos-x64.zip` — macOS Intel
 - `rosetta-windows-x64.zip` — Windows
@@ -226,6 +227,7 @@ Produces in `dist/`:
 - `ros-help.db.gz` — compressed database
 
 The `FORCE=1` flag:
+
 - Force-moves the git tag to HEAD (`git tag -f`)
 - Force-pushes the tag (`git push --force`)
 - Replaces release assets (`gh release upload --clobber`)
@@ -235,11 +237,13 @@ Without `FORCE`, the release target errors if the tag already exists and uses `g
 ### Tester Workflow
 
 **Option A: npm (requires Bun or Node)**
+
 ```sh
 bunx @tikoci/rosetta --setup   # or: npx @tikoci/rosetta --setup
 ```
 
 **Option B: Compiled binary (no runtime needed)**
+
 1. Download platform ZIP from GitHub Releases
 2. Run `rosetta --setup` (downloads DB, prints config)
 3. Paste config into MCP client (Claude Desktop / Claude Code / VS Code Copilot)
@@ -247,7 +251,7 @@ bunx @tikoci/rosetta --setup   # or: npx @tikoci/rosetta --setup
 ### CLI Flags
 
 | Flag | Purpose |
-|------|---------||
+|------|---------|
 | `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--version` | Print version |
@@ -279,7 +283,6 @@ bunx @tikoci/rosetta --setup   # or: npx @tikoci/rosetta --setup
 | `.github/workflows/test.yml` | CI: typecheck + test + lint on push/PR/manual |
 | `.github/workflows/release.yml` | CI: build DB from HTML export URL + create GitHub Release + npm publish |
 | `ros-help.db` | The SQLite database (WAL mode) |
-
 
 ## Re-extraction
 
