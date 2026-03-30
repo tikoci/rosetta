@@ -74,7 +74,10 @@ jobs:
       - name: Extract HTML and locate ROS directory
         id: locate
         run: |
-          unzip -q export.zip -d html-export
+          # Confluence exports include a bare "/" root entry which causes unzip
+          # to warn ("stripped absolute path spec") and exit with code 2.
+          # The files extract fine — tolerate exit codes 0 and 2.
+          unzip -q export.zip -d html-export || [ $? -eq 2 ]
           # Find the ROS directory containing Confluence HTML files
           ROS_DIR=$(find html-export -type d -name "ROS" | head -1)
           if [ -z "$ROS_DIR" ]; then

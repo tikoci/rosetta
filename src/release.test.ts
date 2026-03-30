@@ -224,6 +224,12 @@ describe("release.yml", () => {
     expect(src).toContain("version:");
   });
 
+  test("tolerates Confluence zip with absolute path root entry", () => {
+    const src = readText(".github/workflows/release.yml");
+    // Confluence exports include a bare "/" entry → unzip exits 2
+    expect(src).toMatch(/unzip.*\|\|.*\$\?.*-eq.*2/);
+  });
+
   test("runs extraction pipeline", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("extract-html.ts");
