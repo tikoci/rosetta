@@ -912,10 +912,12 @@ function browseChangelogs(
       c.description, substr(c.description, 1, 200) as excerpt
     FROM changelogs c
     WHERE ${where.join(" AND ")}
-    ORDER BY c.version DESC, c.sort_order
+    ORDER BY c.sort_order
     LIMIT ?`;
 
-  return db.prepare(sql).all(...params, limit) as ChangelogResult[];
+  const rows = db.prepare(sql).all(...params, limit) as ChangelogResult[];
+  // Sort by version numerically (SQL sorts lexicographically: 7.9 > 7.22)
+  return rows.sort((a, b) => compareVersions(b.version, a.version) || a.description.localeCompare(b.description));
 }
 
 function runChangelogFtsQuery(

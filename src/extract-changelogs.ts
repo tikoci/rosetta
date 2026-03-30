@@ -158,7 +158,7 @@ async function probePatchVersions(): Promise<string[]> {
   }
 
   for (const minor of [...minors].sort()) {
-    // Probe .1, .2, .3, ... up to 20 (generous ceiling)
+    // Probe .1 through .20 per minor — up to ~920 requests total at 200ms each (~3 min)
     for (let p = 1; p <= 20; p++) {
       const patchVersion = `${minor}.${p}`;
       if (known.has(patchVersion)) {
@@ -214,19 +214,9 @@ if (versions.length === 0) {
   process.exit(1);
 }
 
-// Idempotent: clear existing data (FTS triggers handle cleanup)
-db.run("DELETE FROM changelogs");
-
-const insert = db.prepare(`INSERT OR IGNORE INTO changelogs
-  (version, released, category, is_breaking, description, sort_order)
-  VALUES (?, ?, ?, ?, ?, ?)`);
-
-const upsertVersion = db.prepare(`INSERT OR IGNORE INTO ros_versions
-  (version, channel, extracted_at)
-  VALUES (?, ?, datetime('now'))`);
-
-let totalEntries = 0;
-let versionsProcessed = 0;
+// Fetch all changelogs into memory first, then delete+insert in one transaction.
+// This avoids leaving the table partially populated if a network failure occurs mid-run.
+const fetched: Array<{ version: string; entries: ChangelogEntry[] }> = [];
 let versionsFailed = 0;
 
 for (const version of versions) {
@@ -243,25 +233,34 @@ for (const version of versions) {
     continue;
   }
 
-  // Ensure version exists in ros_versions
-  const channel = version.includes("beta") || version.includes("rc") ? "development" : "stable";
-  upsertVersion.run(version, channel);
-
-  // Batch insert in a transaction
-  const insertBatch = db.transaction(() => {
-    for (const e of entries) {
-      insert.run(e.version, e.released, e.category, e.is_breaking, e.description, e.sort_order);
-    }
-  });
-  insertBatch();
-
-  totalEntries += entries.length;
-  versionsProcessed++;
+  fetched.push({ version, entries });
   console.log(`  ${version}: ${entries.length} entries${entries.some((e) => e.is_breaking) ? ` (${entries.filter((e) => e.is_breaking).length} breaking)` : ""}`);
 
   await sleep(FETCH_DELAY_MS);
 }
 
-console.log(`\nChangelogs: ${totalEntries} entries from ${versionsProcessed} versions (${versionsFailed} failed/skipped)`);
+// Atomic: delete all + insert all in one transaction
+const insert = db.prepare(`INSERT OR IGNORE INTO changelogs
+  (version, released, category, is_breaking, description, sort_order)
+  VALUES (?, ?, ?, ?, ?, ?)`);
+
+const upsertVersion = db.prepare(`INSERT OR IGNORE INTO ros_versions
+  (version, channel, extracted_at)
+  VALUES (?, ?, datetime('now'))`);
+
+const commitAll = db.transaction(() => {
+  db.run("DELETE FROM changelogs");
+  for (const { version, entries } of fetched) {
+    const channel = version.includes("beta") || version.includes("rc") ? "development" : "stable";
+    upsertVersion.run(version, channel);
+    for (const e of entries) {
+      insert.run(e.version, e.released, e.category, e.is_breaking, e.description, e.sort_order);
+    }
+  }
+});
+commitAll();
+
+const totalEntries = fetched.reduce((sum, f) => sum + f.entries.length, 0);
+console.log(`\nChangelogs: ${totalEntries} entries from ${fetched.length} versions (${versionsFailed} failed/skipped)`);
 
 } // end if (import.meta.main)
