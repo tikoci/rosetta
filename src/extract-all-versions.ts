@@ -13,7 +13,7 @@
 
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { RESTRAML_PAGES_URL, discoverRemoteVersions as discoverRemoteVersionList, isHttpUrl } from "./restraml.ts";
+import { discoverRemoteVersions as discoverRemoteVersionList, isHttpUrl, RESTRAML_PAGES_URL } from "./restraml.ts";
 
 const SOURCE = process.argv[2];
 

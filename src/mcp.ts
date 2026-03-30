@@ -86,7 +86,7 @@ const _pageCount = (() => {
 if (_pageCount === 0) {
   const { downloadDb } = await import("./setup.ts");
   // Use stderr — stdout is the MCP stdio transport
-  const log = (msg: string) => process.stderr.write(msg + "\n");
+  const log = (msg: string) => process.stderr.write(`${msg}\n`);
   try {
     await downloadDb(_dbPath, log);
     log("Database downloaded successfully.");

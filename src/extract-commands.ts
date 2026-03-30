@@ -16,7 +16,7 @@
  */
 
 import { db, initDb } from "./db.ts";
-import { RESTRAML_PAGES_URL, loadJson } from "./restraml.ts";
+import { loadJson, RESTRAML_PAGES_URL } from "./restraml.ts";
 
 // Parse flags
 const cliArgs = process.argv.slice(2);
