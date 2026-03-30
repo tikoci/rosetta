@@ -101,7 +101,7 @@ jobs:
         run: bun run src/extract-html.ts "${{ steps.locate.outputs.ros_dir }}"
 
       - name: Extract properties
-        run: bun run src/extract-properties.ts
+        run: bun run src/extract-properties.ts "${{ steps.locate.outputs.ros_dir }}"
 
       - name: Extract command tree
         run: |
