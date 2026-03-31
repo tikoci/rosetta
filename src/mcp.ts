@@ -12,14 +12,16 @@
  *   --http             Start with Streamable HTTP transport (instead of stdio)
  *   --port <N>         HTTP listen port (default: 8080, env: PORT)
  *   --host <ADDR>      HTTP bind address (default: localhost, env: HOST)
- *   --tls-cert <PATH>  TLS certificate PEM file (enables HTTPS)
- *   --tls-key <PATH>   TLS private key PEM file (requires --tls-cert)
+ *   --tls-cert <PATH>  TLS certificate PEM file (enables HTTPS, env: TLS_CERT_PATH)
+ *   --tls-key <PATH>   TLS private key PEM file (requires --tls-cert, env: TLS_KEY_PATH)
  *   (default)          Start MCP server (stdio transport)
  *
  * Environment variables:
  *   DB_PATH — absolute path to ros-help.db (default: next to binary or project root)
  *   PORT    — HTTP listen port (lower precedence than --port)
  *   HOST    — HTTP bind address (lower precedence than --host)
+ *   TLS_CERT_PATH — TLS certificate path (lower precedence than --tls-cert)
+ *   TLS_KEY_PATH  — TLS private key path (lower precedence than --tls-key)
  */
 
 import { resolveVersion } from "./paths.ts";
@@ -55,13 +57,15 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("HTTP options (require --http):");
   console.log("  --port <N>           Listen port (default: 8080, env: PORT)");
   console.log("  --host <ADDR>        Bind address (default: localhost, env: HOST)");
-  console.log("  --tls-cert <PATH>    TLS certificate PEM file (enables HTTPS)");
-  console.log("  --tls-key <PATH>     TLS private key PEM file (requires --tls-cert)");
+  console.log("  --tls-cert <PATH>    TLS certificate PEM file (env: TLS_CERT_PATH)");
+  console.log("  --tls-key <PATH>     TLS private key PEM file (env: TLS_KEY_PATH)");
   console.log();
   console.log("Environment:");
   console.log("  DB_PATH  Absolute path to ros-help.db (optional)");
   console.log("  PORT     HTTP listen port (lower precedence than --port)");
   console.log("  HOST     HTTP bind address (lower precedence than --host)");
+  console.log("  TLS_CERT_PATH  TLS certificate path (lower precedence than --tls-cert)");
+  console.log("  TLS_KEY_PATH   TLS private key path (lower precedence than --tls-key)");
   process.exit(0);
 }
 
@@ -768,11 +772,13 @@ if (useHttp) {
 
   const port = Number(getArg("--port") ?? process.env.PORT ?? 8080);
   const hostname = getArg("--host") ?? process.env.HOST ?? "localhost";
-  const tlsCert = getArg("--tls-cert");
-  const tlsKey = getArg("--tls-key");
+  const tlsCert = getArg("--tls-cert") ?? process.env.TLS_CERT_PATH;
+  const tlsKey = getArg("--tls-key") ?? process.env.TLS_KEY_PATH;
 
   if ((tlsCert && !tlsKey) || (!tlsCert && tlsKey)) {
-    process.stderr.write("Error: --tls-cert and --tls-key must both be provided\n");
+    process.stderr.write(
+      "Error: TLS cert and key must both be provided (via flags or TLS_CERT_PATH/TLS_KEY_PATH)\n"
+    );
     process.exit(1);
   }
   if (tlsCert && !existsSync(tlsCert)) {

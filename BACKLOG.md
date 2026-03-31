@@ -131,6 +131,20 @@ To properly sign and notarize:
 
 Items explicitly postponed until a trigger condition is met.
 
+### OCI image armv7 support in release pipeline
+
+Current OCI publishing flow builds linux/amd64 and linux/arm64 images with Bun `--compile` and crane.
+`linux/arm/v7` is intentionally deferred because Bun target support/behavior for this build path is not yet verified for this project.
+
+**Trigger:** Bun reliably supports and we validate release-grade armv7 compilation for `src/mcp.ts`.
+
+When triggered:
+
+- Add `linux/arm/v7` to `IMAGE_PLATFORMS` in `Makefile`
+- Extend platform mapping + `config.architecture` handling in image targets
+- Add CI smoke validation for armv7 image boot and `/mcp` health
+- Publish armv7 manifests to both Docker Hub and GHCR tags
+
 ### Documentation version tracking
 
 **Trigger:** Second HTML export is available.

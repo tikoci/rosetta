@@ -34,6 +34,7 @@ concurrency:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build-and-release:
@@ -50,7 +51,17 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
       - run: bun install
+
+      - name: Install crane
+        run: go install github.com/google/go-containerregistry/cmd/crane@latest
+
+      - name: Add Go bin to PATH
+        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       # ── Download and validate HTML export ──
 
@@ -149,6 +160,74 @@ jobs:
 
       - name: Build release artifacts
         run: bun run scripts/build-release.ts ${{ inputs.version }}
+
+      - name: Build OCI image tars
+        run: make image-build VERSION=${{ inputs.version }}
+
+      - name: Compute image metadata
+        id: image_meta
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-12)
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | crane auth login docker.io -u ammo74 --password-stdin
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ github.token }}" | crane auth login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Publish OCI images (Docker Hub + GHCR)
+        run: |
+          set -euo pipefail
+
+          tags=("${{ inputs.version }}" "latest" "sha-${{ steps.image_meta.outputs.short_sha }}")
+          registries=("ammo74/rosetta" "ghcr.io/tikoci/rosetta")
+
+          for registry in "${registries[@]}"; do
+            for tag in "${tags[@]}"; do
+              echo "Publishing $registry:$tag"
+              make image-push-registry IMAGE="$registry" IMAGE_TAG="$tag"
+            done
+          done
+
+      - name: Smoke test published OCI images
+        run: |
+          set -euo pipefail
+
+          sha_tag="sha-${{ steps.image_meta.outputs.short_sha }}"
+          images=(
+            "ammo74/rosetta:${sha_tag}"
+            "ghcr.io/tikoci/rosetta:${sha_tag}"
+          )
+
+          for image in "${images[@]}"; do
+            echo "Smoke testing $image"
+            docker pull "$image"
+
+            name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
+            docker rm -f "$name" >/dev/null 2>&1 || true
+            docker run -d --name "$name" -p 18080:8080 "$image" >/dev/null
+
+            ok=0
+            for _ in $(seq 1 30); do
+              code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:18080/mcp" || true)
+              if [ "$code" != "000" ] && [ "$code" != "404" ]; then
+                ok=1
+                break
+              fi
+              sleep 1
+            done
+
+            docker logs "$name" | tail -n 20 || true
+            docker rm -f "$name" >/dev/null 2>&1 || true
+
+            if [ "$ok" -ne 1 ]; then
+              echo "::error::Smoke test failed for $image"
+              exit 1
+            fi
+          done
 
       - name: Upload DB as workflow artifact
         uses: actions/upload-artifact@v4

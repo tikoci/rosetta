@@ -235,6 +235,13 @@ Produces in `dist/`:
 - `rosetta-linux-x64.zip` — Linux
 - `ros-help.db.gz` — compressed database
 
+Also publishes multi-arch OCI images (linux/amd64 + linux/arm64):
+
+- `ammo74/rosetta:<tag>` on Docker Hub
+- `ghcr.io/tikoci/rosetta:<tag>` on GHCR
+
+Per release, tags are `VERSION`, `latest`, and `sha-<12-char-commit>`.
+
 The `FORCE=1` flag:
 
 - Force-moves the git tag to HEAD (`git tag -f`)
@@ -274,6 +281,11 @@ bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 | `--tls-key <PATH>` | TLS private key PEM file (requires `--tls-cert`) |
 | *(none)* | Start MCP server (stdio) |
 
+HTTP/TLS env vars:
+
+- `PORT`, `HOST` (lower precedence than CLI flags)
+- `TLS_CERT_PATH`, `TLS_KEY_PATH` (lower precedence than `--tls-cert`/`--tls-key`)
+
 ### HTTP Transport
 
 For MCP clients that require HTTP instead of stdio (e.g., OpenAI platform, remote/LAN access):
@@ -311,9 +323,10 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
 | `src/paths.ts` | Shared DB path + version resolution — three modes: compiled / dev / package (`~/.rosetta/`) |
 | `scripts/build-release.ts` | Cross-compile binaries for 4 platforms, package ZIPs |
+| `scripts/container-entrypoint.sh` | OCI image entrypoint — defaults to HTTP transport, optional TLS from env |
 | `bin/rosetta.js` | npm bin shim — Bun: direct import, Node: spawns `bun` subprocess |
 | `.github/workflows/test.yml` | CI: typecheck + test + lint on push/PR/manual |
-| `.github/workflows/release.yml` | CI: build DB from HTML export URL + create GitHub Release + npm publish |
+| `.github/workflows/release.yml` | CI: build DB from HTML export URL + publish OCI images + create GitHub Release + npm publish |
 | `ros-help.db` | The SQLite database (WAL mode) |
 
 ## Re-extraction
@@ -336,7 +349,7 @@ The `release.yml` workflow (`workflow_dispatch`) builds the database from a remo
 
 **Inputs:** `html_url` (required — direct download URL to `.zip`), `version` (required — tag like `v0.2.0`), `docs_date` (optional — export date for traceability), `full_versions` (default: true — all 46 RouterOS versions), `force` (default: false — overwrite existing release).
 
-**Steps:** download + validate zip → extract HTML → run full extraction pipeline → quality gate (typecheck + test + lint) → build release artifacts → create GitHub Release with DB stats in release notes.
+**Steps:** download + validate zip → extract HTML → run full extraction pipeline → quality gate (typecheck + test + lint) → build release artifacts + OCI image tars → publish OCI images to Docker Hub/GHCR → smoke-test pulled `sha-*` images on `/mcp` → create GitHub Release with DB stats in release notes.
 
 For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Product matrix CSV uses the committed copy in `matrix/`.
 

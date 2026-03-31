@@ -236,12 +236,46 @@ Then point your MCP client at the URL:
 
 - **Read-only** — the server queries a local SQLite database. It does not store data, accept uploads, or modify anything.
 - **No authentication** — designed for local/trusted-network use. For public exposure, put it behind a reverse proxy (nginx, caddy) with TLS and auth.
-- **TLS built-in** — for direct HTTPS without a proxy: `--tls-cert cert.pem --tls-key key.pem`
+- **TLS built-in** — for direct HTTPS without a proxy: `--tls-cert cert.pem --tls-key key.pem` (or `TLS_CERT_PATH` + `TLS_KEY_PATH` env vars)
 - **Defaults to localhost** — binding to all interfaces (`--host 0.0.0.0`) requires an explicit flag and logs a warning.
 - **Origin validation** — rejects cross-origin requests to prevent DNS rebinding attacks.
 - **Stdio remains default** — `--http` is opt-in. Existing stdio configs are unaffected.
 
-The `PORT` and `HOST` environment variables are also supported (lower precedence than CLI flags).
+The `PORT`, `HOST`, `TLS_CERT_PATH`, and `TLS_KEY_PATH` environment variables are supported (lower precedence than CLI flags).
+
+## Container Images
+
+Release CI publishes multi-arch OCI images to:
+
+- Docker Hub: `ammo74/rosetta`
+- GHCR: `ghcr.io/tikoci/rosetta`
+
+Tags per release:
+
+- `${version}` (example: `v0.2.1`)
+- `latest`
+- `sha-<12-char-commit>`
+
+Container defaults:
+
+- Starts in HTTP mode (`--http`) on `0.0.0.0`
+- Uses `PORT` if set, otherwise 8080
+- Uses HTTPS only when both `TLS_CERT_PATH` and `TLS_KEY_PATH` are set
+
+Examples:
+
+```sh
+docker run --rm -p 8080:8080 ghcr.io/tikoci/rosetta:latest
+```
+
+```sh
+docker run --rm -p 8443:8443 \
+  -e PORT=8443 \
+  -e TLS_CERT_PATH=/certs/cert.pem \
+  -e TLS_KEY_PATH=/certs/key.pem \
+  -v "$PWD/certs:/certs:ro" \
+  ghcr.io/tikoci/rosetta:latest
+```
 
 ## Building from Source
 
@@ -303,6 +337,8 @@ make release VERSION=v0.1.0
 
 This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, compresses the database, tags the commit, and creates a GitHub Release with all artifacts.
 
+The release workflow also publishes OCI images to Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) using crane (no Docker daemon required in CI).
+
 ## Project Structure
 
 ```text
@@ -321,6 +357,7 @@ src/
 
 scripts/
 └── build-release.ts        # Cross-compile + package releases
+└── container-entrypoint.sh # OCI image runtime entrypoint (HTTP default)
 ```
 
 ## Data Sources

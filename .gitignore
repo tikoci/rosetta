@@ -22,6 +22,8 @@ __pycache__/
 # Build output
 dist/
 *.bun-build
+images/
+.image-build/
 
 # potentially ros-help.db.gz from `gh` ops
 ros-help.db.gz
