@@ -197,6 +197,14 @@ jobs:
           set -euo pipefail
           echo "Docker version: $(docker version --format '{{.Server.Version}}')"
 
+          # Baseline: confirm Docker can run containers at all
+          echo "── Baseline: docker run debian:bookworm-slim ls / ──"
+          docker run --rm debian:bookworm-slim ls / || {
+            echo "::error::Baseline Debian container failed — Docker itself is broken"
+            exit 1
+          }
+          echo "✓ Baseline OK"
+
           smoke_test_container() {
             local image="$1"
             local name="$2"
@@ -252,6 +260,9 @@ jobs:
           for image in "${images[@]}"; do
             echo "── Smoke testing $image ──"
             docker pull "$image"
+            echo "::group::docker inspect $image"
+            docker inspect "$image" | jq '.[0].RootFS' 2>/dev/null || true
+            echo "::endgroup::"
             name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
             if ! smoke_test_container "$image" "$name" "$port"; then
               echo "::error::Smoke test failed for $image"

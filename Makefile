@@ -114,6 +114,7 @@ endif
 image-build:
 	@test -f $(DB) || (echo "✗ Database $(DB) not found. Build DB first (make extract)." && exit 1)
 	@command -v crane >/dev/null 2>&1 || (echo "✗ crane is required (go install github.com/google/go-containerregistry/cmd/crane@latest)" && exit 1)
+	@command -v jq >/dev/null 2>&1 || (echo "✗ jq is required for image builds (brew install jq / apt install jq)" && exit 1)
 	@mkdir -p $(IMAGE_OUT_DIR)
 	@for plat in $(IMAGE_PLATFORMS); do \
 		echo "── Building OCI image for $$plat ──"; \
@@ -124,29 +125,35 @@ image-build:
 image-build-platform:
 	@test -n "$(IMAGE_PLATFORM)" || (echo "✗ IMAGE_PLATFORM is required (e.g. linux/amd64)" && exit 1)
 	@case "$(IMAGE_PLATFORM)" in \
-		linux/amd64) bun_target=bun-linux-x64; cfg_arch=amd64; ptag=linux-amd64 ;; \
-		linux/arm64) bun_target=bun-linux-arm64; cfg_arch=arm64; ptag=linux-arm64 ;; \
+		linux/amd64) bun_target=bun-linux-x64; ptag=linux-amd64 ;; \
+		linux/arm64) bun_target=bun-linux-arm64; ptag=linux-arm64 ;; \
 		*) echo "✗ Unsupported IMAGE_PLATFORM: $(IMAGE_PLATFORM)"; echo "  Supported: linux/amd64 linux/arm64"; exit 1 ;; \
 	 esac; \
 	 work="$(IMAGE_BUILD_DIR)/$$ptag"; \
-	 rootfs="$$work/rootfs"; \
-	 image_dir="$$work/image"; \
 	 rm -rf "$$work"; \
-	 mkdir -p "$$rootfs" "$$image_dir" "$$rootfs/app" "$(IMAGE_OUT_DIR)"; \
-	 crane export --platform "$(IMAGE_PLATFORM)" debian:bookworm-slim - | tar xf - -C "$$rootfs"; \
+	 mkdir -p "$$work/rootfs/app" "$$work/extract" "$(IMAGE_OUT_DIR)"; \
 	 bun build --compile --minify --bytecode --target="$$bun_target" \
 		--define VERSION="'\"$(IMAGE_VERSION)\"'" \
 		--define REPO_URL="'\"tikoci/rosetta\"'" \
 		--define IS_COMPILED='true' \
-		src/mcp.ts --outfile "$$rootfs/app/rosetta"; \
-	 install -m 0755 scripts/container-entrypoint.sh "$$rootfs/entrypoint.sh"; \
-	 cp "$(DB)" "$$rootfs/app/ros-help.db"; \
-	 (cd "$$rootfs" && tar cf - *) > "$$image_dir/layer.tar"; \
-	 digest=$$( ( shasum -a 256 "$$image_dir/layer.tar" 2>/dev/null || sha256sum "$$image_dir/layer.tar" ) | cut -d' ' -f1 ); \
-	 printf '{"architecture":"%s","os":"linux","config":{"WorkingDir":"/app","Cmd":["/entrypoint.sh"],"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]},"rootfs":{"type":"layers","diff_ids":["sha256:%s"]}}\n' "$$cfg_arch" "$$digest" > "$$image_dir/config.json"; \
-	 printf '[{"Config":"config.json","RepoTags":["rosetta:local"],"Layers":["layer.tar"]}]\n' > "$$image_dir/manifest.json"; \
-	 tar cf "$(IMAGE_OUT_DIR)/rosetta-$$ptag.tar" -C "$$image_dir" config.json manifest.json layer.tar; \
-	 echo "✓ $(IMAGE_OUT_DIR)/rosetta-$$ptag.tar"
+		src/mcp.ts --outfile "$$work/rootfs/app/rosetta"; \
+	 install -m 0755 scripts/container-entrypoint.sh "$$work/rootfs/entrypoint.sh"; \
+	 cp "$(DB)" "$$work/rootfs/app/ros-help.db"; \
+	 (cd "$$work/rootfs" && tar cf - entrypoint.sh app) > "$$work/additions.tar"; \
+	 crane append -b debian:bookworm-slim --platform "$(IMAGE_PLATFORM)" \
+		-f "$$work/additions.tar" -t rosetta:local -o "$$work/intermediate.tar"; \
+	 tar xf "$$work/intermediate.tar" -C "$$work/extract"; \
+	 cfg_file=$$(jq -r '.[0].Config' "$$work/extract/manifest.json"); \
+	 jq '.config.Cmd=["/entrypoint.sh"] | .config.WorkingDir="/app"' \
+		"$$work/extract/$$cfg_file" > "$$work/extract/config.tmp"; \
+	 new_hash=$$( ( shasum -a 256 "$$work/extract/config.tmp" 2>/dev/null || sha256sum "$$work/extract/config.tmp" ) | cut -d' ' -f1 ); \
+	 new_cfg="sha256:$$new_hash"; \
+	 mv "$$work/extract/config.tmp" "$$work/extract/$$new_cfg"; \
+	 rm -f "$$work/extract/$$cfg_file"; \
+	 jq --arg c "$$new_cfg" '.[0].Config=$$c' "$$work/extract/manifest.json" > "$$work/extract/manifest.tmp"; \
+	 mv "$$work/extract/manifest.tmp" "$$work/extract/manifest.json"; \
+	 tar cf "$(IMAGE_OUT_DIR)/rosetta-$$ptag.tar" -C "$$work/extract" .; \
+	 echo "✓ $(IMAGE_OUT_DIR)/rosetta-$$ptag.tar (multi-layer)"
 
 image-push-registry:
 	@test -n "$(IMAGE)" || (echo "✗ IMAGE is required (e.g. ammo74/rosetta)" && exit 1)

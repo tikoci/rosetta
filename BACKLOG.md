@@ -138,17 +138,11 @@ When triggered:
 
 ### Docker v1 tar format for `docker load`
 
-Current hand-crafted Docker v1 tars (manifest.json + config.json + layer.tar) work for `crane push` to registries but produce empty overlay mounts with `docker load`. All exec calls fail with `no such file or directory` because Docker can't match the layer to the diff_id in config.json. Root cause unclear — SHA-256 computation appears correct, but Docker's internal layer processing computes a different hash.
+The old single-layer approach (flatten debian + our files into one tar, hand-craft config.json) produced images where Docker 28's containerd image store mounted an empty overlay filesystem — all exec calls failed with `no such file or directory`. Even `docker pull` from the registry after `crane push` exhibited the same failure.
 
-**Trigger:** Need for offline docker image distribution (e.g., release assets as `.tar` for air-gapped environments).
+**Status:** Resolved by switching to `crane append` (multi-layer approach) which preserves base debian layers intact. The jq-based config modification (Cmd, WorkingDir) after `crane append` produces well-formed Docker v1 tars that `crane push` handles correctly.
 
-**Workaround:** After `crane push`, use `crane pull --format=tarball` to re-export a proper Docker v1 tar from the registry.
-
-When triggered:
-
-- Investigate Docker's exact diff_id computation (may differ from raw SHA-256 of tar file)
-- Or switch to `crane append` + `crane mutate` for proper multi-layer image construction
-- Add `docker load` smoke test back to CI once fixed
+**If regression:** The root cause of the original single-layer failure was never fully understood — SHA-256 diff_ids appeared correct, `crane export` confirmed files existed, but Docker couldn't mount the layer. If multi-layer builds start failing similarly, investigate Docker's containerd image store layer validation or try `crane pull --format=tarball` to re-export from the registry.
 
 ### OCI image armv7 support in release pipeline
 

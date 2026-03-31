@@ -179,11 +179,13 @@ Local `make release` works but builds are only as trustworthy as the laptop. The
 
 ### OCI image build: crane-based pipeline
 
-The `image-build-platform` Makefile target builds single-layer OCI images using `crane export` for the base rootfs + our compiled binary. These tars are intermediate artifacts for `crane push` — they're NOT directly loadable via `docker load` (the hand-crafted Docker v1 tar format produces empty overlay mounts, causing `exec: no such file or directory` for all binaries). Users get images via `docker pull` from Docker Hub / GHCR.
+The `image-build-platform` Makefile target builds multi-layer OCI images using `crane append` onto `debian:bookworm-slim`. This preserves the base image's layers intact and adds our files (compiled binary, database, entrypoint) as a separate layer on top. The resulting Docker v1 tars are intermediate artifacts for `crane push`.
 
-**Layer format:** `(cd rootfs && tar cf - *) > layer.tar` — glob expansion produces entries without `./` prefix. This matches the format `crane push` expects. The `*` glob excludes hidden files (dotfiles), which is fine for our rootfs.
+**Why multi-layer:** The previous single-layer approach (flatten debian rootfs + our files into one tar) produced images that Docker 28's containerd image store couldn't mount — all `exec` calls failed with `no such file or directory` despite `crane export` confirming the files existed. Using `crane append` preserves the base layers exactly as Docker Hub packages them, sidestepping the issue entirely.
 
-**Smoke test:** CI verifies images via `docker pull` from the registries after `crane push` — this tests the actual user experience. The `docker load` path is not tested because our hand-crafted Docker v1 tars have a diff_id or layer encoding mismatch that causes Docker's overlay2 driver to mount an empty filesystem. Fixing this would require either (a) using `crane pull` to re-export proper Docker v1 tars after pushing, or (b) matching Docker's exact expectations for config.json diff_ids computation. Neither is needed since we don't distribute Docker tars as release assets.
+**Config modification:** `crane append` inherits the base image's config (e.g. `Cmd: ["bash"]`). We extract the Docker v1 tar, modify the config with `jq` to set `Cmd=["/entrypoint.sh"]` and `WorkingDir="/app"`, recompute the config hash, and repackage. This requires `jq` at build time.
+
+**Smoke test:** CI verifies images via `docker pull` + `docker run` from both registries after `crane push`, plus a Debian baseline test to catch environmental issues. Includes diagnostic capture (container state, logs, exit code, OOM status) on failure.
 
 ### npm via npmjs.org
 
