@@ -197,38 +197,28 @@ jobs:
           set -euo pipefail
           echo "Docker version: $(docker version --format '{{.Server.Version}}')"
 
-          # Pre-flight: verify local image tar works via docker load
-          echo "── Local docker load sanity check ──"
-          docker load < images/rosetta-linux-amd64.tar
-          docker run --rm --name rosetta-load-test -p 18080:8080 -d rosetta:local >/dev/null
-          sleep 2
-          load_code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:18080/mcp" || true)
-          docker logs rosetta-load-test 2>&1 | tail -n 5 || true
-          docker rm -f rosetta-load-test >/dev/null 2>&1 || true
-          if [ "$load_code" = "000" ] || [ "$load_code" = "404" ]; then
-            echo "::error::Local docker load test failed (HTTP $load_code)"
-            exit 1
-          fi
-          echo "✓ Local image works (HTTP $load_code)"
+          smoke_test_container() {
+            local image="$1"
+            local name="$2"
+            local port="$3"
 
-          # Registry smoke tests
-          sha_tag="sha-${{ steps.image_meta.outputs.short_sha }}"
-          images=(
-            "ammo74/rosetta:${sha_tag}"
-            "ghcr.io/tikoci/rosetta:${sha_tag}"
-          )
-
-          for image in "${images[@]}"; do
-            echo "── Smoke testing $image ──"
-            docker pull "$image"
-
-            name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
             docker rm -f "$name" >/dev/null 2>&1 || true
-            docker run -d --name "$name" -p 18080:8080 "$image" >/dev/null
+            echo "Starting: docker run -d --name $name -p ${port}:8080 $image"
+            if ! docker run -d --name "$name" -p "${port}:8080" "$image" 2>&1; then
+              echo "::error::docker run failed for $image"
+              return 1
+            fi
 
+            # Wait for the container to respond (or die)
             ok=0
-            for _ in $(seq 1 30); do
-              code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:18080/mcp" || true)
+            for i in $(seq 1 15); do
+              # Check if container is still running
+              state=$(docker inspect "$name" --format '{{.State.Status}}' 2>/dev/null || echo "gone")
+              if [ "$state" = "exited" ] || [ "$state" = "gone" ]; then
+                echo "Container exited early (state=$state, attempt=$i)"
+                break
+              fi
+              code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${port}/mcp" || true)
               if [ "$code" != "000" ] && [ "$code" != "404" ]; then
                 ok=1
                 break
@@ -238,19 +228,48 @@ jobs:
 
             if [ "$ok" -ne 1 ]; then
               echo "::group::Diagnostic info for $image"
-              docker logs "$name" 2>&1 | tail -n 20 || true
-              echo "---"
-              docker inspect "$name" --format '{{.State.Status}} exit={{.State.ExitCode}}' 2>&1 || true
-              echo "---"
+              docker inspect "$name" --format 'Status={{.State.Status}} Exit={{.State.ExitCode}} Error={{.State.Error}} OOMKilled={{.State.OOMKilled}}' 2>&1 || true
+              echo "── container logs ──"
+              docker logs "$name" 2>&1 || true
+              echo "── image filesystem ──"
               docker run --rm --entrypoint ls "$image" -la / 2>&1 | head -20 || true
+              echo "── entrypoint.sh ──"
+              docker run --rm --entrypoint cat "$image" /entrypoint.sh 2>&1 || true
+              echo "── test binary directly ──"
+              docker run --rm --entrypoint /app/rosetta "$image" --version 2>&1 || true
               echo "::endgroup::"
               docker rm -f "$name" >/dev/null 2>&1 || true
-              echo "::error::Smoke test failed for $image"
-              exit 1
+              return 1
             fi
 
             docker rm -f "$name" >/dev/null 2>&1 || true
             echo "✓ $image OK (HTTP $code)"
+          }
+
+          # Pre-flight: verify local image tar works via docker load
+          echo "── Local docker load sanity check ──"
+          docker load < images/rosetta-linux-amd64.tar
+          if ! smoke_test_container "rosetta:local" "rosetta-load-test" 18080; then
+            echo "::error::Local docker load test failed"
+            exit 1
+          fi
+
+          # Registry smoke tests
+          sha_tag="sha-${{ steps.image_meta.outputs.short_sha }}"
+          images=(
+            "ammo74/rosetta:${sha_tag}"
+            "ghcr.io/tikoci/rosetta:${sha_tag}"
+          )
+
+          port=18080
+          for image in "${images[@]}"; do
+            echo "── Smoke testing $image ──"
+            docker pull "$image"
+            name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
+            if ! smoke_test_container "$image" "$name" "$port"; then
+              echo "::error::Smoke test failed for $image"
+              exit 1
+            fi
           done
 
       - name: Upload DB as workflow artifact
