@@ -136,6 +136,20 @@ When triggered:
 - Execute `mcp-publisher publish server.json` in release job and fail release if publish fails.
 - Verify result with registry search API query for `io.github.tikoci/rosetta`.
 
+### Docker v1 tar format for `docker load`
+
+Current hand-crafted Docker v1 tars (manifest.json + config.json + layer.tar) work for `crane push` to registries but produce empty overlay mounts with `docker load`. All exec calls fail with `no such file or directory` because Docker can't match the layer to the diff_id in config.json. Root cause unclear — SHA-256 computation appears correct, but Docker's internal layer processing computes a different hash.
+
+**Trigger:** Need for offline docker image distribution (e.g., release assets as `.tar` for air-gapped environments).
+
+**Workaround:** After `crane push`, use `crane pull --format=tarball` to re-export a proper Docker v1 tar from the registry.
+
+When triggered:
+
+- Investigate Docker's exact diff_id computation (may differ from raw SHA-256 of tar file)
+- Or switch to `crane append` + `crane mutate` for proper multi-layer image construction
+- Add `docker load` smoke test back to CI once fixed
+
 ### OCI image armv7 support in release pipeline
 
 Current OCI publishing flow builds linux/amd64 and linux/arm64 images with Bun `--compile` and crane.

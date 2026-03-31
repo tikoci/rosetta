@@ -177,13 +177,13 @@ macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 tes
 
 Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same extraction pipeline from a remote HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance. Local release continues to work as an alternative path.
 
-### OCI image build: layer.tar entry format
+### OCI image build: crane-based pipeline
 
-The `image-build-platform` Makefile target builds single-layer OCI images using `crane export` for the base rootfs + our compiled binary. A critical gotcha: `tar cf layer.tar -C rootfs .` produces entries with `./` prefix (`./bin`, `./entrypoint.sh`), while Docker/containerd expects entries without prefix (`bin`, `entrypoint.sh`). The `./` prefix causes `exec /entrypoint.sh: no such file or directory` at container startup — the file exists but path resolution fails in the overlay filesystem.
+The `image-build-platform` Makefile target builds single-layer OCI images using `crane export` for the base rootfs + our compiled binary. These tars are intermediate artifacts for `crane push` — they're NOT directly loadable via `docker load` (the hand-crafted Docker v1 tar format produces empty overlay mounts, causing `exec: no such file or directory` for all binaries). Users get images via `docker pull` from Docker Hub / GHCR.
 
-Fix: `(cd rootfs && tar cf - *) > layer.tar` — glob expansion produces entries without prefix. This matches the format produced by standard base images (debian, alpine).
+**Layer format:** `(cd rootfs && tar cf - *) > layer.tar` — glob expansion produces entries without `./` prefix. This matches the format `crane push` expects. The `*` glob excludes hidden files (dotfiles), which is fine for our rootfs.
 
-The smoke test in `release.yml` first runs a local `docker load` + `docker run` before testing the registry round-trip, isolating build format issues from push/pull problems.
+**Smoke test:** CI verifies images via `docker pull` from the registries after `crane push` — this tests the actual user experience. The `docker load` path is not tested because our hand-crafted Docker v1 tars have a diff_id or layer encoding mismatch that causes Docker's overlay2 driver to mount an empty filesystem. Fixing this would require either (a) using `crane pull` to re-export proper Docker v1 tars after pushing, or (b) matching Docker's exact expectations for config.json diff_ids computation. Neither is needed since we don't distribute Docker tars as release assets.
 
 ### npm via npmjs.org
 
