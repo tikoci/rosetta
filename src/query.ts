@@ -184,6 +184,7 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
   word_count: number;
   code_lines: number;
   callouts: Array<{ type: string; content: string }>;
+  callout_summary?: { count: number; types: Record<string, number> };
   truncated?: { text_total: number; code_total: number };
   sections?: SectionTocEntry[];
   section?: { heading: string; level: number; anchor_id: string };
@@ -221,11 +222,11 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
 
       const descendants = db
         .prepare(
-          `SELECT heading, level, text, code, word_count
+          `SELECT heading, level, anchor_id, text, code, word_count
            FROM sections WHERE page_id = ? AND sort_order > ? AND level > ? AND sort_order < ?
            ORDER BY sort_order`,
         )
-        .all(page.id, sec.sort_order, sec.level, upperBound) as Array<{ heading: string; level: number; text: string; code: string; word_count: number }>;
+        .all(page.id, sec.sort_order, sec.level, upperBound) as Array<{ heading: string; level: number; anchor_id: string; text: string; code: string; word_count: number }>;
 
       let fullText = sec.text;
       let fullCode = sec.code;
@@ -235,6 +236,34 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
         fullText += `\n\n${prefix} ${child.heading}\n${child.text}`;
         if (child.code) fullCode += `\n${child.code}`;
         totalWords += child.word_count;
+      }
+
+      // If section+descendants exceed maxLength and there are subsections, return sub-TOC
+      if (maxLength && (fullText.length + fullCode.length) > maxLength && descendants.length > 0) {
+        const subToc: SectionTocEntry[] = [
+          { heading: sec.heading, level: sec.level, anchor_id: sec.anchor_id, char_count: sec.text.length + sec.code.length, url: `${page.url}#${sec.anchor_id}` },
+          ...descendants.map((d) => ({ heading: d.heading, level: d.level, anchor_id: d.anchor_id, char_count: d.text.length + d.code.length, url: `${page.url}#${d.anchor_id}` })),
+        ];
+        const totalChars = fullText.length + fullCode.length;
+        return {
+          id: page.id, title: page.title, path: page.path, url: `${page.url}#${sec.anchor_id}`,
+          text: "", code: "",
+          word_count: totalWords, code_lines: 0,
+          callouts: [], callout_summary: calloutSummary(callouts),
+          sections: subToc,
+          section: { heading: sec.heading, level: sec.level, anchor_id: sec.anchor_id },
+          note: `Section "${sec.heading}" content (${totalChars} chars) exceeds max_length (${maxLength}). Showing ${subToc.length} sub-sections. Re-call with a more specific section heading or anchor_id.`,
+        };
+      }
+
+      // If section exceeds maxLength but has no sub-sections, truncate
+      if (maxLength && (fullText.length + fullCode.length) > maxLength) {
+        const textTotal = fullText.length;
+        const codeTotal = fullCode.length;
+        const codeBudget = Math.min(codeTotal, Math.floor(maxLength * 0.2));
+        const textBudget = maxLength - codeBudget;
+        fullText = `${fullText.slice(0, textBudget)}\n\n[... truncated — ${textTotal} chars total, showing first ${textBudget}]`;
+        fullCode = codeTotal > codeBudget ? `${fullCode.slice(0, codeBudget)}\n# [... truncated — ${codeTotal} chars total]` : fullCode;
       }
 
       return {
@@ -258,7 +287,8 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
         id: page.id, title: page.title, path: page.path, url: page.url,
         text: "", code: "",
         word_count: page.word_count, code_lines: page.code_lines,
-        callouts, sections: toc,
+        callouts: [], callout_summary: calloutSummary(callouts),
+        sections: toc,
         note: `Section "${section}" not found. ${toc.length} sections available — use a heading or anchor_id from the list.`,
       };
     }
@@ -284,7 +314,8 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
         id: page.id, title: page.title, path: page.path, url: page.url,
         text: "", code: "",
         word_count: page.word_count, code_lines: page.code_lines,
-        callouts, sections: toc,
+        callouts: [], callout_summary: calloutSummary(callouts),
+        sections: toc,
         truncated: { text_total: text.length, code_total: code.length },
         note: `Page content (${totalChars} chars) exceeds max_length (${maxLength}). Showing table of contents with ${toc.length} sections. Re-call with section parameter to retrieve specific sections.`,
       };
@@ -301,6 +332,13 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
   }
 
   return { id: page.id, title: page.title, path: page.path, url: page.url, text, code, word_count: page.word_count, code_lines: page.code_lines, callouts, ...(truncated ? { truncated } : {}) };
+}
+
+/** Build compact callout summary (count + type breakdown) for TOC-mode responses. */
+function calloutSummary(callouts: Array<{ type: string; content: string }>): { count: number; types: Record<string, number> } {
+  const types: Record<string, number> = {};
+  for (const c of callouts) types[c.type] = (types[c.type] || 0) + 1;
+  return { count: callouts.length, types };
 }
 
 /** Build section TOC for a page. */

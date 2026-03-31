@@ -175,19 +175,17 @@ Use after routeros_search identifies a relevant page. Pass the numeric page ID
 Returns: plain text, code blocks, and callout blocks (notes, warnings, info, tips).
 Callouts contain crucial caveats and edge-case details — always review them.
 
-**Large page handling:** Always set max_length (e.g., 30000) on the first call.
-Some pages are 100K+ chars. When max_length is set and the page exceeds it,
+**Large page handling:** max_length defaults to 16000. When page content exceeds it,
 pages with sections return a **table of contents** instead of truncated text.
 The TOC lists each section's heading, hierarchy level, character count, and
 deep-link URL. Re-call with the section parameter to retrieve specific sections.
 
 **Section parameter:** Pass a section heading or anchor_id (from the TOC)
-to get that section's content. Parent sections automatically include all
-sub-section content, so requesting a top-level heading gives you everything
-under it.
+to get that section's content. If a section is still too large, its sub-section
+TOC is returned instead — request a more specific sub-section.
 
 Recommended workflow for large pages:
-1. Call with max_length=30000 → get TOC if page is large
+1. First call → get TOC if page is large (automatic with default max_length)
 2. Review section headings to find the relevant section
 3. Call again with section="Section Name" to get that section's content
 
@@ -204,12 +202,12 @@ Workflow — what to do with this content:
         .number()
         .int()
         .min(1000)
-        .optional()
-        .describe("Recommended: set to 30000. Max combined text+code length. If exceeded and page has sections, returns a TOC instead of truncated text. Omit only if you need the entire page."),
+        .default(16000)
+        .describe("Max combined text+code length (default: 16000). If exceeded and page has sections, returns a TOC instead of truncated text. Set higher (e.g. 50000) to get more content in one call."),
       section: z
         .string()
         .optional()
-        .describe("Section heading or anchor_id from TOC. Returns only that section's content."),
+        .describe("Section heading or anchor_id from TOC. Returns only that section's content (also subject to max_length)."),
     },
   },
   async ({ page, max_length, section }) => {

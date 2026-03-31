@@ -178,7 +178,7 @@ Register in MCP client config (bunx example — no paths needed):
 | Tool | Purpose |
 |------|---------|
 | `routeros_search` | FTS5 search across pages. BM25 ranked, AND→OR fallback |
-| `routeros_get_page` | Full page text by ID or title. Section-aware: large pages return TOC when `max_length` exceeded; `section` param retrieves specific sections |
+| `routeros_get_page` | Full page text by ID or title. Section-aware: `max_length` defaults to 16000; large pages return TOC (with callout summary instead of full callouts); `section` param retrieves specific sections (also subject to `max_length`) |
 | `routeros_lookup_property` | Property by exact name, optionally filtered by command path |
 | `routeros_search_properties` | FTS across property names + descriptions, AND→OR fallback |
 | `routeros_command_tree` | Browse command hierarchy at a given path |
