@@ -136,27 +136,24 @@ When triggered:
 - Execute `mcp-publisher publish server.json` in release job and fail release if publish fails.
 - Verify result with registry search API query for `io.github.tikoci/rosetta`.
 
-### Docker v1 tar format for `docker load`
+### Docker v1 tar / crane — OCI build anti-pattern
 
-The old single-layer approach (flatten debian + our files into one tar, hand-craft config.json) produced images where Docker 28's containerd image store mounted an empty overlay filesystem — all exec calls failed with `no such file or directory`. Even `docker pull` from the registry after `crane push` exhibited the same failure.
+All crane-based OCI image construction approaches (single-layer hand-crafted tars; `crane append` + jq config modification) failed on Docker 28's containerd image store: all exec calls returned `no such file or directory` despite `crane export` confirming files existed. Root cause never diagnosed.
 
-**Status:** Resolved by switching to `crane append` (multi-layer approach) which preserves base debian layers intact. The jq-based config modification (Cmd, WorkingDir) after `crane append` produces well-formed Docker v1 tars that `crane push` handles correctly.
+**Status:** Resolved — switched to `Dockerfile.release` + `docker buildx build --push --platform linux/amd64,linux/arm64`. Standard Docker builds work correctly.
 
-**If regression:** The root cause of the original single-layer failure was never fully understood — SHA-256 diff_ids appeared correct, `crane export` confirmed files existed, but Docker couldn't mount the layer. If multi-layer builds start failing similarly, investigate Docker's containerd image store layer validation or try `crane pull --format=tarball` to re-export from the registry.
+**If re-evaluation of crane is needed:** See `~/.copilot/skills/tikoci-oci-image-building/SKILL.md` for the full anti-pattern documentation and what was tried.
 
 ### OCI image armv7 support in release pipeline
 
-Current OCI publishing flow builds linux/amd64 and linux/arm64 images with Bun `--compile` and crane.
-`linux/arm/v7` is intentionally deferred because Bun target support/behavior for this build path is not yet verified for this project.
+Current CI builds linux/amd64 and linux/arm64 via `docker buildx`. `linux/arm/v7` is deferred because Bun target support for this path is unverified.
 
-**Trigger:** Bun reliably supports and we validate release-grade armv7 compilation for `src/mcp.ts`.
+**Trigger:** Bun reliably supports armv7 compilation for `src/mcp.ts`.
 
 When triggered:
 
-- Add `linux/arm/v7` to `IMAGE_PLATFORMS` in `Makefile`
-- Extend platform mapping + `config.architecture` handling in image targets
-- Add CI smoke validation for armv7 image boot and `/mcp` health
-- Publish armv7 manifests to both Docker Hub and GHCR tags
+- Add `linux/arm/v7` to `--platform` in the `docker buildx build` CI step
+- Add arm/v7 case to the `TARGETARCH` switch in `Dockerfile.release`
 
 ### Documentation version tracking
 

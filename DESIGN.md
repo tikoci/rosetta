@@ -177,15 +177,15 @@ macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 tes
 
 Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same extraction pipeline from a remote HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance. Local release continues to work as an alternative path.
 
-### OCI image build: crane-based pipeline
+### OCI image build: Dockerfile + docker buildx
 
-The `image-build-platform` Makefile target builds multi-layer OCI images using `crane append` onto `debian:bookworm-slim`. This preserves the base image's layers intact and adds our files (compiled binary, database, entrypoint) as a separate layer on top. The resulting Docker v1 tars are intermediate artifacts for `crane push`.
+OCI images are built with a standard `Dockerfile.release` + `docker buildx build --push --platform linux/amd64,linux/arm64`. The builder stage uses `--platform=$BUILDPLATFORM` (always the CI host — amd64) and Bun's `--target` cross-compilation to produce the arm64 binary without QEMU emulation. No crane required.
 
-**Why multi-layer:** The previous single-layer approach (flatten debian rootfs + our files into one tar) produced images that Docker 28's containerd image store couldn't mount — all `exec` calls failed with `no such file or directory` despite `crane export` confirming the files existed. Using `crane append` preserves the base layers exactly as Docker Hub packages them, sidestepping the issue entirely.
+**Why not crane:** Multiple approaches using crane (single-layer hand-crafted tars; `crane append` + jq config modification) were tried and all failed identically on Docker 28's containerd image store — every exec call failed with `no such file or directory` despite `crane export` confirming file contents were correct. The root cause was never diagnosed. Docker buildx is the correct tool for standard images.
 
-**Config modification:** `crane append` inherits the base image's config (e.g. `Cmd: ["bash"]`). We extract the Docker v1 tar, modify the config with `jq` to set `Cmd=["/entrypoint.sh"]` and `WorkingDir="/app"`, recompute the config hash, and repackage. This requires `jq` at build time.
-
-**Smoke test:** CI verifies images via `docker pull` + `docker run` from both registries after `crane push`, plus a Debian baseline test to catch environmental issues. Includes diagnostic capture (container state, logs, exit code, OOM status) on failure.
+**Two Dockerfiles:**
+- `Dockerfile` — base image without DB (for local dev use, DB mounted via `-v`)
+- `Dockerfile.release` — release image with DB baked in (`COPY ros-help.db /app/`), used by `release.yml` CI
 
 ### npm via npmjs.org
 

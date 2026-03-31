@@ -2,17 +2,10 @@ DB         := ros-help.db
 HTML_DIR   := box/latest/ROS
 VERSION    ?=
 FORCE      ?=
-IMAGE      ?= tikoci/rosetta
-IMAGE_TAG  ?= latest
-IMAGE_PLATFORMS ?= linux/amd64 linux/arm64
-IMAGE_BUILD_DIR ?= .image-build
-IMAGE_OUT_DIR ?= images
-IMAGE_VERSION ?= $(if $(VERSION),$(VERSION),dev)
 
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
         extract-all-versions extract-devices extract-changelogs link assess search serve \
 	typecheck lint test preflight build-release release \
-	image-build image-build-platform image-push-registry image-publish \
         install setup clean
 
 # ── Development ──
@@ -109,76 +102,13 @@ else
 	@echo "✓ Release $(VERSION) created"
 endif
 
-# ── OCI image build/publish (crane, no Docker daemon) ──
-
-image-build:
-	@test -f $(DB) || (echo "✗ Database $(DB) not found. Build DB first (make extract)." && exit 1)
-	@command -v crane >/dev/null 2>&1 || (echo "✗ crane is required (go install github.com/google/go-containerregistry/cmd/crane@latest)" && exit 1)
-	@command -v jq >/dev/null 2>&1 || (echo "✗ jq is required for image builds (brew install jq / apt install jq)" && exit 1)
-	@mkdir -p $(IMAGE_OUT_DIR)
-	@for plat in $(IMAGE_PLATFORMS); do \
-		echo "── Building OCI image for $$plat ──"; \
-		$(MAKE) --no-print-directory image-build-platform IMAGE_PLATFORM=$$plat; \
-	done
-	@echo "✓ OCI image tars created in $(IMAGE_OUT_DIR)/"
-
-image-build-platform:
-	@test -n "$(IMAGE_PLATFORM)" || (echo "✗ IMAGE_PLATFORM is required (e.g. linux/amd64)" && exit 1)
-	@case "$(IMAGE_PLATFORM)" in \
-		linux/amd64) bun_target=bun-linux-x64; ptag=linux-amd64 ;; \
-		linux/arm64) bun_target=bun-linux-arm64; ptag=linux-arm64 ;; \
-		*) echo "✗ Unsupported IMAGE_PLATFORM: $(IMAGE_PLATFORM)"; echo "  Supported: linux/amd64 linux/arm64"; exit 1 ;; \
-	 esac; \
-	 work="$(IMAGE_BUILD_DIR)/$$ptag"; \
-	 rm -rf "$$work"; \
-	 mkdir -p "$$work/rootfs/app" "$$work/extract" "$(IMAGE_OUT_DIR)"; \
-	 bun build --compile --minify --bytecode --target="$$bun_target" \
-		--define VERSION="'\"$(IMAGE_VERSION)\"'" \
-		--define REPO_URL="'\"tikoci/rosetta\"'" \
-		--define IS_COMPILED='true' \
-		src/mcp.ts --outfile "$$work/rootfs/app/rosetta"; \
-	 install -m 0755 scripts/container-entrypoint.sh "$$work/rootfs/entrypoint.sh"; \
-	 cp "$(DB)" "$$work/rootfs/app/ros-help.db"; \
-	 (cd "$$work/rootfs" && tar cf - entrypoint.sh app) > "$$work/additions.tar"; \
-	 crane append -b debian:bookworm-slim --platform "$(IMAGE_PLATFORM)" \
-		-f "$$work/additions.tar" -t rosetta:local -o "$$work/intermediate.tar"; \
-	 tar xf "$$work/intermediate.tar" -C "$$work/extract"; \
-	 cfg_file=$$(jq -r '.[0].Config' "$$work/extract/manifest.json"); \
-	 jq '.config.Cmd=["/entrypoint.sh"] | .config.WorkingDir="/app"' \
-		"$$work/extract/$$cfg_file" > "$$work/extract/config.tmp"; \
-	 new_hash=$$( ( shasum -a 256 "$$work/extract/config.tmp" 2>/dev/null || sha256sum "$$work/extract/config.tmp" ) | cut -d' ' -f1 ); \
-	 new_cfg="sha256:$$new_hash"; \
-	 mv "$$work/extract/config.tmp" "$$work/extract/$$new_cfg"; \
-	 rm -f "$$work/extract/$$cfg_file"; \
-	 jq --arg c "$$new_cfg" '.[0].Config=$$c' "$$work/extract/manifest.json" > "$$work/extract/manifest.tmp"; \
-	 mv "$$work/extract/manifest.tmp" "$$work/extract/manifest.json"; \
-	 tar cf "$(IMAGE_OUT_DIR)/rosetta-$$ptag.tar" -C "$$work/extract" .; \
-	 echo "✓ $(IMAGE_OUT_DIR)/rosetta-$$ptag.tar (multi-layer)"
-
-image-push-registry:
-	@test -n "$(IMAGE)" || (echo "✗ IMAGE is required (e.g. ammo74/rosetta)" && exit 1)
-	@test -n "$(IMAGE_TAG)" || (echo "✗ IMAGE_TAG is required (e.g. v0.2.0)" && exit 1)
-	@command -v crane >/dev/null 2>&1 || (echo "✗ crane is required" && exit 1)
-	@manifests=""; \
-	 for plat in $(IMAGE_PLATFORMS); do \
-		case "$$plat" in \
-			linux/amd64) ptag=linux-amd64 ;; \
-			linux/arm64) ptag=linux-arm64 ;; \
-			*) echo "✗ Unsupported IMAGE_PLATFORM in IMAGE_PLATFORMS: $$plat"; exit 1 ;; \
-		esac; \
-		tar_file="$(IMAGE_OUT_DIR)/rosetta-$$ptag.tar"; \
-		test -f "$$tar_file" || (echo "✗ Missing image tar: $$tar_file (run make image-build first)" && exit 1); \
-		ref="$(IMAGE):$(IMAGE_TAG)-$$ptag"; \
-		echo "Pushing $$tar_file -> $$ref"; \
-		crane push "$$tar_file" "$$ref"; \
-		manifests="$$manifests -m $$ref"; \
-	 done; \
-	 eval "crane index append -t \"$(IMAGE):$(IMAGE_TAG)\" $$manifests"; \
-	 echo "✓ Published $(IMAGE):$(IMAGE_TAG)"
-
-image-publish: image-build image-push-registry
-
 setup:
+	bun install
+	bun run src/setup.ts
+
+clean:
+	rm -f $(DB) $(DB)-shm $(DB)-wal
+	rm -rf dist/
 	bun install
 	bun run src/setup.ts
 

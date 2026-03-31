@@ -51,17 +51,10 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-
       - run: bun install
 
-      - name: Install crane
-        run: go install github.com/google/go-containerregistry/cmd/crane@latest
-
-      - name: Add Go bin to PATH
-        run: echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       # ── Download and validate HTML export ──
 
@@ -161,9 +154,6 @@ jobs:
       - name: Build release artifacts
         run: bun run scripts/build-release.ts ${{ inputs.version }}
 
-      - name: Build OCI image tars
-        run: make image-build VERSION=${{ inputs.version }}
-
       - name: Compute image metadata
         id: image_meta
         run: |
@@ -171,39 +161,45 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | crane auth login docker.io -u ammo74 --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ammo74
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GHCR
-        run: |
-          echo "${{ github.token }}" | crane auth login ghcr.io -u "${{ github.actor }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
 
-      - name: Publish OCI images (Docker Hub + GHCR)
+      - name: Build and push OCI images (Docker Hub + GHCR)
         run: |
           set -euo pipefail
+          SHORT_SHA="${{ steps.image_meta.outputs.short_sha }}"
+          VERSION="${{ inputs.version }}"
 
-          tags=("${{ inputs.version }}" "latest" "sha-${{ steps.image_meta.outputs.short_sha }}")
-          registries=("ammo74/rosetta" "ghcr.io/tikoci/rosetta")
-
-          for registry in "${registries[@]}"; do
-            for tag in "${tags[@]}"; do
-              echo "Publishing $registry:$tag"
-              make image-push-registry IMAGE="$registry" IMAGE_TAG="$tag"
+          tags=""
+          for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
+            for tag in "$VERSION" latest "sha-${SHORT_SHA}"; do
+              tags="$tags --tag ${registry}:${tag}"
             done
           done
+
+          # Inject DB into the build context so it gets baked into the image
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg VERSION="$VERSION" \
+            --build-arg REPO_URL=tikoci/rosetta \
+            $tags \
+            --push \
+            -f Dockerfile.release \
+            .
 
       - name: Smoke test published OCI images
         run: |
           set -euo pipefail
-          echo "Docker version: $(docker version --format '{{.Server.Version}}')"
-
-          # Baseline: confirm Docker can run containers at all
-          echo "── Baseline: docker run debian:bookworm-slim ls / ──"
-          docker run --rm debian:bookworm-slim ls / || {
-            echo "::error::Baseline Debian container failed — Docker itself is broken"
-            exit 1
-          }
-          echo "✓ Baseline OK"
+          SHA_TAG="sha-${{ steps.image_meta.outputs.short_sha }}"
 
           smoke_test_container() {
             local image="$1"
@@ -212,21 +208,17 @@ jobs:
 
             docker rm -f "$name" >/dev/null 2>&1 || true
             echo "Starting: docker run -d --name $name -p ${port}:8080 $image"
-            if ! docker run -d --name "$name" -p "${port}:8080" "$image" 2>&1; then
-              echo "::error::docker run failed for $image"
-              return 1
-            fi
+            docker run -d --name "$name" -p "${port}:8080" "$image"
 
-            # Wait for the container to respond (or die)
             ok=0
-            for i in $(seq 1 15); do
-              state=$(docker inspect "$name" --format '{{.State.Status}}' 2>/dev/null || echo "gone")
-              if [ "$state" = "exited" ] || [ "$state" = "gone" ]; then
+            for i in $(seq 1 20); do
+              state=$(docker inspect "$name" --format '{{.State.Status}}' 2>/dev/null || echo gone)
+              if [ "$state" = exited ] || [ "$state" = gone ]; then
                 echo "Container exited early (state=$state, attempt=$i)"
                 break
               fi
-              code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${port}/mcp" || true)
-              if [ "$code" != "000" ] && [ "$code" != "404" ]; then
+              code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/mcp" || true)
+              if [ "$code" != 000 ] && [ "$code" != 404 ]; then
                 ok=1
                 break
               fi
@@ -236,10 +228,7 @@ jobs:
             if [ "$ok" -ne 1 ]; then
               echo "::group::Diagnostic info for $image"
               docker inspect "$name" --format 'Status={{.State.Status}} Exit={{.State.ExitCode}} Error={{.State.Error}} OOMKilled={{.State.OOMKilled}}' 2>&1 || true
-              echo "── container logs ──"
               docker logs "$name" 2>&1 || true
-              echo "── test binary directly ──"
-              docker run --rm --entrypoint /app/rosetta "$image" --version 2>&1 || true
               echo "::endgroup::"
               docker rm -f "$name" >/dev/null 2>&1 || true
               return 1
@@ -249,25 +238,15 @@ jobs:
             echo "✓ $image OK (HTTP $code)"
           }
 
-          # Smoke test images pulled from registries (what users actually do)
-          sha_tag="sha-${{ steps.image_meta.outputs.short_sha }}"
-          images=(
-            "ammo74/rosetta:${sha_tag}"
-            "ghcr.io/tikoci/rosetta:${sha_tag}"
-          )
-
           port=18080
-          for image in "${images[@]}"; do
+          for image in "ammo74/rosetta:${SHA_TAG}" "ghcr.io/tikoci/rosetta:${SHA_TAG}"; do
             echo "── Smoke testing $image ──"
             docker pull "$image"
-            echo "::group::docker inspect $image"
-            docker inspect "$image" | jq '.[0].RootFS' 2>/dev/null || true
-            echo "::endgroup::"
             name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
-            if ! smoke_test_container "$image" "$name" "$port"; then
+            smoke_test_container "$image" "$name" "$port" || {
               echo "::error::Smoke test failed for $image"
               exit 1
-            fi
+            }
           done
 
       - name: Upload DB as workflow artifact
