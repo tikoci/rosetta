@@ -10,7 +10,7 @@ Most retrieval-augmented generation (RAG) systems use vector embeddings to searc
 
 For structured technical documentation like RouterOS, full-text search with [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function) beats vector similarity. Technical terms like "dhcp-snooping" or "/ip/firewall/filter" are exact tokens — [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) and proximity matching handle the rest. No embedding pipeline, no vector database, no API keys. Just a single SQLite file that searches in milliseconds.
 
-The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 11 search tools over stdio transport.
+The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 11 search tools over stdio or HTTP transport.
 
 ## What's Inside
 
@@ -216,6 +216,33 @@ The AI assistant typically starts with `routeros_search`, then drills into speci
 | **Windows SmartScreen warning** | Use `bunx` install (no SmartScreen issues), or click **More info → Run anyway** |
 | **How to update** | `bunx` always uses the latest published version. For binaries, re-download from [Releases](https://github.com/tikoci/rosetta/releases/latest). |
 
+## HTTP Transport
+
+Most MCP clients use stdio (the default). Some — like the OpenAI platform and remote/LAN setups — require an HTTP endpoint instead. Rosetta supports the [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) via the `--http` flag:
+
+```sh
+rosetta --http                    # http://localhost:8080/mcp
+rosetta --http --port 9090        # custom port
+rosetta --http --host 0.0.0.0    # accessible from LAN
+```
+
+Then point your MCP client at the URL:
+
+```json
+{ "url": "http://localhost:8080/mcp" }
+```
+
+**Key facts:**
+
+- **Read-only** — the server queries a local SQLite database. It does not store data, accept uploads, or modify anything.
+- **No authentication** — designed for local/trusted-network use. For public exposure, put it behind a reverse proxy (nginx, caddy) with TLS and auth.
+- **TLS built-in** — for direct HTTPS without a proxy: `--tls-cert cert.pem --tls-key key.pem`
+- **Defaults to localhost** — binding to all interfaces (`--host 0.0.0.0`) requires an explicit flag and logs a warning.
+- **Origin validation** — rejects cross-origin requests to prevent DNS rebinding attacks.
+- **Stdio remains default** — `--http` is opt-in. Existing stdio configs are unaffected.
+
+The `PORT` and `HOST` environment variables are also supported (lower precedence than CLI flags).
+
 ## Building from Source
 
 For contributors or when you have access to the MikroTik HTML documentation export.
@@ -280,7 +307,7 @@ This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), crea
 
 ```text
 src/
-├── mcp.ts                  # MCP server (11 tools, stdio) + CLI dispatch
+├── mcp.ts                  # MCP server (11 tools, stdio + HTTP) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers

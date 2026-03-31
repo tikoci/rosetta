@@ -167,6 +167,8 @@ function printCompiledConfig(serverCmd: string) {
   console.log("▸ OpenAI Codex");
   console.log(`  codex mcp add rosetta -- ${serverCmd}`);
   console.log();
+
+  printHttpConfig(`${serverCmd} --http`);
 }
 
 function printPackageConfig() {
@@ -228,6 +230,8 @@ function printPackageConfig() {
   console.log("▸ OpenAI Codex");
   console.log(`  codex mcp add rosetta -- bunx @tikoci/rosetta`);
   console.log();
+
+  printHttpConfig("bunx @tikoci/rosetta --http");
 }
 
 function printDevConfig(baseDir: string) {
@@ -275,6 +279,27 @@ function printDevConfig(baseDir: string) {
   // OpenAI Codex
   console.log("▸ OpenAI Codex");
   console.log(`  codex mcp add rosetta -- bun run src/mcp.ts`);
+  console.log();
+
+  printHttpConfig(`bun run src/mcp.ts --http`);
+}
+
+function printHttpConfig(startCmd: string) {
+  console.log("─".repeat(60));
+  console.log("Streamable HTTP transport (for HTTP-only MCP clients):");
+  console.log("─".repeat(60));
+  console.log();
+  console.log("▸ Start in HTTP mode");
+  console.log(`  ${startCmd}`);
+  console.log(`  ${startCmd} --port 9090`);
+  console.log(`  ${startCmd} --host 0.0.0.0          # LAN access`);
+  console.log(`  ${startCmd} --tls-cert cert.pem --tls-key key.pem  # HTTPS`);
+  console.log();
+  console.log("▸ URL-based MCP clients (OpenAI, etc.)");
+  console.log(`  { "url": "http://localhost:8080/mcp" }`);
+  console.log();
+  console.log("  For LAN access, replace localhost with the server's IP address.");
+  console.log("  Use a reverse proxy (nginx, caddy) for production HTTPS.");
   console.log();
 }
 

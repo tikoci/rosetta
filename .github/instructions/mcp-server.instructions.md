@@ -7,7 +7,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 ## MCP Tool Conventions
 - Server name: `"rosetta"` — never change
 - Zod v4 installed, but import from `"zod/v3"` — MCP SDK requires Zod v3 API
-- Transport: stdio only (`StdioServerTransport`)
+- Transport: stdio (default) or Streamable HTTP (`--http` flag). HTTP uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` in stateful mode.
 - Tools return structured objects, not raw SQL rows
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 

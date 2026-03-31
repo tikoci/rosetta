@@ -9,10 +9,17 @@
  *   --setup [--force]  Download database + print MCP client config
  *   --version          Print version
  *   --help             Print usage
+ *   --http             Start with Streamable HTTP transport (instead of stdio)
+ *   --port <N>         HTTP listen port (default: 8080, env: PORT)
+ *   --host <ADDR>      HTTP bind address (default: localhost, env: HOST)
+ *   --tls-cert <PATH>  TLS certificate PEM file (enables HTTPS)
+ *   --tls-key <PATH>   TLS private key PEM file (requires --tls-cert)
  *   (default)          Start MCP server (stdio transport)
  *
  * Environment variables:
  *   DB_PATH — absolute path to ros-help.db (default: next to binary or project root)
+ *   PORT    — HTTP listen port (lower precedence than --port)
+ *   HOST    — HTTP bind address (lower precedence than --host)
  */
 
 import { resolveVersion } from "./paths.ts";
@@ -22,6 +29,12 @@ const RESOLVED_VERSION = resolveVersion(import.meta.dirname);
 // ── CLI dispatch (before MCP server init) ──
 
 const args = process.argv.slice(2);
+
+/** Extract the value following a named flag (e.g. --port 8080 → "8080") */
+function getArg(name: string): string | undefined {
+  const idx = args.indexOf(name);
+  return idx !== -1 && idx + 1 < args.length ? args[idx + 1] : undefined;
+}
 
 if (args.includes("--version") || args.includes("-v")) {
   console.log(`rosetta ${RESOLVED_VERSION}`);
@@ -33,13 +46,22 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log();
   console.log("Usage:");
   console.log("  rosetta              Start MCP server (stdio transport)");
+  console.log("  rosetta --http       Start with Streamable HTTP transport");
   console.log("  rosetta --setup      Download database + print MCP client config");
   console.log("  rosetta --setup --force  Re-download database");
   console.log("  rosetta --version    Print version");
   console.log("  rosetta --help       Print this help");
   console.log();
+  console.log("HTTP options (require --http):");
+  console.log("  --port <N>           Listen port (default: 8080, env: PORT)");
+  console.log("  --host <ADDR>        Bind address (default: localhost, env: HOST)");
+  console.log("  --tls-cert <PATH>    TLS certificate PEM file (enables HTTPS)");
+  console.log("  --tls-key <PATH>     TLS private key PEM file (requires --tls-cert)");
+  console.log();
   console.log("Environment:");
   console.log("  DB_PATH  Absolute path to ros-help.db (optional)");
+  console.log("  PORT     HTTP listen port (lower precedence than --port)");
+  console.log("  HOST     HTTP bind address (lower precedence than --host)");
   process.exit(0);
 }
 
@@ -54,8 +76,9 @@ if (args.includes("--setup")) {
 
 // ── MCP Server ──
 
+const useHttp = args.includes("--http");
+
 const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
-const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
 const { z } = await import("zod/v3");
 
 // Dynamic imports — db.ts eagerly opens the DB file on import,
@@ -737,7 +760,92 @@ Requires network access to upgrade.mikrotik.com.`,
 
 // ---- Start ----
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+if (useHttp) {
+  const { existsSync } = await import("node:fs");
+  const { WebStandardStreamableHTTPServerTransport } = await import(
+    "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"
+  );
+
+  const port = Number(getArg("--port") ?? process.env.PORT ?? 8080);
+  const hostname = getArg("--host") ?? process.env.HOST ?? "localhost";
+  const tlsCert = getArg("--tls-cert");
+  const tlsKey = getArg("--tls-key");
+
+  if ((tlsCert && !tlsKey) || (!tlsCert && tlsKey)) {
+    process.stderr.write("Error: --tls-cert and --tls-key must both be provided\n");
+    process.exit(1);
+  }
+  if (tlsCert && !existsSync(tlsCert)) {
+    process.stderr.write(`Error: TLS certificate not found: ${tlsCert}\n`);
+    process.exit(1);
+  }
+  if (tlsKey && !existsSync(tlsKey)) {
+    process.stderr.write(`Error: TLS private key not found: ${tlsKey}\n`);
+    process.exit(1);
+  }
+
+  const useTls = !!(tlsCert && tlsKey);
+  const scheme = useTls ? "https" : "http";
+
+  const httpTransport = new WebStandardStreamableHTTPServerTransport({
+    sessionIdGenerator: () => crypto.randomUUID(),
+    enableJsonResponse: false,
+  });
+
+  await server.connect(httpTransport);
+
+  const isLAN = hostname === "0.0.0.0" || hostname === "::";
+  if (isLAN) {
+    process.stderr.write(
+      "Warning: Binding to all interfaces — the MCP server will be accessible from the network.\n"
+    );
+    if (!useTls) {
+      process.stderr.write(
+        "  Consider using --tls-cert/--tls-key or a reverse proxy for production use.\n"
+      );
+    }
+  }
+
+  Bun.serve({
+    port,
+    hostname,
+    ...(useTls && tlsCert && tlsKey
+      ? { tls: { cert: Bun.file(tlsCert), key: Bun.file(tlsKey) } }
+      : {}),
+    async fetch(req: Request): Promise<Response> {
+      const url = new URL(req.url);
+
+      // DNS rebinding protection: reject browser-origin requests
+      const origin = req.headers.get("origin");
+      if (origin) {
+        try {
+          const originHost = new URL(origin).host;
+          const serverHost = `${hostname === "0.0.0.0" || hostname === "::" ? "localhost" : hostname}:${port}`;
+          if (originHost !== serverHost && originHost !== `localhost:${port}` && originHost !== `127.0.0.1:${port}`) {
+            return new Response("Forbidden: Origin not allowed", { status: 403 });
+          }
+        } catch {
+          return new Response("Forbidden: Invalid Origin", { status: 403 });
+        }
+      }
+
+      if (url.pathname === "/mcp") {
+        return httpTransport.handleRequest(req);
+      }
+
+      return new Response("Not Found", { status: 404 });
+    },
+  });
+
+  const displayHost = isLAN ? "localhost" : hostname;
+  process.stderr.write(`rosetta ${RESOLVED_VERSION} — Streamable HTTP\n`);
+  process.stderr.write(`  ${scheme}://${displayHost}:${port}/mcp\n`);
+} else {
+  const { StdioServerTransport } = await import(
+    "@modelcontextprotocol/sdk/server/stdio.js"
+  );
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
 
 })();

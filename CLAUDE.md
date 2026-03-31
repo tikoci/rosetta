@@ -267,13 +267,33 @@ bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 | `--setup --force` | Re-download DB |
 | `--version` | Print version |
 | `--help` | Print usage |
+| `--http` | Start with Streamable HTTP transport (instead of stdio) |
+| `--port <N>` | HTTP listen port (default: 8080, env: `PORT`) |
+| `--host <ADDR>` | HTTP bind address (default: localhost, env: `HOST`) |
+| `--tls-cert <PATH>` | TLS certificate PEM file (enables HTTPS) |
+| `--tls-key <PATH>` | TLS private key PEM file (requires `--tls-cert`) |
 | *(none)* | Start MCP server (stdio) |
+
+### HTTP Transport
+
+For MCP clients that require HTTP instead of stdio (e.g., OpenAI platform, remote/LAN access):
+
+```sh
+rosetta --http                              # localhost:8080/mcp
+rosetta --http --port 9090                  # custom port
+rosetta --http --host 0.0.0.0              # LAN-accessible
+rosetta --http --tls-cert cert.pem --tls-key key.pem  # HTTPS
+```
+
+Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` in stateful mode. The endpoint is `/mcp`. Clients connect with a URL like `http://localhost:8080/mcp`.
+
+**Security:** Defaults to localhost binding. LAN binding (`--host 0.0.0.0`) logs a warning. Origin header validation prevents DNS rebinding. For production network exposure, use a reverse proxy or `--tls-cert`/`--tls-key`.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 11 tools, stdio transport |
+| `src/mcp.ts` | MCP server — 11 tools, stdio + Streamable HTTP transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
