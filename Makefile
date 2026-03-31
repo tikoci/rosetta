@@ -141,7 +141,7 @@ image-build-platform:
 		src/mcp.ts --outfile "$$rootfs/app/rosetta"; \
 	 install -m 0755 scripts/container-entrypoint.sh "$$rootfs/entrypoint.sh"; \
 	 cp "$(DB)" "$$rootfs/app/ros-help.db"; \
-	 tar cf "$$image_dir/layer.tar" -C "$$rootfs" .; \
+	 (cd "$$rootfs" && tar cf - *) > "$$image_dir/layer.tar"; \
 	 digest=$$( ( shasum -a 256 "$$image_dir/layer.tar" 2>/dev/null || sha256sum "$$image_dir/layer.tar" ) | cut -d' ' -f1 ); \
 	 printf '{"architecture":"%s","os":"linux","config":{"WorkingDir":"/app","Cmd":["/entrypoint.sh"],"Env":["PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"]},"rootfs":{"type":"layers","diff_ids":["sha256:%s"]}}\n' "$$cfg_arch" "$$digest" > "$$image_dir/config.json"; \
 	 printf '[{"Config":"config.json","RepoTags":["rosetta:local"],"Layers":["layer.tar"]}]\n' > "$$image_dir/manifest.json"; \

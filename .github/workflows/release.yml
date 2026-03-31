@@ -195,7 +195,23 @@ jobs:
       - name: Smoke test published OCI images
         run: |
           set -euo pipefail
+          echo "Docker version: $(docker version --format '{{.Server.Version}}')"
 
+          # Pre-flight: verify local image tar works via docker load
+          echo "── Local docker load sanity check ──"
+          docker load < images/rosetta-linux-amd64.tar
+          docker run --rm --name rosetta-load-test -p 18080:8080 -d rosetta:local >/dev/null
+          sleep 2
+          load_code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:18080/mcp" || true)
+          docker logs rosetta-load-test 2>&1 | tail -n 5 || true
+          docker rm -f rosetta-load-test >/dev/null 2>&1 || true
+          if [ "$load_code" = "000" ] || [ "$load_code" = "404" ]; then
+            echo "::error::Local docker load test failed (HTTP $load_code)"
+            exit 1
+          fi
+          echo "✓ Local image works (HTTP $load_code)"
+
+          # Registry smoke tests
           sha_tag="sha-${{ steps.image_meta.outputs.short_sha }}"
           images=(
             "ammo74/rosetta:${sha_tag}"
@@ -203,7 +219,7 @@ jobs:
           )
 
           for image in "${images[@]}"; do
-            echo "Smoke testing $image"
+            echo "── Smoke testing $image ──"
             docker pull "$image"
 
             name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
@@ -220,13 +236,21 @@ jobs:
               sleep 1
             done
 
-            docker logs "$name" | tail -n 20 || true
-            docker rm -f "$name" >/dev/null 2>&1 || true
-
             if [ "$ok" -ne 1 ]; then
+              echo "::group::Diagnostic info for $image"
+              docker logs "$name" 2>&1 | tail -n 20 || true
+              echo "---"
+              docker inspect "$name" --format '{{.State.Status}} exit={{.State.ExitCode}}' 2>&1 || true
+              echo "---"
+              docker run --rm --entrypoint ls "$image" -la / 2>&1 | head -20 || true
+              echo "::endgroup::"
+              docker rm -f "$name" >/dev/null 2>&1 || true
               echo "::error::Smoke test failed for $image"
               exit 1
             fi
+
+            docker rm -f "$name" >/dev/null 2>&1 || true
+            echo "✓ $image OK (HTTP $code)"
           done
 
       - name: Upload DB as workflow artifact
