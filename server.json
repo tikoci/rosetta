@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.tikoci/rosetta",
+  "description": "RouterOS documentation as SQLite FTS5 \u2014 RAG search + command glossary via MCP",
+  "repository": {
+    "url": "https://github.com/tikoci/rosetta",
+    "source": "github"
+  },
+  "version": "0.3.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@tikoci/rosetta",
+      "version": "0.3.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

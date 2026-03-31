@@ -161,6 +161,14 @@ Alternatives considered:
 
 The `--setup` flag downloads the DB and prints MCP client config snippets for Claude Desktop, Claude Code, VS Code Copilot, Copilot CLI, Cursor, and Codex. This avoids a separate install script and keeps the tester workflow to two steps: run binary, paste config.
 
+### MCP Registry namespace and publishing
+
+Namespace: `io.github.tikoci/rosetta` — GitHub-based reverse-domain namespace. Requires GitHub OAuth for initial publish (`mcp-publisher login github`), no DNS domain verification needed. Chosen for speed over a custom domain namespace.
+
+Publishing order: official MCP Registry (`registry.modelcontextprotocol.io`) first, then GitHub MCP Registry (`github.com/mcp`). The official registry is metadata-only — `server.json` declares the npm package identity and stdio transport. GitHub MCP Registry is a curated discovery surface.
+
+Version policy: publish registry metadata only on tagged stable releases. `server.json` version must stay in sync with `package.json`. CI automation for registry publish deferred until OIDC auth is configured (see BACKLOG.md).
+
 ### Code signing deferred
 
 macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 testing, documented workarounds are sufficient. Signing can be added when distribution goes wider.
@@ -201,3 +209,5 @@ What was built, in rough order (March 2026):
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).
 7. **Distribution** — Compiled single-file binaries via `bun build --compile`, `--setup` mode for DB download + MCP client config, GitHub Releases for assets.
 8. **CI release workflow** — `release.yml` workflow_dispatch: download HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.
+9. **HTTP transport** — Streamable HTTP via `--http` flag for remote/LAN MCP clients (ChatGPT Apps, OpenAI platform). Uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport`. Optional TLS.
+10. **MCP Registry metadata** — `server.json` manifest + CI validation for official registry publication.

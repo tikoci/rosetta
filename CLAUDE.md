@@ -322,6 +322,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, Makefile targets |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
 | `src/paths.ts` | Shared DB path + version resolution — three modes: compiled / dev / package (`~/.rosetta/`) |
+| `server.json` | Official MCP Registry metadata manifest for `io.github.tikoci/rosetta` publication |
 | `scripts/build-release.ts` | Cross-compile binaries for 4 platforms, package ZIPs |
 | `scripts/container-entrypoint.sh` | OCI image entrypoint — defaults to HTTP transport, optional TLS from env |
 | `bin/rosetta.js` | npm bin shim — Bun: direct import, Node: spawns `bun` subprocess |

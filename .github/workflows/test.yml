@@ -12,6 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Validate MCP registry metadata
+        run: ./mcp-publisher validate server.json
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

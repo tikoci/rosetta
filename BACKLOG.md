@@ -30,17 +30,9 @@ Proposed: `routeros_command_diff` — given two versions (e.g. `7.15` → `7.22`
 
 This could also pair with `routeros_search_callouts` — callouts often document breaking changes or version-specific behavior. Now also pairs with `routeros_search_changelogs` — changelogs have per-entry parsed descriptions with category and breaking flags, enabling precise "what changed in subsystem X between versions A and B" queries.
 
-### Add remote MCP transport mode for ChatGPT Apps
+### ~~Add remote MCP transport mode for ChatGPT Apps~~ ✓ DONE
 
-Current server runtime is stdio-only (`StdioServerTransport`), which works for local MCP clients (Claude/Copilot/Cursor/Codex) but not ChatGPT Apps/custom connectors, which require a remote HTTPS MCP endpoint.
-
-Scope for implementation:
-
-- Add HTTP/Streamable-HTTP (and/or HTTP SSE) transport mode in `src/mcp.ts` behind a CLI flag/env.
-- Document dev tunnel workflow (`ngrok`/Cloudflare Tunnel) and production deployment target.
-- Keep stdio as default so local clients remain zero-config.
-
-Status now: README and `--setup` output explicitly call out this limitation, but server runtime still needs remote transport support.
+Implemented. Streamable HTTP transport via `--http` flag using `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` (MCP spec 2025-03-26). Endpoint: `/mcp`. Supports `--port`, `--host`, `--tls-cert`/`--tls-key` flags and env vars. Defaults to localhost binding; LAN binding (`--host 0.0.0.0`) logs a warning. Origin header validation prevents DNS rebinding. `--setup` prints HTTP config snippets alongside stdio configs. Stdio remains the default for local clients.
 
 ## To Investigate
 
@@ -130,6 +122,19 @@ To properly sign and notarize:
 ## Deferred
 
 Items explicitly postponed until a trigger condition is met.
+
+### Automate official MCP Registry publish in release workflow
+
+`server.json` and CI validation are now in place, but release-time publication to `registry.modelcontextprotocol.io` is deferred until namespace auth is set up for CI (`mcp-publisher login github-oidc` or DNS/HTTP method with secrets).
+
+**Trigger:** CI auth method finalized and secrets configured for publish.
+
+When triggered:
+
+- Add publish step to `.github/workflows/release.yml` after `npm publish`.
+- Sync `server.json` version from release tag (`vX.Y.Z` -> `X.Y.Z`) before publish.
+- Execute `mcp-publisher publish server.json` in release job and fail release if publish fails.
+- Verify result with registry search API query for `io.github.tikoci/rosetta`.
 
 ### OCI image armv7 support in release pipeline
 

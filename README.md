@@ -24,6 +24,28 @@ The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools
 
 ## Quick Start
 
+## MCP Discovery Status
+
+- GitHub MCP Registry listing: planned
+- Official MCP Registry publication: metadata is now prepared in `server.json`
+
+Local install remains the primary path today (`bunx @tikoci/rosetta`).
+
+When ready to publish to the official registry:
+
+```sh
+brew install mcp-publisher
+mcp-publisher validate server.json
+mcp-publisher login github
+mcp-publisher publish server.json
+```
+
+After publication, the server should be discoverable via:
+
+```sh
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.tikoci/rosetta"
+```
+
 ### Option A: Install with Bun (recommended)
 
 Zero install, zero config, no binary signing issues. Requires [Bun](https://bun.sh/) — no Gatekeeper or SmartScreen warnings since there's no compiled binary to sign.
