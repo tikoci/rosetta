@@ -11,6 +11,7 @@ COPY src/ ./src/
 ARG TARGETARCH
 ARG VERSION=dev
 ARG REPO_URL=tikoci/rosetta
+RUN mkdir -p /out
 RUN case "$TARGETARCH" in \
       amd64) bun_target=bun-linux-x64 ;; \
       arm64) bun_target=bun-linux-arm64 ;; \

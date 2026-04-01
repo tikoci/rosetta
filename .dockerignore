@@ -10,6 +10,7 @@ matrix/
 *.md
 .github/
 scripts/
+!scripts/container-entrypoint.sh
 biome.json
 tsconfig.json
 node_modules/
