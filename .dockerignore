@@ -1,0 +1,18 @@
+# Intentionally NOT excluded: ros-help.db — Dockerfile.release bakes it in.
+# node_modules is excluded automatically by Bun's lockfile-based install in builder stage.
+
+.git
+box/
+dist/
+images/
+.image-build/
+matrix/
+*.md
+.github/
+scripts/
+biome.json
+tsconfig.json
+node_modules/
+*.test.ts
+ros-html-assessment.json
+ros-toc.json
