@@ -136,6 +136,10 @@ const {
 
 initDb();
 
+/** Factory: create a new McpServer with all tools registered.
+ *  Called once for stdio, or per-session for HTTP transport. */
+function createServer() {
+
 const server = new McpServer({
   name: "rosetta",
   version: RESOLVED_VERSION,
@@ -762,12 +766,18 @@ Requires network access to upgrade.mikrotik.com.`,
   },
 );
 
+return server;
+} // end createServer
+
 // ---- Start ----
 
 if (useHttp) {
   const { existsSync } = await import("node:fs");
   const { WebStandardStreamableHTTPServerTransport } = await import(
     "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"
+  );
+  const { isInitializeRequest } = await import(
+    "@modelcontextprotocol/sdk/types.js"
   );
 
   const port = Number(getArg("--port") ?? process.env.PORT ?? 8080);
@@ -793,12 +803,8 @@ if (useHttp) {
   const useTls = !!(tlsCert && tlsKey);
   const scheme = useTls ? "https" : "http";
 
-  const httpTransport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: () => crypto.randomUUID(),
-    enableJsonResponse: false,
-  });
-
-  await server.connect(httpTransport);
+  // Per-session transport routing (each MCP client session gets its own transport + server)
+  const transports = new Map<string, InstanceType<typeof WebStandardStreamableHTTPServerTransport>>();
 
   const isLAN = hostname === "0.0.0.0" || hostname === "::";
   if (isLAN) {
@@ -812,6 +818,14 @@ if (useHttp) {
     }
   }
 
+  /** JSON-RPC error response helper */
+  function jsonRpcError(status: number, code: number, message: string): Response {
+    return new Response(
+      JSON.stringify({ jsonrpc: "2.0", error: { code, message }, id: null }),
+      { status, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
   Bun.serve({
     port,
     hostname,
@@ -821,12 +835,16 @@ if (useHttp) {
     async fetch(req: Request): Promise<Response> {
       const url = new URL(req.url);
 
+      if (url.pathname !== "/mcp") {
+        return new Response("Not Found", { status: 404 });
+      }
+
       // DNS rebinding protection: reject browser-origin requests
       const origin = req.headers.get("origin");
       if (origin) {
         try {
           const originHost = new URL(origin).host;
-          const serverHost = `${hostname === "0.0.0.0" || hostname === "::" ? "localhost" : hostname}:${port}`;
+          const serverHost = `${isLAN ? "localhost" : hostname}:${port}`;
           if (originHost !== serverHost && originHost !== `localhost:${port}` && originHost !== `127.0.0.1:${port}`) {
             return new Response("Forbidden: Origin not allowed", { status: 403 });
           }
@@ -835,11 +853,49 @@ if (useHttp) {
         }
       }
 
-      if (url.pathname === "/mcp") {
-        return httpTransport.handleRequest(req);
+      const sessionId = req.headers.get("mcp-session-id");
+
+      // Route to existing session
+      if (sessionId) {
+        const transport = transports.get(sessionId);
+        if (transport) {
+          return transport.handleRequest(req);
+        }
+        return jsonRpcError(404, -32001, "Session not found");
       }
 
-      return new Response("Not Found", { status: 404 });
+      // No session ID — only POST with initialize creates a new session
+      if (req.method === "POST") {
+        let body: unknown;
+        try {
+          body = await req.json();
+        } catch {
+          return jsonRpcError(400, -32700, "Parse error: Invalid JSON");
+        }
+
+        const isInit = Array.isArray(body)
+          ? body.some((msg: unknown) => isInitializeRequest(msg))
+          : isInitializeRequest(body);
+
+        if (isInit) {
+          const transport = new WebStandardStreamableHTTPServerTransport({
+            sessionIdGenerator: () => crypto.randomUUID(),
+            onsessioninitialized: (sid: string) => {
+              transports.set(sid, transport);
+            },
+          });
+          transport.onclose = () => {
+            const sid = transport.sessionId;
+            if (sid) transports.delete(sid);
+          };
+
+          const mcpServer = createServer();
+          await mcpServer.connect(transport);
+          return transport.handleRequest(req, { parsedBody: body });
+        }
+      }
+
+      return jsonRpcError(400, -32000, "Bad Request: No valid session ID provided");
     },
   });
 
@@ -850,6 +906,7 @@ if (useHttp) {
   const { StdioServerTransport } = await import(
     "@modelcontextprotocol/sdk/server/stdio.js"
   );
+  const server = createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

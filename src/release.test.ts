@@ -280,3 +280,108 @@ describe("CLI flags", () => {
     expect(src).toContain("--setup");
   });
 });
+
+// ---------------------------------------------------------------------------
+// HTTP transport structural checks — catch per-session breakage at build time
+// ---------------------------------------------------------------------------
+
+describe("HTTP transport structure", () => {
+  const src = readText("src/mcp.ts");
+
+  test("uses per-session transport routing (not single shared transport)", () => {
+    // The single-transport pattern was: `await server.connect(httpTransport)` at module level
+    // followed by `httpTransport.handleRequest(req)`. The per-session pattern has a
+    // transports Map and creates transport/server per session.
+    expect(src).toContain("new Map");
+    expect(src).toContain("transports.set");
+    expect(src).toContain("transports.get");
+  });
+
+  test("creates new McpServer per session, not one shared instance", () => {
+    // createServer() factory must exist and be called per-session
+    expect(src).toContain("function createServer()");
+    expect(src).toContain("createServer()");
+  });
+
+  test("checks isInitializeRequest before creating transport", () => {
+    expect(src).toContain("isInitializeRequest");
+  });
+
+  test("registers onsessioninitialized callback", () => {
+    expect(src).toContain("onsessioninitialized");
+  });
+
+  test("cleans up transport on close", () => {
+    expect(src).toContain("transport.onclose");
+    expect(src).toContain("transports.delete");
+  });
+
+  test("passes parsedBody to handleRequest after consuming body", () => {
+    // Once we req.json() for isInitializeRequest check, the body is consumed.
+    // Must pass parsedBody so the transport doesn't try to re-parse.
+    expect(src).toContain("parsedBody");
+  });
+
+  test("handles missing session ID on non-initialize requests", () => {
+    expect(src).toContain("No valid session ID provided");
+  });
+
+  test("handles invalid session ID with 404", () => {
+    expect(src).toContain("Session not found");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Container / entrypoint checks
+// ---------------------------------------------------------------------------
+
+describe("container entrypoint", () => {
+  test("entrypoint script exists", () => {
+    expect(existsSync(path.join(ROOT, "scripts/container-entrypoint.sh"))).toBe(true);
+  });
+
+  test("defaults to --http mode", () => {
+    const src = readText("scripts/container-entrypoint.sh");
+    expect(src).toContain("--http");
+  });
+
+  test("defaults to 0.0.0.0 host binding", () => {
+    const src = readText("scripts/container-entrypoint.sh");
+    expect(src).toContain("0.0.0.0");
+  });
+
+  test("supports TLS via env vars", () => {
+    const src = readText("scripts/container-entrypoint.sh");
+    expect(src).toContain("TLS_CERT_PATH");
+    expect(src).toContain("TLS_KEY_PATH");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Dockerfile structure
+// ---------------------------------------------------------------------------
+
+describe("Dockerfile.release", () => {
+  test("copies entrypoint script", () => {
+    const src = readText("Dockerfile.release");
+    expect(src).toContain("container-entrypoint.sh");
+    expect(src).toContain("ENTRYPOINT");
+  });
+
+  test("copies database into image", () => {
+    const src = readText("Dockerfile.release");
+    expect(src).toContain("ros-help.db");
+  });
+
+  test("exposes port 8080", () => {
+    const src = readText("Dockerfile.release");
+    expect(src).toContain("EXPOSE 8080");
+  });
+
+  test("injects build constants", () => {
+    const src = readText("Dockerfile.release");
+    expect(src).toContain("IS_COMPILED");
+    expect(src).toContain("VERSION");
+    expect(src).toContain("REPO_URL");
+  });
+});

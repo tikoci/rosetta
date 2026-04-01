@@ -40,7 +40,7 @@ make extract             # Full pipeline: HTML → properties → commands → l
 make extract-full        # Full pipeline with all 46 RouterOS versions
 make serve               # Start MCP server (stdio transport)
 make search query="DHCP" # CLI search
-bun test                 # Run tests (query + schema + release readiness)
+bun test                 # Run tests (query + schema + release readiness + HTTP transport)
 make typecheck           # Type checking (no emit)
 make lint                # Biome linter
 make preflight           # All checks: clean tree, DB, typecheck, test, lint
@@ -88,6 +88,24 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 - The MCP server name is `"rosetta"` — keep consistent across configs
 - Stop words are hardcoded in `query.ts` (~72 words)
 - Compound terms (~37 RouterOS pairs like firewall+filter) use FTS5 NEAR expressions
+
+## Testing Requirements
+
+**Hard rule: any behavioral change MUST have a corresponding test before shipping.** The HTTP transport was completely broken in a release because there were no transport-level tests — only manual curl checks that weren't captured as tests.
+
+| Test file | What it covers |
+|-----------|---------------|
+| `src/query.test.ts` | Query planner (pure functions), DB integration (in-memory SQLite), schema health |
+| `src/release.test.ts` | File consistency, build constants, structural pattern checks, container setup |
+| `src/mcp-http.test.ts` | HTTP transport: session lifecycle, multi-client, errors (live server) |
+
+**When to add tests:**
+- New query function or tool → `query.test.ts`
+- Transport or protocol changes → `mcp-http.test.ts`
+- New CLI flag, build artifact, or file structure → `release.test.ts`
+- Schema change → schema health section in `query.test.ts`
+
+**Run `bun test` before any commit.** CI runs it too, but catching failures locally is faster.
 
 ## Version Accuracy
 

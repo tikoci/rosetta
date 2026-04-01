@@ -7,7 +7,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 ## MCP Tool Conventions
 - Server name: `"rosetta"` — never change
 - Zod v4 installed, but import from `"zod/v3"` — MCP SDK requires Zod v3 API
-- Transport: stdio (default) or Streamable HTTP (`--http` flag). HTTP uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` in stateful mode.
+- Transport: stdio (default) or Streamable HTTP (`--http` flag). HTTP uses `Bun.serve()` + per-session `WebStandardStreamableHTTPServerTransport` routing — each client session gets its own transport + McpServer instance via `createServer()` factory.
 - Tools return structured objects, not raw SQL rows
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 
@@ -73,3 +73,34 @@ Returns a plain-text version string (e.g., `7.22.1`).
 2. Register via `server.registerTool()` in `src/mcp.ts` with Zod input schema
 3. Update tool descriptions to include knowledge boundaries and help LLM agents pick the right tool
 4. Add tests in `src/query.test.ts` — pure-function tests + DB integration against in-memory SQLite
+
+## Test Requirements
+
+**This is a hard rule.** Any change to transport, protocol, or tool behavior MUST have corresponding tests before shipping. The bug where HTTP transport was completely broken in v0.3.0 shipped because there were no integration tests for it — only manual curl checks.
+
+### Test files and what they cover
+
+| File | Scope | Runs against |
+|------|-------|-------------|
+| `src/query.test.ts` | Query planner, FTS5, DB integration, schema health | In-memory SQLite |
+| `src/release.test.ts` | File consistency, build constants, structural checks | File reads only |
+| `src/mcp-http.test.ts` | HTTP transport: session lifecycle, multi-client, errors | Live server process |
+
+### When to add tests
+
+- **New tool** → unit test in `query.test.ts` (pure function + DB)
+- **Transport changes** → integration test in `mcp-http.test.ts` (real HTTP requests)
+- **New CLI flag or build artifact** → structural test in `release.test.ts`
+- **Schema changes** → schema health tests in `query.test.ts`
+
+### HTTP transport test pattern
+
+Tests in `mcp-http.test.ts` start an actual server process and make real HTTP requests. Key patterns:
+- `mcpInitialize()` → POST initialize, returns `{ sessionId, body }`
+- `mcpNotification()` → send `notifications/initialized` (required before other calls)
+- `mcpRequest()` → POST with session ID, returns parsed SSE messages
+- Server processes are started per `describe()` block and cleaned up in `afterAll()`
+
+### Structural tests as guardrails
+
+`release.test.ts` includes pattern-matching tests that verify code structure without running it. These catch regressions like "someone replaced per-session routing with a single shared transport" at `bun test` time, before the code ever ships. Add structural tests for any architectural invariant.

@@ -1,9 +1,14 @@
 {
-  "servers": {
-    "rosetta": {
-      "command": "bun",
-      "args": ["run", "src/mcp.ts"],
-      "cwd": "${workspaceFolder}"
-    }
-  }
+	"servers": {
+		"rosetta": {
+			"command": "bun",
+			"args": [
+				"run",
+				"src/mcp.ts"
+			],
+			"cwd": "${workspaceFolder}",
+			"type": "stdio"
+		}
+	},
+	"inputs": []
 }

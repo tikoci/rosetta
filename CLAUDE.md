@@ -297,7 +297,7 @@ rosetta --http --host 0.0.0.0              # LAN-accessible
 rosetta --http --tls-cert cert.pem --tls-key key.pem  # HTTPS
 ```
 
-Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` in stateful mode. The endpoint is `/mcp`. Clients connect with a URL like `http://localhost:8080/mcp`.
+Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` in stateful mode with per-session transport routing. Each MCP client session gets its own transport instance and `McpServer`, matching the SDK's recommended pattern. The endpoint is `/mcp`. Clients connect with a URL like `http://localhost:8080/mcp`.
 
 **Security:** Defaults to localhost binding. LAN binding (`--host 0.0.0.0`) logs a warning. Origin header validation prevents DNS rebinding. For production network exposure, use a reverse proxy or `--tls-cert`/`--tls-key`.
 
@@ -319,7 +319,8 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
-| `src/release.test.ts` | Release readiness tests — file consistency, build constants, Makefile targets |
+| `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |
+| `src/mcp-http.test.ts` | HTTP transport integration — session lifecycle, multi-client, errors (live server process) |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
 | `src/paths.ts` | Shared DB path + version resolution — three modes: compiled / dev / package (`~/.rosetta/`) |
 | `server.json` | Official MCP Registry metadata manifest for `io.github.tikoci/rosetta` publication |
