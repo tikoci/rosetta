@@ -17,6 +17,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
 | Product matrix | `matrix/2026-03-25/matrix.csv` | CSV, 34 columns | 144 products, March 2026 |
+| Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
@@ -102,6 +103,16 @@ The documentation pages cover all packages regardless of architecture, so the HT
 ### CSV requires manual download
 
 The old `curl -X POST -d "ax=matrix"` API is dead (late 2025). MikroTik's product matrix is now a Laravel Livewire/PowerGrid table. Export via browser: visit `mikrotik.com/products/matrix`, click export, choose "All". See `matrix/CLAUDE.md` for column schema.
+
+### Product page test results + block diagrams
+
+MikroTik publishes ethernet & IPSec benchmark tables and hardware block diagram images on individual product pages (`mikrotik.com/product/<slug>`). These are server-side rendered HTML (Laravel Livewire), parseable without JavaScript. Tables use `class="performance-table"` with CSS classes encoding packet size and metric type (`kpps size1518`, `mbps size512`).
+
+**Slug discovery is the hard part.** MikroTik's product URL slugs follow no consistent pattern — some use lowercased product names with underscores, some use product codes with original casing, `+` sometimes becomes `plus`, sometimes `_`, sometimes nothing. Unicode superscript characters (², ³) in product names translate to regular digits. The extractor generates 4–6 candidate slugs per product and tries them sequentially. 15 products (mostly kits, bundles, discontinued) have no discoverable page. This is inherently fragile — MikroTik could change slugs or page structure at any time.
+
+**Test results live in `device_test_results`** (normalized: one row per device×test_type×mode×config×packet_size) rather than denormalized JSON blobs. This enables SQL filtering (e.g., "show all devices sorted by routing throughput at 512-byte packets"). Results are auto-attached to device lookups for exact/small result sets — no separate tool needed.
+
+**Block diagram URLs** are stored on the `devices` row as `block_diagram_url` (CDN PNG URL), not downloaded locally.
 
 ### HTML doc versioning is simple
 

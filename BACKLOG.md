@@ -22,6 +22,10 @@ Implemented. 2,984 sections across 275 pages extracted from h1–h3 headings wit
 
 Implemented. 144 products from `matrix/2026-03-25/matrix.csv` loaded into `devices` table with `devices_fts` FTS5 index. Single MCP tool `routeros_device_lookup` combines exact match (by product name/code) with FTS search + structured filters (architecture, min_ram_mb, license_level, has_poe, has_wireless). Extractor `src/extract-devices.ts` is idempotent (DELETE + INSERT), handles UTF-8 BOM, normalizes RAM/storage to MB integers. Added to `extract` and `extract-full` Makefile pipelines. 69 tests passing (15 new for device queries). CSV stored in git — manually downloaded from mikrotik.com/products/matrix.
 
+### ~~Device test results + block diagrams (Phase 2)~~ ✓ DONE
+
+Implemented. 2,874 test results (ethernet + IPSec throughput benchmarks) for 125 of 144 devices, plus block diagram URLs for 110 devices. New `device_test_results` table with `product_url` and `block_diagram_url` columns on `devices`. Test results auto-attach to `device_lookup` results for exact matches and small result sets (≤5). Extractor `src/extract-test-results.ts` uses multi-slug URL candidate strategy (4–6 variants per product). 15 products have no discoverable page (kits, discontinued, unpredictable slugs). See "Product page slug coverage" in To Investigate.
+
 ### Command diff tool (upgrade breakage diagnosis)
 
 A common real-world query pattern: "this used to work on my router, something broke after I upgraded." The LLM gets a vague prompt, needs to figure out if a command path changed or was removed between versions. We already have the data in `command_versions` — what's missing is a tool that diffs two versions directly.
@@ -37,6 +41,22 @@ Implemented. Streamable HTTP transport via `--http` flag using `Bun.serve()` + `
 ## To Investigate
 
 Items that need research or experimentation before they're actionable.
+
+### Product page slug coverage (15 missing devices)
+
+`extract-test-results.ts` generates 4–6 URL slug candidates per product, but 15 of 144 products still have no discoverable page. These fall into categories:
+
+- **Kits/bundles** — slugs don't follow individual product naming (e.g., "Wireless Wire Dish" kit)
+- **Discontinued/legacy** — pages may have been removed or use historical URLs
+- **Unpredictable slugs** — no obvious transformation from product name/code to URL slug
+
+Current impact is low (87% coverage). To improve:
+
+1. Check if mikrotik.com has a sitemap.xml or product API that lists all valid slugs
+2. Manual mapping for high-value missing products (maintain a slug override map)
+3. Accept the remaining gaps as not worth the maintenance cost
+
+The slug strategy is also fragile — if MikroTik changes their URL structure, all slugs break. The extractor tries multiple variants to be resilient, but a sitemap-based approach would be more robust.
 
 ### Debounce inspect.json fetches during extract-all-versions
 

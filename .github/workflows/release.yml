@@ -117,6 +117,9 @@ jobs:
       - name: Extract devices
         run: bun run src/extract-devices.ts
 
+      - name: Extract test results
+        run: bun run src/extract-test-results.ts
+
       - name: Extract changelogs
         run: bun run src/extract-changelogs.ts
 

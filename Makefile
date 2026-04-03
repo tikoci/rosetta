@@ -4,7 +4,7 @@ VERSION    ?=
 FORCE      ?=
 
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
-        extract-all-versions extract-devices extract-changelogs link assess search serve \
+        extract-all-versions extract-devices extract-test-results extract-changelogs link assess search serve \
 	typecheck lint test preflight build-release release \
         install setup clean
 
@@ -51,9 +51,9 @@ preflight:
 
 # ── Extraction pipeline ──
 
-extract: extract-html extract-properties extract-commands extract-devices extract-changelogs link
+extract: extract-html extract-properties extract-commands extract-devices extract-test-results extract-changelogs link
 
-extract-full: extract-html extract-properties extract-all-versions extract-devices extract-changelogs link
+extract-full: extract-html extract-properties extract-all-versions extract-devices extract-test-results extract-changelogs link
 
 extract-html:
 	bun run src/extract-html.ts
@@ -69,6 +69,9 @@ extract-all-versions:
 
 extract-devices:
 	bun run src/extract-devices.ts
+
+extract-test-results:
+	bun run src/extract-test-results.ts
 
 extract-changelogs:
 	bun run src/extract-changelogs.ts

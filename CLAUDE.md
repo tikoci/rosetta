@@ -34,6 +34,7 @@ Two outputs:
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
 - **144 devices** from MikroTik product matrix CSV (hardware specs, license levels, pricing)
+- **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
 - **MCP server** with 11 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, device_lookup, stats, current_versions
@@ -125,11 +126,26 @@ devices (
     wireless_24_chains, wireless_5_chains,
     eth_fast, eth_gigabit, eth_2500,
     sfp_ports, sfp_plus_ports, eth_multigig,
-    usb_ports, sim_slots, msrp_usd
+    usb_ports, sim_slots, msrp_usd,
+    product_url,         -- mikrotik.com product page URL
+    block_diagram_url    -- CDN URL to block diagram PNG
 )
 
 -- FTS5 over devices (unicode61 only — no porter stemming for model numbers)
 devices_fts USING fts5(product_name, product_code, architecture, cpu, ...)
+
+-- Device performance test results (from mikrotik.com product pages)
+device_test_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id REFERENCES devices(id),
+    test_type,           -- 'ethernet' | 'ipsec'
+    mode,                -- 'Bridging' | 'Routing' | 'Single tunnel' | '256 tunnels'
+    configuration,       -- '25 ip filter rules' | 'AES-128-CBC + SHA1' | etc.
+    packet_size INTEGER, -- 64, 512, 1400, 1518
+    throughput_kpps REAL,
+    throughput_mbps REAL,
+    UNIQUE(device_id, test_type, mode, configuration, packet_size)
+)
 
 -- Changelogs (parsed per-entry from MikroTik download server)
 changelogs (
@@ -313,7 +329,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/restraml.ts` | Shared helpers for fetching from tikoci/restraml (GitHub API + Pages) |
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
-| `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |
+| `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |\n| `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
@@ -385,6 +401,16 @@ For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Produc
 - **Columns:** Product name, product code, architecture, CPU, cores, frequency, license level, OS, RAM, storage, dimensions, PoE in/out, power, wireless chains/antenna, ethernet/SFP/combo ports, USB, SIM, price
 - **Architectures:** ARM 64bit, ARM 32bit, MIPSBE, MMIPS, SMIPS
 - **Normalized fields:** RAM and storage parsed to MB integers at extraction time for structured filtering
+
+### Product Test Results + Block Diagrams
+
+- **Source:** Individual product pages on `https://mikrotik.com/product/<slug>` (scraped via HTTP + linkedom)
+- **Coverage:** 125 of 144 devices have test results, 110 have block diagram URLs
+- **Test types:** Ethernet (bridging/routing at 64/512/1518 byte) and IPSec (tunnel throughput at 64/512/1400 byte with AES/SHA cipher configs)
+- **Modes:** Ethernet: Bridging, Routing (each with configs like "none (fast path)", "25 ip filter rules", "25 simple queues"). IPSec: Single tunnel, 256 tunnels (with AES-128/256 + SHA1/SHA256 combos)
+- **Block diagrams:** PNG images on MikroTik CDN (`cdn.mikrotik.com/web-assets/product_files/...`)
+- **URL slugs:** Wildly inconsistent — extractor tries 4–6 slug variants per product (lowercase name, product code, ± `plus` for `+`, Unicode superscript transliteration). 15 products have no discoverable page (kits, discontinued, unpredictable slugs)
+- **Extraction:** `bun run src/extract-test-results.ts` (or `make extract-test-results`). Requires devices table populated first. Rate-limited HTTP fetches (default: 4 concurrent, 500ms delay). Idempotent.
 
 ## Related Projects
 

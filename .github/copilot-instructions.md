@@ -47,7 +47,7 @@ make preflight           # All checks: clean tree, DB, typecheck, test, lint
 make clean               # Remove DB files
 ```
 
-Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make extract-devices`, `make extract-changelogs`, `make link`.
+Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make extract-devices`, `make extract-test-results`, `make extract-changelogs`, `make link`.
 
 Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FORCE=1` (update existing). See `make build-release` for build-only (no git/upload).
 
@@ -63,12 +63,13 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 | CLI Search | `src/search.ts` | Quick search from terminal |
 | Tests | `src/query.test.ts`, `src/release.test.ts` | Bun tests — query planner + DB integration + schema; release readiness |
 
-**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices`, `changelogs` with FTS5 indexes on pages, callouts, properties, devices, and changelogs.
+**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices`, `device_test_results`, `changelogs` with FTS5 indexes on pages, callouts, properties, devices, and changelogs.
 
 **Data sources:**
 - HTML export from Confluence in `box/latest/ROS/` (317 pages)
 - `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml) for the command tree (40K entries, 46 versions: 7.9–7.23beta2), fetched from `https://tikoci.github.io/restraml/` by default.
 - Product matrix CSV in `matrix/` (144 products, 34 columns — hardware specs, license levels, pricing)
+- Product test results + block diagrams from `https://mikrotik.com/product/<slug>` (125 devices with ethernet/IPSec benchmarks, 110 with block diagrams)
 - Changelogs from `https://download.mikrotik.com/routeros/{version}/CHANGELOG` (parsed per-entry with category and breaking flag)
 
 ## Code Style

@@ -250,8 +250,19 @@ export function initDb() {
     sim_slots         INTEGER,
     memory_cards      TEXT,
     usb_type          TEXT,
-    msrp_usd          REAL
+    msrp_usd          REAL,
+    product_url       TEXT,
+    block_diagram_url TEXT
   );`);
+
+  // Migration: add product_url and block_diagram_url columns if missing
+  const devCols = db.prepare("PRAGMA table_info(devices)").all() as Array<{ name: string }>;
+  if (!devCols.some((c) => c.name === "product_url")) {
+    db.run("ALTER TABLE devices ADD COLUMN product_url TEXT;");
+  }
+  if (!devCols.some((c) => c.name === "block_diagram_url")) {
+    db.run("ALTER TABLE devices ADD COLUMN block_diagram_url TEXT;");
+  }
 
   db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS devices_fts USING fts5(
     product_name, product_code, architecture, cpu,
@@ -274,6 +285,23 @@ export function initDb() {
     INSERT INTO devices_fts(rowid, product_name, product_code, architecture, cpu)
     VALUES (new.id, new.product_name, new.product_code, new.architecture, new.cpu);
   END;`);
+
+  // -- Device test results (from mikrotik.com product pages) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS device_test_results (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id     INTEGER NOT NULL REFERENCES devices(id),
+    test_type     TEXT NOT NULL,
+    mode          TEXT NOT NULL,
+    configuration TEXT NOT NULL,
+    packet_size   INTEGER NOT NULL,
+    throughput_kpps REAL,
+    throughput_mbps REAL,
+    UNIQUE(device_id, test_type, mode, configuration, packet_size)
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_device_tests_device ON device_test_results(device_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_device_tests_type ON device_test_results(test_type);`);
 
   // -- Changelogs (parsed per-entry from MikroTik download server) --
 
@@ -330,6 +358,8 @@ export function getDbStats() {
     commands: count("SELECT COUNT(*) AS c FROM commands"),
     commands_linked: count("SELECT COUNT(*) AS c FROM commands WHERE page_id IS NOT NULL"),
     devices: count("SELECT COUNT(*) AS c FROM devices"),
+    device_test_results: count("SELECT COUNT(*) AS c FROM device_test_results"),
+    devices_with_tests: count("SELECT COUNT(DISTINCT device_id) AS c FROM device_test_results"),
     changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
     changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
     ros_versions: count("SELECT COUNT(*) AS c FROM ros_versions"),

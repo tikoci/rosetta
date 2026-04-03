@@ -238,6 +238,7 @@ describe("release.yml", () => {
     expect(src).toContain("extract-properties.ts");
     expect(src).toContain("extract-commands.ts");
     expect(src).toContain("extract-devices.ts");
+    expect(src).toContain("extract-test-results.ts");
     expect(src).toContain("extract-changelogs.ts");
     expect(src).toContain("link-commands.ts");
   });

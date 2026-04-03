@@ -87,13 +87,15 @@ beforeAll(() => {
      license_level, operating_system, ram, ram_mb, storage, storage_mb,
      poe_in, poe_out, wireless_24_chains, wireless_5_chains,
      eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
-     eth_multigig, usb_ports, sim_slots, msrp_usd)
+     eth_multigig, usb_ports, sim_slots, msrp_usd,
+     product_url, block_diagram_url)
     VALUES
     ('hAP ax3', 'C53UiG+5HPaxD2HPaxD', 'ARM 64bit', 'IPQ-6010', 4, 'auto (864 - 1800) MHz',
      4, 'RouterOS v7', '1 GB', 1024, '128 MB', 128,
      '802.3af/at', NULL, 2, 2,
      NULL, 4, 1, NULL, NULL,
-     NULL, 1, NULL, 139.00)`);
+     NULL, 1, NULL, 139.00,
+     'https://mikrotik.com/product/hap_ax3', 'https://cdn.mikrotik.com/web-assets/product_files/hap_ax3_123.png')`);
 
   db.run(`INSERT INTO devices
     (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
@@ -160,6 +162,17 @@ beforeAll(() => {
      NULL, NULL, NULL, NULL,
      NULL, 13, NULL, NULL, NULL,
      NULL, NULL, NULL, 369.00)`);
+
+  // Device test results fixtures (hAP ax3 = id 1)
+  db.run(`INSERT INTO device_test_results
+    (device_id, test_type, mode, configuration, packet_size, throughput_kpps, throughput_mbps)
+    VALUES (1, 'ethernet', 'Routing', '25 ip filter rules', 512, 755.9, 3096.2)`);
+  db.run(`INSERT INTO device_test_results
+    (device_id, test_type, mode, configuration, packet_size, throughput_kpps, throughput_mbps)
+    VALUES (1, 'ethernet', 'Routing', 'none (fast path)', 512, 2332.0, 9551.9)`);
+  db.run(`INSERT INTO device_test_results
+    (device_id, test_type, mode, configuration, packet_size, throughput_kpps, throughput_mbps)
+    VALUES (1, 'ipsec', 'Single tunnel', 'AES-128-CBC + SHA1', 1400, 120.9, 1354.1)`);
 
   // Page 3: a "large" page with sections for TOC testing
   // Text is ~200 chars to keep fixture small, but we'll use max_length=50 to trigger truncation
@@ -783,6 +796,37 @@ describe("searchDevices", () => {
     const res = searchDevices("");
     expect(res.results).toHaveLength(0);
   });
+
+  test("exact match includes test_results", () => {
+    const res = searchDevices("hAP ax3");
+    expect(res.mode).toBe("exact");
+    expect(res.results).toHaveLength(1);
+    const dev = res.results[0];
+    expect(dev.test_results).toBeDefined();
+    expect(dev.test_results!.length).toBe(3);
+    expect(dev.test_results!.some((t) => t.test_type === "ethernet")).toBe(true);
+    expect(dev.test_results!.some((t) => t.test_type === "ipsec")).toBe(true);
+  });
+
+  test("LIKE match with ≤5 results includes test_results", () => {
+    const res = searchDevices("RB1100");
+    expect(res.mode).toBe("like");
+    expect(res.results.length).toBeLessThanOrEqual(5);
+    // RB1100 devices have no test results, but the field should still be populated (empty array)
+    expect(res.results.every((d) => Array.isArray(d.test_results))).toBe(true);
+  });
+
+  test("exact match includes product_url and block_diagram_url", () => {
+    const res = searchDevices("hAP ax3");
+    expect(res.results[0].product_url).toBe("https://mikrotik.com/product/hap_ax3");
+    expect(res.results[0].block_diagram_url).toContain("cdn.mikrotik.com");
+  });
+
+  test("devices without product_url return null", () => {
+    const res = searchDevices("CCR2216-1G-12XS-2XQ");
+    expect(res.results[0].product_url).toBeNull();
+    expect(res.results[0].block_diagram_url).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -943,7 +987,7 @@ describe("schema", () => {
     const expected = [
       "pages", "properties", "callouts", "sections",
       "commands", "command_versions", "ros_versions",
-      "devices", "changelogs", "schema_migrations",
+      "devices", "device_test_results", "changelogs", "schema_migrations",
     ];
     for (const table of expected) {
       expect(names).toContain(table);

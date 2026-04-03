@@ -630,15 +630,25 @@ Examples:
 server.registerTool(
   "routeros_device_lookup",
   {
-    description: `Look up MikroTik hardware specs or search for devices matching criteria.
+    description: `Look up MikroTik hardware specs, performance benchmarks, or search for devices matching criteria.
 
-144 products from mikrotik.com/products/matrix (March 2026). Returns hardware specs
-including CPU, RAM, storage, ports, PoE, wireless, license level, and price.
+144 products from mikrotik.com (March 2026). Returns hardware specs, official test results,
+block diagram URLs, and pricing.
 
 **How it works:**
-- If query matches a product name or code exactly → returns full specs for that device
-- Otherwise → FTS search + optional structured filters → returns matching devices
+- If query matches a product name or code exactly → returns full specs + test results + block diagram
+- Otherwise → FTS search + optional structured filters → returns matching devices (compact)
 - Filters can be used alone (no query) to find devices by capability
+
+**Test results** (from mikrotik.com per-product pages):
+- Ethernet: bridging/routing throughput at 64/512/1518 byte packets (kpps + Mbps)
+- IPSec: tunnel throughput with various AES/SHA configurations
+- Key metric: "Routing 25 ip filter rules @ 512 byte" is a common routing performance gauge
+- Devices with L3HW offload show additional hardware-accelerated routing rows
+- Included automatically for exact/single-device lookups — no extra call needed
+
+**Block diagram**: internal switch/CPU/PHY architecture diagram URL (PNG).
+Shows bus topology and per-port bandwidth limits — useful for understanding SoC bottlenecks.
 
 **License levels** determine feature availability:
 - L3: CPE/home (no routing protocols, limited queues)

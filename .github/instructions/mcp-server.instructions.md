@@ -22,7 +22,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 | `routeros_search_callouts` | FTS across callout notes/warnings/info, optional type filter |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
 | `routeros_command_version_check` | Which RouterOS versions include a command path |
-| `routeros_device_lookup` | Hardware specs by name/code, FTS + structured filters |
+| `routeros_device_lookup` | Hardware specs by name/code, FTS + structured filters, auto-attaches test results |
 | `routeros_stats` | DB health: counts, version range, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions from MikroTik |
 
@@ -33,6 +33,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 - Compound terms (~37 RouterOS pairs) → FTS5 NEAR expressions
 - Porter unicode61 tokenizer for pages/properties/callouts/changelogs — stemming is automatic
 - Device search uses unicode61 only (no porter) + LIKE substring fallback + FTS prefix matching
+- Device exact matches and small result sets (≤5) auto-attach `test_results` (ethernet/IPSec benchmarks) and `product_url`/`block_diagram_url` from `device_test_results` table
 
 ## Tool Description Patterns
 - **Workflow arrows**: each tool description lists `→ next_tool: when to use it` to guide agents through multi-step retrieval

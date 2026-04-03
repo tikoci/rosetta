@@ -669,6 +669,15 @@ export function browseCommandsAtVersion(
 
 // ── Device lookup and search ──
 
+export type DeviceTestResult = {
+  test_type: string;
+  mode: string;
+  configuration: string;
+  packet_size: number;
+  throughput_kpps: number | null;
+  throughput_mbps: number | null;
+};
+
 export type DeviceResult = {
   id: number;
   product_name: string;
@@ -698,6 +707,9 @@ export type DeviceResult = {
   usb_ports: number | null;
   sim_slots: number | null;
   msrp_usd: number | null;
+  product_url: string | null;
+  block_diagram_url: string | null;
+  test_results?: DeviceTestResult[];
 };
 
 export type DeviceFilters = {
@@ -715,8 +727,28 @@ const DEVICE_SELECT = `SELECT id, product_name, product_code, architecture, cpu,
     ram, ram_mb, storage, storage_mb, dimensions, poe_in, poe_out,
     max_power_w, wireless_24_chains, wireless_5_chains,
     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
-    eth_multigig, usb_ports, sim_slots, msrp_usd
+    eth_multigig, usb_ports, sim_slots, msrp_usd,
+    product_url, block_diagram_url
   FROM devices`;
+
+/** Get test results for a device by ID. */
+function getDeviceTestResults(deviceId: number): DeviceTestResult[] {
+  return db.prepare(
+    `SELECT test_type, mode, configuration, packet_size,
+            throughput_kpps, throughput_mbps
+     FROM device_test_results
+     WHERE device_id = ?
+     ORDER BY test_type, mode, configuration, packet_size DESC`
+  ).all(deviceId) as DeviceTestResult[];
+}
+
+/** Attach test results to device results (for single/exact lookups). */
+function attachTestResults(devices: DeviceResult[]): DeviceResult[] {
+  for (const dev of devices) {
+    dev.test_results = getDeviceTestResults(dev.id);
+  }
+  return devices;
+}
 
 /** Build FTS5 query for devices — appends prefix '*' to every term.
  *  Model numbers like "RB1100" need prefix matching to find "RB1100AHx4".
@@ -739,7 +771,7 @@ export function searchDevices(
       .prepare(`${DEVICE_SELECT} WHERE product_name = ? COLLATE NOCASE OR product_code = ? COLLATE NOCASE`)
       .all(query, query) as DeviceResult[];
     if (exact.length > 0) {
-      return { results: exact, mode: "exact", total: exact.length };
+      return { results: attachTestResults(exact), mode: "exact", total: exact.length };
     }
   }
 
@@ -760,6 +792,8 @@ export function searchDevices(
       const likeSql = `${DEVICE_SELECT} d WHERE ${likeConditions.join(" AND ")} ORDER BY d.product_name LIMIT ?`;
       const likeResults = db.prepare(likeSql).all(...likeParams, limit) as DeviceResult[];
       if (likeResults.length > 0) {
+        // Attach test results for small result sets (likely specific device lookups)
+        if (likeResults.length <= 5) attachTestResults(likeResults);
         return { results: likeResults, mode: "like", total: likeResults.length };
       }
     }
@@ -807,7 +841,8 @@ export function searchDevices(
           d.ram, d.ram_mb, d.storage, d.storage_mb, d.dimensions, d.poe_in, d.poe_out,
           d.max_power_w, d.wireless_24_chains, d.wireless_5_chains,
           d.eth_fast, d.eth_gigabit, d.eth_2500, d.sfp_ports, d.sfp_plus_ports,
-          d.eth_multigig, d.usb_ports, d.sim_slots, d.msrp_usd
+          d.eth_multigig, d.usb_ports, d.sim_slots, d.msrp_usd,
+          d.product_url, d.block_diagram_url
         FROM devices_fts fts
         JOIN devices d ON d.id = fts.rowid
         WHERE devices_fts MATCH ?${filterWhere}
