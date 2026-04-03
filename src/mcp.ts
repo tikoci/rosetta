@@ -38,6 +38,12 @@ function getArg(name: string): string | undefined {
   return idx !== -1 && idx + 1 < args.length ? args[idx + 1] : undefined;
 }
 
+/** Format a clickable terminal hyperlink using OSC 8 escape sequences.
+ *  Falls back to plain URL in terminals that don't support OSC 8. */
+function link(url: string, display?: string): string {
+  return `\x1b]8;;${url}\x07${display ?? url}\x1b]8;;\x07`;
+}
+
 if (args.includes("--version") || args.includes("-v")) {
   console.log(`rosetta ${RESOLVED_VERSION}`);
   process.exit(0);
@@ -64,8 +70,10 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  DB_PATH  Absolute path to ros-help.db (optional)");
   console.log("  PORT     HTTP listen port (lower precedence than --port)");
   console.log("  HOST     HTTP bind address (lower precedence than --host)");
-  console.log("  TLS_CERT_PATH  TLS certificate path (lower precedence than --tls-cert)");
-  console.log("  TLS_KEY_PATH   TLS private key path (lower precedence than --tls-key)");
+  console.log();
+  console.log(`Quick start:  bunx @tikoci/rosetta --setup`);
+  console.log(`Project:      ${link("https://github.com/tikoci/rosetta")}`);
+  console.log(`Docs:         ${link("https://help.mikrotik.com/docs/spaces/ROS/overview", "help.mikrotik.com")}`);
   process.exit(0);
 }
 

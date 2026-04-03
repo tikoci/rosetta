@@ -1,66 +1,111 @@
 # rosetta
 
-MCP server for searching [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview). Gives your AI assistant searchable access to 317 documentation pages, 4,860 property definitions, 40,000-entry command tree, and 144 hardware product specs — with direct links to help.mikrotik.com.
+MCP server that gives AI assistants searchable access to the complete [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview) — 317 pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, and direct links to help.mikrotik.com.
 
-Tested with **Claude Desktop**, **Claude Code**, **VS Code Copilot** (including Copilot CLI), **Cursor**, and **OpenAI Codex** on macOS, Linux, and Windows.
+If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation.
 
-## What is SQL-as-RAG?
+### SQL-as-RAG
 
-Most retrieval-augmented generation (RAG) systems use vector embeddings to search documentation. This project takes a different approach: **SQLite [FTS5](https://www.sqlite.org/fts5.html) full-text search as the retrieval layer** — what we call SQL-as-RAG.
+Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.org/fts5.html) full-text search** as the retrieval layer — SQL-as-RAG. For structured technical docs, [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function) with [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) beats vector similarity: terms like `dhcp-snooping` and `/ip/firewall/filter` are exact tokens, not fuzzy embeddings. No API keys, no vector database — just a single SQLite file that searches in milliseconds.
 
-For structured technical documentation like RouterOS, full-text search with [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function) beats vector similarity. Technical terms like "dhcp-snooping" or "/ip/firewall/filter" are exact tokens — [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) and proximity matching handle the rest. No embedding pipeline, no vector database, no API keys. Just a single SQLite file that searches in milliseconds.
-
-The data flows: **HTML docs → SQLite extraction → FTS5 indexes → MCP tools → your AI assistant.** The database is built once from MikroTik's official Confluence documentation export, then the MCP server exposes 11 search tools over stdio or HTTP transport.
-
-## What's Inside
+### What's Inside
 
 - **317 documentation pages** from MikroTik's official help site (~515K words)
 - **4,860 property definitions** with types, defaults, and descriptions
 - **5,114 commands** in the RouterOS command hierarchy (551 directories, 34K arguments)
 - **1,034 callout blocks** — warnings, notes, and tips with important caveats
 - **144 hardware products** — CPU, RAM, storage, ports, PoE, wireless, license level, pricing
+- **2,874 performance benchmarks** — ethernet and IPSec throughput test results for 125 devices (64/512/1518-byte packets, multiple routing/bridging modes), plus block diagrams for 110
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) for command history
 - Direct links to help.mikrotik.com for every page and section
 
-## Quick Start
+---
 
-## MCP Discovery Status
+## Install on MikroTik (/app)
 
-- GitHub MCP Registry listing: planned
-- Official MCP Registry publication: metadata is now prepared in `server.json`
+RouterOS 7.22+ includes the [/app](https://help.mikrotik.com/docs/spaces/ROS/pages/328068) feature for running containers directly on the router. This is the simplest way to deploy rosetta — install once, and any AI assistant on your network can connect to the MCP endpoint URL shown in the router UI.
 
-Local install remains the primary path today (`bunx @tikoci/rosetta`).
+**Requirements:** RouterOS 7.22+, x86 or ARM64 architecture (CCR, RB5009, hAP ax series, CHR, etc.), container package installed, device-mode enabled.
 
-When ready to publish to the official registry:
+### 1. Enable containers (two reboots required)
 
-```sh
-brew install mcp-publisher
-mcp-publisher validate server.json
-mcp-publisher login github
-mcp-publisher publish server.json
+If you haven't already enabled the container package and device-mode:
+
+```routeros
+# Install the container package (router reboots automatically)
+/system/package/update/check-for-updates duration=10s
+/system/package/enable container
+# Apply changes restarts the router
 ```
 
-After publication, the server should be discoverable via:
+After reboot:
 
-```sh
-curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.tikoci/rosetta"
+```routeros
+# Enable container device-mode (requires physical power cycle or button press — follow the on-screen prompt)
+/system/device-mode/update mode=advanced container=yes
 ```
 
-### Option A: Install with Bun (recommended)
+See MikroTik's [Container documentation](https://help.mikrotik.com/docs/spaces/ROS/pages/Container) for full prerequisites and troubleshooting.
 
-Zero install, zero config, no binary signing issues. Requires [Bun](https://bun.sh/) — no Gatekeeper or SmartScreen warnings since there's no compiled binary to sign.
+### 2. Add the rosetta app
 
-**1. Install Bun** (if you don't have it):
-
-```sh
-# macOS / Linux
-curl -fsSL https://bun.sh/install | bash
-
-# Windows
-powershell -c "irm bun.sh/install.ps1 | iex"
+```routeros
+/app/add use-https=yes disabled=no yaml="name: rosetta
+descr: \"RouterOS Docs for AI assistants - use URL as MCP server\"
+page: https://tikoci.github.io/p/rosetta
+category: development
+icon: https://tikoci.github.io/p/rosetta.svg
+default-credentials: \"none - just use 'ui-url' as the MCP server in your AI assistant\"
+url-path: /mcp
+auto-update: true
+services:
+  rosetta:
+    image: ghcr.io/tikoci/rosetta:latest
+    container_name: mcp-server
+    ports:
+      - 9803:8080/tcp:web
+"
 ```
 
-**2. Configure your MCP client** with `bunx @tikoci/rosetta` as the command. No setup step needed — the database downloads automatically on first launch (~50 MB compressed).
+That's it. RouterOS downloads the container image, configures networking and firewall redirects, and starts the MCP server. The `auto-update: true` setting pulls the latest image on each boot.
+
+### 3. Get the MCP endpoint URL
+
+The URL to use with your AI assistant is shown as **UI URL** in WebFig (App → rosetta), or from the CLI:
+
+```routeros
+:put [/app/get rosetta ui-url]
+```
+
+This URL includes the `/mcp` path and is ready to paste into any MCP client that supports HTTP transport. With `use-https=yes`, the URL uses HTTPS with a MikroTik-managed `*.routingthecloud.net` certificate.
+
+### 4. Configure your AI assistant
+
+Point any HTTP-capable MCP client at the URL from the previous step:
+
+```json
+{ "url": "https://app-rosetta.XXX.routingthecloud.net/mcp" }
+```
+
+> **CHR note:** Cloud Hosted Router in free or trial mode does not include the `/ip/cloud` service needed for HTTPS certificates. Set `use-https=no` on the /app — the URL will use HTTP instead. The UI URL always reflects the correct protocol.
+
+> **HTTP option:** On any platform, you may choose `use-https=no` if you prefer HTTP or are on an isolated network. 
+
+---
+
+## Install Locally (with Bun)
+
+Run rosetta on your workstation using [Bun](https://bun.sh/). The MCP server runs over stdio — no network configuration needed. The database downloads automatically on first launch (~50 MB compressed).
+
+### Quick setup
+
+```sh
+bunx @tikoci/rosetta --setup
+```
+
+This downloads the database and prints config snippets for all supported MCP clients. Copy-paste the config for your client and you're done.
+
+### Or configure manually
 
 <details>
 <summary><b>VS Code Copilot</b></summary>
@@ -98,8 +143,6 @@ Edit your Claude Desktop config file:
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
-Add (or merge into existing config):
-
 ```json
 {
   "mcpServers": {
@@ -111,22 +154,9 @@ Add (or merge into existing config):
 }
 ```
 
-> **PATH note:** Claude Desktop on macOS doesn't always inherit your shell PATH. If `bunx` isn't found, use the full path — typically `~/.bun/bin/bunx`. Run `which bunx` to find it, or use `bunx @tikoci/rosetta --setup` which prints the full-path config for you.
+> **PATH note:** Claude Desktop on macOS doesn't always inherit your shell PATH. If `bunx` isn't found, use the full path (typically `~/.bun/bin/bunx`). Run `bunx @tikoci/rosetta --setup` to print the full-path config.
 
-Then **restart Claude Desktop**.
-
-</details>
-
-<details>
-<summary><b>GitHub Copilot CLI</b></summary>
-
-Inside a `copilot` session, type `/mcp add` to open the interactive form:
-
-- **Server Name:** `routeros-rosetta`
-- **Server Type:** 2 (STDIO)
-- **Command:** `bunx @tikoci/rosetta`
-
-Press <kbd>Tab</kbd> to navigate fields, <kbd>Ctrl+S</kbd> to save.
+Restart Claude Desktop after editing.
 
 </details>
 
@@ -155,21 +185,38 @@ Open **Settings → MCP** and add a new server:
 codex mcp add rosetta -- bunx @tikoci/rosetta
 ```
 
-> **Note:** ChatGPT Apps require a remote HTTPS MCP endpoint and cannot use local stdio servers like this one. Codex (CLI and desktop app) supports stdio and works with `bunx`.
+> **Note:** ChatGPT Apps require a remote HTTPS MCP endpoint. Use the [MikroTik /app install](#install-on-mikrotik-app) or another container platform for a hosted endpoint, or Codex CLI for local stdio.
 
 </details>
 
-**That's it.** First launch takes a moment to download the database; subsequent starts are instant. The database is stored in `~/.rosetta/ros-help.db`.
+<details>
+<summary><b>GitHub Copilot CLI</b></summary>
 
-> **Verify it works:** Run `bunx @tikoci/rosetta --setup` to see the database status and print config for all MCP clients.
->
-> **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. No manual update needed. (Note: the `~/.rosetta/ros-help.db` database persists across updates — it's re-downloaded only when missing or when you run `--setup --force`.)
+Inside a `copilot` session, type `/mcp add`:
 
-### Option B: Pre-built binary (no runtime needed)
+- **Server Name:** `routeros-rosetta`
+- **Server Type:** 2 (STDIO)
+- **Command:** `bunx @tikoci/rosetta`
 
-Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/releases) — no Bun, Node.js, or other tools required.
+</details>
 
-**1. Download** the ZIP for your platform from the [latest release](https://github.com/tikoci/rosetta/releases/latest):
+**Install Bun** (if you don't have it):
+
+```sh
+# macOS / Linux
+curl -fsSL https://bun.sh/install | bash
+
+# Windows
+powershell -c "irm bun.sh/install.ps1 | iex"
+```
+
+> **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. The database in `~/.rosetta/ros-help.db` persists across updates.
+
+---
+
+## Install from Binary
+
+Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/releases) — no Bun, Node.js, or other runtime needed.
 
 | Platform | File |
 |----------|------|
@@ -178,23 +225,16 @@ Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/rel
 | Windows | `rosetta-windows-x64.zip` |
 | Linux | `rosetta-linux-x64.zip` |
 
-Extract the ZIP to a permanent location (e.g., `~/rosetta` or `C:\rosetta`).
-
-**2. Run setup** to download the database and see MCP client config:
-
 ```sh
-./rosetta --setup
+./rosetta --setup    # downloads DB + prints MCP client config
 ```
 
-On Windows: `.\rosetta.exe --setup`
-
-> **macOS Gatekeeper:** If macOS blocks the binary: `xattr -d com.apple.quarantine ./rosetta` or go to **System Settings → Privacy & Security → Allow Anyway**.
->
+> **macOS Gatekeeper:** `xattr -d com.apple.quarantine ./rosetta` or System Settings → Privacy & Security → Allow Anyway.
 > **Windows SmartScreen:** Click **More info → Run anyway**.
 
-**3. Configure your MCP client** using the config printed by `--setup`. It uses the full path to the binary — paste it into your MCP client's config as shown.
+---
 
-### Try It
+## Try It
 
 Ask your AI assistant questions like:
 
@@ -204,6 +244,7 @@ Ask your AI assistant questions like:
 - *"What are the firewall filter default chains?"*
 - *"Show me warnings about hardware offloading"*
 - *"Which MikroTik routers have L3HW offload, and more than 8 ports of 48V PoE? Include cost."*
+- *"Compare the RB5009 and CCR2004 IPSec throughput at 1518-byte packets."*
 
 ## MCP Tools
 
@@ -219,7 +260,7 @@ The server provides 11 tools, designed to work together:
 | `routeros_search_callouts` | Search warnings, notes, and tips across all pages |
 | `routeros_search_changelogs` | Search parsed changelog entries — filter by version range, category, breaking changes |
 | `routeros_command_version_check` | Check which RouterOS versions include a command |
-| `routeros_device_lookup` | Hardware specs for 144 MikroTik products — filter by architecture, RAM, storage, PoE, wireless, LTE |
+| `routeros_device_lookup` | Hardware specs for 144 MikroTik products — filter by architecture, RAM, storage, PoE, wireless, LTE. Includes ethernet/IPSec benchmarks and block diagrams for most devices |
 | `routeros_stats` | Database health: page/property/command counts, coverage stats |
 | `routeros_current_versions` | Fetch current RouterOS versions from MikroTik (live) |
 
@@ -232,15 +273,15 @@ The AI assistant typically starts with `routeros_search`, then drills into speci
 | **First launch is slow** | One-time database download (~50 MB). Subsequent starts are instant. |
 | **`npx @tikoci/rosetta` fails** | This package requires Bun, not Node.js. Use `bunx` instead of `npx`. |
 | **`npm install -g` then `rosetta` fails** | Global npm install works if Bun is on PATH — it delegates to `bun` at runtime. But prefer `bunx` — it's simpler and auto-updates. |
-| **ChatGPT Apps can't connect with `bunx @tikoci/rosetta`** | Expected: ChatGPT Apps supports remote HTTPS MCP endpoints, not local stdio command launch. Use OpenAI Codex for local stdio, or deploy/tunnel a remote MCP URL for ChatGPT. |
+| **ChatGPT Apps can't connect** | ChatGPT Apps require a remote HTTPS MCP endpoint. Use the [MikroTik /app install](#install-on-mikrotik-app) for a hosted endpoint, or Codex CLI for local stdio. |
 | **Claude Desktop can't find `bunx`** | Claude Desktop on macOS may not inherit shell PATH. Use the full path to bunx (run `which bunx` to find it, typically `~/.bun/bin/bunx`). `bunx @tikoci/rosetta --setup` prints the full-path config. |
 | **macOS Gatekeeper blocks binary** | Use `bunx` install (no Gatekeeper issues), or: `xattr -d com.apple.quarantine ./rosetta` |
 | **Windows SmartScreen warning** | Use `bunx` install (no SmartScreen issues), or click **More info → Run anyway** |
-| **How to update** | `bunx` always uses the latest published version. For binaries, re-download from [Releases](https://github.com/tikoci/rosetta/releases/latest). |
+| **How to update** | `bunx` always uses the latest published version. For binaries, re-download from [Releases](https://github.com/tikoci/rosetta/releases/latest). MikroTik /app with `auto-update: true` pulls the latest image on each boot. |
 
 ## HTTP Transport
 
-Most MCP clients use stdio (the default). Some — like the OpenAI platform and remote/LAN setups — require an HTTP endpoint instead. Rosetta supports the [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) via the `--http` flag:
+The [MikroTik /app install](#install-on-mikrotik-app) is the easiest way to get an HTTP endpoint. For other setups, rosetta supports the [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) via `--http`:
 
 ```sh
 rosetta --http                    # http://localhost:8080/mcp
@@ -254,155 +295,47 @@ Then point your MCP client at the URL:
 { "url": "http://localhost:8080/mcp" }
 ```
 
-**Key facts:**
-
-- **Read-only** — the server queries a local SQLite database. It does not store data, accept uploads, or modify anything.
-- **No authentication** — designed for local/trusted-network use. For public exposure, put it behind a reverse proxy (nginx, caddy) with TLS and auth.
-- **TLS built-in** — for direct HTTPS without a proxy: `--tls-cert cert.pem --tls-key key.pem` (or `TLS_CERT_PATH` + `TLS_KEY_PATH` env vars)
-- **Defaults to localhost** — binding to all interfaces (`--host 0.0.0.0`) requires an explicit flag and logs a warning.
-- **Origin validation** — rejects cross-origin requests to prevent DNS rebinding attacks.
-- **Stdio remains default** — `--http` is opt-in. Existing stdio configs are unaffected.
-
-The `PORT`, `HOST`, `TLS_CERT_PATH`, and `TLS_KEY_PATH` environment variables are supported (lower precedence than CLI flags).
+- **Read-only** — queries a local SQLite database, stores nothing.
+- **No authentication** — designed for local/trusted-network use. Use a reverse proxy for public exposure.
+- **TLS built-in** — `--tls-cert cert.pem --tls-key key.pem` for direct HTTPS without a proxy.
+- **Defaults to localhost** — LAN binding (`--host 0.0.0.0`) requires an explicit flag.
 
 ## Container Images
 
-Release CI publishes multi-arch OCI images to:
+Multi-arch OCI images (linux/amd64 + linux/arm64) are published with each release:
 
-- Docker Hub: `ammo74/rosetta`
-- GHCR: `ghcr.io/tikoci/rosetta`
-
-Tags per release:
-
-- `${version}` (example: `v0.2.1`)
-- `latest`
-- `sha-<12-char-commit>`
-
-Container defaults:
-
-- Starts in HTTP mode (`--http`) on `0.0.0.0`
-- Uses `PORT` if set, otherwise 8080
-- Uses HTTPS only when both `TLS_CERT_PATH` and `TLS_KEY_PATH` are set
-
-Examples:
+- `ghcr.io/tikoci/rosetta` (GitHub Container Registry)
+- `ammo74/rosetta` (Docker Hub)
 
 ```sh
 docker run --rm -p 8080:8080 ghcr.io/tikoci/rosetta:latest
 ```
 
-```sh
-docker run --rm -p 8443:8443 \
-  -e PORT=8443 \
-  -e TLS_CERT_PATH=/certs/cert.pem \
-  -e TLS_KEY_PATH=/certs/key.pem \
-  -v "$PWD/certs:/certs:ro" \
-  ghcr.io/tikoci/rosetta:latest
-```
-
-## Building from Source
-
-For contributors or when you have access to the MikroTik HTML documentation export.
-
-### Prerequisites
-
-- [Bun](https://bun.sh/) v1.1+
-- RouterOS HTML documentation export (Confluence space export)
-- Internet access to [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) for command-tree extraction
-
-`make extract` and `make extract-full` fetch `inspect.json` from restraml GitHub Pages by default. You can still pass a local source explicitly:
-
-```sh
-bun run src/extract-commands.ts /path/to/restraml/docs/7.22.1/extra/inspect.json
-bun run src/extract-all-versions.ts /path/to/restraml/docs
-```
-
-### Build
-
-```sh
-git clone https://github.com/tikoci/rosetta.git
-cd rosetta
-bun install
-```
-
-Place the Confluence HTML export in `box/documents-export-<date>/ROS/` and symlink `box/latest` to it:
-
-```sh
-ln -s documents-export-<date> box/latest
-```
-
-Then:
-
-```sh
-make extract       # HTML → properties → commands (single version) → link
-# or
-make extract-full  # Same but with all 46 RouterOS versions
-```
-
-### Development
-
-```sh
-bun test             # Run tests (in-memory SQLite, no DB needed)
-bun run typecheck    # Type check
-make lint            # Biome linter
-bun run src/mcp.ts   # Start MCP server in dev mode
-```
-
-The repo includes `.vscode/mcp.json` — opening the folder in VS Code automatically configures Copilot to use the dev server.
-
-### Creating a Release
-
-The Makefile handles the full release flow — preflight checks, cross-compile, git tag, push, and GitHub Release upload:
-
-```sh
-make release VERSION=v0.1.0
-```
-
-This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, compresses the database, tags the commit, and creates a GitHub Release with all artifacts.
-
-The release workflow also publishes OCI images to Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) using crane (no Docker daemon required in CI).
-
-## Project Structure
-
-```text
-src/
-├── mcp.ts                  # MCP server (11 tools, stdio + HTTP) + CLI dispatch
-├── setup.ts                # --setup: DB download + MCP client config
-├── query.ts                # NL → FTS5 query planner, BM25 ranking
-├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
-├── extract-html.ts         # Confluence HTML → pages + callouts
-├── extract-properties.ts   # Property table extraction
-├── extract-commands.ts     # inspect.json → commands (version-aware)
-├── extract-all-versions.ts # Batch extract all 46 versions
-├── extract-devices.ts      # Product matrix CSV → devices table
-├── link-commands.ts        # Command ↔ page mapping
-└── query.test.ts           # Tests (in-memory SQLite fixtures)
-
-scripts/
-└── build-release.ts        # Cross-compile + package releases
-└── container-entrypoint.sh # OCI image runtime entrypoint (HTTP default)
-```
+These are the same images used by the [MikroTik /app install](#install-on-mikrotik-app). Tags: `latest`, version (e.g., `v0.2.1`), and `sha-<commit>`.
 
 ## Data Sources
 
-The database combines three sources of MikroTik data into a single SQLite file with full-text search ([FTS5](https://www.sqlite.org/fts5.html) with [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) and [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function)):
+The database combines multiple MikroTik data sources into a single SQLite file with [FTS5](https://www.sqlite.org/fts5.html) full-text search, [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer), and [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function):
 
-- **HTML Documentation** — Confluence space export from help.mikrotik.com (March 2026). The 317 pages are broken out several ways: by section heading, callout boxes (warnings, tips, notes), and property tables (attribute name/type/default/description). This is the richest source — ~515K words of official documentation with direct links back to help.mikrotik.com.
+- **HTML Documentation** — Confluence space export from help.mikrotik.com (March 2026). 317 pages broken into sections, callouts, and property tables (~515K words) with links back to help.mikrotik.com.
 
-- **Command Tree** — `inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml), which runs `/console/inspect` requests (`child`, `syntax`, `completion`) against RouterOS CHR under QEMU via GitHub Actions for every version since 7.9. This gives the MCP server structured knowledge of whether a command or argument exists in a particular version (46 versions tracked: 7.9–7.23beta2). The blind spot: these come from CHR with all extra-packages on x86, so commands from packages not available on CHR (like `zerotier` and Wi-Fi driver packages) are missing — the HTML docs cover those.
+- **Command Tree** — `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml), generated by running `/console/inspect` against RouterOS CHR under QEMU for every version since 7.9 (46 versions tracked: 7.9–7.23beta2).
 
-- **Product Matrix** — CSV export from mikrotik.com/products/matrix (144 products, 34 columns). Hardware specs, license levels, and pricing — lets the AI answer questions like *"Which routers have L3HW offload and 8+ ports of 48V PoE?"* The CSV requires manual download (the old POST API was removed when the site was redesigned in late 2025).
+- **Product Matrix** — CSV export from mikrotik.com/products/matrix (144 products, 34 columns). Hardware specs, license levels, and pricing.
+
+- **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
 
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
 
 ## Database (Standalone)
 
-The SQLite database is distributed separately from the MCP server code via GitHub Releases:
+The SQLite database is downloadable on its own from [GitHub Releases](https://github.com/tikoci/rosetta/releases):
 
 ```text
 https://github.com/tikoci/rosetta/releases/latest/download/ros-help.db.gz
 ```
 
-The MCP server downloads this automatically on first run (or via `--setup`), but the database is usable on its own with any SQLite client:
+Use it with any SQLite client:
 
 ```sh
 sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHCP lease' ORDER BY rank LIMIT 5;"
@@ -420,8 +353,13 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `command_versions` | 1.67M | Junction table: which command paths exist in which RouterOS versions (7.9–7.23beta2) |
 | `ros_versions` | 46 | Tracked RouterOS versions with channel (stable/development) |
 | `devices` | 144 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
+| `device_test_results` | 2,874 | Ethernet and IPSec throughput benchmarks for 125 devices — packet sizes, modes, Mbps/Kpps |
 
-Each content table has a corresponding [FTS5](https://www.sqlite.org/fts5.html) index (e.g., `pages_fts`, `properties_fts`, `devices_fts`) using the [porter](https://www.sqlite.org/fts5.html#porter_tokenizer) stemming tokenizer for natural language search with [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function).
+Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `properties_fts`, `devices_fts`).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for building from source, running tests, development setup, and the release process.
 
 ## License
 

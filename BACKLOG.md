@@ -42,6 +42,10 @@ Implemented. Streamable HTTP transport via `--http` flag using `Bun.serve()` + `
 
 Items that need research or experimentation before they're actionable.
 
+### MikroTik /app auto-update behavior
+
+The `/app` YAML supports `auto-update: true`, which is documented to pull the latest container image on each boot. This is set in our rosetta /app template. Initial testing on CHR 7.23beta5 confirms the app installs and runs correctly, but the auto-update pull-on-boot behavior needs verification across reboots with new image tags pushed. Specifically: does RouterOS pull `:latest` fresh on each boot, or does it cache by digest? Does it require `docker-tag-based-pulling` or `checking-for-updates`?
+
 ### Product page slug coverage (15 missing devices)
 
 `extract-test-results.ts` generates 4–6 URL slug candidates per product, but 15 of 144 products still have no discoverable page. These fall into categories:

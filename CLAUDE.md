@@ -221,13 +221,17 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 ## Distribution
 
-Three install paths, all downloading the database from GitHub Releases on first run:
+Four install paths:
 
-### Option A: npm package (primary — `bunx @tikoci/rosetta`)
+### Option A: MikroTik /app container (primary for router admins)
+
+RouterOS 7.22+ on x86 or ARM64. One `/app/add` command installs the container with auto-update. The MCP endpoint URL is shown as `ui-url` in the router UI (WebFig or CLI). Uses the same OCI images from GHCR. HTTPS via MikroTik-managed `*.routingthecloud.net` certificates (requires `/ip/cloud`; CHR free/trial mode needs `use-https=no`).
+
+### Option B: npm package (`bunx @tikoci/rosetta`)
 
 Requires [Bun](https://bun.sh/). MCP clients use `bunx @tikoci/rosetta` as the command — no paths to configure. Database auto-downloads to `~/.rosetta/ros-help.db`. No Gatekeeper/SmartScreen issues since there's no standalone binary.
 
-### Option B: Compiled binary (no runtime needed)
+### Option C: Compiled binary (no runtime needed)
 
 Single-file executables from GitHub Releases. User runs `--setup` to download DB and print MCP config.
 
@@ -346,6 +350,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `.github/workflows/test.yml` | CI: typecheck + test + lint on push/PR/manual |
 | `.github/workflows/release.yml` | CI: build DB from HTML export URL + publish OCI images + create GitHub Release + npm publish |
 | `ros-help.db` | The SQLite database (WAL mode) |
+| `CONTRIBUTING.md` | Build, test, development setup, release process |
 
 ## Re-extraction
 

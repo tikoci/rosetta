@@ -65,6 +65,7 @@ export async function runSetup(force = false) {
   const dbPath = resolveDbPath(import.meta.dirname);
 
   console.log(`rosetta ${RELEASE_VERSION}`);
+  console.log(`  ${link("https://github.com/tikoci/rosetta")}`);
   console.log();
 
   // ── Download DB if needed ──
@@ -301,7 +302,28 @@ function printHttpConfig(startCmd: string) {
   console.log("  For LAN access, replace localhost with the server's IP address.");
   console.log("  Use a reverse proxy (nginx, caddy) for production HTTPS.");
   console.log();
+
+  printMikroTikConfig();
 }
+
+/** Format a clickable terminal hyperlink using OSC 8 escape sequences. */
+function link(url: string, display?: string): string {
+  return `\x1b]8;;${url}\x07${display ?? url}\x1b]8;;\x07`;
+}
+
+function printMikroTikConfig() {
+  console.log("─".repeat(60));
+  console.log("MikroTik /app container (RouterOS 7.22+, x86 or ARM64):");
+  console.log("─".repeat(60));
+  console.log();
+  console.log("  Run directly on your MikroTik router — any MCP client on");
+  console.log("  the network can connect to the URL shown in the router UI.");
+  console.log();
+  console.log("  Requires: container package + device-mode enabled.");
+  console.log(`  See: ${link("https://github.com/tikoci/rosetta#install-on-mikrotik-app", "README — Install on MikroTik")}`);
+  console.log();
+}
+
 
 // Run directly
 if (import.meta.main) {
