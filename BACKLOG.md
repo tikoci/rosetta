@@ -34,6 +34,24 @@ Implemented as `routeros_command_diff`. Given `from_version` and `to_version`, r
 
 Implemented. Streamable HTTP transport via `--http` flag using `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` (MCP spec 2025-03-26). Endpoint: `/mcp`. Supports `--port`, `--host`, `--tls-cert`/`--tls-key` flags and env vars. Defaults to localhost binding; LAN binding (`--host 0.0.0.0`) logs a warning. Origin header validation prevents DNS rebinding. `--setup` prints HTTP config snippets alongside stdio configs. Stdio remains the default for local clients.
 
+### ~~Device AKA matching — Phase 1 (separator normalization + slug-normalized path)~~ ✓ DONE
+
+Investigated 2026-04-04. Tested 27 common MCP-user alias patterns. Two fixes shipped:
+
+1. **Dash/underscore-split LIKE** — query split changed from `/\s+/` to `/[\s\-_]+/`. Fixes `rb5009-out` → `RB5009UPr+S+OUT`, `hap-ax3` → `hAP ax³` (via LIKE), `hap_ax3` → `hAP ax³`, `knot_emb_lte4` → `KNOT Embedded LTE4*` etc.
+2. **Slug-normalized LIKE fallback** — when all LIKE/FTS paths fail, strips all non-alphanumeric chars from both the query and `product_url` slug (`REPLACE(url,'_','')`), then tries `LIKE '%/product/%{normalizedQuery}%'`. Min length: 5 chars. Fixes `hapax3` → `hAP ax³`, `hapax2` → `hAP ax²`, `wapaxlte7` → `wAP ax LTE7 kit`, `fiberboxplus` → `FiberBox Plus`, `sxtsq5ax` → `SXTsq 5 ax` (once product_url is populated).
+
+**Key signal:** MikroTik's own web team uses a distinct naming convention for URL slugs — these are essentially a "second taxonomy" of product names used consistently throughout the website. The slug is the most common form users copy from browser URLs or site searches. Indexing it as a first-class AKA source is the right call.
+
+**Coverage after fixes** (against live DB, 2026-04-04):
+- Products with existing product_url: all AKA forms resolve ✓
+- 15 previously-missing devices with NULL product_url: slug-normalized path can't help until `extract-test-results.ts` re-runs (which will populate product_url via the sitemap fix)
+
+**Remaining failures** (→ see below in To Investigate):
+- `hex 2024` / `hex_2024` → returns 7 results (`hEX refresh` has NULL product_url; "2024" not in name)
+- `hap ax 3` → returns 4 results (digit `3` filtered as too-short term; `hap ax` matches 4 products)
+- `chateaulte18` → MISS until product_url populated
+
 ## To Investigate
 
 Items that need research or experimentation before they're actionable.
@@ -49,6 +67,29 @@ Implemented in `extract-test-results.ts`. Two-layer approach:
 2. **Override table** — `SLUG_OVERRIDES` maps all 15 known-opaque product names to their correct sitemap slugs (derived from 2026-04-04 research). New products with predictable slugs are handled automatically by the sitemap validation; only truly opaque cases need the override table.
 
 `buildSlugCandidates()` replaces direct `generateSlugs()` calls, priority: override → sitemap-validated generated → raw generated fallback. Sitemap fetch errors are non-fatal (falls back to heuristics only). Coverage goes from 129/144 (89%) to 144/144 (100%).
+
+### Device AKA matching — Phase 2 (aliases table for renames and versioned names)
+
+**Investigated 2026-04-04.** Two failure modes remain after Phase 1 fixes:
+
+**Problem 1: Renamed products** — Some products have a common user shorthand that refers to a new model with a completely different name:
+- `hex 2024` → should find `hEX refresh` (E50UG). The word "2024" doesn't appear anywhere in the product name or code. MikroTik renamed it "refresh" but users call it "2024" because the URL slug is `hex_2024`. This is a genuine rename — no amount of tokenization can bridge it without an explicit alias.
+- `hex s 2025` → correctly finds `hEX S (2025)` ✓ (product name contains "2025")
+- `chateau lte18 ax` → exact match ✓ when extracted; `chateaulte18` → only works once product_url populated
+
+**Problem 2: Versioned names with superscript digits** — Users type ASCII digits (`ax3`) for Unicode superscripts (`ax³`). When the query has spaces too (`hap ax 3`), the digit `3` is filtered as a single-character LIKE term (min 2 chars), then "hap ax" matches 4 products:
+- `hap ax 3` → `['hap','ax']` → LIKE returns 4 (hAP ax S, hAP ax lite, hAP ax², hAP ax³)  
+- `hap ax3` / `hapax3` / `hap-ax3` → resolve correctly via slug path (committed ✓)
+- The gap is specifically the `{name} {space} {single digit}` form
+
+**Recommended approach:**
+1. **`device_aliases` table** — `(alias TEXT, device_id INTEGER)` with explicit mappings for known renames. Would handle `hex 2024` → `hEX refresh`, `hapax4` → future `hAP ax⁴`, etc. Keep it small: only aliases that can't be derived from names/codes/slugs.
+2. **Lengthen single-digit filter threshold** — for the versioning case: check if the "short" token is a digit and the preceding token looks like a series name (`ax`, `ac`, `lite`), then keep it. Specifically: relax the `t.length >= 2` filter to allow single-char tokens that are digits adjacent to known series strings.
+3. **OR: normalize stored product names** — add a `product_name_ascii` column at extraction time that converts Unicode superscripts to ASCII digits (`³`→`3`, `²`→`2`). Then the regular LIKE path finds `hAP ax3` without any slug fallback needed. This is a simpler fix than option 2 and doesn't require query-time logic.
+
+**Signal insight:** The URL slug naming is a second authoritative taxonomy — MikroTik's web team consistently uses it across the site, and it's what users copy from browser URLs. The Phase 1 slug-normalized path already leverages this. For renamed products, the slug IS the AKA: `hex_2024` is the "real name" of `hEX refresh` as far as search is concerned.
+
+**Trigger:** Address when user reports false-empty on a renamed product, or when adding new products that have breaking renaming patterns.
 
 
 ### Debounce inspect.json fetches during extract-all-versions
