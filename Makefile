@@ -5,7 +5,7 @@ FORCE      ?=
 
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
         extract-all-versions extract-devices extract-test-results extract-changelogs link assess search serve \
-	typecheck lint test preflight build-release release \
+	typecheck lint test preflight build-release release bump-version \
         install setup clean
 
 # ── Development ──
@@ -104,14 +104,22 @@ else
 	gh release create $(VERSION) dist/*.zip dist/ros-help.db.gz --title "$(VERSION)" --generate-notes
 	@echo "✓ Release $(VERSION) created"
 endif
+	@$(MAKE) --no-print-directory bump-version
+
+# Bump patch version in package.json and commit.
+# Called automatically after `make release`; can also run standalone.
+bump-version:
+	@CURRENT=$$(node -p "require('./package.json').version"); \
+	IFS='.' read -r MAJOR MINOR PATCH <<< "$$CURRENT"; \
+	NEXT="$$MAJOR.$$MINOR.$$((PATCH + 1))"; \
+	node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$$NEXT'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"; \
+	echo "✓ Bumped version: $$CURRENT → $$NEXT"; \
+	git add package.json; \
+	git commit -m "chore: bump version to $$NEXT for next release"; \
+	git push origin main; \
+	echo "✓ Version bump committed and pushed"
 
 setup:
-	bun install
-	bun run src/setup.ts
-
-clean:
-	rm -f $(DB) $(DB)-shm $(DB)-wal
-	rm -rf dist/
 	bun install
 	bun run src/setup.ts
 
