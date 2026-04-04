@@ -897,9 +897,6 @@ export type DeviceTestRow = {
   product_name: string;
   product_code: string | null;
   architecture: string;
-  cpu: string | null;
-  cpu_cores: number | null;
-  cpu_frequency: string | null;
   test_type: string;
   mode: string;
   configuration: string;
@@ -908,16 +905,15 @@ export type DeviceTestRow = {
   throughput_mbps: number | null;
 };
 
-export function searchDeviceTests(
-  filters: {
-    test_type?: string;
-    mode?: string;
-    configuration?: string;
-    packet_size?: number;
-    sort_by?: "mbps" | "kpps";
-  },
-  limit = 50,
-): { results: DeviceTestRow[]; total: number } {
+type DeviceTestFilters = {
+  test_type?: string;
+  mode?: string;
+  configuration?: string;
+  packet_size?: number;
+  sort_by?: "mbps" | "kpps";
+};
+
+function buildTestWhereClause(filters: DeviceTestFilters): { whereClause: string; params: (string | number)[] } {
   const where: string[] = [];
   const params: (string | number)[] = [];
 
@@ -938,7 +934,17 @@ export function searchDeviceTests(
     params.push(filters.packet_size);
   }
 
-  const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+  return {
+    whereClause: where.length > 0 ? `WHERE ${where.join(" AND ")}` : "",
+    params,
+  };
+}
+
+export function searchDeviceTests(
+  filters: DeviceTestFilters,
+  limit = 50,
+): { results: DeviceTestRow[]; total: number } {
+  const { whereClause, params } = buildTestWhereClause(filters);
   const orderCol = filters.sort_by === "kpps" ? "t.throughput_kpps" : "t.throughput_mbps";
 
   // Total count (before limit)
@@ -946,8 +952,7 @@ export function searchDeviceTests(
     JOIN devices d ON d.id = t.device_id ${whereClause}`;
   const total = Number((db.prepare(totalSql).get(...params) as { c: number }).c);
 
-  const sql = `SELECT d.product_name, d.product_code, d.architecture, d.cpu,
-      d.cpu_cores, d.cpu_frequency,
+  const sql = `SELECT d.product_name, d.product_code, d.architecture,
       t.test_type, t.mode, t.configuration, t.packet_size,
       t.throughput_kpps, t.throughput_mbps
     FROM device_test_results t

@@ -785,8 +785,10 @@ Note: some devices use slightly different names (e.g., "25 bridge filter" vs "25
 
 **Tip:** Call with no filters first to see available test_types, modes, configurations, and packet_sizes via the metadata field.
 
+Results include product_name, product_code, architecture — use routeros_device_lookup for full specs (CPU, RAM, ports, etc.).
+
 Workflow:
-→ routeros_device_lookup: get full specs + block diagram for a specific device from results
+→ routeros_device_lookup: get full specs (CPU, RAM, pricing) + block diagram for a specific device
 → routeros_search: find documentation about features relevant to the test type`,
     inputSchema: {
       test_type: z

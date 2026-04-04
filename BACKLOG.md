@@ -117,6 +117,7 @@ To make tool descriptions more accurate, we should:
 
 The MCP spec supports **resources** — static or semi-static data that clients can fetch without a tool call. Worth investigating whether we should expose some data as resources rather than (or in addition to) tools:
 
+- **Device test results** — the full benchmark dataset (2,874 rows across 125 devices). Tools like `search_tests` are good for filtered/ranked queries, but bulk access ("give me all 512-byte results as a CSV", "chart the top routers") doesn't fit the tool model well — either the limit caps cut the data or the full JSON blows the context. A resource lets the client pull the full dataset and format it however the user asks (CSV, chart, table, pivot). This is the strongest candidate.
 - **Product matrix CSV** — `matrix/2026-03-25/matrix.csv` (144 products, 34 columns). Already in the DB as the `devices` table, but the raw CSV might be useful as a resource for agents that want the full 34-column dataset.
 - **Versioned inspect.json** — raw command tree data. Some agents might want the raw JSON rather than our SQL interpretation.
 - **RouterOS YAML schema** — restraml also generates RAML/YAML schemas. Could expose as a resource for code generation use cases.
