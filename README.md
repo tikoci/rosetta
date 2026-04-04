@@ -1,5 +1,7 @@
 # rosetta
 
+[![SafeSkill 73/100](https://img.shields.io/badge/SafeSkill-73%2F100_Passes%20with%20Notes-yellow)](https://safeskill.dev/scan/tikoci-rosetta)
+
 MCP server that gives AI assistants searchable access to the complete [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview) — 317 pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, and direct links to help.mikrotik.com.
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation.
