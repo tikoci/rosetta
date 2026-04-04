@@ -943,6 +943,39 @@ describe("searchDevices", () => {
       expect(res.results[0].test_results).toBeDefined();
     }
   });
+
+  test("LIKE splits on dashes so rb1100-ahx4 finds RB1100AHx4 family via LIKE", () => {
+    // Users may type model numbers with dashes as word separators
+    const res = searchDevices("RB1100-AHx4");
+    expect(res.mode).toBe("like");
+    expect(res.results.length).toBeGreaterThanOrEqual(1);
+    expect(res.results.every((d) => d.product_name.includes("RB1100"))).toBe(true);
+  });
+
+  test("slug-normalized LIKE finds hapax3 → hAP ax3 via product_url", () => {
+    // Concatenated slug-style query: spaces dropped, ASCII digit for superscript.
+    // Falls through regular LIKE (no match: 'hapax3' not a substring of 'hAP ax3')
+    // then slug-normalized path matches product_url /product/hap_ax3 → hap_ax3 stripped.
+    const res = searchDevices("hapax3");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax3"); // fixture uses ASCII 3
+  });
+
+  test("dash-split LIKE finds hap-ax3 → hAP ax3", () => {
+    // Dash as separator: split → ['hap','ax3'] → LIKE '%hap%' AND '%ax3%'
+    const res = searchDevices("hap-ax3");
+    expect(res.mode).toBe("like");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax3");
+  });
+
+  test("underscore-split LIKE finds hap_ax3 → hAP ax3", () => {
+    // Underscore-separated slug form
+    const res = searchDevices("hap_ax3");
+    expect(res.mode).toBe("like");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax3");
+  });
 });
 
 // ---------------------------------------------------------------------------

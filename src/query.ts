@@ -866,12 +866,14 @@ export function searchDevices(
   }
 
   // 2. LIKE-based prefix/substring match on product_name and product_code.
+  //    Splits on whitespace, dashes, and underscores so that dash-separated
+  //    queries like "rb5009-out" still find "RB5009UPr+S+OUT".
   //    For 144 rows this is instant and catches model number substrings
   //    that FTS5 token matching misses (e.g. "RB1100" → "RB1100AHx4").
   if (query) {
     const likeTerms = query
       .trim()
-      .split(/\s+/)
+      .split(/[\s\-_]+/)
       .filter((t) => t.length >= 2)
       .map((t) => `%${t}%`);
     if (likeTerms.length > 0) {
@@ -888,6 +890,26 @@ export function searchDevices(
         // Attach test results for small result sets (likely specific device lookups)
         if (trimmed.length <= 5) attachTestResults(trimmed);
         // Single match in any mode gets test results
+        else if (trimmed.length === 1) attachTestResults(trimmed);
+        return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore };
+      }
+    }
+  }
+
+  // 2b. Slug-normalized LIKE: strip all separators from both query and product_url slug.
+  //     Handles concatenated AKAs ("hapax3", "fiberboxplus", "wapaxlte7") and superscript
+  //     queries ("hap ax3" → slug hap_ax3 → stripped hapax3). Anchors to /product/ prefix
+  //     to avoid matching domain or path components.
+  if (query) {
+    const slugQuery = query.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (slugQuery.length >= 5) {
+      const slugPattern = `%/product/%${slugQuery}%`;
+      const slugSql = `${DEVICE_SELECT} d WHERE d.product_url IS NOT NULL AND REPLACE(LOWER(d.product_url), '_', '') LIKE ? ORDER BY d.product_name LIMIT ?`;
+      const slugResults = db.prepare(slugSql).all(slugPattern, limit + 1) as DeviceResult[];
+      if (slugResults.length > 0) {
+        const hasMore = slugResults.length > limit;
+        const trimmed = hasMore ? slugResults.slice(0, limit) : slugResults;
+        if (trimmed.length <= 5) attachTestResults(trimmed);
         else if (trimmed.length === 1) attachTestResults(trimmed);
         return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore };
       }
