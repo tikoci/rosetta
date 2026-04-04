@@ -674,6 +674,7 @@ Shows bus topology and per-port bandwidth limits — useful for understanding So
 - SMIPS: lowest-end (hAP lite)
 
 Workflow — combine with other tools:
+→ routeros_search_tests: cross-device performance ranking (all 125 devices at once, e.g., 512B routing benchmark)
 → routeros_search: find documentation for features relevant to a device
 → routeros_command_tree: check commands available for a feature
 → routeros_current_versions: check latest firmware for the device
