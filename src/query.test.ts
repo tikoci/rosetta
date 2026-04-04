@@ -26,6 +26,7 @@ const {
   searchCallouts,
   searchChangelogs,
   checkCommandVersions,
+  diffCommandVersions,
   searchDevices,
   searchDeviceTests,
   getTestResultMeta,
@@ -90,6 +91,17 @@ beforeAll(() => {
     VALUES ('/ip/dhcp-server', '7.22')`);
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.9')`);
+
+  // Extra command_versions entries to support diffCommandVersions tests
+  // /ip/dhcp-server/lease only in 7.22 (added)
+  db.run(`INSERT INTO command_versions (command_path, ros_version)
+    VALUES ('/ip/dhcp-server/lease', '7.22')`);
+  // /ip/old-feature only in 7.9 (removed by 7.22)
+  db.run(`INSERT INTO command_versions (command_path, ros_version)
+    VALUES ('/ip/old-feature', '7.9')`);
+  // /other/path only in 7.10.2 (outside /ip prefix for prefix-filter test)
+  db.run(`INSERT INTO command_versions (command_path, ros_version)
+    VALUES ('/other/path', '7.10.2')`);
 
   // Device fixtures for searchDevices tests
   db.run(`INSERT INTO devices
@@ -667,6 +679,79 @@ describe("checkCommandVersions", () => {
     // Our fixture only has version 7.22, which is the min. Expect note.
     const res = checkCommandVersions("/ip/dhcp-server");
     expect(res.note).toContain("earliest tracked version");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DB integration: diffCommandVersions
+// ---------------------------------------------------------------------------
+
+describe("diffCommandVersions", () => {
+  test("detects added command paths", () => {
+    // /ip/dhcp-server/lease only in 7.22
+    const res = diffCommandVersions("7.9", "7.22");
+    expect(res.added).toContain("/ip/dhcp-server/lease");
+  });
+
+  test("detects removed command paths", () => {
+    // /ip/old-feature only in 7.9
+    const res = diffCommandVersions("7.9", "7.22");
+    expect(res.removed).toContain("/ip/old-feature");
+  });
+
+  test("does not report unchanged commands as added or removed", () => {
+    const res = diffCommandVersions("7.9", "7.22");
+    // /ip/dhcp-server is in both versions — should not appear in either list
+    expect(res.added).not.toContain("/ip/dhcp-server");
+    expect(res.removed).not.toContain("/ip/dhcp-server");
+  });
+
+  test("returns correct counts", () => {
+    const res = diffCommandVersions("7.9", "7.22");
+    expect(res.added_count).toBe(res.added.length);
+    expect(res.removed_count).toBe(res.removed.length);
+  });
+
+  test("path_prefix scopes the diff to a subtree", () => {
+    const res = diffCommandVersions("7.9", "7.22", "/ip");
+    // /other/path is outside /ip prefix — should not appear
+    expect(res.added).not.toContain("/other/path");
+    expect(res.removed).not.toContain("/other/path");
+    // Results should still include /ip subtree changes
+    expect(res.removed).toContain("/ip/old-feature");
+  });
+
+  test("returns from_version and to_version in result", () => {
+    const res = diffCommandVersions("7.9", "7.22");
+    expect(res.from_version).toBe("7.9");
+    expect(res.to_version).toBe("7.22");
+  });
+
+  test("returns path_prefix in result", () => {
+    const res = diffCommandVersions("7.9", "7.22", "/ip/firewall");
+    expect(res.path_prefix).toBe("/ip/firewall");
+  });
+
+  test("path_prefix null when not provided", () => {
+    const res = diffCommandVersions("7.9", "7.22");
+    expect(res.path_prefix).toBeNull();
+  });
+
+  test("adds note for untracked from_version", () => {
+    const res = diffCommandVersions("7.1", "7.22");
+    expect(res.note).toContain("7.1");
+    expect(res.note).toContain("not in the tracked range");
+  });
+
+  test("adds note for untracked to_version", () => {
+    const res = diffCommandVersions("7.9", "7.99");
+    expect(res.note).toContain("7.99");
+  });
+
+  test("returns empty diff for same version", () => {
+    const res = diffCommandVersions("7.22", "7.22");
+    expect(res.added).toHaveLength(0);
+    expect(res.removed).toHaveLength(0);
   });
 });
 

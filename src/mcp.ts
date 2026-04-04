@@ -159,6 +159,7 @@ const {
   browseCommands,
   browseCommandsAtVersion,
   checkCommandVersions,
+  diffCommandVersions,
   exportDevicesCsv,
   exportDeviceTestsCsv,
   fetchCurrentVersions,
@@ -692,6 +693,67 @@ Examples:
   },
   async ({ command_path }) => {
     const result = checkCommandVersions(command_path);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_command_diff ----
+
+server.registerTool(
+  "routeros_command_diff",
+  {
+    description: `Diff two RouterOS versions — which command paths were added or removed between them.
+
+The most common RouterOS support query is "something broke after I upgraded." This tool
+directly answers it by comparing the command tree between any two tracked versions.
+
+Returns added[] (new in to_version) and removed[] (gone from to_version) with counts.
+Use path_prefix to scope the diff to a subsystem (e.g., '/ip/firewall' or '/routing/bgp').
+
+Command data covers 7.9–7.23beta2. Both versions must be in this range for complete results;
+if a version is outside the range, a note warns that results may be incomplete.
+
+**Typical workflow for upgrade breakage:**
+1. routeros_command_diff from_version="7.15" to_version="7.22" path_prefix="/ip/firewall"
+   → see which filter/mangle/nat commands changed
+2. routeros_search_changelogs from_version="7.15" to_version="7.22" category="firewall"
+   → read human-readable changelog entries for that subsystem
+3. routeros_command_version_check for a specific path that looks suspicious
+   → confirm exact version range for that command
+
+**path_prefix tip:** Start broad (e.g., '/routing/bgp'), then narrow if the diff is large.
+Without a prefix, a major-version diff can list hundreds of added paths.
+
+→ routeros_search_changelogs: read what changed (descriptions, breaking flags)
+→ routeros_command_version_check: check a specific command's full version history
+→ routeros_command_tree: browse the current command hierarchy at a path`,
+    inputSchema: {
+      from_version: z
+        .string()
+        .describe("The older RouterOS version to diff from (e.g., '7.15', '7.9')"),
+      to_version: z
+        .string()
+        .describe("The newer RouterOS version to diff to (e.g., '7.22', '7.23beta2')"),
+      path_prefix: z
+        .string()
+        .optional()
+        .describe("Optional: scope the diff to a command subtree (e.g., '/ip/firewall', '/routing/bgp', '/interface/bridge')"),
+    },
+  },
+  async ({ from_version, to_version, path_prefix }) => {
+    const result = diffCommandVersions(from_version, to_version, path_prefix);
+    if (result.added_count === 0 && result.removed_count === 0) {
+      const hint = [
+        result.note ?? null,
+        "No differences found. Possible reasons:",
+        "- Both versions have identical command trees for this path",
+        "- One or both versions may not be in our tracked range (7.9–7.23beta2)",
+        "Use routeros_stats to see available version range, or try a different path_prefix.",
+      ].filter(Boolean).join("\n");
+      return { content: [{ type: "text", text: hint }] };
+    }
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };

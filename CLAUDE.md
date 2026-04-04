@@ -20,7 +20,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Two outputs:
 
-1. **SQL-as-RAG MCP Server** — 12 tools plus 2 CSV resources for LLM agents to search docs, look up properties, browse the command tree, check version history, query device benchmarks, fetch current versions, and attach bulk datasets for reporting
+1. **SQL-as-RAG MCP Server** — 13 tools plus 2 CSV resources for LLM agents to search docs, look up properties, browse the command tree, check version history, query device benchmarks, fetch current versions, and attach bulk datasets for reporting
 2. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration
 
 ## Current State
@@ -37,7 +37,7 @@ Two outputs:
 - **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 12 tools and 2 CSV resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, device_lookup, search_tests, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`
+- **MCP server** with 13 tools and 2 CSV resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`
 
 ## Schema
 
@@ -335,7 +335,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 12 tools + 2 CSV resources, stdio + Streamable HTTP transport |
+| `src/mcp.ts` | MCP server — 13 tools + 2 CSV resources, stdio + Streamable HTTP transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |

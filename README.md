@@ -255,10 +255,11 @@ Ask your AI assistant questions like:
 - *"Show me warnings about hardware offloading"*
 - *"Which MikroTik routers have L3HW offload, and more than 8 ports of 48V PoE? Include cost."*
 - *"Compare the RB5009 and CCR2004 IPSec throughput at 1518-byte packets."*
+- *"My BGP routes stopped working after upgrading from 7.15 to 7.22 — what changed in the routing commands?"*
 
 ## MCP Tools
 
-The server provides 11 tools, designed to work together:
+The server provides 13 tools, designed to work together:
 
 | Tool | What it does |
 |------|-------------|
@@ -270,6 +271,7 @@ The server provides 11 tools, designed to work together:
 | `routeros_search_callouts` | Search warnings, notes, and tips across all pages |
 | `routeros_search_changelogs` | Search parsed changelog entries — filter by version range, category, breaking changes |
 | `routeros_command_version_check` | Check which RouterOS versions include a command |
+| `routeros_command_diff` | Diff two RouterOS versions — which command paths were added or removed between them |
 | `routeros_device_lookup` | Hardware specs for 144 MikroTik products — filter by architecture, RAM, storage, PoE, wireless, LTE. Includes ethernet/IPSec benchmarks and block diagrams for most devices |
 | `routeros_stats` | Database health: page/property/command counts, coverage stats |
 | `routeros_current_versions` | Fetch current RouterOS versions from MikroTik (live) |

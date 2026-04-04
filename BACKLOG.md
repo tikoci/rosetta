@@ -26,13 +26,9 @@ Implemented. 144 products from `matrix/2026-03-25/matrix.csv` loaded into `devic
 
 Implemented. 2,874 test results (ethernet + IPSec throughput benchmarks) for 125 of 144 devices, plus block diagram URLs for 110 devices. New `device_test_results` table with `product_url` and `block_diagram_url` columns on `devices`. Test results auto-attach to `device_lookup` results for exact matches and small result sets (≤5). Extractor `src/extract-test-results.ts` uses multi-slug URL candidate strategy (4–6 variants per product). 15 products have no discoverable page (kits, discontinued, unpredictable slugs). See "Product page slug coverage" in To Investigate.
 
-### Command diff tool (upgrade breakage diagnosis)
+### ~~Command diff tool (upgrade breakage diagnosis)~~ ✓ DONE
 
-A common real-world query pattern: "this used to work on my router, something broke after I upgraded." The LLM gets a vague prompt, needs to figure out if a command path changed or was removed between versions. We already have the data in `command_versions` — what's missing is a tool that diffs two versions directly.
-
-Proposed: `routeros_command_diff` — given two versions (e.g. `7.15` → `7.22`), return added/removed command paths. This is the SQL equivalent of restraml's [diff.html](https://tikoci.github.io/restraml/diff.html) tool. The MCP tool hints should guide agents toward this when the user describes something that stopped working after an upgrade.
-
-This could also pair with `routeros_search_callouts` — callouts often document breaking changes or version-specific behavior. Now also pairs with `routeros_search_changelogs` — changelogs have per-entry parsed descriptions with category and breaking flags, enabling precise "what changed in subsystem X between versions A and B" queries.
+Implemented as `routeros_command_diff`. Given `from_version` and `to_version`, returns added/removed command paths with counts. Optional `path_prefix` scopes the diff to a subtree (e.g., `/ip/firewall`, `/routing/bgp`). Returns a note when either version is outside the tracked range (7.9–7.23beta2). Tool description includes a 3-step workflow: `command_diff` → `search_changelogs` → `command_version_check`. Tests in `query.test.ts`. Pairs with `routeros_search_changelogs` for human-readable changelog entries.
 
 ### ~~Add remote MCP transport mode for ChatGPT Apps~~ ✓ DONE
 
@@ -50,17 +46,33 @@ The `/app` YAML supports `auto-update: true`, which is documented to pull the la
 
 `extract-test-results.ts` generates 4–6 URL slug candidates per product, but 15 of 144 products still have no discoverable page. These fall into categories:
 
-- **Kits/bundles** — slugs don't follow individual product naming (e.g., "Wireless Wire Dish" kit)
-- **Discontinued/legacy** — pages may have been removed or use historical URLs
-- **Unpredictable slugs** — no obvious transformation from product name/code to URL slug
+- **Kits/bundles** — slugs drop "kit" and abbreviate (e.g., `lhg_lte18_kit` → `lhg_lte18`)
+- **Abbreviated names** — slugs use shortened forms not derivable from product name (e.g., `KNOT Embedded LTE4 Global` → `knot_emb_lte4_global`, `hEX refresh` → `hex_2024`)
+- **Completely opaque** — slug bears no resemblance to name or code (e.g., `CRS418-8P-8G-2S+5axQ2axQ-RM` → `crs418_8p_8g_2s_wifi`, `RB5009UPr+S+OUT` → `rb5009_out`)
 
-Current impact is low (87% coverage). To improve:
+**Investigated 2026-04-04.** `https://mikrotik.com/sitemap.xml` contains 543 product URLs. All 15 missing products have a valid page — none are actually missing, just undiscoverable by the current `generateSlugs()` heuristics. Zero of the 15 sitemap slugs match any of the generated candidates.
 
-1. Check if mikrotik.com has a sitemap.xml or product API that lists all valid slugs
-2. Manual mapping for high-value missing products (maintain a slug override map)
-3. Accept the remaining gaps as not worth the maintenance cost
+**Sitemap-based approach resolves all 15:**
 
-The slug strategy is also fragile — if MikroTik changes their URL structure, all slugs break. The extractor tries multiple variants to be resilient, but a sitemap-based approach would be more robust.
+| Product | Current best guess | Sitemap slug |
+|---------|--------------------|-------------|
+| ATL LTE18 kit | `atl_lte18_kit` | `atl18` |
+| CRS418-8P-8G-2S+5axQ2axQ-RM | `crs418_8p_8g_2splus5axq2axq_rm` | `crs418_8p_8g_2s_wifi` |
+| CRS518-16XS-2XQ-RM | `crs518_16xs_2xq_rm` | `crs518_16xs_2xq` |
+| Chateau LTE18 ax | `chateau_lte18_ax` | `chateaulte18_ax` |
+| FiberBox Plus | `fiberbox_plus` | `fiberboxplus` |
+| KNOT Embedded LTE4 Global | `knot_embedded_lte4_global` | `knot_emb_lte4_global` |
+| LHG LTE18 kit | `lhg_lte18_kit` | `lhg_lte18` |
+| LHG XL 5 ax | `lhg_xl_5_ax` | `lhg_5_ax_xl` |
+| LHGG LTE7 kit | `lhgg_lte7_kit` | `lhgg_lte7` |
+| RB5009UPr+S+OUT | `rb5009uprplussplusout` | `rb5009_out` |
+| ROSE Data server (RDS) | `rose_data_server_rds` | `rds2216` |
+| SXTsq 5 ax | `sxtsq_5_ax` | `sxtsq_5ax` |
+| cAP lite | `cap_lite` | `RBcAPL-2nD-307` |
+| hEX refresh | `hex_refresh` | `hex_2024` |
+| wAP ax LTE7 kit | `wap_ax_lte7_kit` | `wap_ax_lte7` |
+
+**Recommendation:** Fetch sitemap.xml once at extraction time, build a name→slug lookup, and use it as the primary slug source before falling back to `generateSlugs()` heuristics. This gets to 100% coverage and is more resilient to slug pattern changes than adding more heuristic rules. The sitemap is stable (543 entries, publicly available, no auth).
 
 ### Debounce inspect.json fetches during extract-all-versions
 

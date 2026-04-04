@@ -594,6 +594,79 @@ function runCalloutsFtsQuery(
   }
 }
 
+/** Diff two RouterOS versions — which command paths were added/removed between them. */
+export type CommandDiffResult = {
+  from_version: string;
+  to_version: string;
+  path_prefix: string | null;
+  added: string[];
+  removed: string[];
+  added_count: number;
+  removed_count: number;
+  note: string | null;
+};
+
+export function diffCommandVersions(
+  fromVersion: string,
+  toVersion: string,
+  pathPrefix?: string,
+): CommandDiffResult {
+  const allVersionRows = db
+    .prepare("SELECT version FROM ros_versions")
+    .all() as Array<{ version: string }>;
+  const knownVersions = allVersionRows.map((r) => r.version).sort(compareVersions);
+
+  const notes: string[] = [];
+  if (knownVersions.length > 0 && !knownVersions.includes(fromVersion)) {
+    notes.push(`Version ${fromVersion} is not in the tracked range (${knownVersions[0]}–${knownVersions[knownVersions.length - 1]}). Results may be incomplete.`);
+  }
+  if (knownVersions.length > 0 && !knownVersions.includes(toVersion)) {
+    notes.push(`Version ${toVersion} is not in the tracked range (${knownVersions[0]}–${knownVersions[knownVersions.length - 1]}). Results may be incomplete.`);
+  }
+
+  const prefix = pathPrefix || null;  // treat empty string same as undefined
+  // Match the prefix itself OR any sub-path under it
+  const prefixFilter = prefix ? " AND (command_path = ? OR command_path LIKE ? || '/%')" : "";
+  const prefixParams = (v: string) => prefix ? [v, prefix, prefix] : [v];
+
+  type Row = { command_path: string };
+
+  const addedRows = db
+    .prepare(
+      `SELECT DISTINCT cv_to.command_path
+       FROM command_versions cv_to
+       WHERE cv_to.ros_version = ?${prefixFilter}
+         AND cv_to.command_path NOT IN (
+           SELECT command_path FROM command_versions WHERE ros_version = ?${prefixFilter}
+         )
+       ORDER BY cv_to.command_path`,
+    )
+    .all(...prefixParams(toVersion), ...prefixParams(fromVersion)) as Row[];
+
+  const removedRows = db
+    .prepare(
+      `SELECT DISTINCT cv_from.command_path
+       FROM command_versions cv_from
+       WHERE cv_from.ros_version = ?${prefixFilter}
+         AND cv_from.command_path NOT IN (
+           SELECT command_path FROM command_versions WHERE ros_version = ?${prefixFilter}
+         )
+       ORDER BY cv_from.command_path`,
+    )
+    .all(...prefixParams(fromVersion), ...prefixParams(toVersion)) as Row[];
+
+  return {
+    from_version: fromVersion,
+    to_version: toVersion,
+    path_prefix: prefix,
+    added: addedRows.map((r) => r.command_path),
+    removed: removedRows.map((r) => r.command_path),
+    added_count: addedRows.length,
+    removed_count: removedRows.length,
+    note: notes.length > 0 ? notes.join(" ") : null,
+  };
+}
+
 /** Check which RouterOS versions include a given command path. */
 export function checkCommandVersions(
   commandPath: string,
