@@ -768,6 +768,31 @@ export type DeviceTestResult = {
   throughput_mbps: number | null;
 };
 
+/** Map Unicode superscript digits to ASCII equivalents for product name matching.
+ *  MikroTik uses ² and ³ in product names (hAP ax³, hAP ac²), but users type ASCII. */
+const SUPERSCRIPT_TO_ASCII: [string, string][] = [
+  ['\u00B9', '1'], // ¹
+  ['\u00B2', '2'], // ²
+  ['\u00B3', '3'], // ³
+];
+
+/** SQL expression to normalize Unicode superscript digits in a column to ASCII.
+ *  Wraps the column in nested REPLACE calls. */
+const NORMALIZE_PRODUCT_NAME = (col: string) =>
+  SUPERSCRIPT_TO_ASCII.reduce(
+    (expr, [sup, ascii]) => `REPLACE(${expr}, '${sup}', '${ascii}')`,
+    col,
+  );
+
+/** Normalize a device query: replace Unicode superscript digits with ASCII. */
+export function normalizeDeviceQuery(query: string): string {
+  let result = query;
+  for (const [sup, ascii] of SUPERSCRIPT_TO_ASCII) {
+    result = result.replaceAll(sup, ascii);
+  }
+  return result;
+}
+
 export type DeviceResult = {
   id: number;
   product_name: string;
@@ -849,17 +874,57 @@ function buildDeviceFtsQuery(terms: string[], mode: "AND" | "OR"): string {
   return parts.join(mode === "AND" ? " AND " : " OR ");
 }
 
+/** Generate a disambiguation note when multiple devices matched a partial query.
+ *  Helps the MCP client present meaningful choices to the user. */
+function disambiguationNote(query: string, results: DeviceResult[]): string {
+  const names = results.map((r) => r.product_name);
+  // Find common prefix
+  const shortest = names.reduce((a, b) => (a.length < b.length ? a : b));
+  let prefix = "";
+  for (let i = 0; i < shortest.length; i++) {
+    if (names.every((n) => n[i]?.toLowerCase() === shortest[i]?.toLowerCase())) {
+      prefix += shortest[i];
+    } else break;
+  }
+  prefix = prefix.trim();
+  // Summarize key differences
+  const diffs: string[] = [];
+  const enclosures = new Set(names.map((n) => {
+    if (/\bOUT\b/i.test(n)) return "outdoor";
+    if (/\bIN\b/i.test(n)) return "indoor";
+    return null;
+  }).filter(Boolean));
+  if (enclosures.size > 1) diffs.push("enclosure (indoor/outdoor)");
+  const hasPoe = results.map((r) => !!(r.poe_in || r.poe_out));
+  if (hasPoe.includes(true) && hasPoe.includes(false)) diffs.push("PoE support");
+  const hasPoeOut = results.map((r) => !!r.poe_out);
+  if (!diffs.includes("PoE support") && hasPoeOut.includes(true) && hasPoeOut.includes(false)) diffs.push("PoE output");
+  const hasWireless = results.map((r) => !!(r.wireless_24_chains || r.wireless_5_chains));
+  if (hasWireless.includes(true) && hasWireless.includes(false)) diffs.push("wireless");
+  const lteCapable = results.map((r) => (r.sim_slots ?? 0) > 0);
+  if (lteCapable.includes(true) && lteCapable.includes(false)) diffs.push("LTE/cellular");
+  const family = prefix || query;
+  const diffStr = diffs.length > 0 ? ` Key differences: ${diffs.join(", ")}.` : "";
+  return `${results.length} devices match "${family}".${diffStr} Use the full product name for a specific device.`;
+}
+
 /** Look up a device by exact name or product code, then fall back to LIKE/FTS + filters. */
 export function searchDevices(
   query: string,
   filters: DeviceFilters = {},
   limit = 10,
-): { results: DeviceResult[]; mode: "exact" | "fts" | "like" | "filter" | "fts+or"; total: number; has_more: boolean } {
-  // 1. Try exact match on product_name or product_code
-  if (query) {
+): { results: DeviceResult[]; mode: "exact" | "fts" | "like" | "filter" | "fts+or"; total: number; has_more: boolean; note?: string } {
+  // Normalize Unicode superscripts → ASCII digits for all matching stages.
+  // Users type "ax3" for "ax³", "ac2" for "ac²" — normalize once, use everywhere.
+  const q = normalizeDeviceQuery(query);
+  const normalizedName = NORMALIZE_PRODUCT_NAME('product_name');
+
+  // 1. Try exact match on product_name or product_code.
+  //    Compares normalized query against both raw and superscript-normalized product_name.
+  if (q) {
     const exact = db
-      .prepare(`${DEVICE_SELECT} WHERE product_name = ? COLLATE NOCASE OR product_code = ? COLLATE NOCASE`)
-      .all(query, query) as DeviceResult[];
+      .prepare(`${DEVICE_SELECT} WHERE product_name = ? COLLATE NOCASE OR product_code = ? COLLATE NOCASE OR ${normalizedName} = ? COLLATE NOCASE`)
+      .all(q, q, q) as DeviceResult[];
     if (exact.length > 0) {
       return { results: attachTestResults(exact), mode: "exact", total: exact.length, has_more: false };
     }
@@ -870,15 +935,18 @@ export function searchDevices(
   //    queries like "rb5009-out" still find "RB5009UPr+S+OUT".
   //    For 144 rows this is instant and catches model number substrings
   //    that FTS5 token matching misses (e.g. "RB1100" → "RB1100AHx4").
-  if (query) {
-    const likeTerms = query
-      .trim()
-      .split(/[\s\-_]+/)
-      .filter((t) => t.length >= 2)
+  //    Also normalizes product_name in SQL so "ax3" matches "ax³".
+  if (q) {
+    const rawTerms = q.trim().split(/[\s\-_]+/);
+    const longTerms = rawTerms.filter((t) => t.length >= 2);
+    // Preserve single-digit terms (version numbers like "3" in "hap ax 3")
+    // but only when accompanied by longer terms to avoid overly broad matches.
+    const digitTerms = rawTerms.filter((t) => t.length === 1 && /^\d$/.test(t));
+    const likeTerms = (longTerms.length > 0 ? [...longTerms, ...digitTerms] : longTerms)
       .map((t) => `%${t}%`);
     if (likeTerms.length > 0) {
       const likeConditions = likeTerms.map(
-        () => "(d.product_name LIKE ? COLLATE NOCASE OR d.product_code LIKE ? COLLATE NOCASE)",
+        () => `(${normalizedName} LIKE ? COLLATE NOCASE OR d.product_code LIKE ? COLLATE NOCASE)`,
       );
       const likeParams = likeTerms.flatMap((t) => [t, t]);
       // Fetch limit+1 to detect truncation
@@ -891,7 +959,8 @@ export function searchDevices(
         if (trimmed.length <= 5) attachTestResults(trimmed);
         // Single match in any mode gets test results
         else if (trimmed.length === 1) attachTestResults(trimmed);
-        return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore };
+        const note = trimmed.length > 1 ? disambiguationNote(q, trimmed) : undefined;
+        return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore, note };
       }
     }
   }
@@ -900,8 +969,8 @@ export function searchDevices(
   //     Handles concatenated AKAs ("hapax3", "fiberboxplus", "wapaxlte7") and superscript
   //     queries ("hap ax3" → slug hap_ax3 → stripped hapax3). Anchors to /product/ prefix
   //     to avoid matching domain or path components.
-  if (query) {
-    const slugQuery = query.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (q) {
+    const slugQuery = q.toLowerCase().replace(/[^a-z0-9]/g, "");
     if (slugQuery.length >= 5) {
       const slugPattern = `%/product/%${slugQuery}%`;
       const slugSql = `${DEVICE_SELECT} d WHERE d.product_url IS NOT NULL AND REPLACE(LOWER(d.product_url), '_', '') LIKE ? ORDER BY d.product_name LIMIT ?`;
@@ -911,7 +980,8 @@ export function searchDevices(
         const trimmed = hasMore ? slugResults.slice(0, limit) : slugResults;
         if (trimmed.length <= 5) attachTestResults(trimmed);
         else if (trimmed.length === 1) attachTestResults(trimmed);
-        return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore };
+        const note = trimmed.length > 1 ? disambiguationNote(q, trimmed) : undefined;
+        return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore, note };
       }
     }
   }
@@ -946,7 +1016,7 @@ export function searchDevices(
     whereClauses.push("d.sim_slots > 0");
   }
 
-  const terms = query ? extractTerms(query) : [];
+  const terms = q ? extractTerms(q) : [];
 
   if (terms.length > 0) {
     // FTS with filters — use prefix matching for device model numbers

@@ -30,6 +30,7 @@ const {
   searchDevices,
   searchDeviceTests,
   getTestResultMeta,
+  normalizeDeviceQuery,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 
@@ -184,6 +185,75 @@ beforeAll(() => {
      NULL, NULL, NULL, NULL,
      NULL, 13, NULL, NULL, NULL,
      NULL, NULL, NULL, 369.00)`);
+
+  // Device fixtures: Unicode superscript names (matching production DB naming)
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd,
+     product_url)
+    VALUES
+    ('hAP ax\u00b2', 'C52iG-5HaxD2HaxD-TC', 'ARM 64bit', 'IPQ-6010', 4, 'auto (864 - 1800) MHz',
+     4, 'RouterOS v7', '1 GB', 1024, '128 MB', 128,
+     '802.3af/at', NULL, 2, 2,
+     NULL, 4, 1, NULL, NULL,
+     NULL, 1, NULL, 119.00,
+     'https://mikrotik.com/product/hap_ax2')`);
+
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('hAP ac\u00b3', 'RBD53iG-5HacD2HnD', 'ARM 64bit', 'IPQ-4019', 4, '716 MHz',
+     4, 'RouterOS v7', '256 MB', 256, '128 MB', 128,
+     NULL, NULL, 2, 2,
+     NULL, 5, NULL, NULL, NULL,
+     NULL, 1, NULL, 69.00)`);
+
+  // Device fixtures: RB5009 family for disambiguation testing
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('RB5009UG+S+IN', 'RB5009UG+S+IN', 'ARM 64bit', 'Marvell 88F7040', 4, '1400 MHz',
+     5, 'RouterOS v7', '1 GB', 1024, '1 GB', 1024,
+     NULL, NULL, NULL, NULL,
+     NULL, 7, 1, NULL, 1,
+     NULL, 1, NULL, 219.00)`);
+
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('RB5009UPr+S+IN', 'RB5009UPr+S+IN', 'ARM 64bit', 'Marvell 88F7040', 4, '1400 MHz',
+     5, 'RouterOS v7', '1 GB', 1024, '1 GB', 1024,
+     '802.3af/at', '802.3af/at', NULL, NULL,
+     NULL, 7, 1, NULL, 1,
+     NULL, 1, NULL, 269.00)`);
+
+  db.run(`INSERT INTO devices
+    (product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+     license_level, operating_system, ram, ram_mb, storage, storage_mb,
+     poe_in, poe_out, wireless_24_chains, wireless_5_chains,
+     eth_fast, eth_gigabit, eth_2500, sfp_ports, sfp_plus_ports,
+     eth_multigig, usb_ports, sim_slots, msrp_usd)
+    VALUES
+    ('RB5009UPr+S+OUT', 'RB5009UPr+S+OUT', 'ARM 64bit', 'Marvell 88F7040', 4, '1400 MHz',
+     5, 'RouterOS v7', '1 GB', 1024, '1 GB', 1024,
+     '802.3af/at', '802.3af/at', NULL, NULL,
+     NULL, 7, 1, NULL, 1,
+     NULL, 1, NULL, 299.00)`);
 
   // Device test results fixtures (hAP ax3 = id 1)
   db.run(`INSERT INTO device_test_results
@@ -796,14 +866,14 @@ describe("searchDevices", () => {
   test("filter by architecture", () => {
     const res = searchDevices("", { architecture: "ARM 64bit" });
     expect(res.mode).toBe("filter");
-    expect(res.results.length).toBe(3);
+    expect(res.results.length).toBe(8); // hAP ax3 + CCR2216 + Chateau + hAP ax² + hAP ac³ + 3× RB5009
     expect(res.results.every((d) => d.architecture === "ARM 64bit")).toBe(true);
   });
 
   test("filter by min_ram_mb", () => {
     const res = searchDevices("", { min_ram_mb: 1024 });
     expect(res.mode).toBe("filter");
-    expect(res.results.length).toBe(5); // hAP ax3 (1024) + CCR2216 (16384) + Chateau (1024) + RB1100AHx4 (1024) + RB1100AHx4 Dude (1024)
+    expect(res.results.length).toBe(9); // +hAP ax²(1024) +3×RB5009(1024) — not hAP ac³(256)
     expect(res.results.every((d) => (d.ram_mb ?? 0) >= 1024)).toBe(true);
   });
 
@@ -816,19 +886,19 @@ describe("searchDevices", () => {
 
   test("filter by has_poe", () => {
     const res = searchDevices("", { has_poe: true });
-    expect(res.results).toHaveLength(1);
-    expect(res.results[0].product_name).toBe("hAP ax3");
+    expect(res.results).toHaveLength(4); // hAP ax3 + hAP ax² + RB5009UPr IN + RB5009UPr OUT
+    expect(res.results.every((d) => d.poe_in != null || d.poe_out != null)).toBe(true);
   });
 
   test("filter by has_wireless", () => {
     const res = searchDevices("", { has_wireless: true });
-    expect(res.results).toHaveLength(3); // hAP ax3 + hAP lite + Chateau LTE18
+    expect(res.results).toHaveLength(5); // hAP ax3 + hAP lite + Chateau LTE18 + hAP ax² + hAP ac³
   });
 
   test("filter by min_storage_mb", () => {
     const res = searchDevices("", { min_storage_mb: 128 });
     expect(res.mode).toBe("filter");
-    expect(res.results.length).toBe(5); // hAP ax3 (128) + CCR2216 (128) + Chateau (128) + RB1100AHx4 (128) + RB1100AHx4 Dude (512)
+    expect(res.results.length).toBe(10); // +hAP ax²(128) +hAP ac³(128) +3×RB5009(1024)
     expect(res.results.every((d) => (d.storage_mb ?? 0) >= 128)).toBe(true);
   });
 
@@ -976,6 +1046,79 @@ describe("searchDevices", () => {
     expect(res.results).toHaveLength(1);
     expect(res.results[0].product_name).toBe("hAP ax3");
   });
+
+  // ── Unicode superscript normalization ──
+
+  test("normalizeDeviceQuery converts superscripts to ASCII", () => {
+    expect(normalizeDeviceQuery("hAP ax³")).toBe("hAP ax3");
+    expect(normalizeDeviceQuery("hAP ax²")).toBe("hAP ax2");
+    expect(normalizeDeviceQuery("hAP ac³")).toBe("hAP ac3");
+    expect(normalizeDeviceQuery("no superscripts")).toBe("no superscripts");
+  });
+
+  test("exact match with Unicode query hAP ax³ finds ASCII-named hAP ax3", () => {
+    // User pastes Unicode name, DB has ASCII variant
+    const res = searchDevices("hAP ax\u00B3");
+    expect(res.mode).toBe("exact");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax3");
+  });
+
+  test("ASCII query hap ax2 finds Unicode-named hAP ax²", () => {
+    // User types ASCII digits, DB has Unicode superscript
+    const res = searchDevices("hap ax2");
+    expect(res.mode).toBe("exact");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax\u00B2");
+  });
+
+  test("ASCII query hap ac3 finds Unicode-named hAP ac³", () => {
+    const res = searchDevices("hap ac3");
+    expect(res.mode).toBe("exact");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ac\u00B3");
+  });
+
+  test("single-digit term preserved: hap ax 3 finds hAP ax3 (not 4 results)", () => {
+    // Previously: digit '3' was filtered by length >= 2, leaving just 'hap' + 'ax'
+    // which matched hAP ax S, hAP ax lite, hAP ax², hAP ax³ (broad).
+    // Now: single digits kept when accompanied by longer terms.
+    const res = searchDevices("hap ax 3");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax3");
+  });
+
+  // ── Multi-match disambiguation ──
+
+  test("RB5009 family query returns all 3 variants with disambiguation note", () => {
+    const res = searchDevices("RB5009");
+    expect(res.mode).toBe("like");
+    expect(res.results).toHaveLength(3);
+    expect(res.results.every((d) => d.product_name.includes("RB5009"))).toBe(true);
+    // Should include disambiguation note for multi-match
+    expect(res.note).toBeDefined();
+    expect(res.note).toContain("3 devices");
+  });
+
+  test("disambiguation note mentions PoE difference for RB5009 family", () => {
+    const res = searchDevices("RB5009");
+    expect(res.note).toBeDefined();
+    // RB5009UG has no PoE, RB5009UPr has PoE → note should mention it
+    expect(res.note).toContain("PoE");
+  });
+
+  test("disambiguation note mentions enclosure difference for RB5009 family", () => {
+    const res = searchDevices("RB5009");
+    expect(res.note).toBeDefined();
+    // IN vs OUT enclosures
+    expect(res.note).toContain("enclosure");
+  });
+
+  test("single LIKE match has no disambiguation note", () => {
+    const res = searchDevices("CCR2216");
+    expect(res.results).toHaveLength(1);
+    expect(res.note).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1062,7 +1205,7 @@ describe("dataset CSV exports", () => {
     const lines = csv.trim().split("\n");
 
     expect(lines[0]).toBe("product_name,product_code,architecture,cpu,cpu_cores,cpu_frequency,license_level,operating_system,ram,ram_mb,storage,storage_mb,dimensions,poe_in,poe_out,max_power_w,wireless_24_chains,wireless_5_chains,eth_fast,eth_gigabit,eth_2500,sfp_ports,sfp_plus_ports,eth_multigig,usb_ports,sim_slots,msrp_usd,product_url,block_diagram_url");
-    expect(lines).toHaveLength(7);
+    expect(lines).toHaveLength(12); // header + 11 devices (6 original + 5 new fixtures)
     expect(csv).toContain("CCR2216-1G-12XS-2XQ");
     expect(csv).toContain("https://cdn.mikrotik.com/web-assets/product_files/hap_ax3_123.png");
     expect(lines[0].startsWith("id,")).toBe(false);

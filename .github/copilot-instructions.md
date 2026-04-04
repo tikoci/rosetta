@@ -89,6 +89,9 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 - The MCP server name is `"rosetta"` — keep consistent across configs
 - Stop words are hardcoded in `query.ts` (~72 words)
 - Compound terms (~37 RouterOS pairs like firewall+filter) use FTS5 NEAR expressions
+- Device/product name matching is heuristic and evolving, not a solved canonical mapping problem. Do not assume a false-empty lookup means device absence.
+- When a new mismatch appears (rename/AKA/slug/model-number variant), capture it in `BACKLOG.md` under Device AKA matching with an actionable next step.
+- Product Naming (`ROS/pages/17498146`) is useful for future model-number decoding and alias generation, but real products include rule exceptions.
 
 ## Testing Requirements
 

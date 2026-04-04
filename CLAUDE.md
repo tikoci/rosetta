@@ -208,6 +208,8 @@ Register in MCP client config (bunx example — no paths needed):
 
 Tool descriptions include workflow arrows (→ next tool) and empty-result hints to guide LLM agents between tools.
 
+Device lookup matching is intentionally heuristic, not perfect canonical identity resolution. `routeros_device_lookup` handles many user forms (exact name/code, LIKE, FTS, slug-normalized fallback, superscript normalization, and disambiguation notes), but renamed-model aliases can still miss and should be treated as ongoing work rather than a solved problem.
+
 ### MCP Resources
 
 | Resource | Purpose |
@@ -416,6 +418,7 @@ For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Produc
 - **Columns:** Product name, product code, architecture, CPU, cores, frequency, license level, OS, RAM, storage, dimensions, PoE in/out, power, wireless chains/antenna, ethernet/SFP/combo ports, USB, SIM, price
 - **Architectures:** ARM 64bit, ARM 32bit, MIPSBE, MMIPS, SMIPS
 - **Normalized fields:** RAM and storage parsed to MB integers at extraction time for structured filtering
+- **Name-matching caveat:** Product references vary across official sources (matrix name, product code, product URL slug, and HTML docs). The Product Naming page (`ROS/pages/17498146`) helps with pattern-based decoding, but there are exceptions and renames, so alias coverage remains iterative.
 
 ### Product Test Results + Block Diagrams
 
