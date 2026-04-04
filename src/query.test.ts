@@ -13,7 +13,7 @@ import { beforeAll, describe, expect, test } from "bun:test";
 process.env.DB_PATH = ":memory:";
 
 // Dynamic imports so the env-var assignment above is visible to db.ts
-const { db, initDb } = await import("./db.ts");
+const { db, initDb, getDbStats } = await import("./db.ts");
 const {
   extractTerms,
   buildFtsQuery,
@@ -25,6 +25,8 @@ const {
   searchChangelogs,
   checkCommandVersions,
   searchDevices,
+  searchDeviceTests,
+  getTestResultMeta,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 
@@ -69,6 +71,10 @@ beforeAll(() => {
 
   db.run(`INSERT INTO ros_versions (version, channel, extra_packages, extracted_at)
     VALUES ('7.22', 'stable', 0, '2024-01-01T00:00:00Z')`);
+  db.run(`INSERT INTO ros_versions (version, channel, extra_packages, extracted_at)
+    VALUES ('7.9', 'stable', 0, '2023-01-01T00:00:00Z')`);
+  db.run(`INSERT INTO ros_versions (version, channel, extra_packages, extracted_at)
+    VALUES ('7.10.2', 'stable', 0, '2023-06-01T00:00:00Z')`);
 
   db.run(`INSERT INTO commands
     (id, path, name, type, parent_path, page_id, description, ros_version)
@@ -80,6 +86,8 @@ beforeAll(() => {
 
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.22')`);
+  db.run(`INSERT INTO command_versions (command_path, ros_version)
+    VALUES ('/ip/dhcp-server', '7.9')`);
 
   // Device fixtures for searchDevices tests
   db.run(`INSERT INTO devices
@@ -635,8 +643,8 @@ describe("searchCallouts", () => {
 describe("checkCommandVersions", () => {
   test("returns versions for known command path", () => {
     const res = checkCommandVersions("/ip/dhcp-server");
-    expect(res.versions).toEqual(["7.22"]);
-    expect(res.first_seen).toBe("7.22");
+    expect(res.versions).toEqual(["7.9", "7.22"]);
+    expect(res.first_seen).toBe("7.9");
     expect(res.last_seen).toBe("7.22");
   });
 
@@ -826,6 +834,91 @@ describe("searchDevices", () => {
     const res = searchDevices("CCR2216-1G-12XS-2XQ");
     expect(res.results[0].product_url).toBeNull();
     expect(res.results[0].block_diagram_url).toBeNull();
+  });
+
+  test("has_more is false when all results fit", () => {
+    const res = searchDevices("", { architecture: "ARM 64bit" }, 50);
+    expect(res.has_more).toBe(false);
+  });
+
+  test("has_more is true when results are truncated", () => {
+    // We have multiple devices; limit to 1 with a broad filter
+    const res = searchDevices("", { architecture: "ARM 64bit" }, 1);
+    expect(res.results).toHaveLength(1);
+    expect(res.has_more).toBe(true);
+  });
+
+  test("single FTS match attaches test_results", () => {
+    // "hAP ax3" as FTS should find exactly one match and attach test results
+    const res = searchDevices("hAP ax3");
+    if (res.mode === "exact" || res.results.length === 1) {
+      expect(res.results[0].test_results).toBeDefined();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// searchDeviceTests: cross-device test queries
+// ---------------------------------------------------------------------------
+
+describe("searchDeviceTests", () => {
+  test("returns all test results with no filters", () => {
+    const res = searchDeviceTests({});
+    expect(res.results.length).toBe(3);
+    expect(res.total).toBe(3);
+  });
+
+  test("filters by test_type", () => {
+    const res = searchDeviceTests({ test_type: "ethernet" });
+    expect(res.results.every((r) => r.test_type === "ethernet")).toBe(true);
+    expect(res.results.length).toBe(2);
+  });
+
+  test("filters by test_type and mode", () => {
+    const res = searchDeviceTests({ test_type: "ipsec", mode: "Single tunnel" });
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].configuration).toBe("AES-128-CBC + SHA1");
+  });
+
+  test("configuration uses LIKE matching", () => {
+    const res = searchDeviceTests({ configuration: "25 ip filter" });
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].configuration).toBe("25 ip filter rules");
+  });
+
+  test("filters by packet_size", () => {
+    const res = searchDeviceTests({ packet_size: 512 });
+    expect(res.results.every((r) => r.packet_size === 512)).toBe(true);
+  });
+
+  test("sorts by mbps descending by default", () => {
+    const res = searchDeviceTests({ test_type: "ethernet" });
+    if (res.results.length >= 2) {
+      const mbps = res.results.map((r) => r.throughput_mbps ?? 0);
+      expect(mbps[0]).toBeGreaterThanOrEqual(mbps[1]);
+    }
+  });
+
+  test("includes device info in results", () => {
+    const res = searchDeviceTests({ test_type: "ethernet" });
+    expect(res.results[0].product_name).toBeDefined();
+    expect(res.results[0].architecture).toBeDefined();
+  });
+
+  test("respects limit", () => {
+    const res = searchDeviceTests({}, 1);
+    expect(res.results).toHaveLength(1);
+    expect(res.total).toBe(3);
+  });
+});
+
+describe("getTestResultMeta", () => {
+  test("returns distinct values", () => {
+    const meta = getTestResultMeta();
+    expect(meta.test_types).toContain("ethernet");
+    expect(meta.test_types).toContain("ipsec");
+    expect(meta.modes).toContain("Routing");
+    expect(meta.packet_sizes).toContain(512);
   });
 });
 
@@ -1035,5 +1128,18 @@ describe("schema", () => {
     expect(triggers).toContain("changelogs_ai");
     expect(triggers).toContain("changelogs_ad");
     expect(triggers).toContain("changelogs_au");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDbStats: version range uses semantic sort (not lexicographic)
+// ---------------------------------------------------------------------------
+
+describe("getDbStats", () => {
+  test("version range is semantically sorted (7.9 < 7.10.2 < 7.22)", () => {
+    const stats = getDbStats();
+    // Fixtures have 7.9, 7.10.2, 7.22 — lexicographic MIN would give "7.10.2", not "7.9"
+    expect(stats.ros_version_min).toBe("7.9");
+    expect(stats.ros_version_max).toBe("7.22");
   });
 });

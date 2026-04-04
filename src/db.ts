@@ -345,10 +345,6 @@ export function initDb() {
 export function getDbStats() {
   const count = (sql: string) =>
     Number((db.prepare(sql).get() as { c: number }).c ?? 0);
-  const scalar = (sql: string) => {
-    const row = db.prepare(sql).get() as { v: string | null } | null;
-    return row?.v ?? null;
-  };
   return {
     db_path: DB_PATH,
     pages: count("SELECT COUNT(*) AS c FROM pages"),
@@ -363,8 +359,27 @@ export function getDbStats() {
     changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
     changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
     ros_versions: count("SELECT COUNT(*) AS c FROM ros_versions"),
-    ros_version_min: scalar("SELECT MIN(version) AS v FROM ros_versions"),
-    ros_version_max: scalar("SELECT MAX(version) AS v FROM ros_versions"),
+    ...(() => {
+      // Semantic version sort — SQL MIN/MAX is lexicographic ("7.10" < "7.9")
+      const versions = (db.prepare("SELECT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);
+      if (versions.length === 0) return { ros_version_min: null, ros_version_max: null };
+      const norm = (v: string) => {
+        const clean = v.replace(/beta\d*/, "").replace(/rc\d*/, "");
+        const parts = clean.split(".").map(Number);
+        const suffix = v.includes("beta") ? 0 : v.includes("rc") ? 1 : 2;
+        return { parts, suffix };
+      };
+      const cmp = (a: string, b: string) => {
+        const na = norm(a), nb = norm(b);
+        for (let i = 0; i < Math.max(na.parts.length, nb.parts.length); i++) {
+          const d = (na.parts[i] ?? 0) - (nb.parts[i] ?? 0);
+          if (d !== 0) return d;
+        }
+        return na.suffix - nb.suffix;
+      };
+      versions.sort(cmp);
+      return { ros_version_min: versions[0], ros_version_max: versions[versions.length - 1] };
+    })(),
     doc_export: "2026-03-25 (Confluence HTML)",
   };
 }

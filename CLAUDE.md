@@ -20,7 +20,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Two outputs:
 
-1. **SQL-as-RAG MCP Server** — 11 tools for LLM agents to search docs, look up properties, browse the command tree, check version history, and fetch current versions
+1. **SQL-as-RAG MCP Server** — 12 tools for LLM agents to search docs, look up properties, browse the command tree, check version history, query device benchmarks, and fetch current versions
 2. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration
 
 ## Current State
@@ -37,7 +37,7 @@ Two outputs:
 - **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 11 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, device_lookup, stats, current_versions
+- **MCP server** with 12 tools: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, device_lookup, search_tests, stats, current_versions
 
 ## Schema
 
@@ -202,6 +202,7 @@ Register in MCP client config (bunx example — no paths needed):
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
 | `routeros_command_version_check` | Version range for a command path, boundary notes |
 | `routeros_device_lookup` | Hardware specs by product name/code, FTS search with structured filters (architecture, RAM, license, PoE, wireless) |
+| `routeros_search_tests` | Cross-device performance benchmarks — filter by test_type, mode, configuration, packet_size; one call replaces 125+ individual lookups |
 | `routeros_stats` | DB health: page/property/command/device counts, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions per channel |
 
@@ -325,7 +326,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 11 tools, stdio + Streamable HTTP transport |
+| `src/mcp.ts` | MCP server — 12 tools, stdio + Streamable HTTP transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |

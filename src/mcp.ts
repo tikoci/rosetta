@@ -138,6 +138,8 @@ const {
   searchCallouts,
   searchChangelogs,
   searchDevices,
+  searchDeviceTests,
+  getTestResultMeta,
   searchPages,
   searchProperties,
 } = await import("./query.ts");
@@ -753,6 +755,115 @@ Data: 144 products, March 2026 snapshot. Not all MikroTik products ever made —
     }
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_search_tests ----
+
+server.registerTool(
+  "routeros_search_tests",
+  {
+    description: `Query device performance test results across all devices.
+
+Returns throughput benchmarks from mikrotik.com product pages — one call replaces
+what would otherwise require 125+ individual device lookups.
+
+**Data:** 2,874 test results across 125 devices (March 2026).
+- Ethernet: bridging/routing throughput at 64/512/1518 byte packets
+- IPSec: tunnel throughput with AES/SHA cipher configurations
+- Results include kpps (packets/sec) and Mbps
+
+**Common queries:**
+- Routing performance ranking: test_type="ethernet", mode="Routing", configuration="25 ip filter rules", packet_size=512
+- Bridge performance: test_type="ethernet", mode="Bridging", configuration="25 bridge filter"
+- IPSec throughput: test_type="ipsec", mode="Single tunnel", configuration="AES-128-CBC"
+
+**Configuration matching:** Uses LIKE (substring) — "25 ip filter" matches "25 ip filter rules".
+Note: some devices use slightly different names (e.g., "25 bridge filter" vs "25 bridge filter rules").
+
+**Tip:** Call with no filters first to see available test_types, modes, configurations, and packet_sizes via the metadata field.
+
+Workflow:
+→ routeros_device_lookup: get full specs + block diagram for a specific device from results
+→ routeros_search: find documentation about features relevant to the test type`,
+    inputSchema: {
+      test_type: z
+        .string()
+        .optional()
+        .describe("Filter: 'ethernet' or 'ipsec'"),
+      mode: z
+        .string()
+        .optional()
+        .describe("Filter: e.g., 'Routing', 'Bridging', 'Single tunnel', '256 tunnels'"),
+      configuration: z
+        .string()
+        .optional()
+        .describe("Filter (substring match): e.g., '25 ip filter rules', 'AES-128-CBC + SHA1', 'none (fast path)'"),
+      packet_size: z
+        .number()
+        .int()
+        .optional()
+        .describe("Filter: packet size in bytes (64, 512, 1400, 1518)"),
+      sort_by: z
+        .enum(["mbps", "kpps"])
+        .optional()
+        .default("mbps")
+        .describe("Sort results by throughput metric (default: mbps)"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .optional()
+        .default(50)
+        .describe("Max results (default 50, max 200)"),
+    },
+  },
+  async ({ test_type, mode, configuration, packet_size, sort_by, limit }) => {
+    const hasFilters = test_type || mode || configuration || packet_size;
+
+    if (!hasFilters) {
+      // Discovery mode: return available filter values
+      const meta = getTestResultMeta();
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            message: "No filters provided. Here are the available values — use these to build your query:",
+            ...meta,
+            hint: "Common query: test_type='ethernet', mode='Routing', configuration='25 ip filter rules', packet_size=512",
+          }, null, 2),
+        }],
+      };
+    }
+
+    const result = searchDeviceTests(
+      { test_type, mode, configuration, packet_size, sort_by },
+      limit,
+    );
+
+    if (result.results.length === 0) {
+      const hints = [
+        "Call with no filters to see available test types, modes, and configurations",
+        configuration ? `Try a shorter configuration substring (e.g., "25 ip filter" instead of the full string)` : null,
+      ].filter(Boolean);
+      return {
+        content: [{
+          type: "text",
+          text: `No test results matched the filters.\n\nTry:\n${hints.map((h) => `- ${h}`).join("\n")}`,
+        }],
+      };
+    }
+
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify({
+          ...result,
+          has_more: result.total > result.results.length,
+        }, null, 2),
+      }],
     };
   },
 );

@@ -764,14 +764,14 @@ export function searchDevices(
   query: string,
   filters: DeviceFilters = {},
   limit = 10,
-): { results: DeviceResult[]; mode: "exact" | "fts" | "like" | "filter" | "fts+or"; total: number } {
+): { results: DeviceResult[]; mode: "exact" | "fts" | "like" | "filter" | "fts+or"; total: number; has_more: boolean } {
   // 1. Try exact match on product_name or product_code
   if (query) {
     const exact = db
       .prepare(`${DEVICE_SELECT} WHERE product_name = ? COLLATE NOCASE OR product_code = ? COLLATE NOCASE`)
       .all(query, query) as DeviceResult[];
     if (exact.length > 0) {
-      return { results: attachTestResults(exact), mode: "exact", total: exact.length };
+      return { results: attachTestResults(exact), mode: "exact", total: exact.length, has_more: false };
     }
   }
 
@@ -789,12 +789,17 @@ export function searchDevices(
         () => "(d.product_name LIKE ? COLLATE NOCASE OR d.product_code LIKE ? COLLATE NOCASE)",
       );
       const likeParams = likeTerms.flatMap((t) => [t, t]);
+      // Fetch limit+1 to detect truncation
       const likeSql = `${DEVICE_SELECT} d WHERE ${likeConditions.join(" AND ")} ORDER BY d.product_name LIMIT ?`;
-      const likeResults = db.prepare(likeSql).all(...likeParams, limit) as DeviceResult[];
+      const likeResults = db.prepare(likeSql).all(...likeParams, limit + 1) as DeviceResult[];
       if (likeResults.length > 0) {
+        const hasMore = likeResults.length > limit;
+        const trimmed = hasMore ? likeResults.slice(0, limit) : likeResults;
         // Attach test results for small result sets (likely specific device lookups)
-        if (likeResults.length <= 5) attachTestResults(likeResults);
-        return { results: likeResults, mode: "like", total: likeResults.length };
+        if (trimmed.length <= 5) attachTestResults(trimmed);
+        // Single match in any mode gets test results
+        else if (trimmed.length === 1) attachTestResults(trimmed);
+        return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore };
       }
     }
   }
@@ -848,9 +853,13 @@ export function searchDevices(
         WHERE devices_fts MATCH ?${filterWhere}
         ORDER BY rank LIMIT ?`;
       try {
-        const results = db.prepare(sql).all(ftsQuery, ...params, limit) as DeviceResult[];
+        const results = db.prepare(sql).all(ftsQuery, ...params, limit + 1) as DeviceResult[];
         if (results.length > 0) {
-          return { results, mode: "fts", total: results.length };
+          const hasMore = results.length > limit;
+          const trimmed = hasMore ? results.slice(0, limit) : results;
+          // Single FTS match gets test results (same behavior as exact)
+          if (trimmed.length === 1) attachTestResults(trimmed);
+          return { results: trimmed, mode: "fts", total: trimmed.length, has_more: hasMore };
         }
       } catch { /* fall through to OR */ }
 
@@ -858,9 +867,12 @@ export function searchDevices(
       if (terms.length > 1) {
         const orQuery = buildDeviceFtsQuery(terms, "OR");
         try {
-          const results = db.prepare(sql).all(orQuery, ...params, limit) as DeviceResult[];
+          const results = db.prepare(sql).all(orQuery, ...params, limit + 1) as DeviceResult[];
           if (results.length > 0) {
-            return { results, mode: "fts+or", total: results.length };
+            const hasMore = results.length > limit;
+            const trimmed = hasMore ? results.slice(0, limit) : results;
+            if (trimmed.length === 1) attachTestResults(trimmed);
+            return { results: trimmed, mode: "fts+or", total: trimmed.length, has_more: hasMore };
           }
         } catch { /* fall through */ }
       }
@@ -870,11 +882,98 @@ export function searchDevices(
   // 4. Filter-only (no FTS query)
   if (whereClauses.length > 0) {
     const sql = `${DEVICE_SELECT} d WHERE ${whereClauses.join(" AND ")} ORDER BY d.product_name LIMIT ?`;
-    const results = db.prepare(sql).all(...params, limit) as DeviceResult[];
-    return { results, mode: "filter", total: results.length };
+    const results = db.prepare(sql).all(...params, limit + 1) as DeviceResult[];
+    const hasMore = results.length > limit;
+    const trimmed = hasMore ? results.slice(0, limit) : results;
+    return { results: trimmed, mode: "filter", total: trimmed.length, has_more: hasMore };
   }
 
-  return { results: [], mode: "fts", total: 0 };
+  return { results: [], mode: "fts", total: 0, has_more: false };
+}
+
+// ── Cross-device test result queries ──
+
+export type DeviceTestRow = {
+  product_name: string;
+  product_code: string | null;
+  architecture: string;
+  cpu: string | null;
+  cpu_cores: number | null;
+  cpu_frequency: string | null;
+  test_type: string;
+  mode: string;
+  configuration: string;
+  packet_size: number;
+  throughput_kpps: number | null;
+  throughput_mbps: number | null;
+};
+
+export function searchDeviceTests(
+  filters: {
+    test_type?: string;
+    mode?: string;
+    configuration?: string;
+    packet_size?: number;
+    sort_by?: "mbps" | "kpps";
+  },
+  limit = 50,
+): { results: DeviceTestRow[]; total: number } {
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (filters.test_type) {
+    where.push("t.test_type = ?");
+    params.push(filters.test_type);
+  }
+  if (filters.mode) {
+    where.push("t.mode = ?");
+    params.push(filters.mode);
+  }
+  if (filters.configuration) {
+    where.push("t.configuration LIKE ?");
+    params.push(`%${filters.configuration}%`);
+  }
+  if (filters.packet_size) {
+    where.push("t.packet_size = ?");
+    params.push(filters.packet_size);
+  }
+
+  const whereClause = where.length > 0 ? `WHERE ${where.join(" AND ")}` : "";
+  const orderCol = filters.sort_by === "kpps" ? "t.throughput_kpps" : "t.throughput_mbps";
+
+  // Total count (before limit)
+  const totalSql = `SELECT COUNT(*) AS c FROM device_test_results t
+    JOIN devices d ON d.id = t.device_id ${whereClause}`;
+  const total = Number((db.prepare(totalSql).get(...params) as { c: number }).c);
+
+  const sql = `SELECT d.product_name, d.product_code, d.architecture, d.cpu,
+      d.cpu_cores, d.cpu_frequency,
+      t.test_type, t.mode, t.configuration, t.packet_size,
+      t.throughput_kpps, t.throughput_mbps
+    FROM device_test_results t
+    JOIN devices d ON d.id = t.device_id
+    ${whereClause}
+    ORDER BY ${orderCol} DESC NULLS LAST
+    LIMIT ?`;
+
+  const results = db.prepare(sql).all(...params, limit) as DeviceTestRow[];
+  return { results, total };
+}
+
+/** Get distinct values for test result fields (for discovery). */
+export function getTestResultMeta(): {
+  test_types: string[];
+  modes: string[];
+  configurations: string[];
+  packet_sizes: number[];
+} {
+  const col = (sql: string) => (db.prepare(sql).all() as Array<{ v: string }>).map((r) => r.v);
+  return {
+    test_types: col("SELECT DISTINCT test_type AS v FROM device_test_results ORDER BY v"),
+    modes: col("SELECT DISTINCT mode AS v FROM device_test_results ORDER BY v"),
+    configurations: col("SELECT DISTINCT configuration AS v FROM device_test_results ORDER BY v"),
+    packet_sizes: (db.prepare("SELECT DISTINCT packet_size AS v FROM device_test_results ORDER BY v DESC").all() as Array<{ v: number }>).map((r) => r.v),
+  };
 }
 
 const VERSION_CHANNELS = ["stable", "long-term", "testing", "development"] as const;
