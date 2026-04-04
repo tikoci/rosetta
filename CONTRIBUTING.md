@@ -59,7 +59,7 @@ The repo includes `.vscode/mcp.json` — opening the folder in VS Code automatic
 | `src/release.test.ts` | File consistency, build constants, structural pattern checks, container setup |
 | `src/mcp-http.test.ts` | HTTP transport: session lifecycle, multi-client, errors (live server) |
 
-Run `bun test` before any commit.
+Run `bun test` and `make lint` before any commit.
 
 ## Creating a Release
 

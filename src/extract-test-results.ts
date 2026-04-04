@@ -75,14 +75,6 @@ interface ProductPageData {
 
 // ── HTML Parsing ──
 
-/** Decode HTML entities like &#110;&#111;&#110;&#101; to text. */
-function decodeEntities(html: string): string {
-  const { document } = parseHTML("<div></div>");
-  const el = document.createElement("div");
-  el.innerHTML = html;
-  return el.textContent || "";
-}
-
 /** Parse a performance-table element into test result rows. */
 function parsePerformanceTable(table: Element): { testType: string; rows: TestResultRow[] } {
   const rows: TestResultRow[] = [];
@@ -186,10 +178,10 @@ function generateSlugs(name: string, code: string | null): string[] {
     const cleanCode = norm(code);
 
     // 3. Product code as-is (original casing, + → plus, strip other specials)
-    add(cleanCode.replace(/\+/g, "plus").replace(/[^a-zA-Z0-9plus\-]+/g, "").replace(/^-|-$/g, ""));
+    add(cleanCode.replace(/\+/g, "plus").replace(/[^a-zA-Z0-9plus-]+/g, "").replace(/^-|-$/g, ""));
 
     // 4. Product code as-is (original casing)
-    add(cleanCode.replace(/[^a-zA-Z0-9\-]+/g, "").replace(/^-|-$/g, ""));
+    add(cleanCode.replace(/[^a-zA-Z0-9-]+/g, "").replace(/^-|-$/g, ""));
 
     // 5. Lowercased code: + → plus
     add(cleanCode.toLowerCase().replace(/\+/g, "plus").replace(/[^a-z0-9plus]+/g, "_").replace(/^_|_$/g, ""));
@@ -213,8 +205,9 @@ async function fetchSitemap(): Promise<Set<string>> {
     const xml = await resp.text();
     const slugs = new Set<string>();
     const re = /\/product\/([^<"]+)/g;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(xml)) !== null) {
+    while (true) {
+      const m = re.exec(xml);
+      if (m === null) break;
       slugs.add(m[1]);
     }
     console.log(`  [sitemap] ${slugs.size} product slugs loaded`);

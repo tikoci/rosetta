@@ -13,7 +13,11 @@
  *
  * Each test gets an isolated server on a fresh port.
  */
+import sqlite from "bun:sqlite";
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { Subprocess } from "bun";
 
 // ── Helpers ──
@@ -31,41 +35,145 @@ interface ServerHandle {
   proc: Subprocess;
 }
 
+interface ProcessLogs {
+  stdout: string[];
+  stderr: string[];
+}
+
+/** Continuously consume a subprocess stream and append decoded chunks. */
+async function collectStream(stream: ReadableStream<Uint8Array>, sink: string[]): Promise<void> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      sink.push(decoder.decode(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+/** Keep only the last N characters from aggregated process logs for error messages. */
+function tailLogs(logs: ProcessLogs, maxChars = 4000): string {
+  const merged = `--- stdout ---\n${logs.stdout.join("")}\n--- stderr ---\n${logs.stderr.join("")}`;
+  return merged.length > maxChars ? merged.slice(-maxChars) : merged;
+}
+
 /** Start the MCP server on a random port, wait for it to be ready. */
-async function startServer(): Promise<ServerHandle> {
+function createFixtureDb(dbPath: string): void {
+  const fixture = new sqlite(dbPath);
+  fixture.run(`CREATE TABLE pages (
+    id           INTEGER PRIMARY KEY,
+    slug         TEXT NOT NULL,
+    title        TEXT NOT NULL,
+    path         TEXT NOT NULL,
+    depth        INTEGER NOT NULL,
+    parent_id    INTEGER REFERENCES pages(id),
+    url          TEXT NOT NULL,
+    text         TEXT NOT NULL,
+    code         TEXT NOT NULL,
+    code_lang    TEXT,
+    author       TEXT,
+    last_updated TEXT,
+    word_count   INTEGER NOT NULL,
+    code_lines   INTEGER NOT NULL,
+    html_file    TEXT NOT NULL
+  );`);
+
+  fixture.run(`CREATE TABLE commands (
+    id          INTEGER PRIMARY KEY,
+    path        TEXT NOT NULL UNIQUE,
+    name        TEXT NOT NULL,
+    type        TEXT NOT NULL,
+    parent_path TEXT,
+    page_id     INTEGER REFERENCES pages(id),
+    description TEXT,
+    ros_version TEXT
+  );`);
+
+  fixture.run(`INSERT INTO pages (
+    id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+    author, last_updated, word_count, code_lines, html_file
+  ) VALUES (
+    1, 'fixture', 'Fixture Page', 'RouterOS > Fixture', 1, NULL,
+    'https://help.mikrotik.com/docs/spaces/ROS/pages/1/Fixture',
+    'fixture text', '', NULL, 'test', NULL, 2, 0, 'fixture.html'
+  );`);
+
+  fixture.run(`INSERT INTO commands (
+    id, path, name, type, parent_path, page_id, description, ros_version
+  ) VALUES (
+    1, '/system', 'system', 'dir', NULL, 1, 'fixture command', '7.22'
+  );`);
+
+  fixture.close();
+}
+
+async function startServer(dbPath: string): Promise<ServerHandle> {
   const port = nextPort();
   const proc = Bun.spawn(["bun", "run", "src/mcp.ts", "--http", "--port", String(port)], {
     cwd: `${import.meta.dirname}/..`,
     stdout: "pipe",
     stderr: "pipe",
-    // Explicitly set DB_PATH so query.test.ts's process.env.DB_PATH=":memory:" override
-    // is not inherited by the server subprocess.
-    env: { ...process.env, HOST: "127.0.0.1", DB_PATH: `${import.meta.dirname}/../ros-help.db` },
+    // Use an isolated fixture DB and avoid network-dependent auto-downloads.
+    env: { ...process.env, HOST: "127.0.0.1", DB_PATH: dbPath },
   });
 
-  // Wait for server to be ready (reads stderr for the startup message)
-  // 30s: 3 servers start in parallel during full test suite, contention extends startup time
-  const deadline = Date.now() + 30_000;
+  const logs: ProcessLogs = { stdout: [], stderr: [] };
+  const stdoutCollector = collectStream(proc.stdout, logs.stdout);
+  const stderrCollector = collectStream(proc.stderr, logs.stderr);
+
+  let exitCode: number | null = null;
+  void proc.exited.then((code) => {
+    exitCode = code;
+  });
+
+  // Wait for server readiness by polling the actual HTTP endpoint.
+  // Use a generous timeout because first boot may auto-download the DB.
+  const deadline = Date.now() + 120_000;
   let ready = false;
-  const decoder = new TextDecoder();
-  const reader = proc.stderr.getReader();
 
   while (Date.now() < deadline) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    const text = decoder.decode(value);
-    if (text.includes(`/mcp`)) {
-      ready = true;
+    if (exitCode !== null) {
       break;
     }
+
+    try {
+      const resp = await fetch(`http://127.0.0.1:${port}/mcp`, {
+        method: "GET",
+        headers: { Accept: "text/event-stream" },
+      });
+
+      // Endpoint is alive; missing session ID should return 400.
+      if (resp.status === 400) {
+        ready = true;
+        break;
+      }
+    } catch {
+      // Connection refused while server is still starting.
+    }
+
+    await Bun.sleep(200);
   }
-  // Release the reader lock so the stream can be consumed later or cleaned up
-  reader.releaseLock();
 
   if (!ready) {
     proc.kill();
-    throw new Error(`Server failed to start on port ${port} within 10s`);
+    await proc.exited.catch(() => undefined);
+    await Promise.all([stdoutCollector, stderrCollector]);
+
+    const reason = exitCode !== null
+      ? `exited early with code ${exitCode}`
+      : "did not become ready before timeout";
+    throw new Error(
+      `Server failed to start on port ${port}: ${reason}\n${tailLogs(logs)}`,
+    );
   }
+
+  // Keep collectors running in background; they naturally finish when process exits.
+  void stdoutCollector;
+  void stderrCollector;
 
   return { port, url: `http://127.0.0.1:${port}/mcp`, proc };
 }
@@ -178,13 +286,19 @@ async function mcpNotification(
 // so sharing a server does not affect test independence. Starting one server instead
 // of three avoids startup-time contention when all test files run in parallel.
 let server: ServerHandle;
+let fixtureDir: string;
+let fixtureDbPath: string;
 
 beforeAll(async () => {
-  server = await startServer();
-}, 30_000);
+  fixtureDir = mkdtempSync(join(tmpdir(), "rosetta-http-test-"));
+  fixtureDbPath = join(fixtureDir, "ros-help.db");
+  createFixtureDb(fixtureDbPath);
+  server = await startServer(fixtureDbPath);
+}, 130_000);
 
 afterAll(async () => {
   await killServer(server);
+  rmSync(fixtureDir, { recursive: true, force: true });
 }, 15_000);
 
 describe("HTTP transport: session lifecycle", () => {

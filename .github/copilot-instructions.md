@@ -109,7 +109,9 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 - New CLI flag, build artifact, or file structure → `release.test.ts`
 - Schema change → schema health section in `query.test.ts`
 
-**Run `bun test` before any commit.** CI runs it too, but catching failures locally is faster.
+**Run `bun test` and `make lint` before any commit.** CI runs both, but catching failures locally is faster.
+
+**Hard rule for agents:** if lint fails, do not commit or stop at partial work. Fix the lint errors in the files touched by the change before handing work back.
 
 ## Version Accuracy
 
