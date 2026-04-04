@@ -24,7 +24,7 @@ Implemented. 144 products from `matrix/2026-03-25/matrix.csv` loaded into `devic
 
 ### ~~Device test results + block diagrams (Phase 2)~~ ✓ DONE
 
-Implemented. 2,874 test results (ethernet + IPSec throughput benchmarks) for 125 of 144 devices, plus block diagram URLs for 110 devices. New `device_test_results` table with `product_url` and `block_diagram_url` columns on `devices`. Test results auto-attach to `device_lookup` results for exact matches and small result sets (≤5). Extractor `src/extract-test-results.ts` uses multi-slug URL candidate strategy (4–6 variants per product). 15 products have no discoverable page (kits, discontinued, unpredictable slugs). See "Product page slug coverage" in To Investigate.
+...sults (ethernet + IPSec throughput benchmarks) for 125 of 144 devices, plus block diagram URLs for 110 devices. New `device_test_results` table with `product_url` and `block_diagram_url` columns on `devices`. Test results auto-attach to `device_lookup` results for exact matches and small result sets (≤5). Extractor `src/extract-test-results.ts` uses multi-slug URL candidate strategy (4–6 variants per product). 15 products originally had no discoverable page — resolved via sitemap + override table (see "Product page slug coverage" ✓ DONE below).
 
 ### ~~Command diff tool (upgrade breakage diagnosis)~~ ✓ DONE
 
@@ -42,37 +42,14 @@ Items that need research or experimentation before they're actionable.
 
 The `/app` YAML supports `auto-update: true`, which is documented to pull the latest container image on each boot. This is set in our rosetta /app template. Initial testing on CHR 7.23beta5 confirms the app installs and runs correctly, but the auto-update pull-on-boot behavior needs verification across reboots with new image tags pushed. Specifically: does RouterOS pull `:latest` fresh on each boot, or does it cache by digest? Does it require `docker-tag-based-pulling` or `checking-for-updates`?
 
-### Product page slug coverage (15 missing devices)
+### ~~Product page slug coverage (15 missing devices)~~ ✓ DONE
 
-`extract-test-results.ts` generates 4–6 URL slug candidates per product, but 15 of 144 products still have no discoverable page. These fall into categories:
+Implemented in `extract-test-results.ts`. Two-layer approach:
+1. **Sitemap validation** — `fetchSitemap()` fetches `https://mikrotik.com/sitemap.xml` once at extraction time, builds a `Set<string>` of all 543 valid product slugs. Generated candidates are prioritized when they appear in the sitemap set.
+2. **Override table** — `SLUG_OVERRIDES` maps all 15 known-opaque product names to their correct sitemap slugs (derived from 2026-04-04 research). New products with predictable slugs are handled automatically by the sitemap validation; only truly opaque cases need the override table.
 
-- **Kits/bundles** — slugs drop "kit" and abbreviate (e.g., `lhg_lte18_kit` → `lhg_lte18`)
-- **Abbreviated names** — slugs use shortened forms not derivable from product name (e.g., `KNOT Embedded LTE4 Global` → `knot_emb_lte4_global`, `hEX refresh` → `hex_2024`)
-- **Completely opaque** — slug bears no resemblance to name or code (e.g., `CRS418-8P-8G-2S+5axQ2axQ-RM` → `crs418_8p_8g_2s_wifi`, `RB5009UPr+S+OUT` → `rb5009_out`)
+`buildSlugCandidates()` replaces direct `generateSlugs()` calls, priority: override → sitemap-validated generated → raw generated fallback. Sitemap fetch errors are non-fatal (falls back to heuristics only). Coverage goes from 129/144 (89%) to 144/144 (100%).
 
-**Investigated 2026-04-04.** `https://mikrotik.com/sitemap.xml` contains 543 product URLs. All 15 missing products have a valid page — none are actually missing, just undiscoverable by the current `generateSlugs()` heuristics. Zero of the 15 sitemap slugs match any of the generated candidates.
-
-**Sitemap-based approach resolves all 15:**
-
-| Product | Current best guess | Sitemap slug |
-|---------|--------------------|-------------|
-| ATL LTE18 kit | `atl_lte18_kit` | `atl18` |
-| CRS418-8P-8G-2S+5axQ2axQ-RM | `crs418_8p_8g_2splus5axq2axq_rm` | `crs418_8p_8g_2s_wifi` |
-| CRS518-16XS-2XQ-RM | `crs518_16xs_2xq_rm` | `crs518_16xs_2xq` |
-| Chateau LTE18 ax | `chateau_lte18_ax` | `chateaulte18_ax` |
-| FiberBox Plus | `fiberbox_plus` | `fiberboxplus` |
-| KNOT Embedded LTE4 Global | `knot_embedded_lte4_global` | `knot_emb_lte4_global` |
-| LHG LTE18 kit | `lhg_lte18_kit` | `lhg_lte18` |
-| LHG XL 5 ax | `lhg_xl_5_ax` | `lhg_5_ax_xl` |
-| LHGG LTE7 kit | `lhgg_lte7_kit` | `lhgg_lte7` |
-| RB5009UPr+S+OUT | `rb5009uprplussplusout` | `rb5009_out` |
-| ROSE Data server (RDS) | `rose_data_server_rds` | `rds2216` |
-| SXTsq 5 ax | `sxtsq_5_ax` | `sxtsq_5ax` |
-| cAP lite | `cap_lite` | `RBcAPL-2nD-307` |
-| hEX refresh | `hex_refresh` | `hex_2024` |
-| wAP ax LTE7 kit | `wap_ax_lte7_kit` | `wap_ax_lte7` |
-
-**Recommendation:** Fetch sitemap.xml once at extraction time, build a name→slug lookup, and use it as the primary slug source before falling back to `generateSlugs()` heuristics. This gets to 100% coverage and is more resilient to slug pattern changes than adding more heuristic rules. The sitemap is stable (543 entries, publicly available, no auth).
 
 ### Debounce inspect.json fetches during extract-all-versions
 

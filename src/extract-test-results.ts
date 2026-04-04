@@ -12,8 +12,10 @@
  *
  * Usage: bun run src/extract-test-results.ts [--concurrency N] [--delay MS]
  *
- * Product page URL slug discovery: fetches the product matrix page to build
- * a name→slug mapping, then fetches each product page by slug.
+ * Product page URL slug discovery: fetches sitemap.xml once to build a validated
+ * slug set, then applies (1) a hardcoded override table for the 15 products with
+ * opaque/unpredictable slugs, (2) heuristic candidates validated against the sitemap,
+ * (3) raw heuristics as a fallback for new products not yet in the sitemap.
  */
 
 import { parseHTML } from "linkedom";
@@ -31,6 +33,28 @@ function getFlag(name: string, fallback: number): number {
 const CONCURRENCY = getFlag("concurrency", 4);
 const DELAY_MS = getFlag("delay", 500);
 const PRODUCT_BASE = "https://mikrotik.com/product/";
+const SITEMAP_URL = "https://mikrotik.com/sitemap.xml";
+
+// ── Slug overrides ──
+// Products whose URL slugs are undiscoverable by heuristics alone.
+// Derived from sitemap.xml research (2026-04-04 — all 15 missing devices resolved).
+const SLUG_OVERRIDES: Record<string, string> = {
+  "ATL LTE18 kit": "atl18",
+  "CRS418-8P-8G-2S+5axQ2axQ-RM": "crs418_8p_8g_2s_wifi",
+  "CRS518-16XS-2XQ-RM": "crs518_16xs_2xq",
+  "Chateau LTE18 ax": "chateaulte18_ax",
+  "FiberBox Plus": "fiberboxplus",
+  "KNOT Embedded LTE4 Global": "knot_emb_lte4_global",
+  "LHG LTE18 kit": "lhg_lte18",
+  "LHG XL 5 ax": "lhg_5_ax_xl",
+  "LHGG LTE7 kit": "lhgg_lte7",
+  "RB5009UPr+S+OUT": "rb5009_out",
+  "ROSE Data server (RDS)": "rds2216",
+  "SXTsq 5 ax": "sxtsq_5ax",
+  "cAP lite": "RBcAPL-2nD-307",
+  "hEX refresh": "hex_2024",
+  "wAP ax LTE7 kit": "wap_ax_lte7",
+};
 
 // ── Types ──
 
@@ -177,6 +201,58 @@ function generateSlugs(name: string, code: string | null): string[] {
   return slugs;
 }
 
+/** Fetch sitemap.xml and return the set of all valid product slugs.
+ *  Returns an empty set on error (callers fall back to heuristics). */
+async function fetchSitemap(): Promise<Set<string>> {
+  try {
+    const resp = await fetch(SITEMAP_URL);
+    if (!resp.ok) {
+      console.warn(`  [sitemap] HTTP ${resp.status} — falling back to heuristics`);
+      return new Set();
+    }
+    const xml = await resp.text();
+    const slugs = new Set<string>();
+    const re = /\/product\/([^<"]+)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(xml)) !== null) {
+      slugs.add(m[1]);
+    }
+    console.log(`  [sitemap] ${slugs.size} product slugs loaded`);
+    return slugs;
+  } catch {
+    console.warn("  [sitemap] fetch failed — falling back to heuristics");
+    return new Set();
+  }
+}
+
+/** Build ordered slug candidates for a product.
+ *  Priority: (1) override table, (2) generated slugs that appear in sitemap,
+ *  (3) remaining generated slugs as fallback. */
+function buildSlugCandidates(name: string, code: string | null, sitemapSlugs: Set<string>): string[] {
+  const slugs: string[] = [];
+  const seen = new Set<string>();
+  const add = (s: string) => {
+    if (s && !seen.has(s)) { seen.add(s); slugs.push(s); }
+  };
+
+  // 1. Override table (highest priority — known-opaque slugs)
+  const override = SLUG_OVERRIDES[name];
+  if (override) add(override);
+
+  // 2. Heuristic candidates validated against sitemap
+  const generated = generateSlugs(name, code);
+  if (sitemapSlugs.size > 0) {
+    for (const s of generated) {
+      if (sitemapSlugs.has(s)) add(s);
+    }
+  }
+
+  // 3. All remaining heuristic candidates (fallback for new products not yet in sitemap)
+  for (const s of generated) add(s);
+
+  return slugs;
+}
+
 /** Fetch and parse a single product page, trying multiple slug candidates. */
 async function fetchProductPage(slugs: string[]): Promise<ProductPageData | null> {
   for (const slug of slugs) {
@@ -257,10 +333,14 @@ if (devices.length === 0) {
 
 console.log(`Found ${devices.length} devices in database`);
 
+// Fetch sitemap once to validate slugs and prioritize correct candidates
+console.log("Loading product sitemap...");
+const sitemapSlugs = await fetchSitemap();
+
 // Build device → candidate slugs mapping
 const deviceSlugs: Array<{ id: number; name: string; slugs: string[] }> = [];
 for (const dev of devices) {
-  const slugs = generateSlugs(dev.product_name, dev.product_code);
+  const slugs = buildSlugCandidates(dev.product_name, dev.product_code, sitemapSlugs);
   deviceSlugs.push({ id: dev.id, name: dev.product_name, slugs });
 }
 
