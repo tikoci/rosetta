@@ -201,6 +201,7 @@ Register in MCP client config (bunx example — no paths needed):
 | `routeros_search_callouts` | FTS across callouts, type-only browse, AND→OR fallback |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
 | `routeros_command_version_check` | Version range for a command path, boundary notes |
+| `routeros_command_diff` | Structural diff between two RouterOS versions — added/removed commands at a path prefix |
 | `routeros_device_lookup` | Hardware specs by product name/code, FTS search with structured filters (architecture, RAM, license, PoE, wireless) |
 | `routeros_search_tests` | Cross-device performance benchmarks — filter by test_type, mode, configuration, packet_size; one call replaces 125+ individual lookups |
 | `routeros_stats` | DB health: page/property/command/device counts, link coverage |
