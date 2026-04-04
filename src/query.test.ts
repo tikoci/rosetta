@@ -899,10 +899,22 @@ describe("searchDeviceTests", () => {
     }
   });
 
-  test("includes device info in results", () => {
+  test("result shape has expected fields and no cpu fields", () => {
     const res = searchDeviceTests({ test_type: "ethernet" });
-    expect(res.results[0].product_name).toBeDefined();
-    expect(res.results[0].architecture).toBeDefined();
+    const row = res.results[0];
+    // Present: device identity + test data
+    expect(row.product_name).toBeDefined();
+    expect(row.product_code).toBeDefined();
+    expect(row.architecture).toBeDefined();
+    expect(row.test_type).toBeDefined();
+    expect(row.mode).toBeDefined();
+    expect(row.configuration).toBeDefined();
+    expect(row.packet_size).toBeDefined();
+    expect(row.throughput_mbps).toBeDefined();
+    // Absent: cpu details (available via device_lookup)
+    expect("cpu" in row).toBe(false);
+    expect("cpu_cores" in row).toBe(false);
+    expect("cpu_frequency" in row).toBe(false);
   });
 
   test("respects limit", () => {
