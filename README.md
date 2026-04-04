@@ -17,6 +17,7 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 - **144 hardware products** — CPU, RAM, storage, ports, PoE, wireless, license level, pricing
 - **2,874 performance benchmarks** — ethernet and IPSec throughput test results for 125 devices (64/512/1518-byte packets, multiple routing/bridging modes), plus block diagrams for 110
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) for command history
+- **2 MCP CSV resources** for bulk reporting workflows: full benchmark dataset and full device catalog
 - Direct links to help.mikrotik.com for every page and section
 
 ---
@@ -211,6 +212,15 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
 > **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. The database in `~/.rosetta/ros-help.db` persists across updates.
+
+### MCP Resources for Reporting
+
+If your MCP client supports resources, rosetta also exposes two read-only CSV datasets for bulk analysis and reporting:
+
+- `rosetta://datasets/device-test-results.csv`
+- `rosetta://datasets/devices.csv`
+
+In VS Code Copilot, attach them via **Add Context > MCP Resources** or **MCP: Browse Resources**. Use tools for normal search and drill-down; use resources when you explicitly want the whole dataset as CSV.
 
 ---
 

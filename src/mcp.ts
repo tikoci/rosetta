@@ -132,6 +132,8 @@ const {
   browseCommands,
   browseCommandsAtVersion,
   checkCommandVersions,
+  exportDevicesCsv,
+  exportDeviceTestsCsv,
   fetchCurrentVersions,
   getPage,
   lookupProperty,
@@ -154,6 +156,40 @@ const server = new McpServer({
   name: "rosetta",
   version: RESOLVED_VERSION,
 });
+
+server.registerResource(
+  "device-test-results-csv",
+  "rosetta://datasets/device-test-results.csv",
+  {
+    title: "Device Test Results CSV",
+    description: "Full joined benchmark dataset as CSV for reporting and bulk export. Attach explicitly in clients that support MCP resources.",
+    mimeType: "text/csv",
+  },
+  async () => ({
+    contents: [{
+      uri: "rosetta://datasets/device-test-results.csv",
+      mimeType: "text/csv",
+      text: exportDeviceTestsCsv(),
+    }],
+  }),
+);
+
+server.registerResource(
+  "devices-csv",
+  "rosetta://datasets/devices.csv",
+  {
+    title: "Devices CSV",
+    description: "Full device catalog as CSV, including normalized RAM and storage fields plus product and block diagram URLs.",
+    mimeType: "text/csv",
+  },
+  async () => ({
+    contents: [{
+      uri: "rosetta://datasets/devices.csv",
+      mimeType: "text/csv",
+      text: exportDevicesCsv(),
+    }],
+  }),
+);
 
 // ---- routeros_search ----
 
@@ -786,6 +822,7 @@ Note: some devices use slightly different names (e.g., "25 bridge filter" vs "25
 **Tip:** Call with no filters first to see available test_types, modes, configurations, and packet_sizes via the metadata field.
 
 Results include product_name, product_code, architecture — use routeros_device_lookup for full specs (CPU, RAM, ports, etc.).
+For bulk export/reporting, attach the MCP resource rosetta://datasets/device-test-results.csv in clients that support MCP resources.
 
 Workflow:
 → routeros_device_lookup: get full specs (CPU, RAM, pricing) + block diagram for a specific device

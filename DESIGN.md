@@ -75,6 +75,17 @@ Pages, callouts, and properties use FTS5 with `porter unicode61` for natural lan
 
 **Why LIKE fallback:** FTS5 does whole-token matching, so searching "RB1100" won't find token "RB1100AHx4". FTS5 prefix queries (`RB1100*`) handle the case where the search term is a prefix of a token, but LIKE handles arbitrary substrings. For 144 devices this is instant — no index overhead concerns. The search cascade is: exact match → LIKE substring → FTS prefix → FTS OR fallback → structured filters only.
 
+### MCP resources complement tools, they do not replace them
+
+VS Code Copilot surfaces MCP resources through explicit UI flows such as Add Context > MCP Resources and the MCP: Browse Resources command. That makes resources a good fit for bulk, read-only datasets that users want to attach deliberately for reporting tasks, such as CSV exports of benchmarks or device catalogs.
+
+They are not a cure-all for context pressure. Attaching a large resource can still consume significant context, so tools remain the right default for ranked, filtered retrieval. The split is:
+
+- **Tools** for targeted queries, ranking, filtering, and iterative drill-down
+- **Resources** for whole-dataset export or deliberate reporting workflows
+
+This is why rosetta exposes the device test and device catalog CSVs as resources but keeps `routeros_search_tests` and `routeros_device_lookup` as the main interactive paths.
+
 ### Callout FK ordering
 
 Callouts have FK to pages. On re-extraction, delete callouts before pages. `extract-html.ts` handles this.

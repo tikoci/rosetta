@@ -25,6 +25,8 @@ export type SearchResponse = {
   total: number;
 };
 
+type CsvScalar = string | number | null;
+
 const DEFAULT_LIMIT = 8;
 const MAX_TERMS = 8;
 const MIN_TERM_LENGTH = 2;
@@ -84,6 +86,21 @@ const COMPOUND_TERMS: [string, string][] = [
   ["queue", "tree"],
   ["address", "list"],
 ];
+
+function escapeCsv(value: CsvScalar): string {
+  if (value === null) return "";
+  const text = String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function rowsToCsv<T extends Record<string, CsvScalar>>(
+  rows: T[],
+  columns: Array<keyof T & string>,
+): string {
+  const header = columns.join(",");
+  const body = rows.map((row) => columns.map((column) => escapeCsv(row[column] ?? null)).join(",")).join("\n");
+  return body ? `${header}\n${body}\n` : `${header}\n`;
+}
 
 export function extractTerms(question: string): string[] {
   return question
@@ -963,6 +980,117 @@ export function searchDeviceTests(
 
   const results = db.prepare(sql).all(...params, limit) as DeviceTestRow[];
   return { results, total };
+}
+
+type DeviceTestCsvRow = {
+  product_name: string;
+  product_code: string | null;
+  architecture: string | null;
+  cpu: string | null;
+  cpu_cores: number | null;
+  cpu_frequency: string | null;
+  test_type: string;
+  mode: string;
+  configuration: string;
+  packet_size: number;
+  throughput_kpps: number | null;
+  throughput_mbps: number | null;
+  product_url: string | null;
+};
+
+export function exportDeviceTestsCsv(): string {
+  const rows = db.prepare(`SELECT d.product_name, d.product_code, d.architecture,
+      d.cpu, d.cpu_cores, d.cpu_frequency,
+      t.test_type, t.mode, t.configuration, t.packet_size,
+      t.throughput_kpps, t.throughput_mbps,
+      d.product_url
+    FROM device_test_results t
+    JOIN devices d ON d.id = t.device_id
+    ORDER BY d.product_name, t.test_type, t.mode, t.configuration, t.packet_size DESC`).all() as DeviceTestCsvRow[];
+
+  return rowsToCsv(rows, [
+    "product_name",
+    "product_code",
+    "architecture",
+    "cpu",
+    "cpu_cores",
+    "cpu_frequency",
+    "test_type",
+    "mode",
+    "configuration",
+    "packet_size",
+    "throughput_kpps",
+    "throughput_mbps",
+    "product_url",
+  ]);
+}
+
+type DeviceCsvRow = {
+  product_name: string;
+  product_code: string | null;
+  architecture: string | null;
+  cpu: string | null;
+  cpu_cores: number | null;
+  cpu_frequency: string | null;
+  license_level: number | null;
+  operating_system: string | null;
+  ram: string | null;
+  ram_mb: number | null;
+  storage: string | null;
+  storage_mb: number | null;
+  dimensions: string | null;
+  poe_in: string | null;
+  poe_out: string | null;
+  max_power_w: number | null;
+  wireless_24_chains: number | null;
+  wireless_5_chains: number | null;
+  eth_fast: number | null;
+  eth_gigabit: number | null;
+  eth_2500: number | null;
+  sfp_ports: number | null;
+  sfp_plus_ports: number | null;
+  eth_multigig: number | null;
+  usb_ports: number | null;
+  sim_slots: number | null;
+  msrp_usd: number | null;
+  product_url: string | null;
+  block_diagram_url: string | null;
+};
+
+export function exportDevicesCsv(): string {
+  const rows = db.prepare(`${DEVICE_SELECT} ORDER BY product_name`).all() as DeviceCsvRow[];
+
+  return rowsToCsv(rows, [
+    "product_name",
+    "product_code",
+    "architecture",
+    "cpu",
+    "cpu_cores",
+    "cpu_frequency",
+    "license_level",
+    "operating_system",
+    "ram",
+    "ram_mb",
+    "storage",
+    "storage_mb",
+    "dimensions",
+    "poe_in",
+    "poe_out",
+    "max_power_w",
+    "wireless_24_chains",
+    "wireless_5_chains",
+    "eth_fast",
+    "eth_gigabit",
+    "eth_2500",
+    "sfp_ports",
+    "sfp_plus_ports",
+    "eth_multigig",
+    "usb_ports",
+    "sim_slots",
+    "msrp_usd",
+    "product_url",
+    "block_diagram_url",
+  ]);
 }
 
 /** Get distinct values for test result fields (for discovery). */

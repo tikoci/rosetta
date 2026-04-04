@@ -228,6 +228,37 @@ describe("HTTP transport: session lifecycle", () => {
     expect(toolNames).toContain("routeros_current_versions");
   });
 
+  test("resources/list returns dataset resources after initialization", async () => {
+    const { sessionId } = await mcpInitialize(server.url);
+    await mcpNotification(server.url, sessionId, "notifications/initialized");
+
+    const messages = await mcpRequest(server.url, sessionId, "resources/list", 21);
+    expect(messages.length).toBe(1);
+
+    const result = (messages[0] as Record<string, unknown>).result as Record<string, unknown>;
+    const resources = result.resources as Array<{ uri: string; mimeType?: string }>;
+
+    expect(resources.some((resource) => resource.uri === "rosetta://datasets/device-test-results.csv")).toBe(true);
+    expect(resources.some((resource) => resource.uri === "rosetta://datasets/devices.csv")).toBe(true);
+  });
+
+  test("resources/read returns CSV content for device test dataset", async () => {
+    const { sessionId } = await mcpInitialize(server.url);
+    await mcpNotification(server.url, sessionId, "notifications/initialized");
+
+    const messages = await mcpRequest(server.url, sessionId, "resources/read", 22, {
+      uri: "rosetta://datasets/device-test-results.csv",
+    });
+    expect(messages.length).toBe(1);
+
+    const result = (messages[0] as Record<string, unknown>).result as Record<string, unknown>;
+    const contents = result.contents as Array<{ uri: string; mimeType?: string; text?: string }>;
+
+    expect(contents[0].uri).toBe("rosetta://datasets/device-test-results.csv");
+    expect(contents[0].mimeType).toBe("text/csv");
+    expect(contents[0].text).toContain("product_name,product_code,architecture,cpu,cpu_cores,cpu_frequency");
+  });
+
   test("tools/call works for routeros_stats", async () => {
     const { sessionId } = await mcpInitialize(server.url);
     await mcpNotification(server.url, sessionId, "notifications/initialized");

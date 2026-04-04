@@ -17,6 +17,8 @@ const { db, initDb, getDbStats } = await import("./db.ts");
 const {
   extractTerms,
   buildFtsQuery,
+  exportDevicesCsv,
+  exportDeviceTestsCsv,
   searchPages,
   getPage,
   lookupProperty,
@@ -810,10 +812,11 @@ describe("searchDevices", () => {
     expect(res.mode).toBe("exact");
     expect(res.results).toHaveLength(1);
     const dev = res.results[0];
-    expect(dev.test_results).toBeDefined();
-    expect(dev.test_results!.length).toBe(3);
-    expect(dev.test_results!.some((t) => t.test_type === "ethernet")).toBe(true);
-    expect(dev.test_results!.some((t) => t.test_type === "ipsec")).toBe(true);
+    const testResults = dev.test_results;
+    expect(testResults).toBeDefined();
+    expect(testResults?.length).toBe(3);
+    expect(testResults?.some((t) => t.test_type === "ethernet")).toBe(true);
+    expect(testResults?.some((t) => t.test_type === "ipsec")).toBe(true);
   });
 
   test("LIKE match with ≤5 results includes test_results", () => {
@@ -921,6 +924,30 @@ describe("searchDeviceTests", () => {
     const res = searchDeviceTests({}, 1);
     expect(res.results).toHaveLength(1);
     expect(res.total).toBe(3);
+  });
+});
+
+describe("dataset CSV exports", () => {
+  test("exports full device test results as CSV", () => {
+    const csv = exportDeviceTestsCsv();
+    const lines = csv.trim().split("\n");
+
+    expect(lines[0]).toBe("product_name,product_code,architecture,cpu,cpu_cores,cpu_frequency,test_type,mode,configuration,packet_size,throughput_kpps,throughput_mbps,product_url");
+    expect(lines).toHaveLength(4);
+    expect(csv).toContain("hAP ax3");
+    expect(csv).toContain("IPQ-6010");
+    expect(csv).toContain("https://mikrotik.com/product/hap_ax3");
+  });
+
+  test("exports full device catalog as CSV", () => {
+    const csv = exportDevicesCsv();
+    const lines = csv.trim().split("\n");
+
+    expect(lines[0]).toBe("product_name,product_code,architecture,cpu,cpu_cores,cpu_frequency,license_level,operating_system,ram,ram_mb,storage,storage_mb,dimensions,poe_in,poe_out,max_power_w,wireless_24_chains,wireless_5_chains,eth_fast,eth_gigabit,eth_2500,sfp_ports,sfp_plus_ports,eth_multigig,usb_ports,sim_slots,msrp_usd,product_url,block_diagram_url");
+    expect(lines).toHaveLength(7);
+    expect(csv).toContain("CCR2216-1G-12XS-2XQ");
+    expect(csv).toContain("https://cdn.mikrotik.com/web-assets/product_files/hap_ax3_123.png");
+    expect(lines[0].startsWith("id,")).toBe(false);
   });
 });
 
