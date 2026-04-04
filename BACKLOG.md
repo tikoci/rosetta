@@ -74,11 +74,28 @@ Not urgent — the current sequential approach works and GitHub Pages has no rat
 
 ### List-format properties
 
-Some pages use `<ul><li><strong>name</strong> (type; Default: value)</li></ul>` for read-only properties instead of `confluenceTable`. These are currently not extracted. Need to:
+Some pages use `<ul><li><strong>name</strong> (type; Default: value)</li></ul>` for read-only properties instead of `confluenceTable`. These are currently not extracted.
 
-- Quantify how many exist (`ros-html-assessment.json` has `listProperties` counts per page)
-- Decide: same `properties` table or separate? Same extraction pass or new script?
-- Check if the pattern is consistent enough for reliable parsing
+**Investigated 2026-04-04.** The assessment tool (`assess-html.ts`) already detects these. Results:
+
+- **496 list-format properties** across **73 pages** (23% of all pages)
+- Current table-format extraction: 5,130 properties — list-format adds 8.8% more
+- Pattern is consistent: `<li><strong>name</strong> (type; Default: value): description</li>`
+
+**Top pages by list property count:**
+
+| Page | Count | Notes |
+|------|-------|-------|
+| Queues | 61 | CIR/MIR params, burst settings, PCQ classifiers |
+| Hotspot customisation | 58 | HotSpot variables and template params |
+| RADIUS | 46 | RADIUS attribute definitions (Service-Type, NAS-Port-Type, etc.) |
+| Product Naming | 37 | Product code conventions (not really properties) |
+| CRS1xx/2xx series switches | 25 | Switch chip feature flags |
+| Packet Sniffer | 23 | Capture filter params |
+
+54 of 73 pages have ≤5 list properties each (long tail).
+
+**Recommendation:** Extract into the same `properties` table — same schema fits. Add to `extract-properties.ts` as a second pass after table extraction. The pattern is regular enough for reliable parsing. Queues, Hotspot, and RADIUS alone justify the effort — these are high-traffic reference pages for agents.
 
 ### Special hardware pages
 
@@ -95,7 +112,27 @@ Note: absence from the Peripherals page doesn't mean unsupported — most MBIM m
 
 ### `_completion` data from deep-inspect.json
 
-[tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices like `protocol=tcp,udp,icmp`). This would significantly enrich the command tree. Watch for that PR to ship, then design schema extension.
+~~[tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices like `protocol=tcp,udp,icmp`). This would significantly enrich the command tree. Watch for that PR to ship, then design schema extension.~~
+
+**Investigated 2026-04-04.** deep-inspect.json is now published on restraml GitHub Pages. Available at `https://tikoci.github.io/restraml/<version>/extra/deep-inspect.json` starting from **7.22.1** (stable) and **7.23beta4** (dev). Not present for 7.22 or earlier, or 7.23beta2.
+
+**Current state:** The file exists and includes a `_meta` root field with version info and completion stats, but **`_completion` fields are not yet populated** — `argsWithCompletion: 0` across all checked versions (7.22.1, 7.23beta4, 7.23beta5). The command tree content is otherwise identical to inspect.json.
+
+**`_meta` structure:**
+
+```json
+{
+  "version": "7.22.1",
+  "generatedAt": "2026-03-28T03:25:43.709Z",
+  "completionStats": { "argsTotal": 34548, "argsWithCompletion": 0, "argsFailed": 0 }
+}
+```
+
+**Next steps:**
+
+1. Watch for future restraml builds where `argsWithCompletion > 0` — that's the trigger
+2. The `_meta.version` and `generatedAt` fields are immediately useful for extraction traceability — consider capturing these in `ros_versions` even before completion data arrives
+3. Prefer deep-inspect.json over inspect.json for versions where it exists (superset of data)
 
 ### inspect.json extra-package coverage gaps
 
@@ -107,11 +144,26 @@ Our inspect.json data comes from CHR (x86_64) with extra-packages enabled. CHR d
 
 The HTML documentation covers all packages including these. The `Packages` page lists the full set of available packages.
 
-To make tool descriptions more accurate, we should:
+**Investigated 2026-04-04.** Cross-referenced the command tree against HTML docs. Key findings:
 
-1. Extract the definitive package list from the Packages doc page
-2. Cross-reference with what inspect.json actually contains
-3. Document which command paths come from missing packages (so agents know to check docs instead of command tree for those features)
+**Pages with docs but poor/no command tree coverage:**
+
+| Subsystem | Doc pages | Commands in tree | Gap reason |
+|-----------|-----------|-----------------|------------|
+| WiFi (`/interface/wifi`) | WiFi (224559120), Interworking (334168086) | 2,584 cmds, only 3 pages linked | Linking gap + CHR has no wifi hardware |
+| Wireless (`/interface/wireless`) | Wireless (1409138), Wireless Interface (8978446) | 128 cmds | Legacy; main overview page has 0 links |
+| ZeroTier | ZeroTier (83755083) | 1 cmd in tree | Package missing from CHR |
+| LoRa (`/iot/lora`) | LoRa (16351615) | 475 cmds, only 17 documented | Linking gap |
+| IoT GPIO | GPIO (68944101) | Under `/iot`, 0 links | Linking gap |
+| Scripting builtins | Scripting (47579229), etc. | `/if`, `/while`, `/put`, `/tonum`, etc. | Script functions in tree but not linked to doc pages |
+
+**Impact for agents:** When a user asks about WiFi, ZeroTier, or LoRa commands, the command tree tools return incomplete/no results. The docs have the information but agents don't know to fall back to `routeros_search` or `routeros_get_page`.
+
+**Actionable improvements:**
+
+1. **Tool description hints** — add guidance to `routeros_command_tree` tool description noting that WiFi/wireless, ZeroTier, and LoRa commands may be incomplete in the tree; suggest `routeros_search` as fallback
+2. **Improve linking** — the 92% dir coverage stat masks that some high-value subsystems (WiFi, LoRa, scripting) have much lower coverage. A targeted linking pass for these specific subsystems would have outsized impact
+3. **Package manifest** — extract the definitive package list from the Packages doc page and cross-reference with what inspect.json actually contains, so agents get a clear "these packages are not in the command tree" signal
 
 ### MCP resources (beyond tools)
 
@@ -195,13 +247,11 @@ When it arrives:
 
 VSCode extension client-side can provide doc context via MCP or direct DB queries. Depends on `lsp-routeros-ts` integration being further along.
 
-### DB schema version check for bunx auto-updates
+### ~~DB schema version check for bunx auto-updates~~ ✓ DONE
 
-`bunx` auto-updates to the latest published package version on each session. If a future version drops or renames a table, the existing `~/.rosetta/ros-help.db` could be incompatible. The current `initDb()` uses `CREATE TABLE IF NOT EXISTS` and has migration logic (e.g., `ros_version` column), which handles additive changes. But destructive schema changes would break.
+`SCHEMA_VERSION = 1` exported from `paths.ts`, stamped via `PRAGMA user_version` in `initDb()`, and checked at MCP server startup before `db.ts` is imported. On mismatch, auto-re-downloads the DB (same pattern as the empty-DB auto-download). `setup.ts --setup` validation also prints the schema version and warns on mismatch. Covered by a `checkSchemaVersion()` test in `query.test.ts`.
 
-**Trigger:** Next time we make a breaking schema change (drop/rename table or column).
-
-Proposed approach: store a schema version integer in the DB (e.g., `PRAGMA user_version` or a metadata table). On startup, compare against the expected version. If mismatch, auto-re-download the DB from GitHub Releases. Simple and handles the bunx upgrade case cleanly.
+**Increment `SCHEMA_VERSION` in `src/paths.ts` whenever a destructive schema change is made (DROP/RENAME table or column).**
 
 ## Improvements
 

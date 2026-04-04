@@ -13,7 +13,7 @@ import { beforeAll, describe, expect, test } from "bun:test";
 process.env.DB_PATH = ":memory:";
 
 // Dynamic imports so the env-var assignment above is visible to db.ts
-const { db, initDb, getDbStats } = await import("./db.ts");
+const { db, initDb, getDbStats, checkSchemaVersion, SCHEMA_VERSION } = await import("./db.ts");
 const {
   extractTerms,
   buildFtsQuery,
@@ -1167,6 +1167,13 @@ describe("schema", () => {
     expect(triggers).toContain("changelogs_ai");
     expect(triggers).toContain("changelogs_ad");
     expect(triggers).toContain("changelogs_au");
+  });
+
+  test("PRAGMA user_version matches SCHEMA_VERSION", () => {
+    const result = checkSchemaVersion();
+    expect(result.ok).toBe(true);
+    expect(result.actual).toBe(SCHEMA_VERSION);
+    expect(result.expected).toBe(SCHEMA_VERSION);
   });
 });
 

@@ -99,7 +99,7 @@ const { z } = await import("zod/v3");
 //
 // Check if DB has data BEFORE importing db.ts. If empty/missing,
 // auto-download so db.ts opens the real database.
-const { resolveDbPath } = await import("./paths.ts");
+const { resolveDbPath, SCHEMA_VERSION } = await import("./paths.ts");
 const _dbPath = resolveDbPath(import.meta.dirname);
 
 const _pageCount = (() => {
@@ -123,6 +123,33 @@ if (_pageCount === 0) {
   } catch (e) {
     log(`Auto-download failed: ${e}`);
     log(`Run: ${process.argv[0]} --setup`);
+  }
+}
+
+// Check schema version — a bunx auto-update may bring a new code version whose
+// schema is incompatible with the existing ~/.rosetta/ros-help.db.
+// MUST be checked before importing db.ts, because initDb() stamps user_version.
+const _dbSchemaVersion = (() => {
+  try {
+    const check = new (require("bun:sqlite").default)(_dbPath, { readonly: true });
+    const row = check.prepare("PRAGMA user_version").get() as { user_version: number };
+    check.close();
+    return row.user_version;
+  } catch {
+    return SCHEMA_VERSION; // unreadable — assume ok, initDb() will stamp it
+  }
+})();
+
+if (_dbSchemaVersion !== SCHEMA_VERSION) {
+  const { downloadDb } = await import("./setup.ts");
+  const log = (msg: string) => process.stderr.write(`${msg}\n`);
+  log(`DB schema version mismatch (DB=${_dbSchemaVersion}, expected=${SCHEMA_VERSION}) — re-downloading updated database...`);
+  try {
+    await downloadDb(_dbPath, log);
+    log("Database updated successfully.");
+  } catch (e) {
+    log(`Auto-download failed: ${e}`);
+    log(`Run: ${process.argv[0]} --setup --force`);
   }
 }
 

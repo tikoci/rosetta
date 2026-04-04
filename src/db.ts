@@ -20,7 +20,9 @@
  */
 
 import sqlite from "bun:sqlite";
-import { resolveDbPath } from "./paths.ts";
+import { resolveDbPath, SCHEMA_VERSION } from "./paths.ts";
+
+export { SCHEMA_VERSION };
 
 export const DB_PATH = resolveDbPath(import.meta.dirname);
 
@@ -29,7 +31,11 @@ export const db = new sqlite(DB_PATH);
 export function initDb() {
   db.run("PRAGMA journal_mode=WAL;");
   db.run("PRAGMA foreign_keys=ON;");
-
+  // Stamp schema version unconditionally — initDb() is only called by extractors
+  // (which produce a current-schema DB) and by the MCP server after the version
+  // check in mcp.ts. If you ever need to open a DB read-only without touching
+  // user_version, call `db.run("PRAGMA foreign_keys=ON;")` directly and skip initDb().
+  db.run(`PRAGMA user_version = ${SCHEMA_VERSION};`);
   db.run(`CREATE TABLE IF NOT EXISTS schema_migrations (
     version TEXT PRIMARY KEY,
     applied_at TEXT NOT NULL
@@ -340,6 +346,16 @@ export function initDb() {
     INSERT INTO changelogs_fts(rowid, category, description)
     VALUES (new.id, new.category, new.description);
   END;`);
+}
+
+/**
+ * Verify the open DB was built with the expected schema version.
+ * Only meaningful after initDb() — initDb() itself stamps the version,
+ * so this is mainly a regression guard and for the test suite.
+ */
+export function checkSchemaVersion(): { ok: boolean; actual: number; expected: number } {
+  const row = db.prepare("PRAGMA user_version").get() as { user_version: number };
+  return { ok: row.user_version === SCHEMA_VERSION, actual: row.user_version, expected: SCHEMA_VERSION };
 }
 
 export function getDbStats() {

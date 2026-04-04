@@ -10,7 +10,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "bun";
-import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion } from "./paths.ts";
+import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 declare const REPO_URL: string;
 
@@ -84,8 +84,13 @@ export async function runSetup(force = false) {
     const db = new sqlite(dbPath, { readonly: true });
     const row = db.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
     const cmdRow = db.prepare("SELECT COUNT(*) AS c FROM commands WHERE type='cmd'").get() as { c: number };
+    const versionRow = db.prepare("PRAGMA user_version").get() as { user_version: number };
     db.close();
-    console.log(`✓ Database ready (${row.c} pages, ${cmdRow.c} commands)`);
+    if (versionRow.user_version !== SCHEMA_VERSION) {
+      console.warn(`  Warning: DB schema version is ${versionRow.user_version}, expected ${SCHEMA_VERSION}.`);
+      console.warn(`  The downloaded DB may be incompatible with this version of rosetta.`);
+    }
+    console.log(`✓ Database ready (${row.c} pages, ${cmdRow.c} commands, schema v${versionRow.user_version})`);
   } catch (e) {
     console.error(`✗ Database validation failed: ${e}`);
     const retryCmd = mode === "compiled" ? "rosetta" : mode === "package" ? "bunx @tikoci/rosetta" : "bun run src/setup.ts";

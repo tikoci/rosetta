@@ -74,6 +74,14 @@ export function detectMode(srcDir: string): InvocationMode {
 }
 
 /**
+ * Schema version for ros-help.db.
+ * Increment when making destructive schema changes (DROP/RENAME table or column).
+ * Stamped into the DB via `PRAGMA user_version` by initDb() and checked at MCP
+ * startup to detect stale DBs for bunx users who auto-update the package.
+ */
+export const SCHEMA_VERSION = 1;
+
+/**
  * Resolve the version string.
  * Compiled mode: injected at build time via --define.
  * Dev/package mode: read from package.json.
