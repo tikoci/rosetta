@@ -13,7 +13,7 @@
  *   gh release create <version> dist/*.zip dist/ros-help.db.gz
  */
 
-import { execSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -81,18 +81,17 @@ for (const target of targets) {
   const outfile = path.join(dir, target.exe);
   console.log(`Compiling ${target.name} (${target.bunTarget})...`);
 
-  const cmd = [
-    "bun", "build", "--compile",
+  const buildArgs = [
+    "build", "--compile",
     "--minify", "--bytecode",
     `--target=${target.bunTarget}`,
     ...defines,
     ENTRY,
-    `--outfile`, outfile,
-  ].join(" ");
+    "--outfile", outfile,
+  ];
 
-  try {
-    execSync(cmd, { cwd: ROOT, stdio: "inherit" });
-  } catch {
+  const buildResult = spawnSync("bun", buildArgs, { cwd: ROOT, stdio: "inherit" });
+  if (buildResult.status !== 0) {
     console.error(`  ✗ Failed to compile ${target.name}`);
     continue;
   }
@@ -105,17 +104,13 @@ for (const target of targets) {
   const zipPath = path.join(DIST, zipName);
   console.log(`  Packaging ${zipName}...`);
 
-  if (target.bunTarget.includes("windows")) {
-    // zip from the target directory
-    execSync(`zip -j "${zipPath}" "${outfile}" "${path.join(dir, "README.txt")}"`, {
-      cwd: ROOT,
-      stdio: "inherit",
-    });
-  } else {
-    execSync(`zip -j "${zipPath}" "${outfile}" "${path.join(dir, "README.txt")}"`, {
-      cwd: ROOT,
-      stdio: "inherit",
-    });
+  const zipResult = spawnSync(
+    "zip", ["-j", zipPath, outfile, path.join(dir, "README.txt")],
+    { cwd: ROOT, stdio: "inherit" },
+  );
+  if (zipResult.status !== 0) {
+    console.error(`  ✗ Failed to create ${zipName}`);
+    continue;
   }
 
   console.log(`  ✓ ${zipName}`);

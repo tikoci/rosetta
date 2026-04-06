@@ -69,6 +69,26 @@ Implemented 2026-04-05. Three improvements to `searchDevices()` in `query.ts`:
 
 Items that need research or experimentation before they're actionable.
 
+### SafeSkill automated security scan — review notes (2026-04-06)
+
+Reviewed https://safeskill.dev/scan/tikoci-rosetta (v0.4.0 scan, 107 findings, overall score 73).
+
+**Fixed:**
+- `scripts/build-release.ts`: replaced `execSync(joinedString)` with `spawnSync("bun", argsArray)` and `spawnSync("zip", argsArray)`. The old pattern passed a shell-joined string through `/bin/sh`, creating a shell injection surface even though all inputs were controlled. Array-form bypasses the shell entirely. Also collapsed the identical `if (windows) / else` zip branches.
+- Added `SECURITY.md` with reporting process, scope, and HTTP transport security notes. Standard practice for npm packages; improves SafeSkill transparency score.
+
+**Dismissed (false positives):**
+- "Spawns child process" on `RegExp.exec()` in `extract-html.ts` — SafeSkill pattern-matched on the word "exec" incorrectly.
+- "Data flow: os.homedir → fetch" in `setup.ts` — `os.homedir()` builds a local DB file path; the download URL is hardcoded. No actual data flows to a network sink.
+- All other child_process findings in `bin/rosetta.js` (Node→Bun delegation), `extract-all-versions.ts`, and `scripts/` — these are build tooling / npm shim, not the runtime MCP server. SafeSkill is designed for MCP AI tools and treats build scripts as production code.
+- "Command injection: execSync('which bunx')" in `setup.ts` — hardcoded string, no injection surface.
+- "Data flow: readFileSync(package.json) → execSync" in the old `build-release.ts` — now fixed by array-form anyway.
+
+**Remaining SafeSkill score gaps (not acted on):**
+- "Code quality 1/5" — likely reflects test coverage or strict TypeScript settings. Not worth chasing SafeSkill's metric blindly.
+- "Transparency 3/7" — improved by adding `SECURITY.md`. Could further improve with `CODE_OF_CONDUCT.md` if the project grows a contributor community, but overkill now.
+- "Prompt injection 18/20" — our tool descriptions are clean. Minor gap likely cosmetic.
+
 ### MikroTik /app auto-update behavior
 
 The `/app` YAML supports `auto-update: true`, which is documented to pull the latest container image on each boot. This is set in our rosetta /app template. Initial testing on CHR 7.23beta5 confirms the app installs and runs correctly, but the auto-update pull-on-boot behavior needs verification across reboots with new image tags pushed. Specifically: does RouterOS pull `:latest` fresh on each boot, or does it cache by digest? Does it require `docker-tag-based-pulling` or `checking-for-updates`?
