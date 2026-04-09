@@ -4,15 +4,17 @@ RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP.
 
 ## Project Documentation
 
-Three files, three jobs — agents should use these, not create new top-level `.md` files:
+Five doc files, each with a clear role — agents should use these, not create new top-level `.md` files:
 
 | File | What goes in it |
 |------|----------------|
 | `CLAUDE.md` | Architecture, schema, conventions — what the project **is** and how it works |
 | `DESIGN.md` | Decisions, data sources, constraints, cross-references — **why** things are the way they are |
 | `BACKLOG.md` | Ideas, considerations, future work — structured parking lot for anything not yet active |
+| `README.md` | User-facing quick start — `/app` install, bunx setup, browse TUI, tool overview |
+| `MANUAL.md` | Extended reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
-**Rule:** If it's a decision or rationale → `DESIGN.md`. If it's an idea, question, or future work → `BACKLOG.md`. If it's how the project works → `CLAUDE.md`.
+**Rule:** If it's a decision or rationale → `DESIGN.md`. If it's an idea, question, or future work → `BACKLOG.md`. If it's how the project works → `CLAUDE.md`. User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
 
 ## What This Is
 
@@ -408,6 +410,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `transcripts/known-bad.json` | Manually maintained `{videoId: reason}` skip list for `extract-videos` |
 | `transcripts/YYYY-MM-DD/videos.ndjson` | Committed transcript cache — one `VideoCacheEntry` per line. Used by `make extract-videos-from-cache` (CI path). |
 | `CONTRIBUTING.md` | Build, test, development setup, release process |
+| `MANUAL.md` | Extended user reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
 ## Re-extraction
 

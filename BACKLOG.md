@@ -407,14 +407,67 @@ Observed in a real Copilot CLI session: querying changelogs between 7.21.3 and 7
 
 ### Browse REPL enhancements (Phase 3)
 
-The `browse` command provides a keyboard-driven REPL over all extracted data. Future improvements:
+The `browse` command provides a keyboard-driven REPL over all extracted data. It doubles as a test harness — interacting with data the same way an MCP agent would, so gaps visible in `browse` often point to MCP tool deficiencies. Tracked issues and improvements:
+
+#### Navigation and context
+
+- **`b` (back) is unreliable** — the history stack works mechanically (`pushCtx` / `popCtx`) but the UX is confusing. After searching, selecting a page, then pressing `b`, the user returns to the search results — but the prompt doesn't convey what context you're in or whether there's anything to go back to. Consider: (a) show current context in the prompt (e.g., `rosetta[Bridge VLAN Table]>`), (b) show nothing / "Already at top" when stack is empty. The RouterOS CLI has no back concept — it has `/` to go to root. A similar `home` or `/` command might be more intuitive than `b`.
+- **Number references don't consistently navigate** — documentation pages use `#N` (numbered results) which work to view content. But other tool outputs (callouts, properties, videos) also show numbered results that are not selectable. `handleNumberSelect()` only handles `search`, `sections`, and `devices` contexts. Properties, callouts, changelogs, and video results should also support number selection. For callouts, selecting should navigate to the source page. For videos, selecting should open/show the timestamped URL.
+- **`[XX more results...]` is not actionable** — search results show "X of Y results" but there's no way to page forward or request more. Need either: (a) a `more` / `next` command to load the next page, or (b) increase default limit and truncate display with paging. The pager handles long output already, so (b) may be simpler — bump the query limit and let the existing pager handle display.
+
+#### Parameter alignment with MCP tools
+
+- **`tests` command has no device filter** — `routeros_search_tests` MCP tool also lacks a `product_name` / `device` parameter. Without it, the test results table is a wall of data with no way to scope to a single device. This is both a TUI gap and an MCP tool gap. The MCP tool's `DeviceTestFilters` type needs a `device` field that adds `WHERE d.product_name LIKE ?` to the query. In `browse`, `tests rb5009 ethernet 1518` should filter by device name.
+- **Search parameters not exposed** — MCP tools like `routeros_search` accept `limit`, `routeros_search_changelogs` accepts `breakingOnly`, `fromVersion`, `toVersion`, `category`, but the TUI doesn't expose these. Consider a parameter syntax like `s firewall .limit=20` or flags like `s firewall --limit 20`. Alternatively, specific shorthands: `cl 7.21..7.22 iot` already works for changelogs, similar patterns for other tools.
+- **Commands should mirror MCP tool catalogs** — right now `browse` has commands like `dev`, `cmd`, `cl`, `vid`, `tests`, `cal` that roughly map to MCP tools but the mapping isn't systematic. Each TUI command should correspond to exactly one MCP tool, with the same parameters. This makes `browse` a faithful test harness and makes it obvious when an MCP tool is missing a parameter. Currently `search` maps to `routeros_search`, `dev` to `routeros_device_lookup`, etc. — document the mapping in help output.
+
+#### Pager and display polish
+
+- **Pager controls should use RouterOS style** — instead of `── N more lines (Enter=next, q=stop) ──`, use the RouterOS-style bottom bar: `-- [Q quit | SPACE next page | DOWN line]`. This is familiar to the target audience and consistent with the "card catalog for RouterOS admins" positioning.
+- **Document text formatting could be improved** — page text from `getPage()` is raw extracted text with no spacing between headings and body text. During HTML extraction, we could insert blank lines before headings and retain some minimal formatting signals (e.g., `**bold**` from `<strong>`, `-` from `<li>`). This would cost little in token overhead but improve readability both in `browse` and in MCP tool output. This is an extraction-level improvement (affects `extract-html.ts`), not just a display concern.
+- **Code blocks lack visual separation** — code sections show `── code ──` separator but the code itself has no indentation or syntax differentiation. Even a 2-space indent for code lines would help visually.
+
+#### Version and metadata display
+
+- **`ver` / `versions` should include WinBox version** — add WinBox 4 latest version info alongside RouterOS channels. Available from `https://upgrade.mikrotik.com/routeros/winbox/LATEST.4`. Small fetch, high value for the target audience. Consider adding to both the TUI command and the `routeros_current_versions` MCP tool.
+- **Stats could show more operational info** — database file size, last extraction date, schema version. Some of this is in `getDbStats()` already.
+
+#### Wishlist (lower priority)
 
 - **Tab completion** — complete command names (`cmd`, `prop`, `dev`…) and path prefixes (`/ip/firewall/…`) using readline's completer callback. Command paths could be pre-fetched from the `commands` table at startup.
 - **History persistence** — save readline history to `~/.rosetta/browse_history` so queries survive across sessions.
-- **Raw SQL mode** — `sql SELECT …` command for ad-hoc queries against the DB. Useful for data integrity checks that don't map to a named command. Guard with a `--allow-sql` flag to avoid accidental use.
-- **Export** — `export <format>` to dump the current view as JSON, CSV, or Markdown. Pairs well with `--once` for scripted pipelines.
-- **Audit views** — specialized commands for data quality: unlinked commands, pages with no properties, devices with no test results, pages with highest word count, etc.
+- **Raw SQL mode** — `sql SELECT …` command for ad-hoc queries. Guard with `--allow-sql` flag.
+- **Export** — `export <format>` to dump the current view as JSON, CSV, or Markdown.
+- **Audit views** — data quality commands: unlinked commands, pages with no properties, devices with no test results.
 - **Bookmarks** — save frequent queries/pages for quick recall. Store in `~/.rosetta/bookmarks.json`.
+
+### `routeros_search` cross-table awareness
+
+**Problem:** `routeros_search` only searches the `pages_fts` index. When an agent starts with a broad question like "VRRP" or "BGP route reflection", the search returns page results but gives no signal that there are also relevant callouts, properties, changelogs, video transcripts, or device-specific data. The agent has to know about and call 5+ other tools independently.
+
+**Observed in TUI testing (2026-04-09):** Using `browse` as an LLM proxy, the search results are often a good starting point but the user (or agent) has no way to know what *else* is available without manually trying each catalog. An agent that only calls `routeros_search` misses warnings in callouts, version-specific gotchas in changelogs, and tutorial videos.
+
+**Current state of tool description routing:** `routeros_search` description includes `→ routeros_search_videos`, `→ routeros_search_callouts` hints, but agents inconsistently follow these. Real-session observation: agents rarely call `routeros_search_videos` unprompted.
+
+**Recommended approach (incremental):**
+
+1. **Phase 1 — Summary counts in search results** (low effort, high signal): When `routeros_search` returns page results, also run quick `SELECT count(*)` queries against other FTS tables for the same query terms. Include in the response: `"related": { "callouts": 3, "changelogs": 12, "videos": 2 }`. This gives agents (and TUI) a clear signal that more data exists without bloating the response. The agent can then make an informed decision to call the specific tool.
+
+2. **Phase 2 — Top-N cross-table results** (medium effort): Include the top 2-3 results from each related table directly in the search response, tagged by source type. Still separate sections, not interleaved. This is the `include_videos=true` option from the existing "Unified search" backlog item.
+
+3. **Phase 3 — Unified ranked search** (high effort, questionable value): True cross-table BM25 ranking. Probably not worth it — BM25 scores aren't comparable across different FTS tables with different column weights.
+
+**Signal:** Phase 1 is the clear next step. It directly addresses the "agent doesn't know other data exists" problem with minimal response size impact.
+
+### `routeros_search_tests` missing device filter
+
+The `routeros_search_tests` MCP tool and `searchDeviceTests()` function accept `test_type`, `mode`, `configuration`, `packet_size`, and `sort_by` — but no `device` or `product_name` filter. This makes the tool nearly useless for the most common query: "show me benchmarks for [specific device]."
+
+**Current workaround:** `routeros_device_lookup` auto-attaches test results for exact matches and small result sets (≤5), so agents can get per-device benchmarks that way. But `routeros_search_tests` positioned as a "cross-device" comparison tool has no way to scope to a subset of devices.
+
+**Fix:** Add `product_name` to `DeviceTestFilters`. In SQL: `JOIN devices d ON ... WHERE d.product_name LIKE ?`. Also update the `browse` `tests` command to accept a device name in the filter string.
+
+**In TUI:** `tests rb5009 ethernet 1518` should match product names containing "rb5009" and filter to ethernet tests at 1518 bytes.
 
 ### ~~Archival Python scripts~~
 

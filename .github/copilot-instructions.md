@@ -8,15 +8,17 @@ See [CLAUDE.md](../CLAUDE.md) for full architecture, schema, and source details.
 
 ## Project Documentation Convention
 
-Three files, three jobs — use these, don't create new top-level `.md` files:
+Five doc files, each with a clear role — use these, don't create new top-level `.md` files:
 
 | File | What goes in it |
 |------|----------------|
-| [CLAUDE.md](../CLAUDE.md) | Architecture, schema, conventions — what the project **is** |
-| [DESIGN.md](../DESIGN.md) | Decisions, data sources, constraints — **why** things are the way they are |
-| [BACKLOG.md](../BACKLOG.md) | Ideas, considerations, future work — structured parking lot |
+| [CLAUDE.md](../CLAUDE.md) | Architecture, schema, conventions — what the project **is** and how it works |
+| [DESIGN.md](../DESIGN.md) | Decisions, data sources, constraints, cross-references — **why** things are the way they are |
+| [BACKLOG.md](../BACKLOG.md) | Ideas, considerations, future work — structured parking lot for anything not yet active |
+| [README.md](../README.md) | User-facing quick start — `/app` install, bunx setup, browse TUI, tool overview |
+| [MANUAL.md](../MANUAL.md) | Extended reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
-**Rule:** Decision or rationale → `DESIGN.md`. Idea, question, or future work → `BACKLOG.md`. How the project works → `CLAUDE.md`.
+**Rule:** Decision or rationale → `DESIGN.md`. Idea, question, or future work → `BACKLOG.md`. How the project works → `CLAUDE.md`. User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
 
 When deferring work or recording ideas, add them to `BACKLOG.md` under the appropriate heading.
 

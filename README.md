@@ -2,7 +2,7 @@
 
 MCP server that gives AI assistants searchable access to the complete [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview) — 317 pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, 518 YouTube video transcripts, and direct links to help.mikrotik.com.
 
-If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation.
+If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation. **No AI required** — rosetta includes a [terminal browser](#browse-without-ai) for searching the database directly.
 
 ### SQL-as-RAG
 
@@ -10,16 +10,18 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 
 ### What's Inside
 
-- **317 documentation pages** from MikroTik's official help site (~515K words)
-- **4,860 property definitions** with types, defaults, and descriptions
-- **5,114 commands** in the RouterOS command hierarchy (551 directories, 34K arguments)
-- **1,034 callout blocks** — warnings, notes, and tips with important caveats
-- **144 hardware products** — CPU, RAM, storage, ports, PoE, wireless, license level, pricing
-- **2,874 performance benchmarks** — ethernet and IPSec throughput test results for 125 devices (64/512/1518-byte packets, multiple routing/bridging modes), plus block diagrams for 110
-- **518 YouTube video transcripts** — chapter-level transcript segments from MikroTik's official YouTube channel, searchable by topic with timestamped deep links
-- **46 RouterOS versions tracked** (7.9 through 7.23beta2) for command history
-- **2 MCP CSV resources** for bulk reporting workflows: full benchmark dataset and full device catalog
-- Direct links to help.mikrotik.com for every page and section
+| Data Source | Coverage |
+|-------------|----------|
+| Documentation pages | 317 pages (~515K words) from help.mikrotik.com |
+| Property definitions | 4,860 with types, defaults, descriptions |
+| Command tree | 5,114 commands, 551 dirs, 34K arguments |
+| Version history | 46 RouterOS versions tracked (7.9–7.23beta2) |
+| Hardware products | 144 devices — specs, pricing, block diagrams |
+| Performance benchmarks | 2,874 tests across 125 devices (ethernet + IPSec) |
+| YouTube transcripts | 518 videos, ~1,890 chapter-level segments |
+| Callout blocks | 1,034 warnings, notes, and tips |
+
+Documentation covers RouterOS **v7 only**, aligned with the long-term release (~7.22) at export time.
 
 ---
 
@@ -91,7 +93,13 @@ Point any HTTP-capable MCP client at the URL from the previous step:
 
 > **CHR note:** Cloud Hosted Router in free or trial mode does not include the `/ip/cloud` service needed for HTTPS certificates. Set `use-https=no` on the /app — the URL will use HTTP instead. The UI URL always reflects the correct protocol.
 
-> **HTTP option:** On any platform, you may choose `use-https=no` if you prefer HTTP or are on an isolated network. 
+> **HTTP option:** On any platform, you may choose `use-https=no` if you prefer HTTP or are on an isolated network.
+
+> **Browse the database from the router:** If rosetta is running as a `/app`, you can use `/container/shell` to access the TUI browser directly:
+> ```routeros
+> /container/shell app-rosetta
+> # /app/rosetta browse
+> ```
 
 ---
 
@@ -107,7 +115,7 @@ bunx @tikoci/rosetta --setup
 
 This downloads the database and prints config snippets for all supported MCP clients. Copy-paste the config for your client and you're done.
 
-### Or configure manually
+### Configure your MCP client
 
 <details>
 <summary><b>VS Code Copilot</b></summary>
@@ -214,34 +222,36 @@ powershell -c "irm bun.sh/install.ps1 | iex"
 
 > **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. The database in `~/.rosetta/ros-help.db` persists across updates.
 
-### MCP Resources for Reporting
-
-If your MCP client supports resources, rosetta also exposes two read-only CSV datasets for bulk analysis and reporting:
-
-- `rosetta://datasets/device-test-results.csv`
-- `rosetta://datasets/devices.csv`
-
-In VS Code Copilot, attach them via **Add Context > MCP Resources** or **MCP: Browse Resources**. Use tools for normal search and drill-down; use resources when you explicitly want the whole dataset as CSV.
-
 ---
 
-## Install from Binary
+## Browse Without AI
 
-Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/releases) — no Bun, Node.js, or other runtime needed.
-
-| Platform | File |
-|----------|------|
-| macOS (Apple Silicon) | `rosetta-macos-arm64.zip` |
-| macOS (Intel) | `rosetta-macos-x64.zip` |
-| Windows | `rosetta-windows-x64.zip` |
-| Linux | `rosetta-linux-x64.zip` |
+Rosetta includes a terminal-based "card catalog" browser — **no AI assistant or MCP client required**. It searches the same database the MCP tools use, with a keyboard-driven REPL modeled after a 1980s library terminal.
 
 ```sh
-./rosetta --setup    # downloads DB + prints MCP client config
+bunx @tikoci/rosetta browse
 ```
 
-> **macOS Gatekeeper:** `xattr -d com.apple.quarantine ./rosetta` or System Settings → Privacy & Security → Allow Anyway.
-> **Windows SmartScreen:** Click **More info → Run anyway**.
+Type a search query to find documentation pages, then select a numbered result to drill in. Beyond page search, the browser covers every data source in the database:
+
+| Command | What it searches |
+|---------|-----------------|
+| *(bare text)* | Documentation pages (default) |
+| `dev <query>` | Device hardware specs, block diagrams, benchmarks |
+| `cmd [path]` | Command tree hierarchy |
+| `prop <name>` | Property definitions (scoped to current page when viewing one) |
+| `cal [query]` | Warnings, notes, and tips |
+| `cl [version]` | Changelogs — `cl breaking` for breaking changes only |
+| `vid <query>` | YouTube video transcripts with timestamped chapter links |
+| `diff <from> <to>` | Command tree diff between RouterOS versions |
+| `tests [type]` | Cross-device performance benchmarks |
+| `ver` | Live-fetch current RouterOS versions |
+
+Type `help` for the full command list. URLs are clickable in terminals that support OSC 8 hyperlinks (iTerm2, Windows Terminal, GNOME Terminal, etc.).
+
+The browser is also useful as a test harness — it interacts with the data the same way an AI agent would through MCP, so gaps or rough edges visible here often point to MCP tool improvements too.
+
+> **From a router:** If rosetta is installed as a `/app`, access the browser via `/container/shell app-rosetta` then `/app/rosetta browse`.
 
 ---
 
@@ -252,7 +262,6 @@ Ask your AI assistant questions like:
 - *"What are the DHCP server properties in RouterOS?"*
 - *"How do I set up a bridge VLAN?"*
 - *"Is the /container command available in RouterOS 7.12?"*
-- *"What are the firewall filter default chains?"*
 - *"Show me warnings about hardware offloading"*
 - *"Which MikroTik routers have L3HW offload, and more than 8 ports of 48V PoE? Include cost."*
 - *"Compare the RB5009 and CCR2004 IPSec throughput at 1518-byte packets."*
@@ -260,122 +269,30 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server provides 14 tools, designed to work together:
+The server exposes 14 tools designed to work together — agents start with `routeros_search` and drill into specific data as needed:
 
 | Tool | What it does |
 |------|-------------|
-| `routeros_search` | **Start here.** Full-text search across all pages with BM25 ranking |
-| `routeros_get_page` | Retrieve full page content by ID or title. Section-aware for large pages |
-| `routeros_lookup_property` | Look up a property by exact name (type, default, description) |
-| `routeros_search_properties` | Search across 4,860 property names and descriptions |
-| `routeros_command_tree` | Browse the `/ip/firewall/filter` style command hierarchy |
-| `routeros_search_callouts` | Search warnings, notes, and tips across all pages |
-| `routeros_search_changelogs` | Search parsed changelog entries — filter by version range, category, breaking changes |
-| `routeros_command_version_check` | Check which RouterOS versions include a command |
-| `routeros_command_diff` | Diff two RouterOS versions — which command paths were added or removed between them |
-| `routeros_device_lookup` | Hardware specs for 144 MikroTik products — filter by architecture, RAM, storage, PoE, wireless, LTE. Includes ethernet/IPSec benchmarks and block diagrams for most devices |
-| `routeros_search_tests` | Cross-device performance benchmarks — filter by test type, mode, packet size; one call replaces 125+ individual lookups |
-| `routeros_search_videos` | Search MikroTik YouTube video transcripts — chapter-level results with timestamps and excerpts |
-| `routeros_stats` | Database health: page/property/command counts, coverage stats |
-| `routeros_current_versions` | Fetch current RouterOS versions from MikroTik (live) |
+| `routeros_search` | **Start here.** Full-text search across all documentation pages |
+| `routeros_get_page` | Full page content by ID or title, section-aware for large pages |
+| `routeros_lookup_property` | Property by exact name — type, default, description |
+| `routeros_search_properties` | FTS across 4,860 property names and descriptions |
+| `routeros_command_tree` | Browse the command hierarchy (`/ip/firewall/filter` style) |
+| `routeros_search_callouts` | Search warnings, notes, and tips |
+| `routeros_search_changelogs` | Changelogs filtered by version range, category, breaking flag |
+| `routeros_command_version_check` | Which RouterOS versions include a command path |
+| `routeros_command_diff` | Added/removed commands between two RouterOS versions |
+| `routeros_device_lookup` | Hardware specs — filter by architecture, RAM, PoE, wireless, etc. |
+| `routeros_search_tests` | Cross-device ethernet and IPSec benchmarks |
+| `routeros_search_videos` | YouTube transcript search with chapter timestamps |
+| `routeros_stats` | Database health and coverage stats |
+| `routeros_current_versions` | Live-fetch current RouterOS versions from MikroTik |
 
-The AI assistant typically starts with `routeros_search`, then drills into specific pages, properties, or the command tree based on what it finds. Each tool's description includes workflow hints (e.g., "→ use `routeros_get_page` to read full content") and empty-result suggestions so the AI knows how to chain tools together — this is where most of the tuning effort goes.
+Each tool description includes workflow arrows (`→ next_tool`) and empty-result hints so agents chain tools effectively.
 
-## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| **First launch is slow** | One-time database download (~50 MB). Subsequent starts are instant. |
-| **`npx @tikoci/rosetta` fails** | This package requires Bun, not Node.js. Use `bunx` instead of `npx`. |
-| **`npm install -g` then `rosetta` fails** | Global npm install works if Bun is on PATH — it delegates to `bun` at runtime. But prefer `bunx` — it's simpler and auto-updates. |
-| **ChatGPT Apps can't connect** | ChatGPT Apps require a remote HTTPS MCP endpoint. Use the [MikroTik /app install](#install-on-mikrotik-app) for a hosted endpoint, or Codex CLI for local stdio. |
-| **Claude Desktop can't find `bunx`** | Claude Desktop on macOS may not inherit shell PATH. Use the full path to bunx (run `which bunx` to find it, typically `~/.bun/bin/bunx`). `bunx @tikoci/rosetta --setup` prints the full-path config. |
-| **macOS Gatekeeper blocks binary** | Use `bunx` install (no Gatekeeper issues), or: `xattr -d com.apple.quarantine ./rosetta` |
-| **Windows SmartScreen warning** | Use `bunx` install (no SmartScreen issues), or click **More info → Run anyway** |
-| **How to update** | `bunx` always uses the latest published version. For binaries, re-download from [Releases](https://github.com/tikoci/rosetta/releases/latest). MikroTik /app with `auto-update: true` pulls the latest image on each boot. |
-
-## HTTP Transport
-
-The [MikroTik /app install](#install-on-mikrotik-app) is the easiest way to get an HTTP endpoint. For other setups, rosetta supports the [MCP Streamable HTTP transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http) via `--http`:
-
-```sh
-rosetta --http                    # http://localhost:8080/mcp
-rosetta --http --port 9090        # custom port
-rosetta --http --host 0.0.0.0    # accessible from LAN
-```
-
-Then point your MCP client at the URL:
-
-```json
-{ "url": "http://localhost:8080/mcp" }
-```
-
-- **Read-only** — queries a local SQLite database, stores nothing.
-- **No authentication** — designed for local/trusted-network use. Use a reverse proxy for public exposure.
-- **TLS built-in** — `--tls-cert cert.pem --tls-key key.pem` for direct HTTPS without a proxy.
-- **Defaults to localhost** — LAN binding (`--host 0.0.0.0`) requires an explicit flag.
-
-## Container Images
-
-Multi-arch OCI images (linux/amd64 + linux/arm64) are published with each release:
-
-- `ghcr.io/tikoci/rosetta` (GitHub Container Registry)
-- `ammo74/rosetta` (Docker Hub)
-
-```sh
-docker run --rm -p 8080:8080 ghcr.io/tikoci/rosetta:latest
-```
-
-These are the same images used by the [MikroTik /app install](#install-on-mikrotik-app). Tags: `latest`, version (e.g., `v0.2.1`), and `sha-<commit>`.
-
-## Data Sources
-
-The database combines multiple MikroTik data sources into a single SQLite file with [FTS5](https://www.sqlite.org/fts5.html) full-text search, [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer), and [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function):
-
-- **HTML Documentation** — Confluence space export from help.mikrotik.com (March 2026). 317 pages broken into sections, callouts, and property tables (~515K words) with links back to help.mikrotik.com.
-
-- **Command Tree** — `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml), generated by running `/console/inspect` against RouterOS CHR under QEMU for every version since 7.9 (46 versions tracked: 7.9–7.23beta2).
-
-- **Product Matrix** — CSV export from mikrotik.com/products/matrix (144 products, 34 columns). Hardware specs, license levels, and pricing.
-
-- **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
-
-- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (518 videos, ~1,800 transcript segments). Split by chapter when available, with timestamps for deep linking. MUM conference talks excluded. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
-
-Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
-
-## Database (Standalone)
-
-The SQLite database is downloadable on its own from [GitHub Releases](https://github.com/tikoci/rosetta/releases):
-
-```text
-https://github.com/tikoci/rosetta/releases/latest/download/ros-help.db.gz
-```
-
-Use it with any SQLite client:
-
-```sh
-sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHCP lease' ORDER BY rank LIMIT 5;"
-```
-
-### Tables
-
-| Table | Rows | What's in it |
-|-------|------|-------------|
-| `pages` | 317 | Documentation pages — title, breadcrumb path, full text, code blocks, help.mikrotik.com URL |
-| `sections` | 2,984 | Page chunks split by h1–h3 headings, with anchor IDs for deep linking |
-| `callouts` | 1,034 | Warning/Note/Info/Tip boxes extracted from Confluence callout macros |
-| `properties` | 4,860 | Command properties — name, type, default value, description (from doc tables) |
-| `commands` | 40K+ | RouterOS command hierarchy — dirs, commands, arguments from `/console/inspect` |
-| `command_versions` | 1.67M | Junction table: which command paths exist in which RouterOS versions (7.9–7.23beta2) |
-| `ros_versions` | 46 | Tracked RouterOS versions with channel (stable/development) |
-| `devices` | 144 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
-| `device_test_results` | 2,874 | Ethernet and IPSec throughput benchmarks for 125 devices — packet sizes, modes, Mbps/Kpps |
-| `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
-| `videos` | 518 | MikroTik YouTube video metadata — title, description, duration, chapters |
-| `video_segments` | ~1,890 | Chapter-level transcript segments with timestamps for deep linking |
-
-Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `properties_fts`, `devices_fts`, `video_segments_fts`).
+## RTFM for Details
+For additional install options, HTTP transport configuration, data source details, and the database schema, see [MANUAL.md](MANUAL.md).
 
 ## Contributing
 
