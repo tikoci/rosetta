@@ -179,6 +179,13 @@ function extractPage(file: string, html: string): (PageRow & { callouts: Callout
   const codeLang = codeLangs.size > 0 ? [...codeLangs].join(",") : null;
   const codeLines = code.split("\n").filter((l) => l.trim()).length;
 
+  // Remove <style> elements before extracting text — they contain Confluence
+  // table-of-contents CSS (CDATA blocks like div.rbtoc... {padding:0}) that
+  // otherwise pollute the plain-text index and appear in page views.
+  for (const styleEl of mainContent?.querySelectorAll("style") ?? []) {
+    styleEl.remove();
+  }
+
   // Plain text from main content (includes code block text too, which is fine for FTS)
   const text = mainContent?.textContent?.trim() || "";
   const wordCount = text.split(/\s+/).filter(Boolean).length;

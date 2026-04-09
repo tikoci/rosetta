@@ -1032,8 +1032,17 @@ Workflow:
       };
     }
 
+    // Round packet_size to the nearest valid test size (64, 512, 1400, 1518)
+    let effectivePacketSize = packet_size;
+    if (packet_size !== undefined) {
+      const validSizes = [64, 512, 1400, 1518];
+      effectivePacketSize = validSizes.reduce((prev, curr) =>
+        Math.abs(curr - packet_size) < Math.abs(prev - packet_size) ? curr : prev,
+      );
+    }
+
     const result = searchDeviceTests(
-      { device, test_type, mode, configuration, packet_size, sort_by },
+      { device, test_type, mode, configuration, packet_size: effectivePacketSize, sort_by },
       limit,
     );
 
@@ -1056,6 +1065,9 @@ Workflow:
         text: JSON.stringify({
           ...result,
           has_more: result.total > result.results.length,
+          ...(effectivePacketSize !== packet_size && packet_size !== undefined
+            ? { packet_size_rounded: `${packet_size} → ${effectivePacketSize} (nearest valid test size)` }
+            : {}),
         }, null, 2),
       }],
     };

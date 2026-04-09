@@ -1,6 +1,6 @@
 ---
-description: "Use when working on MCP server tools, query logic, or FTS5 search. Covers BM25 ranking, compound terms, stop words, and tool schema conventions."
-applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
+description: "Use when working on MCP server tools, query logic, FTS5 search, or the browse TUI. Covers BM25 ranking, compound terms, stop words, tool schema conventions, and TUI-MCP alignment."
+applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse.ts, src/db.ts"
 ---
 # MCP Server & Query Engine
 
@@ -108,3 +108,36 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 ### Structural tests as guardrails
 
 `release.test.ts` includes pattern-matching tests that verify code structure without running it. These catch regressions like "someone replaced per-session routing with a single shared transport" at `bun test` time, before the code ever ships. Add structural tests for any architectural invariant.
+
+## Browse TUI — MCP Alignment
+
+`src/browse.ts` is the interactive terminal browser. It is the **TUI mirror** of the MCP server — every MCP tool has a corresponding TUI command, and they share the same query functions from `src/query.ts`. Changes to one side should be reflected in the other.
+
+### Alignment rule
+
+> If a new data source, filter, or tool is added to MCP, check browse.ts. The exact fidelity is not required (e.g. the TUI can be simpler), but the **shape of tools should match the shape of the TUI**: same filters available, same default behaviors, same result structure.
+
+| TUI command | MCP tool | Notes |
+|-------------|----------|-------|
+| `search` / bare text | `routeros_search` | — |
+| `page` | `routeros_get_page` | — |
+| `prop` / `props` | `routeros_lookup_property` / `routeros_search_properties` | `prop` is context-scoped to current page |
+| `cmd` | `routeros_command_tree` | `cmd edit` resolves relative to current commands context |
+| `device` / `dev` | `routeros_device_lookup` | — |
+| `tests` | `routeros_search_tests` | Default `packet_size=512` when no filters given |
+| `callouts` / `cal` | `routeros_search_callouts` | `cal` with no args shows callouts for current page |
+| `changelog` / `cl` | `routeros_search_changelogs` | — |
+| `videos` / `vid` /  `video` | `routeros_search_videos` | `video` is an alias |
+| `diff` | `routeros_command_diff` | — |
+| `vcheck` / `vc` | `routeros_command_version_check` | — |
+| `versions` / `ver` | `routeros_current_versions` | — |
+| `stats` | `routeros_stats` | — |
+
+### Browse TUI conventions
+
+- Number selection (`#N`) works in any result context: search, devices, callouts, videos, properties, changelogs
+- `b` / `back` re-renders the previous context (not just prints "back to X")
+- Context-aware commands (`p`, `cal`, `cmd`) use the current context (page/sections/commands) automatically when no args are given
+- `cmd edit` resolves as `/current/path/edit` when in a commands context
+- `page` with no args navigates to the linked page when in a commands context
+- Pager: Q to quit, SPACE for next page, ENTER for next line — keys don't leak to the readline prompt
