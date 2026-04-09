@@ -10,6 +10,19 @@
 import { readFileSync } from "node:fs";
 import { db, initDb } from "./db.ts";
 
+/** Map of Unicode superscript/subscript digits → ASCII digits (e.g. ³→3, ²→2). */
+const DIGIT_SUPER_SUB: Record<string, string> = {
+  "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
+  "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
+  "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+  "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+};
+
+/** Normalize Unicode superscript/subscript digits to ASCII in product names. */
+function normalizeSuperscripts(s: string): string {
+  return s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]/g, (c) => DIGIT_SUPER_SUB[c] ?? c);
+}
+
 const DEFAULT_CSV = "matrix/2026-03-25/matrix.csv";
 const csvPath = process.argv[2] || DEFAULT_CSV;
 
@@ -141,7 +154,7 @@ const insertAll = db.transaction(() => {
       continue;
     }
 
-    const productName = f[0].trim();
+    const productName = normalizeSuperscripts(f[0].trim());
     if (!productName) {
       skipped++;
       continue;

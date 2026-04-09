@@ -105,6 +105,28 @@ export type TranscriptSegment = {
   transcript: string;
 };
 
+// ── Product name normalization ──
+
+/** Map of Unicode superscript/subscript digits → ASCII digits. */
+const DIGIT_SUPER_SUB: Record<string, string> = {
+  "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
+  "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
+  "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+  "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+};
+
+/**
+ * Normalize Unicode superscript/subscript digits to ASCII digits.
+ * e.g. "hAP ax³" → "hAP ax3", "hAP ax²" → "hAP ax2"
+ * Preserves null for nullable columns.
+ */
+function normalizeSuperscripts(s: string): string;
+function normalizeSuperscripts(s: string | null): string | null;
+function normalizeSuperscripts(s: string | null): string | null {
+  if (s === null) return null;
+  return s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]/g, (c) => DIGIT_SUPER_SUB[c] ?? c);
+}
+
 // ── yt-dlp check ──
 
 function checkYtDlp(ytdlp = YTDLP_DEFAULT): boolean {
@@ -436,13 +458,13 @@ export function importCache(
 
     db.transaction(() => {
       insertVideo.run(
-        entry.video_id, entry.title, entry.description, entry.channel,
+        entry.video_id, normalizeSuperscripts(entry.title), normalizeSuperscripts(entry.description ?? null), entry.channel,
         entry.upload_date, entry.duration_s, entry.url,
         entry.view_count, entry.like_count, entry.has_chapters,
       );
       const row = db.prepare("SELECT id FROM videos WHERE video_id = ?").get(entry.video_id) as { id: number };
       for (const seg of entry.segments) {
-        insertSegment.run(row.id, seg.chapter_title, seg.start_s, seg.end_s, seg.transcript, seg.sort_order);
+        insertSegment.run(row.id, normalizeSuperscripts(seg.chapter_title), seg.start_s, seg.end_s, seg.transcript, seg.sort_order);
       }
     })();
 
@@ -643,8 +665,8 @@ async function main() {
     db.transaction(() => {
       insertVideo.run(
         info.id,
-        info.title,
-        info.description ?? null,
+        normalizeSuperscripts(info.title),
+        normalizeSuperscripts(info.description ?? null),
         info.channel ?? null,
         info.upload_date ?? null,
         info.duration != null ? Math.round(info.duration) : null,
@@ -658,7 +680,7 @@ async function main() {
         const seg = segments[si];
         insertSegment.run(
           videoRow.id,
-          seg.chapter_title,
+          normalizeSuperscripts(seg.chapter_title),
           seg.start_s,
           seg.end_s,
           seg.transcript,

@@ -365,7 +365,7 @@ Full pipeline implemented (2026-04-08):
 
 ### Add extract-videos-from-cache to release.yml
 
-**Trigger:** `transcripts/YYYY-MM-DD/videos.ndjson` committed to git.
+**Trigger:** `transcripts/YYYY-MM-DD/videos.ndjson` committed to git. ✅ Cache committed (`transcripts/2026-04-09/videos.ndjson`, 518 videos).
 
 When triggered:
 - After "Extract changelogs" step in CI, add:
@@ -376,3 +376,30 @@ When triggered:
 - Verify stats step output includes VIDEOS/SEGMENTS counts (already added — `2>/dev/null || echo 0` safeguards).
 - No `yt-dlp` needed in CI — the committed NDJSON is the sole source.
 - For fresh transcript updates: run `make extract-videos && make save-videos-cache` locally, then commit `transcripts/YYYY-MM-DD/videos.ndjson` and push.
+
+### Video extraction failures — periodic retry or known-bad additions
+
+**Context (2026-04-09 extraction, 3 passes over ~26 hours):**
+- Pass 1: 232 new, 275 skipped, 81 no-transcript, 154 failed
+- Pass 2: 5 new, 499 skipped, 0 no-transcript, 149 failed
+- Pass 3 (make save-videos-cache): 6 new, 504 skipped, 0 no-transcript, 143 failed
+- **Final DB: 518 videos, 1890 segments, ~1799 with transcripts, 84 metadata-only (no transcript)**
+
+**Failure pattern:** 143 videos consistently fail across all passes. Gradual improvement (154 → 149 → 143) suggests YouTube rate limiting / anti-bot that slowly allows access rather than permanent unavailability. Not the same as "no-transcript" (those are stored successfully).
+
+**Possible causes for consistent failures:**
+1. YouTube anti-bot measures triggering on the same IPs
+2. Videos with no English captions *and* yt-dlp can't even get metadata
+3. Age-restricted / geo-restricted videos (yt-dlp errors on access)
+
+**Recommended next step:** Run another round of `make extract-videos` after a 48–72 hour gap. If a video fails 4+ times over several days, add it to `transcripts/known-bad.json` with the reason (or investigate with `yt-dlp <url>` manually to confirm the error type).
+
+**No-transcript (84 videos):** These are stored successfully in DB as metadata-only. Many are old MUM conference talks with no auto-captions. `known-bad.json` has 10 explicitly non-English IDs seeded. Additional ones can be added as they're identified.
+
+### Video title superscript normalization (applied 2026-04-09)
+
+**Implemented:** `normalizeSuperscripts()` in `extract-videos.ts` normalizes ⁰¹²³⁴⁵⁶⁷⁸⁹ and ₀₁₂₃₄₅₆₇₈₉ → ASCII digits at insert time (both yt-dlp and importCache paths). Existing DB rows updated via SQL UPDATE (triggers propagated to FTS5 index).
+
+**Effect:** Searching "hap ax3" now finds "hAP ax3" (was "hAP ax³"). Searching "hap ax2" finds "hAP ax2" (was "hAP ax²"). The NDJSON cache retains original form (fidelity to source); normalization applied at import time.
+
+**Note:** The `devices_fts` table (products) uses `unicode61` without porter and stores the original product names from the matrix CSV (e.g. "hAP ax³" in the CSV). ✅ Same normalization applied to `extract-devices.ts` and existing DB rows updated — searching "ax3" now finds "hAP ax3" (was "hAP ax³"), "ac2" finds "hAP ac2" (was "hAP ac²"), etc.
