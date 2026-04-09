@@ -11,7 +11,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 - Tools return structured objects, not raw SQL rows
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 
-## 13 Tools
+## 14 Tools
 | Tool | Purpose |
 |------|---------|  
 | `routeros_search` | FTS5 across pages, BM25 ranked |
@@ -21,9 +21,11 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts"
 | `routeros_command_tree` | Browse command hierarchy, optional version param |
 | `routeros_search_callouts` | FTS across callout notes/warnings/info, optional type filter |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
+| `routeros_search_videos` | FTS across YouTube video transcript segments — chapter-level results with timestamps and excerpts |
 | `routeros_command_version_check` | Which RouterOS versions include a command path |
 | `routeros_command_diff` | Diff two RouterOS versions — added/removed command paths, optional path_prefix to scope |
 | `routeros_device_lookup` | Hardware specs by name/code, FTS + structured filters, auto-attaches test results |
+| `routeros_search_tests` | Cross-device performance benchmarks — filter by test_type, mode, packet_size; one call replaces 125+ individual lookups |
 | `routeros_stats` | DB health: counts, version range, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions from MikroTik |
 

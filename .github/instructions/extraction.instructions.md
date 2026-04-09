@@ -12,15 +12,17 @@ Every extractor follows the same structure:
 
 ## Pipeline Order
 
-**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `extract-devices` → `extract-changelogs` → `link-commands`
+**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `link-commands`
 ```sh
 make extract
 ```
 
-**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `extract-devices` → `extract-changelogs` → `link-commands`
+**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `link-commands`
 ```sh
 make extract-full
 ```
+
+**Note:** `extract-videos` is NOT in either chain — it requires `yt-dlp` installed and takes 30–60 min. Run separately with `make extract-videos` (full fetch) or `make extract-videos-from-cache` (from committed NDJSON, used in CI).
 
 ## HTML Parsing (extract-html.ts)
 - Use `linkedom` (not jsdom) — `import { parseHTML } from 'linkedom'`

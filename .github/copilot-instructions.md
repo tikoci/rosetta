@@ -55,7 +55,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| MCP Server | `src/mcp.ts` | 11 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
+| MCP Server | `src/mcp.ts` | 14 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
 | Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition |
 | Database | `src/db.ts` | Schema init, WAL mode, FTS5 triggers, singleton pattern |
 | Extractors | `src/extract-*.ts` | HTML/JSON → SQLite (each drops and recreates its tables) |
@@ -63,7 +63,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 | CLI Search | `src/search.ts` | Quick search from terminal |
 | Tests | `src/query.test.ts`, `src/release.test.ts` | Bun tests — query planner + DB integration + schema; release readiness |
 
-**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices`, `device_test_results`, `changelogs` with FTS5 indexes on pages, callouts, properties, devices, and changelogs.
+**Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices`, `device_test_results`, `changelogs`, `videos`, `video_segments` with FTS5 indexes on pages, callouts, properties, devices, changelogs, videos, and video_segments.
 
 **Data sources:**
 - HTML export from Confluence in `box/latest/ROS/` (317 pages)
@@ -71,6 +71,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 - Product matrix CSV in `matrix/` (144 products, 34 columns — hardware specs, license levels, pricing)
 - Product test results + block diagrams from `https://mikrotik.com/product/<slug>` (125 devices with ethernet/IPSec benchmarks, 110 with block diagrams)
 - Changelogs from `https://download.mikrotik.com/routeros/{version}/CHANGELOG` (parsed per-entry with category and breaking flag)
+- YouTube transcripts from the official MikroTik YouTube channel via yt-dlp (518 videos, ~1,890 chapter-level segments; cached as NDJSON in `transcripts/`)
 
 ## Code Style
 

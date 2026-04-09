@@ -117,7 +117,7 @@ make release VERSION=v0.1.0 FORCE=1 # Update existing: force-move tag → upload
 
 ```text
 src/
-├── mcp.ts                  # MCP server (11 tools, stdio + HTTP) + CLI dispatch
+├── mcp.ts                  # MCP server (14 tools, stdio + HTTP) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config
 ├── browse.ts               # Interactive terminal browser (REPL)
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
@@ -129,8 +129,10 @@ src/
 ├── extract-devices.ts      # Product matrix CSV → devices table
 ├── extract-test-results.ts # Product page test results + block diagrams
 ├── extract-changelogs.ts   # Changelog entries from MikroTik download server
+├── extract-videos.ts       # MikroTik YouTube channel transcripts → videos + video_segments (incremental, requires yt-dlp)
 ├── link-commands.ts        # Command ↔ page mapping
 ├── query.test.ts           # Tests — query planner + DB integration + schema
+├── extract-videos.test.ts  # Tests — yt-dlp mock tests + cache function tests
 ├── release.test.ts         # Tests — file consistency, build constants, container
 ├── mcp-http.test.ts        # Tests — HTTP transport integration
 └── search.ts               # CLI search tool
@@ -168,5 +170,7 @@ The database combines multiple sources of MikroTik data:
 - **Test Results** — Ethernet and IPSec throughput benchmarks scraped from mikrotik.com product pages.
 
 - **Changelogs** — Parsed per-entry from MikroTik download server.
+
+- **YouTube Transcripts** — Auto-generated English transcripts from the official MikroTik YouTube channel (518 videos, ~1,890 transcript segments). Extracted via `yt-dlp`, cached as NDJSON in `transcripts/` for reproducible CI builds. See `make extract-videos` / `make extract-videos-from-cache`.
 
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time.

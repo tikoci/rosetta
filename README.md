@@ -260,7 +260,7 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server provides 15 tools, designed to work together:
+The server provides 14 tools, designed to work together:
 
 | Tool | What it does |
 |------|-------------|
