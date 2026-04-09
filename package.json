@@ -19,7 +19,8 @@
   "scripts": {
     "test": "bun test",
     "typecheck": "bun tsc --noEmit",
-    "lint": "biome check src/"
+    "lint": "biome check src/",
+    "browse": "bun run src/mcp.ts browse"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
