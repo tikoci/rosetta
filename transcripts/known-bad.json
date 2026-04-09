@@ -1,0 +1,13 @@
+{
+  "_comment": "Videos to skip during yt-dlp extraction. Format: {videoId: reason}. Do not date-stamp — this file grows over time as new skips are identified.",
+  "6_FACBaYMD4": "non-English: Russian — Построение WiFi сети на основе CAPsMAN",
+  "xRGBbXJc1xA": "non-English: Russian — [RU] MikroTik RouterOS v7 наконец-то готова!",
+  "9B2OIWqkg40": "non-English: Russian — Обзор продуктов MikroTik 2021",
+  "DjxfaaCG07o": "non-English: Ukrainian — Завантажувач RouterOS",
+  "_qtSgR09yFY": "non-English: Spanish — [ES] Las novedades de MikroTik: RB5009UPr+S+IN",
+  "1bQOLfWpbOQ": "non-English: Spanish — Las novedades de MikroTik 2022",
+  "_e6Kz_fno4c": "non-English: Latvian — MikroTik vakances: Testēšanas nodaļa",
+  "hUyR3Z2icto": "non-English: Albanian — Mbulim Wireless ne ambjente te jashtme Industriale",
+  "nFt-hRN7I6k": "non-English: Indonesian — Kesalahan umum pada konfigurasi MikroTik",
+  "8yc3rglDs38": "non-English: Indonesian — Implementasi Queue with Firewall Mangel at Mikrotik RouterOS"
+}

@@ -385,11 +385,12 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
 | `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |\n| `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
-| `src/extract-videos.ts` | MikroTik YouTube channel transcripts → videos + video_segments tables (incremental; requires yt-dlp) |
+| `src/extract-videos.ts` | MikroTik YouTube channel transcripts → videos + video_segments tables (incremental; requires yt-dlp). Cache functions: `saveCache`/`importCache`/`loadKnownBad`/`findLatestCache` for CI-friendly NDJSON cache. |
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
+| `src/extract-videos.test.ts` | yt-dlp mock tests + cache function tests (saveCache/importCache/loadKnownBad/findLatestCache) |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |
 | `src/mcp-http.test.ts` | HTTP transport integration — session lifecycle, multi-client, errors (live server process) |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
@@ -401,6 +402,9 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `.github/workflows/test.yml` | CI: typecheck + test + lint on push/PR/manual |
 | `.github/workflows/release.yml` | CI: build DB from HTML export URL + publish OCI images + create GitHub Release + npm publish |
 | `ros-help.db` | The SQLite database (WAL mode) |
+| `matrix/YYYY-MM-DD/matrix.csv` | Product matrix CSV snapshots (manually downloaded from mikrotik.com) |
+| `transcripts/known-bad.json` | Manually maintained `{videoId: reason}` skip list for `extract-videos` |
+| `transcripts/YYYY-MM-DD/videos.ndjson` | Committed transcript cache — one `VideoCacheEntry` per line. Used by `make extract-videos-from-cache` (CI path). |
 | `CONTRIBUTING.md` | Build, test, development setup, release process |
 
 ## Re-extraction
@@ -416,6 +420,19 @@ make extract-full  # runs extract-html, extract-properties, extract-all-versions
 ```
 
 The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
+
+### Video transcript refresh (local-only, requires yt-dlp)
+
+`extract-videos` is NOT in the `extract` / `extract-full` chains — it requires `yt-dlp` installed.
+
+```sh
+make extract-videos             # full channel fetch (~30–60 min)
+make save-videos-cache          # export DB → transcripts/YYYY-MM-DD/videos.ndjson
+git add transcripts/ && git commit -m "refresh transcript cache YYYY-MM-DD"
+# CI uses: make extract-videos-from-cache  (reads committed NDJSON, no yt-dlp)
+```
+
+Non-English videos (~27 known) are stored as metadata-only rows (no transcript). `transcripts/known-bad.json` lists video IDs to skip during yt-dlp runs (non-English, private, broken). Keys starting with `_` are treated as comments and ignored.
 
 ## CI Release Workflow
 

@@ -147,12 +147,16 @@ jobs:
           VERSIONS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM ros_versions")
           DEVICES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM devices")
           PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
+          VIDEOS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM videos" 2>/dev/null || echo 0)
+          SEGMENTS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM video_segments WHERE transcript != ''" 2>/dev/null || echo 0)
           echo "pages=$PAGES" >> "$GITHUB_OUTPUT"
           echo "commands=$COMMANDS" >> "$GITHUB_OUTPUT"
           echo "versions=$VERSIONS" >> "$GITHUB_OUTPUT"
           echo "devices=$DEVICES" >> "$GITHUB_OUTPUT"
           echo "properties=$PROPERTIES" >> "$GITHUB_OUTPUT"
-          echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties"
+          echo "videos=$VIDEOS" >> "$GITHUB_OUTPUT"
+          echo "segments=$SEGMENTS" >> "$GITHUB_OUTPUT"
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments)"
 
       - name: Build release artifacts
         run: bun run scripts/build-release.ts ${{ inputs.version }}
@@ -271,6 +275,7 @@ jobs:
           - **RouterOS Versions:** ${{ steps.stats.outputs.versions }}
           - **Devices:** ${{ steps.stats.outputs.devices }}
           - **Properties:** ${{ steps.stats.outputs.properties }}
+          - **Videos:** ${{ steps.stats.outputs.videos }} (${{ steps.stats.outputs.segments }} transcript segments)
 
           ## Build Info
           - **Commit:** ${{ github.sha }}

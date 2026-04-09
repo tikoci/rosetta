@@ -20,9 +20,9 @@
  *   pip install yt-dlp    # any platform
  */
 
-import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { db, initDb } from "./db.ts";
 
 // ── Config ──
@@ -65,6 +65,12 @@ const PLAYLIST = getFlag("playlist") ?? CHANNEL_URL;
 const MAX_DURATION = getFlag("max-duration") ? Number(getFlag("max-duration")) : DEFAULT_MAX_DURATION;
 /** Exit non-zero if any video fails to download.  Use in CI: make extract-videos ARGS=--strict */
 const STRICT = rawArgs.includes("--strict");
+/** Read NDJSON from latest transcripts/ dir and import into DB (no yt-dlp). */
+const FROM_CACHE = rawArgs.includes("--from-cache");
+/** Write NDJSON to transcripts/YYYY-MM-DD/videos.ndjson after yt-dlp extraction. */
+const SAVE_CACHE = rawArgs.includes("--save-cache");
+/** Path to known-bad JSON {id: reason} \u2014 skip these video IDs during yt-dlp extraction. */
+const KNOWN_BAD_PATH = getFlag("known-bad");
 
 // ── Types ──
 
@@ -312,9 +318,198 @@ function deleteVideoData(videoId: string): void {
   db.run("DELETE FROM videos WHERE id = ?", [row.id]);
 }
 
+// ── Cache: NDJSON export / import ──
+//
+// Format: one JSON object per line (NDJSON).  Each line is a VideoCacheEntry.
+// The transcripts/ directory mirrors the matrix/ pattern:
+//   transcripts/YYYY-MM-DD/videos.ndjson   \u2014 committed to git, used by CI
+//   transcripts/known-bad.json             \u2014 manually maintained {id: reason}
+//
+// Workflow:
+//   Local:  make extract-videos            # fetch from YouTube, slow (~30\u201360 min)
+//           make save-videos-cache         # export DB \u2192 transcripts/YYYY-MM-DD/videos.ndjson
+//           git add transcripts/ && git commit
+//   CI:     make extract-videos-from-cache # import from committed NDJSON, fast (~5 s)
+
+export type VideoCacheSegment = {
+  chapter_title: string | null;
+  start_s: number;
+  end_s: number | null;
+  transcript: string;
+  sort_order: number;
+};
+
+export type VideoCacheEntry = {
+  video_id: string;
+  title: string;
+  description: string | null;
+  channel: string | null;
+  upload_date: string | null;
+  duration_s: number | null;
+  url: string;
+  view_count: number | null;
+  like_count: number | null;
+  has_chapters: number;
+  segments: VideoCacheSegment[];
+};
+
+/**
+ * Export all videos + segments from DB to an NDJSON file.
+ * Creates the output directory if needed. Returns the number of videos written.
+ */
+export function saveCache(outputPath: string): number {
+  const videos = db
+    .prepare("SELECT video_id, title, description, channel, upload_date, duration_s, url, view_count, like_count, has_chapters FROM videos ORDER BY upload_date DESC, video_id")
+    .all() as Omit<VideoCacheEntry, "segments">[];
+
+  type SegRow = VideoCacheSegment & { video_id: string };
+  const segRows = db
+    .prepare("SELECT v.video_id, vs.chapter_title, vs.start_s, vs.end_s, vs.transcript, vs.sort_order FROM video_segments vs JOIN videos v ON v.id = vs.video_id ORDER BY v.video_id, vs.sort_order")
+    .all() as SegRow[];
+
+  // Index segments by video_id string
+  const segMap = new Map<string, VideoCacheSegment[]>();
+  for (const row of segRows) {
+    const segs = segMap.get(row.video_id) ?? [];
+    segs.push({ chapter_title: row.chapter_title, start_s: row.start_s, end_s: row.end_s, transcript: row.transcript, sort_order: row.sort_order });
+    segMap.set(row.video_id, segs);
+  }
+
+  const lines = videos.map((v) => {
+    const entry: VideoCacheEntry = { ...v, segments: segMap.get(v.video_id) ?? [] };
+    return JSON.stringify(entry);
+  });
+
+  mkdirSync(dirname(outputPath), { recursive: true });
+  writeFileSync(outputPath, `${lines.join("\n")}\n`, "utf8");
+  return videos.length;
+}
+
+/**
+ * Import videos + segments from an NDJSON cache file into the DB.
+ * Skips videos already present unless force=true.
+ * knownBad is a Set of video IDs to skip entirely.
+ * Returns { imported, skipped, knownBadSkipped }.
+ */
+export function importCache(
+  ndjsonPath: string,
+  opts: { force?: boolean; knownBad?: Set<string> } = {},
+): { imported: number; skipped: number; knownBadSkipped: number } {
+  const { force = false, knownBad = new Set<string>() } = opts;
+
+  const text = readFileSync(ndjsonPath, "utf8");
+  const lines = text.split("\n").filter((l) => l.trim());
+
+  const insertVideo = db.prepare(`
+    INSERT OR REPLACE INTO videos (video_id, title, description, channel, upload_date, duration_s, url, view_count, like_count, has_chapters)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const insertSegment = db.prepare(`
+    INSERT INTO video_segments (video_id, chapter_title, start_s, end_s, transcript, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+
+  let imported = 0;
+  let skipped = 0;
+  let knownBadSkipped = 0;
+
+  for (const line of lines) {
+    let entry: VideoCacheEntry;
+    try {
+      entry = JSON.parse(line) as VideoCacheEntry;
+    } catch {
+      console.warn(`  \u26a0 skipping malformed NDJSON line`);
+      continue;
+    }
+
+    if (knownBad.has(entry.video_id)) {
+      knownBadSkipped++;
+      continue;
+    }
+
+    if (!force && videoExists(entry.video_id)) {
+      skipped++;
+      continue;
+    }
+
+    if (force) deleteVideoData(entry.video_id);
+
+    db.transaction(() => {
+      insertVideo.run(
+        entry.video_id, entry.title, entry.description, entry.channel,
+        entry.upload_date, entry.duration_s, entry.url,
+        entry.view_count, entry.like_count, entry.has_chapters,
+      );
+      const row = db.prepare("SELECT id FROM videos WHERE video_id = ?").get(entry.video_id) as { id: number };
+      for (const seg of entry.segments) {
+        insertSegment.run(row.id, seg.chapter_title, seg.start_s, seg.end_s, seg.transcript, seg.sort_order);
+      }
+    })();
+
+    imported++;
+  }
+
+  return { imported, skipped, knownBadSkipped };
+}
+
+/**
+ * Load the known-bad map from a JSON file ({id: reason}).
+ * Returns an empty Set if the file doesn't exist or can't be parsed.
+ * Keys starting with "_" are treated as metadata/comments and ignored.
+ */
+export function loadKnownBad(jsonPath: string): Set<string> {
+  if (!existsSync(jsonPath)) return new Set();
+  try {
+    const obj = JSON.parse(readFileSync(jsonPath, "utf8")) as Record<string, string>;
+    return new Set(Object.keys(obj).filter((k) => !k.startsWith("_")));
+  } catch {
+    console.warn(`  ⚠ could not parse known-bad file: ${jsonPath}`);
+    return new Set();
+  }
+}
+
+/**
+ * Find the most recent transcripts/YYYY-MM-DD/videos.ndjson under the project root.
+ * Returns null if none found.
+ */
+export function findLatestCache(projectRoot: string): string | null {
+  const transcriptsDir = join(projectRoot, "transcripts");
+  if (!existsSync(transcriptsDir)) return null;
+
+  const dirs = readdirSync(transcriptsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(d.name))
+    .map((d) => d.name)
+    .sort()
+    .reverse(); // newest first
+
+  for (const dir of dirs) {
+    const candidate = join(transcriptsDir, dir, "videos.ndjson");
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 // ── Main ──
 
 async function main() {
+  // ── Fast path: --from-cache ──
+  if (FROM_CACHE) {
+    initDb();
+    const projectRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+    const knownBadPath = KNOWN_BAD_PATH ?? join(projectRoot, "transcripts", "known-bad.json");
+    const knownBad = loadKnownBad(knownBadPath);
+    const cachePath = findLatestCache(projectRoot);
+    if (!cachePath) {
+      console.error("No cache found. Run `make save-videos-cache` after a local extraction.");
+      process.exit(1);
+    }
+    console.log(`Importing from cache: ${cachePath}`);
+    if (knownBad.size > 0) console.log(`  Skipping ${knownBad.size} known-bad IDs`);
+    const result = importCache(cachePath, { force: FORCE, knownBad });
+    console.log(`Done: ${result.imported} imported, ${result.skipped} skipped (already present), ${result.knownBadSkipped} known-bad`);
+    return;
+  }
+
   if (!checkYtDlp()) process.exit(1);
 
   initDb();
@@ -335,10 +530,17 @@ async function main() {
     (v) => isInDurationRange(v.duration) && !isMumContent(v.title),
   );
 
-  console.log(`\nPlaylist: ${listed.length} total → ${filtered.length} after filter (duration ${MIN_DURATION}–${MAX_DURATION}s, no MUM)`);
+  // Load known-bad list and filter those out too
+  const projectRoot = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
+  const knownBadPath = KNOWN_BAD_PATH ?? join(projectRoot, "transcripts", "known-bad.json");
+  const knownBad = loadKnownBad(knownBadPath);
+  if (knownBad.size > 0) console.log(`Loaded ${knownBad.size} known-bad video IDs from ${knownBadPath}`);
+
+  const afterKnownBad = filtered.filter((v) => !knownBad.has(v.id));
+  console.log(`\nPlaylist: ${listed.length} total → ${filtered.length} after filter (duration ${MIN_DURATION}–${MAX_DURATION}s, no MUM)${knownBad.size > 0 ? ` → ${afterKnownBad.length} after known-bad` : ""}`);
 
   // Apply limit for dev
-  const toProcess = LIMIT !== undefined ? filtered.slice(0, LIMIT) : filtered;
+  const toProcess = LIMIT !== undefined ? afterKnownBad.slice(0, LIMIT) : afterKnownBad;
 
   // Cleanup on SIGINT so the temp dir is removed even if the user Ctrl+C's
   process.on("SIGINT", () => {
@@ -486,6 +688,14 @@ async function main() {
     for (const id of failedIds) {
       console.error(`  https://www.youtube.com/watch?v=${id}`);
     }
+  }
+
+  // Write NDJSON cache if requested (--save-cache)
+  if (SAVE_CACHE) {
+    const date = new Date().toISOString().slice(0, 10);
+    const outPath = join(projectRoot, "transcripts", date, "videos.ndjson");
+    const count = saveCache(outPath);
+    console.log(`\nCache written: ${outPath} (${count} videos)`);
   }
 
   if (STRICT && failedCount > 0) {

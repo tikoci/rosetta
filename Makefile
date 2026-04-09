@@ -4,7 +4,9 @@ VERSION    ?=
 FORCE      ?=
 
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
-        extract-all-versions extract-devices extract-test-results extract-changelogs extract-videos link assess search serve \
+        extract-all-versions extract-devices extract-test-results extract-changelogs \
+        extract-videos extract-videos-from-cache save-videos-cache \
+        link assess search serve \
 	typecheck lint test preflight build-release release bump-version \
         install setup clean
 
@@ -78,6 +80,16 @@ extract-changelogs:
 
 extract-videos:
 	bun run src/extract-videos.ts
+
+# Import cached transcripts (committed NDJSON in transcripts/) into DB — no yt-dlp needed.
+# Use in CI: fast, reproducible, no network dependency on YouTube.
+extract-videos-from-cache:
+	bun run src/extract-videos.ts --from-cache
+
+# Export current DB content to transcripts/YYYY-MM-DD/videos.ndjson.
+# Run locally after extract-videos, then commit the transcripts/ directory.
+save-videos-cache:
+	bun run src/extract-videos.ts --save-cache
 
 link:
 	bun run src/link-commands.ts

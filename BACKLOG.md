@@ -344,3 +344,35 @@ Observed in a real Copilot CLI session: querying changelogs between 7.21.3 and 7
 ### ~~Archival Python scripts~~
 
 `ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` were from the original PDF-based approach. **Removed** — files are in git history if needed.
+
+### ~~MikroTik YouTube transcript extraction~~ ✓ DONE (local extraction complete; CI import pending)
+
+Full pipeline implemented (2026-04-08):
+- `videos` + `video_segments` + `videos_fts` + `video_segments_fts` tables in schema
+- `src/extract-videos.ts` — `yt-dlp`-based extractor: fetches playlist, downloads VTT + info.json per video, parses cues, splits by chapters, stores in DB. Only English subtitles via `--sub-langs en`.
+- `routeros_search_videos` MCP tool — FTS over chapter titles + transcript text, with timestamps for deep links
+- Timeout guardrails: `--socket-timeout 15`, `--retries 2`, `Bun.spawnSync timeout: 120_000ms`
+- Cache system: `saveCache` / `importCache` / `loadKnownBad` / `findLatestCache` in `extract-videos.ts`. NDJSON format, `transcripts/YYYY-MM-DD/videos.ndjson` committed to git.
+- `transcripts/known-bad.json` — 10 known non-English video IDs seeded (Russian, Spanish, Latvian, Albanian, Indonesian)
+- Makefile: `extract-videos`, `extract-videos-from-cache`, `save-videos-cache`
+- `--from-cache` mode runs without `yt-dlp` (CI path), `--save-cache` exports DB → NDJSON after run
+- Tests: 12 yt-dlp mock tests + cache function tests (saveCache, importCache, loadKnownBad, findLatestCache)
+- Non-English videos: ~27 stored as metadata-only (no transcript — `yt-dlp` finds no English VTT). Graceful, not a failure.
+
+**Local extraction completed** for ~416+ videos (April 2026). After finishing: run `make save-videos-cache` and commit `transcripts/`.
+
+**Next step (deferred below):** Add `make extract-videos-from-cache` to `release.yml` once `transcripts/` is committed.
+
+### Add extract-videos-from-cache to release.yml
+
+**Trigger:** `transcripts/YYYY-MM-DD/videos.ndjson` committed to git.
+
+When triggered:
+- After "Extract changelogs" step in CI, add:
+  ```yaml
+  - name: Import video transcripts from cache
+    run: make extract-videos-from-cache
+  ```
+- Verify stats step output includes VIDEOS/SEGMENTS counts (already added — `2>/dev/null || echo 0` safeguards).
+- No `yt-dlp` needed in CI — the committed NDJSON is the sole source.
+- For fresh transcript updates: run `make extract-videos && make save-videos-cache` locally, then commit `transcripts/YYYY-MM-DD/videos.ndjson` and push.

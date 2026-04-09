@@ -5,14 +5,25 @@
  * without hitting the network. The YTDLP_DEFAULT constant and the injectable
  * `ytdlp` parameters on downloadTranscript / listPlaylist make this possible.
  *
+ * Cache tests (saveCache / importCache / loadKnownBad / findLatestCache) use an
+ * in-memory SQLite seeded via initDb() — same pattern as query.test.ts.
+ *
  * Pure-function tests (parseVtt / segmentTranscript) are in query.test.ts.
  */
+
+// Set BEFORE any import that transitively loads db.ts
+process.env.DB_PATH = ":memory:";
 
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { downloadTranscript, listPlaylist } from "./extract-videos.ts";
+
+// Dynamic imports guarantee that the DB_PATH env-var above wins over Bun's
+// static-import hoisting — same pattern as query.test.ts.
+const { db, initDb } = await import("./db.ts");
+const { downloadTranscript, listPlaylist, saveCache, importCache, loadKnownBad, findLatestCache } =
+  await import("./extract-videos.ts");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -30,6 +41,9 @@ let mockBin: string;
 let downloadDir: string;
 
 beforeAll(() => {
+  // Initialize the in-memory DB schema so cache functions can INSERT/SELECT
+  initDb();
+
   tmpBase = join(tmpdir(), `rosetta-vid-test-${Date.now()}`);
   mkdirSync(tmpBase, { recursive: true });
   mockBin = join(tmpBase, "yt-dlp-mock");
@@ -168,5 +182,175 @@ describe("YTDLP_DEFAULT", () => {
     // (or whatever the test runner's env has — just ensure it's a string)
     expect(typeof YTDLP_DEFAULT).toBe("string");
     expect(YTDLP_DEFAULT.length).toBeGreaterThan(0);
+  });
+});
+
+// ── Cache: loadKnownBad ───────────────────────────────────────────────────────
+
+describe("loadKnownBad", () => {
+  test("returns empty Set for non-existent file", () => {
+    const result = loadKnownBad(join(tmpBase, "nonexistent-known-bad.json"));
+    expect(result.size).toBe(0);
+  });
+
+  test("returns Set of IDs from valid JSON", () => {
+    const path = join(tmpBase, "known-bad.json");
+    writeFileSync(path, JSON.stringify({ abc123: "non-English: Russian", def456: "private video" }), "utf8");
+    const result = loadKnownBad(path);
+    expect(result.size).toBe(2);
+    expect(result.has("abc123")).toBe(true);
+    expect(result.has("def456")).toBe(true);
+  });
+
+  test("ignores keys starting with _", () => {
+    const path = join(tmpBase, "known-bad-comment.json");
+    writeFileSync(path, JSON.stringify({ _comment: "metadata", vid1: "reason" }), "utf8");
+    const result = loadKnownBad(path);
+    expect(result.has("_comment")).toBe(false);
+    expect(result.has("vid1")).toBe(true);
+    expect(result.size).toBe(1);
+  });
+
+  test("returns empty Set for malformed JSON", () => {
+    const path = join(tmpBase, "known-bad-malformed.json");
+    writeFileSync(path, "not valid json { at all", "utf8");
+    const result = loadKnownBad(path);
+    expect(result.size).toBe(0);
+  });
+});
+
+// ── Cache: findLatestCache ────────────────────────────────────────────────────
+
+describe("findLatestCache", () => {
+  let cacheRoot: string;
+
+  beforeAll(() => {
+    cacheRoot = join(tmpBase, "transcripts-find-test");
+    mkdirSync(cacheRoot, { recursive: true });
+  });
+
+  test("returns null when transcripts dir does not exist", () => {
+    const result = findLatestCache(join(tmpBase, "no-such-dir"));
+    expect(result).toBeNull();
+  });
+
+  test("returns null when transcripts dir has no date subdirs", () => {
+    const emptyRoot = join(tmpBase, "transcripts-empty");
+    mkdirSync(join(emptyRoot, "transcripts"), { recursive: true });
+    const result = findLatestCache(emptyRoot);
+    expect(result).toBeNull();
+  });
+
+  test("returns path to the most recent videos.ndjson", () => {
+    const t = join(tmpBase, "tc1");
+    mkdirSync(join(t, "transcripts", "2024-01-01"), { recursive: true });
+    mkdirSync(join(t, "transcripts", "2024-06-15"), { recursive: true });
+    mkdirSync(join(t, "transcripts", "2024-03-10"), { recursive: true });
+    writeFileSync(join(t, "transcripts", "2024-01-01", "videos.ndjson"), "", "utf8");
+    writeFileSync(join(t, "transcripts", "2024-06-15", "videos.ndjson"), "", "utf8");
+    writeFileSync(join(t, "transcripts", "2024-03-10", "videos.ndjson"), "", "utf8");
+    const result = findLatestCache(t);
+    expect(result).toContain("2024-06-15");
+  });
+
+  test("skips dirs without videos.ndjson", () => {
+    const t = join(tmpBase, "tc2");
+    mkdirSync(join(t, "transcripts", "2025-01-01"), { recursive: true });
+    mkdirSync(join(t, "transcripts", "2024-12-31"), { recursive: true });
+    // Only older dir has the file
+    writeFileSync(join(t, "transcripts", "2024-12-31", "videos.ndjson"), "", "utf8");
+    const result = findLatestCache(t);
+    expect(result).toContain("2024-12-31");
+  });
+});
+
+// ── Cache: saveCache + importCache ────────────────────────────────────────────
+
+describe("saveCache + importCache", () => {
+  let cacheDir: string;
+  const VIDEO_ID = "cache-test-vid1";
+  const VIDEO_ID_2 = "cache-test-vid2";
+
+  beforeAll(() => {
+    cacheDir = join(tmpBase, "cache-out");
+    mkdirSync(cacheDir, { recursive: true });
+
+    // Insert two test videos into the in-memory DB
+    db.run(`
+      INSERT OR REPLACE INTO videos (video_id, title, description, channel, upload_date, duration_s, url, view_count, like_count, has_chapters)
+      VALUES ('${VIDEO_ID}', 'Test Video One', 'A description', 'MikroTik', '20240101', 300, 'https://www.youtube.com/watch?v=${VIDEO_ID}', 1000, 50, 1)
+    `);
+    const vid1 = db.prepare("SELECT id FROM videos WHERE video_id = ?").get(VIDEO_ID) as { id: number };
+    db.run(`INSERT INTO video_segments (video_id, chapter_title, start_s, end_s, transcript, sort_order) VALUES (${vid1.id}, 'Intro', 0, 60, 'Hello world', 0)`);
+    db.run(`INSERT INTO video_segments (video_id, chapter_title, start_s, end_s, transcript, sort_order) VALUES (${vid1.id}, 'Setup', 60, 120, 'Now configure routeros', 1)`);
+
+    db.run(`
+      INSERT OR REPLACE INTO videos (video_id, title, description, channel, upload_date, duration_s, url, view_count, like_count, has_chapters)
+      VALUES ('${VIDEO_ID_2}', 'Test Video Two', NULL, 'MikroTik', '20240201', 180, 'https://www.youtube.com/watch?v=${VIDEO_ID_2}', 500, 20, 0)
+    `);
+    const vid2 = db.prepare("SELECT id FROM videos WHERE video_id = ?").get(VIDEO_ID_2) as { id: number };
+    db.run(`INSERT INTO video_segments (video_id, chapter_title, start_s, end_s, transcript, sort_order) VALUES (${vid2.id}, NULL, 0, NULL, 'Single segment content here', 0)`);
+  });
+
+  test("saveCache writes NDJSON with correct video count", () => {
+    const outPath = join(cacheDir, "videos.ndjson");
+    const count = saveCache(outPath);
+    expect(count).toBeGreaterThanOrEqual(2); // at least our two test videos
+    const content = readFileSync(outPath, "utf8");
+    const lines = content.split("\n").filter(Boolean);
+    expect(lines.length).toBe(count);
+  });
+
+  test("saveCache NDJSON contains correct video data", () => {
+    const outPath = join(cacheDir, "videos.ndjson");
+    const content = readFileSync(outPath, "utf8");
+    const lines = content.split("\n").filter(Boolean);
+    const vid1Entry = lines.map((l) => JSON.parse(l)).find((e: { video_id: string }) => e.video_id === VIDEO_ID);
+    expect(vid1Entry).toBeDefined();
+    expect(vid1Entry.title).toBe("Test Video One");
+    expect(vid1Entry.has_chapters).toBe(1);
+    expect(vid1Entry.segments).toHaveLength(2);
+    expect(vid1Entry.segments[0].chapter_title).toBe("Intro");
+    expect(vid1Entry.segments[1].transcript).toBe("Now configure routeros");
+  });
+
+  test("importCache is idempotent (skips existing videos)", () => {
+    const outPath = join(cacheDir, "videos.ndjson");
+    // Videos already in DB, importing again should return skipped > 0, imported = 0
+    const result = importCache(outPath);
+    expect(result.imported).toBe(0);
+    expect(result.skipped).toBeGreaterThanOrEqual(2);
+    expect(result.knownBadSkipped).toBe(0);
+  });
+
+  test("importCache with force=true re-inserts existing videos", () => {
+    const outPath = join(cacheDir, "videos.ndjson");
+    const result = importCache(outPath, { force: true });
+    expect(result.imported).toBeGreaterThanOrEqual(2);
+    expect(result.skipped).toBe(0);
+  });
+
+  test("importCache skips known-bad IDs", () => {
+    // Write a small NDJSON with one known-bad video
+    const singlePath = join(cacheDir, "single.ndjson");
+    const entry = { video_id: "skipme", title: "Skip This", description: null, channel: null, upload_date: null, duration_s: 200, url: "https://www.youtube.com/watch?v=skipme", view_count: null, like_count: null, has_chapters: 0, segments: [] };
+    writeFileSync(singlePath, `${JSON.stringify(entry)}\n`, "utf8");
+
+    const knownBad = new Set(["skipme"]);
+    const result = importCache(singlePath, { knownBad });
+    expect(result.knownBadSkipped).toBe(1);
+    expect(result.imported).toBe(0);
+
+    // Verify it was NOT inserted
+    const row = db.prepare("SELECT id FROM videos WHERE video_id = 'skipme'").get();
+    expect(row).toBeNull();
+  });
+
+  test("importCache handles malformed NDJSON lines gracefully", () => {
+    const badPath = join(cacheDir, "bad.ndjson");
+    writeFileSync(badPath, `not json\n${JSON.stringify({ video_id: "validone", title: "OK", description: null, channel: null, upload_date: null, duration_s: 100, url: "https://www.youtube.com/watch?v=validone", view_count: null, like_count: null, has_chapters: 0, segments: [] })}\n`, "utf8");
+    const result = importCache(badPath);
+    // Should import 1 valid video, skip the malformed line
+    expect(result.imported + result.skipped).toBeGreaterThanOrEqual(1);
   });
 });
