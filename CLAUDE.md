@@ -37,7 +37,7 @@ Two outputs:
 - **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 13 tools and 2 CSV resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`
+- **MCP server** with 14 tools and 2 CSV resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`
 
 ## Schema
 
@@ -164,6 +164,42 @@ changelogs_fts USING fts5(category, description,
     content=changelogs, content_rowid=id,
     tokenize='porter unicode61'
 )
+
+-- YouTube video metadata (from yt-dlp transcript extraction)
+videos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id TEXT NOT NULL UNIQUE,   -- YouTube video ID
+    title, description, channel,
+    upload_date,                     -- YYYYMMDD string
+    duration_s INTEGER,              -- duration in seconds
+    url TEXT NOT NULL,               -- https://youtube.com/watch?v=...
+    view_count INTEGER,
+    like_count INTEGER,
+    has_chapters INTEGER NOT NULL DEFAULT 0  -- 1 if yt-dlp provided chapters
+)
+
+-- FTS5 over video titles/descriptions
+videos_fts USING fts5(title, description,
+    content=videos, content_rowid=id,
+    tokenize='porter unicode61'
+)
+
+-- Chapter-level transcript segments (one row per chapter, or one row for no-chapter videos)
+video_segments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id INTEGER REFERENCES videos(id),  -- FK to videos.id (INTEGER, NOT videos.video_id)
+    chapter_title TEXT,              -- NULL if video has no chapters
+    start_s INTEGER NOT NULL DEFAULT 0,
+    end_s INTEGER,                   -- NULL for single-segment no-chapter videos
+    transcript TEXT NOT NULL,        -- joined cue text for this segment
+    sort_order INTEGER NOT NULL
+)
+
+-- FTS5 over transcript segments
+video_segments_fts USING fts5(chapter_title, transcript,
+    content=video_segments, content_rowid=id,
+    tokenize='porter unicode61'
+)
 ```
 
 ## Usage
@@ -204,6 +240,7 @@ Register in MCP client config (bunx example — no paths needed):
 | `routeros_command_diff` | Structural diff between two RouterOS versions — added/removed commands at a path prefix |
 | `routeros_device_lookup` | Hardware specs by product name/code, FTS search with structured filters (architecture, RAM, license, PoE, wireless) |
 | `routeros_search_tests` | Cross-device performance benchmarks — filter by test_type, mode, configuration, packet_size; one call replaces 125+ individual lookups |
+| `routeros_search_videos` | FTS across YouTube video transcript segments — chapter-level results with timestamps and excerpts |
 | `routeros_stats` | DB health: page/property/command/device counts, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions per channel |
 
@@ -348,6 +385,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
 | `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |\n| `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
+| `src/extract-videos.ts` | MikroTik YouTube channel transcripts → videos + video_segments tables (incremental; requires yt-dlp) |
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |

@@ -1429,6 +1429,57 @@ function runChangelogFtsQuery(
   }
 }
 
+// ── Video/transcript search ──
+
+export type VideoSearchResult = {
+  video_id: string;
+  title: string;
+  url: string;
+  upload_date: string | null;
+  chapter_title: string | null;
+  start_s: number;
+  excerpt: string;
+};
+
+/** Search YouTube video transcripts via FTS, joining segment → video metadata. */
+export function searchVideos(query: string, limit = 5): VideoSearchResult[] {
+  const terms = extractTerms(query);
+  if (terms.length === 0) return [];
+
+  let ftsQuery = buildFtsQuery(terms, "AND");
+  if (!ftsQuery) return [];
+  let results = runVideosFtsQuery(ftsQuery, limit);
+
+  // Fallback to OR if AND returns nothing and we have multiple terms
+  if (results.length === 0 && terms.length > 1) {
+    ftsQuery = buildFtsQuery(terms, "OR");
+    results = runVideosFtsQuery(ftsQuery, limit);
+  }
+
+  return results;
+}
+
+function runVideosFtsQuery(ftsQuery: string, limit: number): VideoSearchResult[] {
+  if (!ftsQuery) return [];
+  try {
+    return db
+      .prepare(
+        `SELECT v.video_id, v.title, v.url, v.upload_date,
+                vs.chapter_title, vs.start_s,
+                snippet(video_segments_fts, 1, '**', '**', '...', 25) as excerpt
+         FROM video_segments_fts fts
+         JOIN video_segments vs ON vs.id = fts.rowid
+         JOIN videos v ON v.id = vs.video_id
+         WHERE video_segments_fts MATCH ?
+         ORDER BY rank
+         LIMIT ?`,
+      )
+      .all(ftsQuery, limit) as VideoSearchResult[];
+  } catch {
+    return [];
+  }
+}
+
 // ── Current versions ──
 
 const VERSION_BASE_URL = "https://upgrade.mikrotik.com/routeros/NEWESTa7";

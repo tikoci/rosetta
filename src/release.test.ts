@@ -190,6 +190,18 @@ describe("Makefile", () => {
     expect(makefile).toContain("release:");
   });
 
+  test("has extract-videos target", () => {
+    expect(makefile).toContain("extract-videos:");
+  });
+
+  test("extract-videos is in PHONY", () => {
+    // PHONY uses line continuation; check block before first blank line after .PHONY
+    const phonyStart = makefile.indexOf(".PHONY:");
+    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    expect(phonyBlock).toContain("extract-videos");
+  });
+
   test("release depends on preflight", () => {
     expect(makefile).toMatch(/^release:.*preflight/m);
   });

@@ -31,8 +31,10 @@ const {
   searchDeviceTests,
   getTestResultMeta,
   normalizeDeviceQuery,
+  searchVideos,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
+const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
 
 // ---------------------------------------------------------------------------
 // Fixtures: one "DHCP Server" page + one "Firewall Filter" page
@@ -320,6 +322,30 @@ beforeAll(() => {
     VALUES ('7.22', '2026-Mar-09 10:38', 'bridge', 0, 'added local and static MAC synchronization for MLAG', 2)`);
   db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
     VALUES ('7.22.1', '2026-Apr-01 09:00', 'wifi', 0, 'fixed channel switching for MediaTek access points', 0)`);
+
+  // Video and transcript fixtures for searchVideos tests
+  db.run(`INSERT INTO videos
+    (id, video_id, title, description, channel, upload_date, duration_s, url, has_chapters)
+    VALUES
+    (1, 'abc123', 'RouterOS VLAN Tutorial', 'How to configure VLANs on MikroTik', 'MikroTik', '20240101', 600,
+     'https://www.youtube.com/watch?v=abc123', 1)`);
+  db.run(`INSERT INTO videos
+    (id, video_id, title, description, channel, upload_date, duration_s, url, has_chapters)
+    VALUES
+    (2, 'def456', 'BGP Routing with RouterOS', 'Advanced BGP configuration', 'MikroTik', '20240201', 900,
+     'https://www.youtube.com/watch?v=def456', 0)`);
+  db.run(`INSERT INTO video_segments
+    (id, video_id, chapter_title, start_s, end_s, transcript, sort_order)
+    VALUES
+    (1, 1, 'Introduction', 0, 120, 'Welcome to the VLAN tutorial. In this video we cover VLAN trunking on MikroTik bridge.', 0)`);
+  db.run(`INSERT INTO video_segments
+    (id, video_id, chapter_title, start_s, end_s, transcript, sort_order)
+    VALUES
+    (2, 1, 'Bridge VLAN configuration', 120, 600, 'To set up bridge VLAN filtering enable vlan-filtering on the bridge interface.', 1)`);
+  db.run(`INSERT INTO video_segments
+    (id, video_id, chapter_title, start_s, end_s, transcript, sort_order)
+    VALUES
+    (3, 2, NULL, 0, NULL, 'BGP peering and route reflection allow scalable routing in large networks.', 0)`);
 });
 
 // ---------------------------------------------------------------------------
@@ -1381,6 +1407,7 @@ describe("schema", () => {
       "pages", "properties", "callouts", "sections",
       "commands", "command_versions", "ros_versions",
       "devices", "device_test_results", "changelogs", "schema_migrations",
+      "videos", "video_segments",
     ];
     for (const table of expected) {
       expect(names).toContain(table);
@@ -1389,7 +1416,7 @@ describe("schema", () => {
 
   test("all FTS5 virtual tables exist", () => {
     const names = tableNames();
-    const expected = ["pages_fts", "properties_fts", "callouts_fts", "devices_fts", "changelogs_fts"];
+    const expected = ["pages_fts", "properties_fts", "callouts_fts", "devices_fts", "changelogs_fts", "videos_fts", "video_segments_fts"];
     for (const fts of expected) {
       expect(names).toContain(fts);
     }
@@ -1430,6 +1457,20 @@ describe("schema", () => {
     expect(triggers).toContain("changelogs_au");
   });
 
+  test("content-sync triggers exist for videos", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("videos_ai");
+    expect(triggers).toContain("videos_ad");
+    expect(triggers).toContain("videos_au");
+  });
+
+  test("content-sync triggers exist for video_segments", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("video_segs_ai");
+    expect(triggers).toContain("video_segs_ad");
+    expect(triggers).toContain("video_segs_au");
+  });
+
   test("PRAGMA user_version matches SCHEMA_VERSION", () => {
     const result = checkSchemaVersion();
     expect(result.ok).toBe(true);
@@ -1448,5 +1489,150 @@ describe("getDbStats", () => {
     // Fixtures have 7.9, 7.10.2, 7.22 — lexicographic MIN would give "7.10.2", not "7.9"
     expect(stats.ros_version_min).toBe("7.9");
     expect(stats.ros_version_max).toBe("7.22");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseVtt: WebVTT parsing (pure function, no DB)
+// ---------------------------------------------------------------------------
+
+describe("parseVtt", () => {
+  const SIMPLE_VTT = `WEBVTT
+Kind: captions
+Language: en
+
+00:00:01.000 --> 00:00:04.000
+Hello and welcome to the VLAN tutorial.
+
+00:00:04.000 --> 00:00:07.000
+Hello and welcome to the VLAN tutorial. Today we will cover trunking.
+
+00:00:07.000 --> 00:00:10.000
+Today we will cover trunking. Let us begin.
+`;
+
+  test("parses cue start times correctly", () => {
+    const cues = parseVtt(SIMPLE_VTT);
+    expect(cues.length).toBeGreaterThan(0);
+    expect(cues[0].start_s).toBe(1);
+  });
+
+  test("deduplicates overlapping auto-caption cues", () => {
+    // Second cue text is suffix of third — only unique segments should survive
+    const cues = parseVtt(SIMPLE_VTT);
+    // All cue texts should be unique (no exact duplicates)
+    const texts = cues.map((c) => c.text);
+    const unique = new Set(texts);
+    expect(unique.size).toBe(texts.length);
+  });
+
+  test("returns empty array for empty input", () => {
+    expect(parseVtt("")).toEqual([]);
+  });
+
+  test("returns empty array for header-only VTT", () => {
+    expect(parseVtt("WEBVTT\nKind: captions\n")).toEqual([]);
+  });
+
+  test("strips HTML tags from cue text", () => {
+    const vtt = `WEBVTT\n\n00:00:01.000 --> 00:00:03.000\n<b>Bold text</b> and <i>italic</i>.\n`;
+    const cues = parseVtt(vtt);
+    expect(cues[0].text).not.toContain("<b>");
+    expect(cues[0].text).toContain("Bold text");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// segmentTranscript: chapter grouping (pure function, no DB)
+// ---------------------------------------------------------------------------
+
+describe("segmentTranscript", () => {
+  const cues = [
+    { start_s: 0, text: "Introduction begins now." },
+    { start_s: 10, text: "This covers the basics." },
+    { start_s: 60, text: "Chapter two starts here." },
+    { start_s: 90, text: "Configuration details follow." },
+  ];
+
+  test("single segment when no chapters provided", () => {
+    const segments = segmentTranscript(cues);
+    expect(segments).toHaveLength(1);
+    expect(segments[0].chapter_title).toBeNull();
+    expect(segments[0].start_s).toBe(0);
+    expect(segments[0].end_s).toBeNull();
+    expect(segments[0].transcript).toContain("Introduction begins now.");
+  });
+
+  test("splits by chapter boundaries", () => {
+    const chapters = [
+      { title: "Introduction", start_time: 0, end_time: 60 },
+      { title: "Configuration", start_time: 60, end_time: 120 },
+    ];
+    const segments = segmentTranscript(cues, chapters);
+    expect(segments).toHaveLength(2);
+    expect(segments[0].chapter_title).toBe("Introduction");
+    expect(segments[1].chapter_title).toBe("Configuration");
+  });
+
+  test("cues are assigned to correct chapters", () => {
+    const chapters = [
+      { title: "Introduction", start_time: 0, end_time: 60 },
+      { title: "Configuration", start_time: 60, end_time: 120 },
+    ];
+    const segments = segmentTranscript(cues, chapters);
+    expect(segments[0].transcript).toContain("Introduction begins now.");
+    expect(segments[0].transcript).not.toContain("Chapter two");
+    expect(segments[1].transcript).toContain("Chapter two starts here.");
+  });
+
+  test("chapter start_s and end_s are set correctly", () => {
+    const chapters = [
+      { title: "Intro", start_time: 0, end_time: 60 },
+      { title: "Body", start_time: 60, end_time: 300 },
+    ];
+    const segments = segmentTranscript(cues, chapters);
+    expect(segments[0].start_s).toBe(0);
+    expect(segments[0].end_s).toBe(60); // next chapter start
+    expect(segments[1].start_s).toBe(60);
+    expect(segments[1].end_s).toBe(300);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// searchVideos: FTS against video_segments_fts (integration, uses fixture DB)
+// ---------------------------------------------------------------------------
+
+describe("searchVideos", () => {
+  test("finds segments matching query", () => {
+    const results = searchVideos("VLAN trunking bridge");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].title).toBe("RouterOS VLAN Tutorial");
+  });
+
+  test("returns video_id and url", () => {
+    const results = searchVideos("VLAN");
+    expect(results[0].video_id).toBe("abc123");
+    expect(results[0].url).toContain("youtube.com");
+  });
+
+  test("returns chapter_title when available", () => {
+    const results = searchVideos("vlan filtering bridge");
+    const chapterResult = results.find((r) => r.chapter_title !== null);
+    expect(chapterResult).toBeDefined();
+  });
+
+  test("returns null chapter_title for no-chapter video", () => {
+    const results = searchVideos("BGP peering route reflection");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].chapter_title).toBeNull();
+  });
+
+  test("returns empty array for empty query", () => {
+    expect(searchVideos("")).toEqual([]);
+  });
+
+  test("respects limit parameter", () => {
+    const results = searchVideos("RouterOS", 1);
+    expect(results.length).toBeLessThanOrEqual(1);
   });
 });

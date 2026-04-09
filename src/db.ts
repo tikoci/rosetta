@@ -17,6 +17,10 @@
  *   devices_fts      — FTS5 over product name, code, architecture, CPU
  *   changelogs       — parsed changelog entries per RouterOS version
  *   changelogs_fts   — FTS5 over category, description
+ *   videos           — MikroTik YouTube video metadata (title, description, duration, chapters)
+ *   videos_fts       — FTS5 over title, description
+ *   video_segments   — transcript segments (one per chapter, or full video if no chapters)
+ *   video_segments_fts — FTS5 over chapter_title, transcript
  */
 
 import sqlite from "bun:sqlite";
@@ -346,6 +350,82 @@ export function initDb() {
     INSERT INTO changelogs_fts(rowid, category, description)
     VALUES (new.id, new.category, new.description);
   END;`);
+
+  // -- Videos (MikroTik YouTube channel transcripts) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS videos (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id     TEXT NOT NULL UNIQUE,
+    title        TEXT NOT NULL,
+    description  TEXT,
+    channel      TEXT,
+    upload_date  TEXT,
+    duration_s   INTEGER,
+    url          TEXT,
+    view_count   INTEGER,
+    like_count   INTEGER,
+    has_chapters INTEGER NOT NULL DEFAULT 0
+  );`);
+
+  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS videos_fts USING fts5(
+    title, description,
+    content=videos,
+    content_rowid=id,
+    tokenize='porter unicode61'
+  );`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS videos_ai AFTER INSERT ON videos BEGIN
+    INSERT INTO videos_fts(rowid, title, description)
+    VALUES (new.id, new.title, new.description);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS videos_ad AFTER DELETE ON videos BEGIN
+    INSERT INTO videos_fts(videos_fts, rowid, title, description)
+    VALUES('delete', old.id, old.title, old.description);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS videos_au AFTER UPDATE ON videos BEGIN
+    INSERT INTO videos_fts(videos_fts, rowid, title, description)
+    VALUES('delete', old.id, old.title, old.description);
+    INSERT INTO videos_fts(rowid, title, description)
+    VALUES (new.id, new.title, new.description);
+  END;`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_videos_upload_date ON videos(upload_date);`);
+
+  // -- Video segments (transcript chunks, one per chapter or one per video) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS video_segments (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id      INTEGER NOT NULL REFERENCES videos(id),
+    chapter_title TEXT,
+    start_s       INTEGER NOT NULL DEFAULT 0,
+    end_s         INTEGER,
+    transcript    TEXT NOT NULL,
+    sort_order    INTEGER NOT NULL
+  );`);
+
+  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS video_segments_fts USING fts5(
+    chapter_title, transcript,
+    content=video_segments,
+    content_rowid=id,
+    tokenize='porter unicode61'
+  );`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS video_segs_ai AFTER INSERT ON video_segments BEGIN
+    INSERT INTO video_segments_fts(rowid, chapter_title, transcript)
+    VALUES (new.id, new.chapter_title, new.transcript);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS video_segs_ad AFTER DELETE ON video_segments BEGIN
+    INSERT INTO video_segments_fts(video_segments_fts, rowid, chapter_title, transcript)
+    VALUES('delete', old.id, old.chapter_title, old.transcript);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS video_segs_au AFTER UPDATE ON video_segments BEGIN
+    INSERT INTO video_segments_fts(video_segments_fts, rowid, chapter_title, transcript)
+    VALUES('delete', old.id, old.chapter_title, old.transcript);
+    INSERT INTO video_segments_fts(rowid, chapter_title, transcript)
+    VALUES (new.id, new.chapter_title, new.transcript);
+  END;`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_video_segs_video ON video_segments(video_id);`);
 }
 
 /**
@@ -375,6 +455,8 @@ export function getDbStats() {
     changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
     changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
     ros_versions: count("SELECT COUNT(*) AS c FROM ros_versions"),
+    videos: count("SELECT COUNT(*) AS c FROM videos"),
+    video_segments: count("SELECT COUNT(*) AS c FROM video_segments"),
     ...(() => {
       // Semantic version sort — SQL MIN/MAX is lexicographic ("7.10" < "7.9")
       const versions = (db.prepare("SELECT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);

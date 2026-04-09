@@ -172,6 +172,7 @@ const {
   getTestResultMeta,
   searchPages,
   searchProperties,
+  searchVideos,
 } = await import("./query.ts");
 
 initDb();
@@ -660,6 +661,57 @@ Coverage depends on which versions were extracted — typically matches ros_vers
     const grouped = groupChangelogsByVersion(results);
     return {
       content: [{ type: "text", text: JSON.stringify(grouped, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_search_videos ----
+
+server.registerTool(
+  "routeros_search_videos",
+  {
+    description: `Search MikroTik YouTube video transcripts for RouterOS topics.
+
+Searches chapter-level transcript segments from official MikroTik YouTube videos.
+Returns matching segments with video title, URL, chapter name, and an excerpt.
+Auto-caption quality varies — short config snippets may not appear verbatim.
+
+MUM conference talks are excluded (those are long, off-topic lectures).
+Results include the video URL and start timestamp for direct chapter linking.
+
+Useful for: finding tutorial walkthroughs, feature announcements, demo configs,
+and explanations that complement the text documentation.
+
+→ routeros_search: search official text documentation (more precise for property names)
+→ routeros_get_page: read full documentation page for a topic
+→ routeros_search_callouts: find Warnings/Notes embedded in documentation`,
+    inputSchema: {
+      query: z.string().describe("Topic to search for in video transcripts (e.g., 'VLAN trunking', 'BGP route reflection')"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(20)
+        .default(5)
+        .optional()
+        .describe("Max results (1–20, default 5)"),
+    },
+  },
+  async ({ query, limit }) => {
+    const results = searchVideos(query, limit ?? 5);
+    if (results.length === 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No video transcript results for: "${query}"\n\nTry:\n- Broader or simpler search terms\n- routeros_search for official documentation\n- routeros_search_callouts for Notes and Warnings in docs`,
+          },
+        ],
+        isError: true,
+      };
+    }
+    return {
+      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
     };
   },
 );

@@ -317,6 +317,10 @@ VSCode extension client-side can provide doc context via MCP or direct DB querie
 
 Smaller items that would make things better but aren't urgent.
 
+### routeros_search should surface video results
+
+`routeros_search` (pages FTS) should optionally surface video transcript segments alongside documentation results — one call instead of requiring agents to call both `routeros_search` and `routeros_search_videos`. Could add a `include_videos` boolean param (default false to avoid breaking existing usage), or expose a separate `unified_search` mode. Blocked until video extraction runs and produces enough data to validate the result interleaving.
+
 ### Agent-assisted linking
 
 Currently ~92% of dirs are linked to documentation pages. The remaining ~8% could be mapped by having agents manually review unlinked commands and match them to pages. Low priority — 92% is good enough for most queries.

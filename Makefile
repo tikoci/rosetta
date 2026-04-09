@@ -4,7 +4,7 @@ VERSION    ?=
 FORCE      ?=
 
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
-        extract-all-versions extract-devices extract-test-results extract-changelogs link assess search serve \
+        extract-all-versions extract-devices extract-test-results extract-changelogs extract-videos link assess search serve \
 	typecheck lint test preflight build-release release bump-version \
         install setup clean
 
@@ -75,6 +75,9 @@ extract-test-results:
 
 extract-changelogs:
 	bun run src/extract-changelogs.ts
+
+extract-videos:
+	bun run src/extract-videos.ts
 
 link:
 	bun run src/link-commands.ts

@@ -8,6 +8,15 @@ Development guide for building, testing, and releasing.
 - RouterOS HTML documentation export (Confluence space export) — placed in `box/`
 - Internet access to [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) for command-tree extraction
 
+### Optional system dependencies
+
+- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — required only for `make extract-videos` (YouTube transcript extraction). Install with:
+  ```sh
+  brew install yt-dlp          # macOS
+  apt install yt-dlp           # Debian/Ubuntu
+  pip install -U yt-dlp        # any platform (pip)
+  ```
+
 ## Build
 
 ```sh
