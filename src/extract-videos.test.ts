@@ -60,9 +60,9 @@ afterAll(() => {
 describe("downloadTranscript", () => {
   test("returns 'ok' when yt-dlp exits 0", () => {
     writeMock(mockBin, "exit 0");
-    const result = downloadTranscript("vid1", downloadDir, mockBin);
+    const result = downloadTranscript("vid1", downloadDir, mockBin, 10_000);
     expect(result).toBe("ok");
-  });
+  }, 15_000);
 
   test("returns 'error' when yt-dlp exits non-zero", () => {
     writeMock(mockBin, "exit 1");

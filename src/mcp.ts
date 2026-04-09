@@ -241,6 +241,7 @@ Workflow — what to do next:
 → routeros_search_properties: find specific properties mentioned in results
 → routeros_search_callouts: find warnings/notes about topics in results
 → routeros_command_tree: browse the command hierarchy for a feature
+→ routeros_search_videos: search MikroTik YouTube video transcripts for tutorials and demos
 
 Tips:
 - Use specific technical terms: "DHCP relay agent" not "how to set up DHCP"
@@ -707,7 +708,6 @@ and explanations that complement the text documentation.
             text: `No video transcript results for: "${query}"\n\nTry:\n- Broader or simpler search terms\n- routeros_search for official documentation\n- routeros_search_callouts for Notes and Warnings in docs`,
           },
         ],
-        isError: true,
       };
     }
     return {

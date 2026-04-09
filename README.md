@@ -1,6 +1,6 @@
 # rosetta
 
-MCP server that gives AI assistants searchable access to the complete [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview) — 317 pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, and direct links to help.mikrotik.com.
+MCP server that gives AI assistants searchable access to the complete [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview) — 317 pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, 518 YouTube video transcripts, and direct links to help.mikrotik.com.
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation.
 
@@ -16,6 +16,7 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 - **1,034 callout blocks** — warnings, notes, and tips with important caveats
 - **144 hardware products** — CPU, RAM, storage, ports, PoE, wireless, license level, pricing
 - **2,874 performance benchmarks** — ethernet and IPSec throughput test results for 125 devices (64/512/1518-byte packets, multiple routing/bridging modes), plus block diagrams for 110
+- **518 YouTube video transcripts** — chapter-level transcript segments from MikroTik's official YouTube channel, searchable by topic with timestamped deep links
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) for command history
 - **2 MCP CSV resources** for bulk reporting workflows: full benchmark dataset and full device catalog
 - Direct links to help.mikrotik.com for every page and section
@@ -259,7 +260,7 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server provides 13 tools, designed to work together:
+The server provides 15 tools, designed to work together:
 
 | Tool | What it does |
 |------|-------------|
@@ -273,6 +274,8 @@ The server provides 13 tools, designed to work together:
 | `routeros_command_version_check` | Check which RouterOS versions include a command |
 | `routeros_command_diff` | Diff two RouterOS versions — which command paths were added or removed between them |
 | `routeros_device_lookup` | Hardware specs for 144 MikroTik products — filter by architecture, RAM, storage, PoE, wireless, LTE. Includes ethernet/IPSec benchmarks and block diagrams for most devices |
+| `routeros_search_tests` | Cross-device performance benchmarks — filter by test type, mode, packet size; one call replaces 125+ individual lookups |
+| `routeros_search_videos` | Search MikroTik YouTube video transcripts — chapter-level results with timestamps and excerpts |
 | `routeros_stats` | Database health: page/property/command counts, coverage stats |
 | `routeros_current_versions` | Fetch current RouterOS versions from MikroTik (live) |
 
@@ -337,6 +340,8 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
 
+- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (518 videos, ~1,800 transcript segments). Split by chapter when available, with timestamps for deep linking. MUM conference talks excluded. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
+
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
 
 ## Database (Standalone)
@@ -366,8 +371,11 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `ros_versions` | 46 | Tracked RouterOS versions with channel (stable/development) |
 | `devices` | 144 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
 | `device_test_results` | 2,874 | Ethernet and IPSec throughput benchmarks for 125 devices — packet sizes, modes, Mbps/Kpps |
+| `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
+| `videos` | 518 | MikroTik YouTube video metadata — title, description, duration, chapters |
+| `video_segments` | ~1,890 | Chapter-level transcript segments with timestamps for deep linking |
 
-Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `properties_fts`, `devices_fts`).
+Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `properties_fts`, `devices_fts`, `video_segments_fts`).
 
 ## Contributing
 

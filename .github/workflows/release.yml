@@ -123,6 +123,9 @@ jobs:
       - name: Extract changelogs
         run: bun run src/extract-changelogs.ts
 
+      - name: Import video transcripts from cache
+        run: make extract-videos-from-cache
+
       - name: Link commands to pages
         run: bun run src/link-commands.ts
 

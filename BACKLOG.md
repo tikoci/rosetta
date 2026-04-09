@@ -122,6 +122,25 @@ Implemented in `extract-test-results.ts`. Two-layer approach:
 **Trigger:** Address when user reports false-empty on a renamed product, or when adding new products that have breaking renaming patterns.
 
 
+### Tool count and MCP client tool-list limits
+
+At 14 tools, rosetta is approaching the practical limit where MCP clients start to struggle. Observations:
+- Some clients display all tools in a flat list — 14+ entries with long descriptions is a wall of text for the model to parse at each turn.
+- Claude Code and VS Code Copilot handle many tools well, but ChatGPT and some smaller-context clients may not.
+- Each new data source (videos, changelogs, devices, tests) has added its own search tool, following the pattern. This pattern is clean but doesn't scale.
+
+**Consolidation candidates (low coupling):**
+- `routeros_search_videos` → fold into `routeros_search` (see "Unified search entry point" under Improvements)
+- `routeros_search_tests` → fold into `routeros_device_lookup` (tests are always per-device; a `include_benchmarks` param would work)
+- `routeros_stats` + `routeros_current_versions` → combine into a single `routeros_info` tool
+
+**Keep separate (high coupling to distinct workflows):**
+- `routeros_search` / `routeros_get_page` / `routeros_lookup_property` / `routeros_search_properties` — core doc workflow
+- `routeros_command_tree` / `routeros_command_version_check` / `routeros_command_diff` — version/upgrade workflow
+- `routeros_search_callouts` — unique content type agents specifically need
+
+**Trigger:** Monitor how agents use the tools (see "Usage analytics" backlog item). If agents consistently ignore 3+ tools, consolidation is worthwhile. If they use them all in different contexts, the current split is fine.
+
 ### Debounce inspect.json fetches during extract-all-versions
 
 `extract-all-versions.ts` spawns `extract-commands.ts` for each version sequentially, and each invocation fetches its inspect.json from GitHub Pages. With ~48 versions this means ~48 sequential HTTP fetches. Consider:
@@ -317,9 +336,54 @@ VSCode extension client-side can provide doc context via MCP or direct DB querie
 
 Smaller items that would make things better but aren't urgent.
 
-### routeros_search should surface video results
+### Unified search entry point — routeros_search as the primary discovery tool
 
-`routeros_search` (pages FTS) should optionally surface video transcript segments alongside documentation results — one call instead of requiring agents to call both `routeros_search` and `routeros_search_videos`. Could add a `include_videos` boolean param (default false to avoid breaking existing usage), or expose a separate `unified_search` mode. Blocked until video extraction runs and produces enough data to validate the result interleaving.
+**Problem:** With 14 tools, agents face a "which tool do I start with?" decision. In practice, `routeros_search` is the documented primary entry point, but it only searches page FTS. Video transcripts, callouts, properties, and changelogs each require a separate tool call. Agents observed in real sessions rarely call `routeros_search_videos` unprompted — they don't know video data exists unless they happen to read the tool list carefully or get directed to it.
+
+**Approach options (not mutually exclusive):**
+
+1. **`routeros_search` surfaces video results** — add an `include_videos` boolean param (default: true). When enabled, interleave video segment results (tagged with source type) alongside page results. BM25 scores aren't directly comparable across FTS tables, so interleaving would need a heuristic (e.g., top N pages + top M videos, clearly labeled). Start with separate sections in the response: `pages: [...]`, `videos: [...]`.
+
+2. **Unified search mode** — a new `routeros_unified_search` that queries pages, videos, callouts, and properties in parallel and returns a merged ranked result. More ambitious but addresses the broader "too many entry points" problem. Risk: larger output, slower, harder to tune ranking across content types.
+
+3. **Tool description routing** — improve `routeros_search` tool description to explicitly mention that video transcripts exist and suggest `routeros_search_videos` as a follow-up. Cheapest change, but relies on agents reading and following routing hints (they sometimes do, sometimes don't).
+
+**Recommended first step:** Option 3 (description routing) is trivial and helps immediately. Then option 1 for the next release — `include_videos=true` by default, with a `pages` + `videos` split in the response. Defer option 2 until the pattern is validated.
+
+**Signal to watch:** Which tools agents actually invoke in real sessions. If agents consistently skip `routeros_search_videos`, that's a strong signal that option 1 is needed. See "Usage analytics" backlog item below.
+
+### Usage analytics — which tools do agents actually call?
+
+**Problem:** With 14 tools, tool descriptions are the primary steering mechanism for agent behavior. But we have no visibility into which tools agents invoke, in what order, or which queries return empty. Without data, tool description tuning is guesswork.
+
+**What to track (local-only, no outbound network):**
+- Tool invocation counts (which tools are popular, which are never used)
+- Empty-result rates per tool (signals misunderstanding or bad queries)
+- Query terms per tool (what agents are asking for)
+- Tool chaining patterns (search → get_page → lookup_property vs. search → dead end)
+- Session-level sequences (do agents discover the right tool, or do they give up?)
+
+**Privacy and design constraints:**
+- **No outbound network** — data stays in a local SQLite table or log file. No phoning home.
+- **Opt-in** — disabled by default. Enable via env var (`ROSETTA_LOG_USAGE=1`) or CLI flag.
+- **Minimal overhead** — a single `INSERT` per tool call into a `usage_log` table in the existing DB (or a separate `usage.db` to avoid bloating the main DB).
+- **Read access** — `routeros_stats` could optionally include usage summary if logging is enabled.
+
+**Schema sketch:**
+```sql
+usage_log (
+  id INTEGER PRIMARY KEY,
+  timestamp TEXT NOT NULL,  -- ISO 8601
+  tool TEXT NOT NULL,       -- 'routeros_search', 'routeros_get_page', etc.
+  query TEXT,               -- the user's query/input (first 200 chars)
+  result_count INTEGER,     -- number of results returned
+  session_id TEXT           -- MCP session ID for chaining analysis
+)
+```
+
+**Trigger:** Implement when there's a real question about which tools to consolidate or deprecate. The REST API page popularity mentioned in conversation is a good initial data point — but anecdotal. Systematic data would inform the unified search design above.
+
+**Long-term:** If the MikroTik /app deployment gets traction, aggregate usage across routers (opt-in) could reveal what the RouterOS community actually asks AI about. But that requires outbound network + consent, so it's a separate, much later consideration.
 
 ### Agent-assisted linking
 
@@ -345,7 +409,7 @@ Observed in a real Copilot CLI session: querying changelogs between 7.21.3 and 7
 
 `ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` were from the original PDF-based approach. **Removed** — files are in git history if needed.
 
-### ~~MikroTik YouTube transcript extraction~~ ✓ DONE (local extraction complete; CI import pending)
+### ~~MikroTik YouTube transcript extraction~~ ✓ DONE (local extraction + CI import complete)
 
 Full pipeline implemented (2026-04-08):
 - `videos` + `video_segments` + `videos_fts` + `video_segments_fts` tables in schema
@@ -359,23 +423,13 @@ Full pipeline implemented (2026-04-08):
 - Tests: 12 yt-dlp mock tests + cache function tests (saveCache, importCache, loadKnownBad, findLatestCache)
 - Non-English videos: ~27 stored as metadata-only (no transcript — `yt-dlp` finds no English VTT). Graceful, not a failure.
 
-**Local extraction completed** for ~416+ videos (April 2026). After finishing: run `make save-videos-cache` and commit `transcripts/`.
+**Local extraction completed** for 518 videos (April 2026). Cache committed at `transcripts/2026-04-09/videos.ndjson`. CI import step added to `release.yml`.
 
-**Next step (deferred below):** Add `make extract-videos-from-cache` to `release.yml` once `transcripts/` is committed.
+### ~~Add extract-videos-from-cache to release.yml~~ ✓ DONE
 
-### Add extract-videos-from-cache to release.yml
+Added `make extract-videos-from-cache` step to `release.yml` after "Extract changelogs" and before "Link commands to pages". Stats step already includes VIDEOS/SEGMENTS counts with `2>/dev/null || echo 0` safeguards. No `yt-dlp` needed in CI — the committed NDJSON (`transcripts/2026-04-09/videos.ndjson`, 518 videos) is the sole source.
 
-**Trigger:** `transcripts/YYYY-MM-DD/videos.ndjson` committed to git. ✅ Cache committed (`transcripts/2026-04-09/videos.ndjson`, 518 videos).
-
-When triggered:
-- After "Extract changelogs" step in CI, add:
-  ```yaml
-  - name: Import video transcripts from cache
-    run: make extract-videos-from-cache
-  ```
-- Verify stats step output includes VIDEOS/SEGMENTS counts (already added — `2>/dev/null || echo 0` safeguards).
-- No `yt-dlp` needed in CI — the committed NDJSON is the sole source.
-- For fresh transcript updates: run `make extract-videos && make save-videos-cache` locally, then commit `transcripts/YYYY-MM-DD/videos.ndjson` and push.
+For fresh transcript updates: run `make extract-videos && make save-videos-cache` locally, then commit `transcripts/YYYY-MM-DD/videos.ndjson` and push.
 
 ### Video extraction failures — periodic retry or known-bad additions
 
