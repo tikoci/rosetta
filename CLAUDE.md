@@ -340,8 +340,8 @@ bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 ### CLI Flags
 
 | Flag | Purpose |
-|------|---------|
-| `--setup` | Download DB + print MCP config |
+|------|---------|| `browse` | Interactive terminal browser (REPL) |
+| `browse --once` | One-shot search for piping || `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--version` | Print version |
 | `--help` | Print usage |
@@ -390,6 +390,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
+| `src/browse.ts` | Interactive terminal browser — REPL with paging, OSC 8 links, context-scoped navigation |
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
 | `src/extract-videos.test.ts` | yt-dlp mock tests + cache function tests (saveCache/importCache/loadKnownBad/findLatestCache) |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |

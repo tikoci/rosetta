@@ -405,6 +405,17 @@ Observed in a real Copilot CLI session: querying changelogs between 7.21.3 and 7
 - **`limit` max of 100 may be too low** — the model's first attempt used limit > 100 and hit a validation error. For "what changed between X and Y" queries spanning 3+ releases, 100 entries may genuinely not be enough. Consider raising to 200 or 500, or making the grouped summary the default for range queries.
 - **No `exclude_version` parameter** — asking for changes between 7.21.3 and 7.22.1 likely includes 7.21.3 entries too, which the user already has. Consider making `from_version` exclusive (changes *after* 7.21.3) or adding an `exclude_from` flag.
 
+### Browse REPL enhancements (Phase 3)
+
+The `browse` command provides a keyboard-driven REPL over all extracted data. Future improvements:
+
+- **Tab completion** — complete command names (`cmd`, `prop`, `dev`…) and path prefixes (`/ip/firewall/…`) using readline's completer callback. Command paths could be pre-fetched from the `commands` table at startup.
+- **History persistence** — save readline history to `~/.rosetta/browse_history` so queries survive across sessions.
+- **Raw SQL mode** — `sql SELECT …` command for ad-hoc queries against the DB. Useful for data integrity checks that don't map to a named command. Guard with a `--allow-sql` flag to avoid accidental use.
+- **Export** — `export <format>` to dump the current view as JSON, CSV, or Markdown. Pairs well with `--once` for scripted pipelines.
+- **Audit views** — specialized commands for data quality: unlinked commands, pages with no properties, devices with no test results, pages with highest word count, etc.
+- **Bookmarks** — save frequent queries/pages for quick recall. Store in `~/.rosetta/bookmarks.json`.
+
 ### ~~Archival Python scripts~~
 
 `ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` were from the original PDF-based approach. **Removed** — files are in git history if needed.

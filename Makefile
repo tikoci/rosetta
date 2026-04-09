@@ -6,7 +6,7 @@ FORCE      ?=
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
         extract-all-versions extract-devices extract-test-results extract-changelogs \
         extract-videos extract-videos-from-cache save-videos-cache \
-        link assess search serve \
+        link assess search browse serve \
 	typecheck lint test preflight build-release release bump-version \
         install setup clean
 
@@ -20,6 +20,9 @@ serve:
 
 search:
 	bun run src/search.ts $(query)
+
+browse:
+	bun run src/mcp.ts browse $(query)
 
 assess:
 	bun run src/assess-html.ts

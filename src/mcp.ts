@@ -6,6 +6,7 @@
  * and browse the command tree.
  *
  * CLI flags (for compiled binary or `bun run src/mcp.ts`):
+ *   browse             Interactive terminal browser (REPL)
  *   --setup [--force]  Download database + print MCP client config
  *   --version          Print version
  *   --help             Print usage
@@ -55,6 +56,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("Usage:");
   console.log("  rosetta              Start MCP server (stdio transport)");
   console.log("  rosetta --http       Start with Streamable HTTP transport");
+  console.log("  rosetta browse       Interactive terminal browser");
   console.log("  rosetta --setup      Download database + print MCP client config");
   console.log("  rosetta --setup --force  Re-download database");
   console.log("  rosetta --version    Print version");
@@ -79,6 +81,13 @@ if (args.includes("--help") || args.includes("-h")) {
 
 // Wrap in async IIFE — bun build --compile does not support top-level await
 (async () => {
+
+if (args[0] === "browse") {
+  // Strip "browse" from argv so browse.ts only sees flags/queries
+  process.argv.splice(2, 1);
+  await import("./browse.ts");
+  return;
+}
 
 if (args.includes("--setup")) {
   const { runSetup } = await import("./setup.ts");

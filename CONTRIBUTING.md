@@ -58,6 +58,28 @@ bun run src/mcp.ts   # Start MCP server in dev mode
 
 The repo includes `.vscode/mcp.json` — opening the folder in VS Code automatically configures Copilot to use the dev server.
 
+### Interactive browsing
+
+The `browse` command provides a keyboard-driven REPL for exploring all extracted data without needing an MCP client:
+
+```sh
+bun run src/mcp.ts browse                    # Interactive REPL
+bun run src/mcp.ts browse "firewall filter"  # Open with initial search
+bun run src/mcp.ts browse --once "dhcp"      # One-shot search (for piping)
+make browse                                  # Makefile shortcut
+make browse query="firewall filter"          # With initial query
+```
+
+Type `help` in the REPL for all commands. Bare text searches pages; results are numbered for selection. Navigation keys: `b` (back), `q` (quit). Supports paged output, OSC 8 clickable URLs, and context-scoped commands (e.g., `p` after viewing a page lists its properties).
+
+### Testing MCP tools interactively
+
+Three ways to exercise MCP tools during development:
+
+1. **Browse REPL** — `bun run src/mcp.ts browse` (no MCP client needed, uses query.ts directly)
+2. **MCP Inspector** — `npx @modelcontextprotocol/inspector bun src/mcp.ts` (web UI for calling individual tools)
+3. **CLI search** — `bun run src/search.ts "query"` (quick one-shot FTS search)
+
 ## Testing
 
 **Hard rule: any behavioral change must have a corresponding test before shipping.**
@@ -97,6 +119,7 @@ make release VERSION=v0.1.0 FORCE=1 # Update existing: force-move tag → upload
 src/
 ├── mcp.ts                  # MCP server (11 tools, stdio + HTTP) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config
+├── browse.ts               # Interactive terminal browser (REPL)
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
 ├── extract-html.ts         # Confluence HTML → pages + callouts
