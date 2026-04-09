@@ -267,6 +267,10 @@ beforeAll(() => {
   db.run(`INSERT INTO device_test_results
     (device_id, test_type, mode, configuration, packet_size, throughput_kpps, throughput_mbps)
     VALUES (1, 'ipsec', 'Single tunnel', 'AES-128-CBC + SHA1', 1400, 120.9, 1354.1)`);
+  // RB5009UG+S+IN = id 9 (9th device inserted)
+  db.run(`INSERT INTO device_test_results
+    (device_id, test_type, mode, configuration, packet_size, throughput_kpps, throughput_mbps)
+    VALUES (9, 'ethernet', 'Routing', 'none (fast path)', 1518, 1613.0, 19577.3)`);
 
   // Page 3: a "large" page with sections for TOC testing
   // Text is ~200 chars to keep fixture small, but we'll use max_length=50 to trigger truncation
@@ -1154,14 +1158,14 @@ describe("searchDevices", () => {
 describe("searchDeviceTests", () => {
   test("returns all test results with no filters", () => {
     const res = searchDeviceTests({});
-    expect(res.results.length).toBe(3);
-    expect(res.total).toBe(3);
+    expect(res.results.length).toBe(4);
+    expect(res.total).toBe(4);
   });
 
   test("filters by test_type", () => {
     const res = searchDeviceTests({ test_type: "ethernet" });
     expect(res.results.every((r) => r.test_type === "ethernet")).toBe(true);
-    expect(res.results.length).toBe(2);
+    expect(res.results.length).toBe(3);
   });
 
   test("filters by test_type and mode", () => {
@@ -1179,6 +1183,32 @@ describe("searchDeviceTests", () => {
   test("filters by packet_size", () => {
     const res = searchDeviceTests({ packet_size: 512 });
     expect(res.results.every((r) => r.packet_size === 512)).toBe(true);
+  });
+
+  test("filters by device name (substring match)", () => {
+    const res = searchDeviceTests({ device: "hAP" });
+    expect(res.results).toHaveLength(3);
+    expect(res.results.every((r) => r.product_name.includes("hAP"))).toBe(true);
+  });
+
+  test("device filter combined with test_type", () => {
+    const res = searchDeviceTests({ device: "hAP", test_type: "ethernet" });
+    expect(res.results).toHaveLength(2);
+    expect(res.results.every((r) => r.test_type === "ethernet")).toBe(true);
+    expect(res.results.every((r) => r.product_name.includes("hAP"))).toBe(true);
+  });
+
+  test("device filter with no matches returns empty", () => {
+    const res = searchDeviceTests({ device: "Audience" });
+    expect(res.results).toHaveLength(0);
+    expect(res.total).toBe(0);
+  });
+
+  test("device filter for RB5009 returns its test results", () => {
+    const res = searchDeviceTests({ device: "RB5009" });
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("RB5009UG+S+IN");
+    expect(res.results[0].packet_size).toBe(1518);
   });
 
   test("sorts by mbps descending by default", () => {
@@ -1210,7 +1240,7 @@ describe("searchDeviceTests", () => {
   test("respects limit", () => {
     const res = searchDeviceTests({}, 1);
     expect(res.results).toHaveLength(1);
-    expect(res.total).toBe(3);
+    expect(res.total).toBe(4);
   });
 });
 
@@ -1220,9 +1250,10 @@ describe("dataset CSV exports", () => {
     const lines = csv.trim().split("\n");
 
     expect(lines[0]).toBe("product_name,product_code,architecture,cpu,cpu_cores,cpu_frequency,test_type,mode,configuration,packet_size,throughput_kpps,throughput_mbps,product_url");
-    expect(lines).toHaveLength(4);
+    expect(lines).toHaveLength(5);
     expect(csv).toContain("hAP ax3");
     expect(csv).toContain("IPQ-6010");
+    expect(csv).toContain("RB5009UG+S+IN");
     expect(csv).toContain("https://mikrotik.com/product/hap_ax3");
   });
 

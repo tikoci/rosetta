@@ -411,21 +411,21 @@ The `browse` command provides a keyboard-driven REPL over all extracted data. It
 
 #### Navigation and context
 
-- **`b` (back) is unreliable** — the history stack works mechanically (`pushCtx` / `popCtx`) but the UX is confusing. After searching, selecting a page, then pressing `b`, the user returns to the search results — but the prompt doesn't convey what context you're in or whether there's anything to go back to. Consider: (a) show current context in the prompt (e.g., `rosetta[Bridge VLAN Table]>`), (b) show nothing / "Already at top" when stack is empty. The RouterOS CLI has no back concept — it has `/` to go to root. A similar `home` or `/` command might be more intuitive than `b`.
-- **Number references don't consistently navigate** — documentation pages use `#N` (numbered results) which work to view content. But other tool outputs (callouts, properties, videos) also show numbered results that are not selectable. `handleNumberSelect()` only handles `search`, `sections`, and `devices` contexts. Properties, callouts, changelogs, and video results should also support number selection. For callouts, selecting should navigate to the source page. For videos, selecting should open/show the timestamped URL.
+- ~~**`b` (back) is unreliable**~~ — **Done (Phase 3).** Context-aware prompt shows `rosetta[search: "DHCP"]>`, `rosetta[Bridge VLAN Table]>`, etc. using `buildPrompt()` / `contextLabel()`. All 14 context types mapped. Prompt updates after every command.
+- ~~**Number references don't consistently navigate**~~ — **Done (Phase 3).** `handleNumberSelect()` now handles callouts (→ source page), videos (→ timestamped URL), properties (→ source page), and changelogs (→ full entry detail). Changelog entries also got numbering in the display.
 - **`[XX more results...]` is not actionable** — search results show "X of Y results" but there's no way to page forward or request more. Need either: (a) a `more` / `next` command to load the next page, or (b) increase default limit and truncate display with paging. The pager handles long output already, so (b) may be simpler — bump the query limit and let the existing pager handle display.
 
 #### Parameter alignment with MCP tools
 
-- **`tests` command has no device filter** — `routeros_search_tests` MCP tool also lacks a `product_name` / `device` parameter. Without it, the test results table is a wall of data with no way to scope to a single device. This is both a TUI gap and an MCP tool gap. The MCP tool's `DeviceTestFilters` type needs a `device` field that adds `WHERE d.product_name LIKE ?` to the query. In `browse`, `tests rb5009 ethernet 1518` should filter by device name.
+- ~~**`tests` command has no device filter**~~ — **Done (Phase 3).** Added `device` field to `DeviceTestFilters` type (LIKE match), `routeros_search_tests` MCP tool schema, and TUI `doTests()` parser (positional: `tests rb5009 ethernet 1518`). Tests in `query.test.ts`.
 - **Search parameters not exposed** — MCP tools like `routeros_search` accept `limit`, `routeros_search_changelogs` accepts `breakingOnly`, `fromVersion`, `toVersion`, `category`, but the TUI doesn't expose these. Consider a parameter syntax like `s firewall .limit=20` or flags like `s firewall --limit 20`. Alternatively, specific shorthands: `cl 7.21..7.22 iot` already works for changelogs, similar patterns for other tools.
-- **Commands should mirror MCP tool catalogs** — right now `browse` has commands like `dev`, `cmd`, `cl`, `vid`, `tests`, `cal` that roughly map to MCP tools but the mapping isn't systematic. Each TUI command should correspond to exactly one MCP tool, with the same parameters. This makes `browse` a faithful test harness and makes it obvious when an MCP tool is missing a parameter. Currently `search` maps to `routeros_search`, `dev` to `routeros_device_lookup`, etc. — document the mapping in help output.
+- ~~**Commands should mirror MCP tool catalogs**~~ — **Done (Phase 3).** `renderHelp()` now shows the MCP tool name for each command, e.g., `search <query>  s  Explicit page search  (routeros_search)`.
 
 #### Pager and display polish
 
-- **Pager controls should use RouterOS style** — instead of `── N more lines (Enter=next, q=stop) ──`, use the RouterOS-style bottom bar: `-- [Q quit | SPACE next page | DOWN line]`. This is familiar to the target audience and consistent with the "card catalog for RouterOS admins" positioning.
+- ~~**Pager controls should use RouterOS style**~~ — **Done (Phase 3).** Footer now shows `-- N more lines [Q quit | SPACE next page | ENTER next line]`. SPACE advances one page, ENTER/arrow-down advances one line.
 - **Document text formatting could be improved** — page text from `getPage()` is raw extracted text with no spacing between headings and body text. During HTML extraction, we could insert blank lines before headings and retain some minimal formatting signals (e.g., `**bold**` from `<strong>`, `-` from `<li>`). This would cost little in token overhead but improve readability both in `browse` and in MCP tool output. This is an extraction-level improvement (affects `extract-html.ts`), not just a display concern.
-- **Code blocks lack visual separation** — code sections show `── code ──` separator but the code itself has no indentation or syntax differentiation. Even a 2-space indent for code lines would help visually.
+- ~~**Code blocks lack visual separation**~~ — **Done (Phase 3).** Code lines in `renderPage()` are now 2-space indented for visual separation from text.
 
 #### Version and metadata display
 

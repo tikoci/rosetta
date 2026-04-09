@@ -978,6 +978,10 @@ Workflow:
 → routeros_device_lookup: get full specs (CPU, RAM, pricing) + block diagram for a specific device
 → routeros_search: find documentation about features relevant to the test type`,
     inputSchema: {
+      device: z
+        .string()
+        .optional()
+        .describe("Filter by device product name (substring match, e.g., 'RB5009', 'hAP', 'CCR2216')"),
       test_type: z
         .string()
         .optional()
@@ -1010,8 +1014,8 @@ Workflow:
         .describe("Max results (default 50, max 200)"),
     },
   },
-  async ({ test_type, mode, configuration, packet_size, sort_by, limit }) => {
-    const hasFilters = test_type || mode || configuration || packet_size;
+  async ({ device, test_type, mode, configuration, packet_size, sort_by, limit }) => {
+    const hasFilters = device || test_type || mode || configuration || packet_size;
 
     if (!hasFilters) {
       // Discovery mode: return available filter values
@@ -1029,7 +1033,7 @@ Workflow:
     }
 
     const result = searchDeviceTests(
-      { test_type, mode, configuration, packet_size, sort_by },
+      { device, test_type, mode, configuration, packet_size, sort_by },
       limit,
     );
 

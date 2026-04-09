@@ -458,6 +458,7 @@ export function searchProperties(
   default_val: string | null;
   description: string;
   section: string | null;
+  page_id: number;
   page_title: string;
   page_url: string;
   excerpt: string;
@@ -486,6 +487,7 @@ function runPropertiesFtsQuery(
   default_val: string | null;
   description: string;
   section: string | null;
+  page_id: number;
   page_title: string;
   page_url: string;
   excerpt: string;
@@ -495,7 +497,7 @@ function runPropertiesFtsQuery(
     return db
       .prepare(
         `SELECT p.name, p.type, p.default_val, p.description, p.section,
-                pg.title as page_title, pg.url as page_url,
+                pg.id as page_id, pg.title as page_title, pg.url as page_url,
                 snippet(properties_fts, 1, '**', '**', '...', 20) as excerpt
          FROM properties_fts fts
          JOIN properties p ON p.id = fts.rowid
@@ -509,6 +511,7 @@ function runPropertiesFtsQuery(
         default_val: string | null;
         description: string;
         section: string | null;
+        page_id: number;
         page_title: string;
         page_url: string;
         excerpt: string;
@@ -518,7 +521,7 @@ function runPropertiesFtsQuery(
   }
 }
 
-type CalloutResult = {
+export type CalloutResult = {
   type: string;
   content: string;
   page_title: string;
@@ -1088,6 +1091,7 @@ export type DeviceTestRow = {
 };
 
 type DeviceTestFilters = {
+  device?: string;
   test_type?: string;
   mode?: string;
   configuration?: string;
@@ -1099,6 +1103,10 @@ function buildTestWhereClause(filters: DeviceTestFilters): { whereClause: string
   const where: string[] = [];
   const params: (string | number)[] = [];
 
+  if (filters.device) {
+    where.push("d.product_name LIKE ?");
+    params.push(`%${filters.device}%`);
+  }
   if (filters.test_type) {
     where.push("t.test_type = ?");
     params.push(filters.test_type);

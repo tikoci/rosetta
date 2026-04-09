@@ -15,6 +15,7 @@ import * as readline from "node:readline";
 import { db, getDbStats, initDb } from "./db.ts";
 import { resolveVersion } from "./paths.ts";
 import type {
+  CalloutResult,
   ChangelogResult,
   DeviceResult,
   DeviceTestRow,
@@ -151,11 +152,15 @@ async function paged(output: string): Promise<boolean> {
     offset += pageSize;
     if (offset < lines.length) {
       const remaining = lines.length - offset;
-      process.stdout.write(dim(`── ${remaining} more lines (Enter=next, q=stop) ──`));
+      process.stdout.write(dim(`-- ${remaining} more lines [Q quit | SPACE next page | ENTER next line]`));
       const key = await waitForKey();
       // Clear the "more" line
       process.stdout.write(`\r${" ".repeat(termWidth())}\r`);
       if (key === "q" || key === "Q") return true;
+      // ENTER or arrow-down → advance one line; SPACE → advance one page
+      if (key === "\r" || key === "\n" || key === "\x1b[B") {
+        offset -= pageSize - 1; // back up so only 1 line advances
+      }
     }
   }
   return false;
@@ -184,14 +189,14 @@ type Context =
   | { type: "search"; response: SearchResponse; results: SearchResult[] }
   | { type: "page"; pageId: number; title: string; commandPath?: string }
   | { type: "sections"; pageId: number; title: string; sections: SectionTocEntry[] }
-  | { type: "properties"; query: string; pageId?: number }
   | { type: "commands"; path: string }
   | { type: "devices"; query: string; results: DeviceResult[] }
   | { type: "device"; device: DeviceResult }
   | { type: "tests" }
-  | { type: "callouts"; query: string }
-  | { type: "changelogs" }
-  | { type: "videos"; query: string }
+  | { type: "callouts"; query: string; results: CalloutResult[] }
+  | { type: "changelogs"; results: ChangelogResult[] }
+  | { type: "videos"; query: string; results: VideoSearchResult[] }
+  | { type: "properties"; query: string; pageId?: number; results: Array<{ name: string; page_id: number; page_title: string }> }
   | { type: "diff" }
   | { type: "vcheck"; path: string };
 
@@ -207,6 +212,32 @@ function popCtx(): boolean {
   const prev = history.pop();
   if (prev) { ctx = prev; return true; }
   return false;
+}
+
+/** Build a context-aware prompt string, mirroring RouterOS [admin@router]> style. */
+function buildPrompt(): string {
+  const label = contextLabel(ctx);
+  if (label) return `${cyan("rosetta")}${dim("[")}${label}${dim("]>")} `;
+  return `${cyan("rosetta")}${dim(">")} `;
+}
+
+function contextLabel(c: Context): string {
+  switch (c.type) {
+    case "home": return "";
+    case "search": return truncate(`search: "${c.response.query}"`, 30);
+    case "page": return truncate(c.title, 30);
+    case "sections": return truncate(`${c.title} §`, 30);
+    case "properties": return truncate(`prop: "${c.query}"`, 30);
+    case "commands": return truncate(`cmd: ${c.path || "/"}`, 30);
+    case "devices": return truncate(`dev: "${c.query}"`, 30);
+    case "device": return truncate(c.device.product_name, 30);
+    case "tests": return "tests";
+    case "callouts": return c.query ? truncate(`cal: "${c.query}"`, 30) : "callouts";
+    case "changelogs": return "changelogs";
+    case "videos": return truncate(`vid: "${c.query}"`, 30);
+    case "diff": return "diff";
+    case "vcheck": return truncate(`vc: ${c.path}`, 30);
+  }
 }
 
 // ── Renderers ──
@@ -318,7 +349,7 @@ function renderPage(page: NonNullable<ReturnType<typeof getPage>>): string {
     if (page.code) {
       out.push("");
       out.push(dim("── code ──"));
-      out.push(page.code);
+      out.push(page.code.split("\n").map((l) => `  ${l}`).join("\n"));
     }
   }
 
@@ -336,7 +367,7 @@ function renderPage(page: NonNullable<ReturnType<typeof getPage>>): string {
     if (page.code) {
       out.push("");
       out.push(dim("── code ──"));
-      out.push(page.code);
+      out.push(page.code.split("\n").map((l) => `  ${l}`).join("\n"));
     }
   }
 
@@ -582,18 +613,20 @@ function renderChangelogs(results: ChangelogResult[]): string {
   }
 
   let lastVersion = "";
-  for (const c of results) {
+  for (let i = 0; i < results.length; i++) {
+    const c = results[i];
     if (c.version !== lastVersion) {
       out.push("");
       out.push(`  ${bold(c.version)}  ${dim(c.released ?? "")}`);
       lastVersion = c.version;
     }
-    const breaking = c.is_breaking ? red("⚠ ") : "  ";
+    const num = dim(`${String(i + 1).padStart(3)}  `);
+    const breaking = c.is_breaking ? red("⚠ ") : "";
     const cat = dim(pad(c.category, 14));
     const desc = c.excerpt.includes("**")
       ? c.excerpt.replace(/\*\*/g, `${ESC}[1m`)
-      : truncate(c.description, termWidth() - 22);
-    out.push(`  ${breaking}${cat} ${desc}`);
+      : truncate(c.description, termWidth() - 26);
+    out.push(`${num}${breaking}${cat} ${desc}`);
   }
 
   out.push("");
@@ -719,25 +752,26 @@ function renderHelp(): string {
   out.push(`  ${bold("Commands")}  ${dim("(bare text = search)")}`);
   out.push("");
 
-  const cmd = (name: string, alias: string, desc: string) => {
-    out.push(`  ${cyan(pad(name, 26))} ${dim(pad(alias, 6))} ${desc}`);
+  const cmd = (name: string, alias: string, desc: string, mcp?: string) => {
+    const mcpHint = mcp ? `  ${dim(`(${mcp})`)}` : "";
+    out.push(`  ${cyan(pad(name, 26))} ${dim(pad(alias, 6))} ${desc}${mcpHint}`);
   };
 
-  cmd("<query>", "", "Search pages (default action)");
-  cmd("search <query>", "s", "Explicit page search");
-  cmd("page <id|title>", "", "View full page");
-  cmd("prop <name>", "p", "Look up property (scoped to current page)");
-  cmd("props <query>", "sp", "Search properties by FTS");
-  cmd("cmd [path]", "tree", "Browse command tree");
-  cmd("device <query>", "dev", "Look up device specs");
-  cmd("tests [type] [mode]", "", "Cross-device benchmarks");
-  cmd("callouts [query]", "cal", "Search callouts (type filter: cal warning)");
-  cmd("changelog [query]", "cl", "Search changelogs (cl 7.22, cl breaking)");
-  cmd("videos <query>", "vid", "Search video transcripts");
-  cmd("diff <from> <to> [path]", "", "Command tree diff between versions");
-  cmd("vcheck <path>", "vc", "Version range for a command path");
-  cmd("versions", "ver", "Live-fetch current RouterOS versions");
-  cmd("stats", "", "Database health / counts");
+  cmd("<query>", "", "Search pages (default action)", "routeros_search");
+  cmd("search <query>", "s", "Explicit page search", "routeros_search");
+  cmd("page <id|title>", "", "View full page", "routeros_get_page");
+  cmd("prop <name>", "p", "Look up property (scoped to current page)", "routeros_lookup_property");
+  cmd("props <query>", "sp", "Search properties by FTS", "routeros_search_properties");
+  cmd("cmd [path]", "tree", "Browse command tree", "routeros_command_tree");
+  cmd("device <query>", "dev", "Look up device specs", "routeros_device_lookup");
+  cmd("tests [device] [type]", "", "Cross-device benchmarks", "routeros_search_tests");
+  cmd("callouts [query]", "cal", "Search callouts (type filter: cal warning)", "routeros_search_callouts");
+  cmd("changelog [query]", "cl", "Search changelogs (cl 7.22, cl breaking)", "routeros_search_changelogs");
+  cmd("videos <query>", "vid", "Search video transcripts", "routeros_search_videos");
+  cmd("diff <from> <to> [path]", "", "Command tree diff between versions", "routeros_command_diff");
+  cmd("vcheck <path>", "vc", "Version range for a command path", "routeros_command_version_check");
+  cmd("versions", "ver", "Live-fetch current RouterOS versions", "routeros_current_versions");
+  cmd("stats", "", "Database health / counts", "routeros_stats");
   cmd("back", "b", "Go to previous view");
   cmd("help", "?", "This help");
   cmd("quit", "q", "Exit");
@@ -858,7 +892,7 @@ async function dispatch(input: string): Promise<void> {
         const pageCallouts = results.filter((c) => c.page_id === (ctx as { pageId: number }).pageId);
         if (pageCallouts.length > 0) {
           await paged(renderCallouts(pageCallouts));
-          pushCtx({ type: "callouts", query: "" });
+          pushCtx({ type: "callouts", query: "", results: pageCallouts });
           return;
         }
       }
@@ -935,6 +969,30 @@ async function handleNumberSelect(idx: number): Promise<void> {
     }
     return;
   }
+  if (ctx.type === "callouts" && ctx.results[idx]) {
+    const c = ctx.results[idx];
+    await doPage(String(c.page_id));
+    return;
+  }
+  if (ctx.type === "videos" && ctx.results[idx]) {
+    const v = ctx.results[idx];
+    const timeUrl = v.start_s > 0 ? `${v.url}&t=${v.start_s}` : v.url;
+    console.log(`\n  ${bold(v.title)}`);
+    if (v.chapter_title) console.log(`  ${magenta(`§ ${v.chapter_title}`)}  ${dim(`@ ${formatTime(v.start_s)}`)}`);
+    console.log(`  ${cyan(link(timeUrl))}\n`);
+    return;
+  }
+  if (ctx.type === "properties" && ctx.results[idx]) {
+    const p = ctx.results[idx];
+    await doPage(String(p.page_id));
+    return;
+  }
+  if (ctx.type === "changelogs" && ctx.results[idx]) {
+    const c = ctx.results[idx];
+    console.log(`\n  ${bold(c.version)}  ${dim(c.released ?? "")}  ${dim(c.category)}${c.is_breaking ? `  ${red("⚠ BREAKING")}` : ""}`);
+    console.log(`  ${c.description}\n`);
+    return;
+  }
   console.log(dim(`  No item #${idx + 1} in current view.`));
 }
 
@@ -987,7 +1045,7 @@ async function doPropsForPage(pageId: number, title: string): Promise<void> {
     return;
   }
   await paged(`  ${bold("Properties for")} ${bold(title)}\n\n${renderProperties(pageProps)}`);
-  pushCtx({ type: "properties", query: title, pageId });
+  pushCtx({ type: "properties", query: title, pageId, results: pageProps.map(p => ({ name: p.name, page_id: p.page_id ?? pageId, page_title: p.page_title })) });
 }
 
 async function doLookupProperty(name: string): Promise<void> {
@@ -999,7 +1057,7 @@ async function doLookupProperty(name: string): Promise<void> {
     return;
   }
   await paged(renderProperties(results));
-  pushCtx({ type: "properties", query: name });
+  pushCtx({ type: "properties", query: name, results: results.map(p => ({ name: p.name, page_id: p.page_id, page_title: p.page_title })) });
 }
 
 async function doSearchProperties(query: string): Promise<void> {
@@ -1009,7 +1067,7 @@ async function doSearchProperties(query: string): Promise<void> {
     return;
   }
   await paged(`  ${bold(String(results.length))} properties matching ${cyan(`"${query}"`)}\n\n${renderProperties(results)}`);
-  pushCtx({ type: "properties", query });
+  pushCtx({ type: "properties", query, results: results.map(p => ({ name: p.name, page_id: p.page_id, page_title: p.page_title })) });
 }
 
 async function doCommandTree(path: string): Promise<void> {
@@ -1056,16 +1114,25 @@ async function doTests(argsStr: string): Promise<void> {
     console.log(`  ${dim("Modes:")} ${meta.modes.join(", ")}`);
     console.log(`  ${dim("Packet sizes:")} ${meta.packet_sizes.join(", ")}`);
     console.log("");
-    console.log(`  ${dim("Usage: tests <type> [mode] [packet_size]")}`);
+    console.log(`  ${dim("Usage: tests [device] <type> [mode] [packet_size]")}`);
     console.log(`  ${dim("Example: tests ethernet Routing 1518")}`);
+    console.log(`  ${dim("Example: tests rb5009 ethernet 1518")}`);
     return;
   }
 
   const parts = argsStr.split(/\s+/);
   const filters: Record<string, string | number> = {};
-  if (parts[0]) filters.test_type = parts[0];
-  if (parts[1]) filters.mode = parts[1];
-  if (parts[2] && /^\d+$/.test(parts[2])) filters.packet_size = Number.parseInt(parts[2], 10);
+
+  // Known test types — if parts[0] is not a known type, treat it as a device filter
+  const knownTypes = ["ethernet", "ipsec"];
+  let offset = 0;
+  if (parts[0] && !knownTypes.includes(parts[0].toLowerCase())) {
+    filters.device = parts[0];
+    offset = 1;
+  }
+  if (parts[offset]) filters.test_type = parts[offset];
+  if (parts[offset + 1]) filters.mode = parts[offset + 1];
+  if (parts[offset + 2] && /^\d+$/.test(parts[offset + 2])) filters.packet_size = Number.parseInt(parts[offset + 2], 10);
 
   const result = searchDeviceTests(filters);
   if (result.results.length === 0) {
@@ -1094,7 +1161,7 @@ async function doSearchCallouts(query: string): Promise<void> {
     return;
   }
   await paged(`  ${bold(String(results.length))} callouts${type ? ` (${type})` : ""}\n\n${renderCallouts(results)}`);
-  pushCtx({ type: "callouts", query });
+  pushCtx({ type: "callouts", query, results });
 }
 
 async function doSearchChangelogs(query: string): Promise<void> {
@@ -1135,7 +1202,7 @@ async function doSearchChangelogs(query: string): Promise<void> {
     return;
   }
   await paged(`  ${bold("Changelogs")}${version ? ` for ${bold(version)}` : ""}${breakingOnly ? ` ${red("(breaking only)")}` : ""}\n\n${renderChangelogs(results)}`);
-  pushCtx({ type: "changelogs" });
+  pushCtx({ type: "changelogs", results });
 }
 
 async function doSearchVideos(query: string): Promise<void> {
@@ -1145,7 +1212,7 @@ async function doSearchVideos(query: string): Promise<void> {
     return;
   }
   await paged(`  ${bold(String(results.length))} video results for ${cyan(`"${query}"`)}\n\n${renderVideos(results)}`);
-  pushCtx({ type: "videos", query });
+  pushCtx({ type: "videos", query, results });
 }
 
 async function doDiff(from: string, to: string, pathPrefix?: string): Promise<void> {
@@ -1210,7 +1277,7 @@ async function main() {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: `${cyan("rosetta")}${dim(">")} `,
+    prompt: buildPrompt(),
     terminal: true,
   });
 
@@ -1222,6 +1289,7 @@ async function main() {
     } catch (err) {
       console.error(red(`  Error: ${err instanceof Error ? err.message : String(err)}`));
     }
+    rl.setPrompt(buildPrompt());
     rl.prompt();
   });
 
