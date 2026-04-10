@@ -20,10 +20,17 @@ Five doc files, each with a clear role — agents should use these, not create n
 
 MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML archive of all RouterOS documentation (~317 pages). This project extracts the **HTML export** into a searchable SQLite database and exposes it as an MCP server using the **SQL-as-RAG** pattern: SQLite FTS5 as the retrieval layer for retrieval-augmented generation, exposed over MCP so any LLM client can use it.
 
-Two outputs:
+Three outputs (three surfaces, one core):
 
-1. **SQL-as-RAG MCP Server** — 14 tools plus 2 CSV resources for LLM agents to search docs, look up properties, browse the command tree, check version history, query device benchmarks, search video transcripts, fetch current versions, and attach bulk datasets for reporting
-2. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration
+1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — currently 14 tools plus 2 CSV resources for LLM agents. Consolidation target: ~8–10 tools via a smarter `routeros_search`. See `BACKLOG.md` "North Star".
+2. **Browse TUI** (`src/browse.ts`) — interactive terminal browser with keyword-driven NL-like input. **First-class path into the data, not a test harness that happens to be usable.** Every MCP tool has a TUI command that mirrors its shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.).
+3. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration.
+
+### TUI and MCP share core logic — adapters stay thin
+
+Both the MCP tool layer and the TUI are thin adapters over query functions in `src/query.ts`. When you add a feature, the question to ask is "does this belong in core?" — the answer is usually yes. The MCP side renders results as structured objects for LLM consumption; the TUI side renders them as ANSI-colored text for humans. Both take the same short, keyword-driven input and lead the user through the same discovery chain: **search → drill-down → related content.**
+
+This is a deliberate design, not a happy accident. The TUI's dual use (human tool + MCP behavior test harness) is the feature. Gaps visible in `browse` almost always point to gaps in the MCP tool surface. Any PR that grows TUI-only or MCP-only heuristics is a smell — the heuristic probably belongs in `query.ts` so both surfaces inherit it.
 
 ## Current State
 
@@ -386,7 +393,8 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/restraml.ts` | Shared helpers for fetching from tikoci/restraml (GitHub API + Pages) |
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
-| `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |\n| `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
+| `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |
+| `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
 | `src/extract-videos.ts` | MikroTik YouTube channel transcripts → videos + video_segments tables (incremental; requires yt-dlp). Cache functions: `saveCache`/`importCache`/`loadKnownBad`/`findLatestCache` for CI-friendly NDJSON cache. |
 | `src/link-commands.ts` | Command ↔ page mapping |

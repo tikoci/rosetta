@@ -3,536 +3,493 @@
 > Ideas, considerations, and future work. Anything that isn't "how the project works" (→ `CLAUDE.md`) or "why it's built this way" (→ `DESIGN.md`) goes here.
 >
 > **Convention:** Agents should add items here under the appropriate heading rather than creating new files. Include enough context that a different agent (or human) can act on it later without the original conversation.
+>
+> **Last holistic review:** 2026-04-10. Principles and North Star below were set in that review — subsequent edits should respect them or explicitly reframe them.
+
+## Guiding Principles
+
+These shape everything below. If a backlog item conflicts with them, the item is wrong and should be reframed.
+
+### Principle 1 — TUI and MCP are a pair, not a tool and its test harness
+
+The `browse` TUI is a first-class path into the rosetta data, as legitimate as the MCP server for humans who prefer keywords and iterative drill-down. Both surfaces take short, NL-like input and lead the user through the same discovery chain: search → drill-down → related content. The TUI deliberately mimics the MCP tool shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.) so improvements on one side reinforce the other.
+
+**Implication for how we build:** logic lives in core functions in `query.ts`. `mcp.ts` and `browse.ts` are thin adapters that render the same results for different audiences. If a backlog item says "add X to the TUI" or "add X to an MCP tool," first check whether it belongs in core — usually it does.
+
+The LLM-vs-human difference is inference, not mechanics: an LLM can infer more from ambient context before calling a tool; a human kick-starts a drill-down with keywords they already know. Both still want the same thing — the shortest path from question to answer without reading whole documents.
+
+### Principle 2 — Dual-use is the feature, not a compromise
+
+The TUI's dual role (user tool + test harness for MCP behavior) is deliberate. Gaps visible in `browse` almost always point to gaps in the MCP tool surface. Resolving the "MCP wants tool-selection shortcuts, humans want friendliness" tension means pushing smarts into core functions so both surfaces inherit them for free.
+
+**Discipline check:** resist shoving more logic into `browse.ts` or `mcp.ts`. When a heuristic could help both audiences it belongs in `query.ts` (or a new input-classifier module). Flag PRs that grow TUI-only or MCP-only heuristics as a possible smell.
+
+### Principle 3 — Too many tools. Make `routeros_search` smart enough that most questions need only it
+
+Agents observed in real sessions typically reach for `routeros_search` and `routeros_get_page`; anything beyond that is rare. The right response is not more tool-description steering — it's making `routeros_search` answer more of the question before the agent has to ask again. See the "North Star" section below.
+
+### Principle 4 — Command/schema work is downstream of restraml
+
+Any deep reshaping of the `commands`, `command_versions`, or property schemas is blocked on restraml delivering populated `deep-inspect.json` (argument enums, type info, validation hints). Until then, limit scope to cleanup, idempotency, and light heuristics. Don't design a new schema in the dark.
+
+**The shape of the eventual schema is known, even if the data isn't yet.** RouterOS commands have four parts that the current schema munges together:
+
+1. **Path** — `/ip/` (root-level subsystem)
+2. **Dir** — `/ip/address` (settable/listable object type)
+3. **Command** — `set | print | remove | add | <special>`, which maps to REST verbs `PATCH | GET | DELETE | PUT | POST` (plus hybrids like `.../set_POST`, `.../get+POST`, `.../add+POST`, `.../remove+POST`)
+4. **Parameters** — named (`name="myname"`) or unnamed positional (`/system/script/run myscript` accepts an unnamed first positional that maps to `name`)
+
+`routeros_search_properties` is worthless as an MCP tool in isolation because it only addresses part 4 — no dir/command context, and most property descriptions can be inferred from the name anyway. The property data still matters for *other* reasons: it's a likely input to restraml's `deep-inspect.json` enrichment (MikroTik's `/console/inspect` has no "help" text, so properties extracted from docs fill that gap). Keep the schema, retire the tool. See "Drop `routeros_search_properties` as an MCP tool" under Ready to Build.
+
+---
+
+## North Star — unified `routeros_search`
+
+Most items in "Ready to Build" and "Improvements" feed into this. Keeping it called out so subsequent sessions don't lose the thread.
+
+### Vision
+
+A single `routeros_search(query)` call that does enough preprocessing, cross-table lookup, and response synthesis that a typical RouterOS question gets a useful, multi-source answer in one roundtrip. The MCP tool and the TUI's default search both route through the same core function.
+
+### The input classifier
+
+Before any FTS query, pre-parse the input with cheap regex-based detectors. Each detector fires independently:
+
+| Detector | Pattern | Side effect |
+|---|---|---|
+| **RouterOS command path** | `^/[\w-]+(/[\w-]+)*` e.g. `/ip/firewall/filter` | Look up in `commands`; return node + children + linked page. If partial/invalid, "no exact match — closest is X" using the nearest `commands.path`. |
+| **Command fragment / `name=value` pair** | `foo=bar`, `add chain=forward action=drop` | Light tokenize; match tokens against `commands.name` and `properties.name`. Return best-effort interpretation with a "syntax might be historical — verify" note (see design decision below). |
+| **RouterOS version** | `\b7\.\d+(?:\.\d+)?(?:beta\d+\|rc\d+)?\b` | Check `ros_versions`. Narrow results where possible via `command_versions`; add a `version_context` note. |
+| **Changelog topic prefix** | Term matches a known category like `bgp`, `wifi`, `bridge`, `container` | Side query against `changelogs` filtered by category (ideally scoped by any detected version). |
+| **Device model** | `RB\d+`, `CCR\d+`, `hEX`, `hAP`, `CRS\d+`, `CHR` | Side query `devices_fts`; include top match + link. |
+| **Property name** | Single short lowercase token that exists in `properties.name` | Side query; return the property directly instead of making the agent call `lookup_property`. Only fire when the token doesn't match a page title or command path. |
+| **Known topics superset** | Union of changelog categories + high-traffic doc path segments | Soft signal for topic routing. See "Known topics extraction" below. |
+
+Detectors are non-exclusive. A query like `bgp 7.22 route reflection` should fire **topic** (`bgp`), **version** (`7.22`), and general FTS — and the response should include (a) page hits, (b) the most relevant BGP changelog entries in 7.22, and (c) any BGP-related callouts.
+
+### Enriched response shape
+
+```text
+{
+  query: "bgp 7.22 route reflection",
+  classified: {
+    version: "7.22",
+    topics: ["bgp"],
+    command_path: null,
+    device: null,
+    property: null
+  },
+  pages: [ ... top page results ... ],
+  related: {
+    callouts:   [ ... top 2 ... ],
+    properties: [ ... top 2 ... ],
+    changelogs: [ ... top 3 for bgp in 7.22 ... ],
+    videos:     [ ... top 2 with transcript_quality flags ... ],
+    commands:   [ ... if a path matched ... ],
+    devices:    [ ... if a device matched ... ]
+  },
+  next_steps: [ ... concrete follow-up calls with actual arguments ... ]
+}
+```
+
+All `related` sections cap at 2–3 entries so the response stays small. Empty sections are omitted entirely.
+
+### Zero-result handling
+
+Never return bare empty results. If FTS returns nothing:
+
+1. Run the **OR** fallback (already done for pages).
+2. If still empty, re-run the classifier's side queries (the user may be asking for something that only exists in callouts, changelogs, or devices).
+3. If still empty, return a **"nothing matched — you might try"** block with concrete next queries, informed by the classifier (e.g., `tried FTS for ['chateaulte18']; did you mean device 'Chateau LTE18 ax'? Try device chateau lte18`).
+
+The LLM-or-human distinction doesn't matter here — both benefit from "here's what to type next" more than from `{results: []}`.
+
+### Sequencing
+
+1. **Known topics extraction** — build the topic vocabulary (independent, shippable now).
+2. **Input classifier module** — `classifyQuery()` with unit tests on a real-query corpus, not yet wired into search.
+3. **`searchAll()` wrapper** — wraps existing `searchPages` and runs classifier side queries in parallel. New response shape.
+4. **`routeros_search` MCP tool + TUI `s` command** — both wired to `searchAll`. TUI renders `related` sections as numbered, navigable items.
+5. **Tool consolidation follow-through** — once `routeros_search` answers most multi-source questions, revisit whether `routeros_search_videos`, `routeros_search_callouts`, `routeros_search_changelogs` survive (see "Needs Input" below).
+
+### What this replaces in the old backlog
+
+- "Unified search entry point"
+- "`routeros_search` cross-table awareness"
+- "Tool count and MCP client tool-list limits" (the consolidation step)
+
+### Decided consolidation target (2026-04-10 review)
+
+A baker's dozen is the ceiling, not the goal. If customers are only eating half a dozen, we bake bigger, better cookies and offer fewer, more diverse ones. Target: 14 → ~8–10 tools after the North Star ships.
+
+**Definitely fold into `routeros_search` side queries (drop as standalone MCP tools):**
+
+- `routeros_search_properties` — useless without command-tree context (see Principle 4). Data stays in the schema because it's the likely feeder for restraml's `deep-inspect.json` enrichment.
+- `routeros_search_callouts` — fold into the `related.callouts` side query. Keep the `type`-only browse capability as a TUI command, but not as an MCP tool.
+- `routeros_search_videos` — fold into `related.videos`, and treat videos as a **locator, not a source** (see "Video metadata quality signals" below).
+
+**Keep as standalone drill-downs** (their filter surface doesn't fit a uniform search response):
+
+- `routeros_search_changelogs` — version range + category + breaking-only filters are too specific. Surface top-3 pre-filtered entries in `routeros_search.related.changelogs`, but keep the dedicated tool for actual range queries.
+- `routeros_search_tests` — packet-size + config-filter combinatorics don't belong in a search response. Benchmarks are a distinct workflow.
+- `routeros_device_lookup`, `routeros_get_page`, `routeros_command_tree`, `routeros_command_version_check`, `routeros_command_diff`, `routeros_lookup_property`, `routeros_stats`, `routeros_current_versions` — each is a well-defined drill-down.
+
+**Name:** keep `routeros_search`. Semantic drift is cheaper than a rename that breaks existing client configs.
+
+**The hidden consolidation win:** `routeros_get_page` becomes smarter (see "Smart `get_page()`" under Ready to Build). Making it prioritize the semantically valuable parts of a page (properties, callouts, script examples, headings, related videos) means the agent needs fewer follow-up tool calls.
+
+---
 
 ## Ready to Build
 
-Items with clear scope and no blockers.
+Clear scope, no blockers, ready to act.
 
-### ~~Fix CI workflow so tests actually pass~~ ✓ DONE
+### Known topics extraction
 
-Fixed in v0.2.0. Tests use in-memory SQLite — no DB file needed. The original failure was from an earlier codebase state. Re-enabled `push` and `pull_request` triggers on `main` branch. Also added `release.yml` workflow for CI-built database + release artifacts.
+Build a small seed list of topic tokens from three sources:
 
-Note: actions/checkout@v4 emits a Node.js 20 deprecation warning — update to a version that supports Node.js 24 before the June 2026 deadline.
+1. **Changelog categories** — `SELECT DISTINCT category FROM changelogs` gives the subsystem vocabulary MikroTik themselves use.
+2. **Command tree top-level names** — `SELECT name FROM commands WHERE parent_path IN ('/', '/ip', '/routing', …)` captures `firewall`, `bgp`, `bridge`, `wifi`, `container`, etc.
+3. Optionally, second-level doc path tokens.
 
-### ~~Section-level page chunks for large pages~~ ✓ DONE
+Emit as a TS constant or a tiny seed table. Used by the classifier (Principle 3). Shippable immediately — the same list can also drive tool-description examples ("Try querying topics like `bgp`, `wifi`, `firewall`, `container`, `bridge`…") and TUI welcome-message hints.
 
-Implemented. 2,984 sections across 275 pages extracted from h1–h3 headings with anchor IDs. `get_page` returns a table of contents (heading + char_count + deep-link URL) when `max_length` is exceeded and sections exist. `section` parameter on `get_page` retrieves specific sections by heading text or anchor_id. No new MCP tool — extended `get_page` instead. Deferred `sections_fts` as unnecessary for current use case (TOC + section retrieval don't need FTS).
+### Input classifier for `routeros_search` (North Star step 2)
 
-### ~~Device/product data (Phase 1)~~ ✓ DONE
+`classifyQuery(input: string): QueryClassification` in `src/query.ts` or a new `src/classify.ts`, with regex detectors for command path, version, device model, property name, and known-topic tokens. Ship with table-driven unit tests. Not yet wired into `searchPages` — just proving the classifier is correct against a corpus of ~30 real RouterOS questions.
 
-Implemented. 144 products from `matrix/2026-03-25/matrix.csv` loaded into `devices` table with `devices_fts` FTS5 index. Single MCP tool `routeros_device_lookup` combines exact match (by product name/code) with FTS search + structured filters (architecture, min_ram_mb, license_level, has_poe, has_wireless). Extractor `src/extract-devices.ts` is idempotent (DELETE + INSERT), handles UTF-8 BOM, normalizes RAM/storage to MB integers. Added to `extract` and `extract-full` Makefile pipelines. 69 tests passing (15 new for device queries). CSV stored in git — manually downloaded from mikrotik.com/products/matrix.
+**Acceptance signal:** classifier output on the real-query corpus matches manual expectations. When it doesn't, the corpus grows and the detectors are tuned.
 
-### ~~Device test results + block diagrams (Phase 2)~~ ✓ DONE
+### `searchAll()` — multi-table search wrapper (North Star step 3)
 
-...sults (ethernet + IPSec throughput benchmarks) for 125 of 144 devices, plus block diagram URLs for 110 devices. New `device_test_results` table with `product_url` and `block_diagram_url` columns on `devices`. Test results auto-attach to `device_lookup` results for exact matches and small result sets (≤5). Extractor `src/extract-test-results.ts` uses multi-slug URL candidate strategy (4–6 variants per product). 15 products originally had no discoverable page — resolved via sitemap + override table (see "Product page slug coverage" ✓ DONE below).
+Wrap `searchPages` in a `searchAll(query)` that runs classifier side queries in parallel and returns the enriched response shape above. Parallel fan-out is trivial in `bun:sqlite` because the statements are all synchronous. Keep `searchPages` intact for narrow callers.
 
-### ~~Command diff tool (upgrade breakage diagnosis)~~ ✓ DONE
+Wire into both `routeros_search` (MCP) and the TUI's default `s` / bare-text handler. Per Principle 1, neither adapter should duplicate logic.
 
-Implemented as `routeros_command_diff`. Given `from_version` and `to_version`, returns added/removed command paths with counts. Optional `path_prefix` scopes the diff to a subtree (e.g., `/ip/firewall`, `/routing/bgp`). Returns a note when either version is outside the tracked range (7.9–7.23beta2). Tool description includes a 3-step workflow: `command_diff` → `search_changelogs` → `command_version_check`. Tests in `query.test.ts`. Pairs with `routeros_search_changelogs` for human-readable changelog entries.
+### Smart `get_page()` — budget-aware section/callout/property prioritization
 
-### ~~Add remote MCP transport mode for ChatGPT Apps~~ ✓ DONE
+Today `get_page(max_length=N)` mostly truncates with a simple text/code budget split. When `max_length` is small it should instead **rank-include** the semantically valuable parts of the page before the raw prose:
 
-Implemented. Streamable HTTP transport via `--http` flag using `Bun.serve()` + `WebStandardStreamableHTTPServerTransport` (MCP spec 2025-03-26). Endpoint: `/mcp`. Supports `--port`, `--host`, `--tls-cert`/`--tls-key` flags and env vars. Defaults to localhost binding; LAN binding (`--host 0.0.0.0`) logs a warning. Origin header validation prevents DNS rebinding. `--setup` prints HTTP config snippets alongside stdio configs. Stdio remains the default for local clients.
+1. **Properties** — if this page has rows in `properties`, include the property table first. A reader asking about `/ip/firewall/filter` wants the argument list more than the opening paragraph.
+2. **Callouts** — inline the Note/Warning/Info content instead of a separate `callouts` array. A warning is higher-signal than the prose around it.
+3. **Script examples** — code blocks (we already track `brush: ros`) are among the highest-signal content on a page. Preserve them ahead of ordinary text when budget is tight.
+4. **Headings** — include the full heading outline even when body text is truncated, so the agent knows what the page covers and can re-call with `section=...`.
+5. **Ordinary prose** — last in line for the budget. Currently first by default; that's backwards.
 
-### ~~Device AKA matching — Phase 1 (separator normalization + slug-normalized path)~~ ✓ DONE
+Secondary behaviors:
 
-Investigated 2026-04-04. Tested 27 common MCP-user alias patterns. Two fixes shipped:
+- **Synthetic "related videos" section** — if the page title or breadcrumb path matches video titles/chapters via FTS5, attach a `related_videos: [{url, title, timestamp, transcript_source}]` section. Pointer-only — no transcript text. If the transcript is author-provided, hint at the transcript being worth fetching separately; if auto-generated, don't bother hinting.
+- **Lower limit defaults for agent-driven use** — the current 16 000 default is generous. When callers pass `max_length=4000` or smaller, the above prioritization kicks in. At default, current behavior (TOC on large pages) stays.
 
-1. **Dash/underscore-split LIKE** — query split changed from `/\s+/` to `/[\s\-_]+/`. Fixes `rb5009-out` → `RB5009UPr+S+OUT`, `hap-ax3` → `hAP ax³` (via LIKE), `hap_ax3` → `hAP ax³`, `knot_emb_lte4` → `KNOT Embedded LTE4*` etc.
-2. **Slug-normalized LIKE fallback** — when all LIKE/FTS paths fail, strips all non-alphanumeric chars from both the query and `product_url` slug (`REPLACE(url,'_','')`), then tries `LIKE '%/product/%{normalizedQuery}%'`. Min length: 5 chars. Fixes `hapax3` → `hAP ax³`, `hapax2` → `hAP ax²`, `wapaxlte7` → `wAP ax LTE7 kit`, `fiberboxplus` → `FiberBox Plus`, `sxtsq5ax` → `SXTsq 5 ax` (once product_url is populated).
+This is the "hidden consolidation" lever: a smarter `get_page` reduces the number of follow-up tool calls an agent needs — properties, callouts, and videos are surfaced in the one call the agent is already making. Core change in `query.ts::getPage()`; TUI and MCP both inherit it for free.
 
-**Key signal:** MikroTik's own web team uses a distinct naming convention for URL slugs — these are essentially a "second taxonomy" of product names used consistently throughout the website. The slug is the most common form users copy from browser URLs or site searches. Indexing it as a first-class AKA source is the right call.
+### Drop `routeros_search_properties` as an MCP tool
 
-**Coverage after fixes** (against live DB, 2026-04-04):
-- Products with existing product_url: all AKA forms resolve ✓
-- 15 previously-missing devices with NULL product_url: slug-normalized path can't help until `extract-test-results.ts` re-runs (which will populate product_url via the sitemap fix)
+Per the consolidation decision and Principle 4: the tool is worthless without command-tree context, and property descriptions are largely inferable from names. **Data stays** — it's a likely input to restraml's `deep-inspect.json` enrichment pipeline and the four-part schema split we'll do later.
 
-**Remaining failures after Phase 1** (fixed in Phase 1.5 below):
-- ~~`hap ax 3` → returns 4 results (digit `3` filtered as too-short term; `hap ax` matches 4 products)~~ ✓ Fixed
-- ~~`rb5009` → returns 3 variants with no disambiguation context~~ ✓ Fixed
-- `hex 2024` / `hex_2024` → returns 7 results (`hEX refresh` has NULL product_url; "2024" not in name) — still needs alias table (Phase 2)
-- `chateaulte18` → MISS until product_url populated — resolved once extract-test-results re-runs with sitemap fix
+**Ship steps:**
 
-### ~~Device AKA matching — Phase 1.5 (superscript normalization + disambiguation)~~ ✓ DONE
+1. Remove the tool registration in `src/mcp.ts`.
+2. Keep `searchProperties()` in `query.ts` so the TUI `props` command keeps working — it's still a human-useful browse.
+3. Keep `routeros_lookup_property` — exact-name lookup with a `command_path` filter is different; it's still useful when you know the property name.
+4. Document in tool description that property info is available via `routeros_get_page` (once smart `get_page` lands — property tables surface in the page response).
 
-Implemented 2026-04-05. Three improvements to `searchDevices()` in `query.ts`:
+### Video metadata quality signals
 
-1. **Unicode superscript normalization** — bidirectional: queries are normalized to ASCII at entry (`normalizeDeviceQuery()`), and `product_name` is normalized in SQL via nested `REPLACE()` calls (`NORMALIZE_PRODUCT_NAME()`). Handles `²`↔`2`, `³`↔`3`, `¹`↔`1`. Fixes `hap ax3` → exact match `hAP ax³`, `hap ac2` → exact match `hAP ac²`, and Unicode-in-query `hAP ax³` → exact match too.
-2. **Single-digit LIKE term preservation** — the `t.length >= 2` filter that dropped single-char terms now keeps single digits when accompanied by longer terms (≥2 chars). Fixes `hap ax 3` → 1 result `hAP ax³` (previously returned 4 because `3` was dropped).
-3. **Multi-match disambiguation notes** — `disambiguationNote()` detects common prefix among results, then identifies key differences (enclosure IN/OUT, PoE in/out, wireless chains, LTE). Returns a human-readable string in the `note` field. Example: `rb5009` → 3 results + note mentioning enclosure and PoE output differences.
+Autogenerated YouTube transcripts are weak on technical terms. Today the MCP tool returns transcript snippets without indicating quality. Three fixes:
 
-**Verified against real DB** (2026-04-05): `hap ax3` ✓, `hap ax 3` ✓, `hap ac2` ✓, `hAP ax³` ✓, `hap be3` → `hAP be³ Media` ✓, `rb5009` → 3 variants with disambiguation ✓, `rb5009-out` → 1 result ✓, `hap ax` → 4 results with PoE note ✓.
+1. **Store `transcript_source`** — add a column on `videos` (or `video_segments`): `'auto' | 'author' | 'none'`. `yt-dlp` exposes this during extraction. Backfill during next `extract-videos` run.
+2. **Surface quality flags in results** — each video result carries `{ transcript_source, upload_date, view_count }` so agents can reason ("this is an auto-caption, treat as a pointer to the video, not a quote") and humans can visually weight them. The age/view count are explicit "trust this less for obscure topics, and the LLM may already have seen it in training on high-view videos" hints.
+3. **Treat videos as a locator, not a source.** Rewrite the `routeros_search_videos` tool description (and TUI `videos` help). When `routeros_search` returns videos in `related.videos`, include URL + title + timestamp by default; only include a transcript excerpt if `transcript_source === 'author'`. Surface the video URL to the user in all cases — that's the actionable output.
 
-10 new tests + 5 new device fixtures added to `query.test.ts`. All 142 tests pass.
+### `extract-devices` foreign key failure on non-clean DB
+
+`src/extract-devices.ts` runs `DELETE FROM devices`, which can fail with `SQLITE_CONSTRAINT_FOREIGNKEY` when `device_test_results` references the rows. Repro: run `make extract` twice in a row without `make clean`.
+
+**Preferred fix:** add `ON DELETE CASCADE` to the `device_test_results.device_id` FK. Keeps idempotency localized to the schema and avoids order coupling in the Makefile. Alternative: delete dependent rows first in `extract-devices.ts`. Either way, ship the fix — extractors should stay idempotent on an existing DB.
+
+### `routeros_search_tests` device filter (finish the job)
+
+`DeviceTestFilters` gets a `device` / `product_name` field (LIKE match against `devices.product_name`). Both the TUI `tests` command **and** the MCP tool accept it. Per Principle 1, this is a core change in `query.ts` with two thin adapter updates.
+
+The TUI half shipped in Phase 3 (`tests rb5009 ethernet 1518`). Verify whether the MCP tool + `searchDeviceTests()` signature were updated too; if not, finish the job.
+
+### Browse REPL — paging for `[X more results]`
+
+`[XX more results...]` isn't actionable. Bump default TUI limits (e.g., to 20) and let the existing pager handle display. A `more` / `next` command can come later if it's still needed.
+
+### Browse REPL — pass-through search parameters
+
+`cl 7.21..7.22 iot` already works for changelogs. Add a general flag parser for TUI commands (`--limit`, `--version`, `--breaking`, `--category`) so the TUI can exercise the same surface as MCP clients. Keeps Principle 2 honest (the TUI *is* the MCP surface for humans).
+
+### Browse REPL + `routeros_current_versions` — include WinBox
+
+Add WinBox 4 latest version alongside RouterOS channels. Fetch from `https://upgrade.mikrotik.com/routeros/winbox/LATEST.4`. Expose in **both** the TUI `ver` command and the `routeros_current_versions` MCP tool via the same core fetch function.
+
+### HTML extraction: preserve more signal tokens
+
+Page text from `getPage()` is currently near-raw text — blank line between headings landed in a prior fix, but almost nothing else survives extraction. Signals worth preserving in `extract-html.ts`:
+
+- **Headings** — prefix with `#`/`##`/`###` (matching level), *and* wrap in `**bold**`. Gives both markdown parsers and plain-text readers a clear cue. Current state is borderline unreadable in the TUI.
+- **Lists** — keep `-` for `<ul>` items, numbered `1.` for `<ol>`.
+- **Emphasis** — `<strong>` → `**bold**`, `<code>` → backticks. Low cost, high signal; today they're silently stripped.
+- **Script example demarcation** — code blocks already track `brush: ros` but the current extraction flattens them into a separate `code` field. Consider inlining them back into the text field as fenced blocks (```` ```routeros ... ``` ````) so they appear in-line with surrounding prose, matching how the docs are actually structured.
+
+Affects TUI readability and MCP tool output equally — classic Principle 1 core change. Pairs with the "Smart `get_page()`" item: once script examples are properly fenced in the text stream, the budget-aware prioritizer can identify and preserve them.
+
+**Caveat:** keep an alternate plain-plain-text path (simple regex strip) for any consumer that wants unformatted text. Most won't.
+
+### TUI — search-in-results (vi-style `/`)
+
+Add `/pattern` to the browse TUI, following vi / less / `man` convention: when viewing any rendered result set (search results, page body, property list, command tree, device cards, changelog entries), `/foo` filters or highlights matches inline. `n` / `N` for next/previous. Core lives in `browse.ts` since it's a display concern, but the matcher should reuse the same tokenization as `extractTerms()` so "search within results" behaves consistently with the main search. Useful daily for humans; doubles as a test of result-set completeness.
+
+### Standalone binaries: clarify internal-only use case
+
+Cross-compiled binaries (`rosetta-macos-arm64.zip`, etc.) exist in releases but there's no real user-facing use case — if you can run the binary you can install Bun and run `bunx @tikoci/rosetta` instead, which is what we already recommend. The binaries' actual role is **internal**, inside OCI images (`Dockerfile.release` bakes the compiled binary for fast container startup).
+
+**Action:** update `README.md` and `MANUAL.md` to reflect that compiled binaries are primarily an internal build artifact. The existing "Option C" install path stays as a documented fallback for people who can't install Bun for whatever reason, but it's deprioritized in the tester workflow guidance. Don't remove the build — it's load-bearing for the OCI image — just stop leading with it in user-facing docs.
+
+### Stats tool: more operational info
+
+DB file size, last extraction date, schema version. Some already in `getDbStats()`. Useful for both TUI and MCP. Small, high-visibility.
+
+### actions/checkout Node.js 20 deprecation
+
+`actions/checkout@v4` emits a Node.js 20 deprecation warning. Update to a version that supports Node.js 24 before the June 2026 deadline.
+
+---
+
+## Needs Input / Design Decision
+
+Items where the design isn't obvious enough to just build. Flagging for user review.
+
+### Direct SQL access — schema-as-resource or a constrained `run_sql` tool
+
+**The pull:** agents (and humans) using rosetta from inside a project directory will often just shell out to `sqlite3 ros-help.db 'SELECT ...'` rather than call the MCP server. Claude Code does this reliably once it notices the file. Any query of the form "give me all X" (all changelog entries for 7.22, all devices with PoE out, all pages linking to `/routing/bgp`) is one SQL round-trip instead of many tool calls + context burn.
+
+**The argument against over-engineering:** there's nothing sensitive in this DB. The usual "exposing SQL is dangerous" concerns don't apply to a read-only corpus of public documentation.
+
+**Options, least to most invasive:**
+
+1. **Schema-as-resource** — expose the schema DDL as an MCP resource (`rosetta://schema.sql`) plus a short `rosetta://schema-guide.md` explaining table relationships, FTS5 tokenizer differences, and good-query patterns. Agents that want to construct SQL can read this once and know what they're looking at. Zero runtime exposure, pure documentation.
+2. **Read-only `rosetta_query_sql(sql)` tool** — opens a second connection with `mode=ro`, executes the query, returns rows. Enforced via connection URI (`file:ros-help.db?mode=ro`), not a query parser. Still a meaningful attack surface if we ever add write tables, but at the current data shape it's effectively safe.
+3. **Write-password gate** — wrap the main (read-write) connection behind a password required only for schema-modifying statements. The "password" is a constant derived from the codebase (e.g., a hash of `server.json` version), so it's not a real secret, just a tripwire against agents that try `DROP TABLE` or `UPDATE pages SET ...`. Corruption prevention, not security. Makes option 2 more tenable.
+
+**Trade-off to weigh:** option 1 is free and already consistent with how CSV resources work. Option 2 eats some of the "shell out to sqlite3" motivation but at the cost of another tool in the catalog — exactly what we're trying to shrink. Option 3 is cheap but opinionated.
+
+**Straw-man recommendation:** ship option 1 now; revisit option 2 only if (a) usage data shows `sqlite3` shell-out is happening a lot and (b) the classifier/`searchAll` path proves insufficient for those queries. A CSV export from the TUI (`export csv` over the current view) handles the "make a CSV of all release notes" case without touching MCP at all.
+
+### How to express "looks like a command, but syntax might be wrong"
+
+Per the classifier: when we detect a command-shaped query (`/ip/firewall/filter add chain=forward`) but it doesn't validate cleanly against `commands`, we want to return something like:
+
+> "This looks like a `/ip/firewall/filter` command. The path exists; the `chain` argument couldn't be confirmed for this command in 7.22 — it may still be correct in older versions or as a historical shorthand. Verify with `routeros_command_version_check`."
+
+We should **never** tell the agent "this is wrong." We should say "this is not obviously correct; here's what I can confirm and here's what I can't." Needs careful tool-description wording before building.
+
+### TUI session log as a classifier corpus
+
+If `browse` is first class and mimics the MCP tool-call chain, a session transcript (queries + responses) becomes a corpus for evaluating the classifier and tuning tool descriptions. Opt-in, local-only. Related to but distinct from the "Usage analytics" improvement below.
+
+**Open question:** build this before or after the North Star lands? Building it now gives us an evaluation corpus for the classifier work; building it later avoids churn.
+
+### Property name-matching strategy in `routeros_search`
+
+Current `lookup_property` is exact-match. Observed gap: agents (and humans) often have a half-remembered property name. Should `routeros_search` auto-run a fuzzy property match when the input looks like a single lowercase token? Risk: false positives drown real page results. Mitigation: fire only when the token doesn't match any page title or command path. Needs a call on the false-positive tolerance.
+
+---
 
 ## To Investigate
 
 Items that need research or experimentation before they're actionable.
 
-### extract-devices foreign key failure on non-clean DB
+### Device AKA matching — Phase 2 (renames requiring an alias table)
 
-Observed 2026-04-09 while re-running `make extract` against an existing local DB populated by a previous full extract.
+After Phase 1 + 1.5, the remaining failure is genuine renames like `hex 2024` → `hEX refresh`. Needs a small `device_aliases (alias TEXT, device_id INTEGER)` table, seeded with known renames. Keep it small — only aliases that can't be derived from names/codes/slugs.
 
-- Failure: `src/extract-devices.ts` runs `DELETE FROM devices`, which can fail with `SQLITE_CONSTRAINT_FOREIGNKEY` when `device_test_results` still references rows in `devices`.
-- Repro: run `make extract` twice in a row without `make clean` in between.
-- Current workaround: `make clean && make extract`.
-- Expected behavior: extractors should remain idempotent on an existing DB without requiring a clean first.
+**Trigger:** address when a user reports false-empty on a renamed product or when a new product ships with a renaming pattern. Not worth building speculatively — device lookup matching is explicitly heuristic, not a solved-identity problem.
 
-Potential fixes (pick one):
+### List-format properties (496 across 73 pages)
 
-1. In `extract-devices.ts`, clear dependent rows first (`DELETE FROM device_test_results`) before deleting `devices`.
-2. Add `ON DELETE CASCADE` to `device_test_results.device_id` FK and confirm extractor semantics still match expectations.
-3. Adjust Makefile extraction order only if needed (less preferred than fixing table-level idempotency).
-
-### SafeSkill automated security scan — review notes (2026-04-06)
-
-Reviewed https://safeskill.dev/scan/tikoci-rosetta (v0.4.0 scan, 107 findings, overall score 73).
-
-**Fixed:**
-- `scripts/build-release.ts`: replaced `execSync(joinedString)` with `spawnSync("bun", argsArray)` and `spawnSync("zip", argsArray)`. The old pattern passed a shell-joined string through `/bin/sh`, creating a shell injection surface even though all inputs were controlled. Array-form bypasses the shell entirely. Also collapsed the identical `if (windows) / else` zip branches.
-- Added `SECURITY.md` with reporting process, scope, and HTTP transport security notes. Standard practice for npm packages; improves SafeSkill transparency score.
-
-**Dismissed (false positives):**
-- "Spawns child process" on `RegExp.exec()` in `extract-html.ts` — SafeSkill pattern-matched on the word "exec" incorrectly.
-- "Data flow: os.homedir → fetch" in `setup.ts` — `os.homedir()` builds a local DB file path; the download URL is hardcoded. No actual data flows to a network sink.
-- All other child_process findings in `bin/rosetta.js` (Node→Bun delegation), `extract-all-versions.ts`, and `scripts/` — these are build tooling / npm shim, not the runtime MCP server. SafeSkill is designed for MCP AI tools and treats build scripts as production code.
-- "Command injection: execSync('which bunx')" in `setup.ts` — hardcoded string, no injection surface.
-- "Data flow: readFileSync(package.json) → execSync" in the old `build-release.ts` — now fixed by array-form anyway.
-
-**Remaining SafeSkill score gaps (not acted on):**
-- "Code quality 1/5" — likely reflects test coverage or strict TypeScript settings. Not worth chasing SafeSkill's metric blindly.
-- "Transparency 3/7" — improved by adding `SECURITY.md`. Could further improve with `CODE_OF_CONDUCT.md` if the project grows a contributor community, but overkill now.
-- "Prompt injection 18/20" — our tool descriptions are clean. Minor gap likely cosmetic.
-
-### MikroTik /app auto-update behavior
-
-The `/app` YAML supports `auto-update: true`, which is documented to pull the latest container image on each boot. This is set in our rosetta /app template. Initial testing on CHR 7.23beta5 confirms the app installs and runs correctly, but the auto-update pull-on-boot behavior needs verification across reboots with new image tags pushed. Specifically: does RouterOS pull `:latest` fresh on each boot, or does it cache by digest? Does it require `docker-tag-based-pulling` or `checking-for-updates`?
-
-### ~~Product page slug coverage (15 missing devices)~~ ✓ DONE
-
-Implemented in `extract-test-results.ts`. Two-layer approach:
-1. **Sitemap validation** — `fetchSitemap()` fetches `https://mikrotik.com/sitemap.xml` once at extraction time, builds a `Set<string>` of all 543 valid product slugs. Generated candidates are prioritized when they appear in the sitemap set.
-2. **Override table** — `SLUG_OVERRIDES` maps all 15 known-opaque product names to their correct sitemap slugs (derived from 2026-04-04 research). New products with predictable slugs are handled automatically by the sitemap validation; only truly opaque cases need the override table.
-
-`buildSlugCandidates()` replaces direct `generateSlugs()` calls, priority: override → sitemap-validated generated → raw generated fallback. Sitemap fetch errors are non-fatal (falls back to heuristics only). Coverage goes from 129/144 (89%) to 144/144 (100%).
-
-### Device AKA matching — Phase 2 (aliases table for renames and versioned names)
-
-**Investigated 2026-04-04, updated 2026-04-05.** After Phase 1 + 1.5, one failure mode remains:
-
-**Renamed products** — Some products have a common user shorthand that refers to a new model with a completely different name:
-- `hex 2024` → should find `hEX refresh` (E50UG). The word "2024" doesn't appear anywhere in the product name or code. MikroTik renamed it "refresh" but users call it "2024" because the URL slug is `hex_2024`. This is a genuine rename — no amount of tokenization can bridge it without an explicit alias.
-- `hex s 2025` → correctly finds `hEX S (2025)` ✓ (product name contains "2025")
-- `chateau lte18 ax` → exact match ✓ when extracted; `chateaulte18` → works once product_url populated via sitemap fix
-
-~~**Problem 2: Versioned names with superscript digits**~~ ✓ Fixed in Phase 1.5 — bidirectional Unicode normalization + single-digit term preservation.
-
-~~**Problem 3: Multi-match results lack context**~~ ✓ Fixed in Phase 1.5 — `disambiguationNote()` detects enclosure/PoE/wireless/LTE differences.
-
-**Recommended approach for remaining gap:**
-1. **`device_aliases` table** — `(alias TEXT, device_id INTEGER)` with explicit mappings for known renames. Would handle `hex 2024` → `hEX refresh`, future rebrands, etc. Keep it small: only aliases that can't be derived from names/codes/slugs.
-
-**Signal insight:** The URL slug naming is a second authoritative taxonomy — MikroTik's web team consistently uses it across the site, and it's what users copy from browser URLs. The Phase 1 slug-normalized path already leverages this. For renamed products, the slug IS the AKA: `hex_2024` is the "real name" of `hEX refresh` as far as search is concerned.
-
-**Trigger:** Address when user reports false-empty on a renamed product, or when adding new products that have breaking renaming patterns.
-
-
-### Tool count and MCP client tool-list limits
-
-At 14 tools, rosetta is approaching the practical limit where MCP clients start to struggle. Observations:
-- Some clients display all tools in a flat list — 14+ entries with long descriptions is a wall of text for the model to parse at each turn.
-- Claude Code and VS Code Copilot handle many tools well, but ChatGPT and some smaller-context clients may not.
-- Each new data source (videos, changelogs, devices, tests) has added its own search tool, following the pattern. This pattern is clean but doesn't scale.
-
-**Consolidation candidates (low coupling):**
-- `routeros_search_videos` → fold into `routeros_search` (see "Unified search entry point" under Improvements)
-- `routeros_search_tests` → fold into `routeros_device_lookup` (tests are always per-device; a `include_benchmarks` param would work)
-- `routeros_stats` + `routeros_current_versions` → combine into a single `routeros_info` tool
-
-**Keep separate (high coupling to distinct workflows):**
-- `routeros_search` / `routeros_get_page` / `routeros_lookup_property` / `routeros_search_properties` — core doc workflow
-- `routeros_command_tree` / `routeros_command_version_check` / `routeros_command_diff` — version/upgrade workflow
-- `routeros_search_callouts` — unique content type agents specifically need
-
-**Trigger:** Monitor how agents use the tools (see "Usage analytics" backlog item). If agents consistently ignore 3+ tools, consolidation is worthwhile. If they use them all in different contexts, the current split is fine.
-
-### Debounce inspect.json fetches during extract-all-versions
-
-`extract-all-versions.ts` spawns `extract-commands.ts` for each version sequentially, and each invocation fetches its inspect.json from GitHub Pages. With ~48 versions this means ~48 sequential HTTP fetches. Consider:
-
-- Batch-prefetch all inspect.json files with concurrency control (e.g. 5 at a time) before spawning extractors
-- Cache fetched files in a temp dir so re-runs don't re-download
-- Pass fetched data via stdin or temp file instead of having each subprocess fetch independently
-
-Not urgent — the current sequential approach works and GitHub Pages has no rate limit. But it's slower than necessary.
-
-### List-format properties
-
-Some pages use `<ul><li><strong>name</strong> (type; Default: value)</li></ul>` for read-only properties instead of `confluenceTable`. These are currently not extracted.
-
-**Investigated 2026-04-04.** The assessment tool (`assess-html.ts`) already detects these. Results:
-
-- **496 list-format properties** across **73 pages** (23% of all pages)
-- Current table-format extraction: 5,130 properties — list-format adds 8.8% more
-- Pattern is consistent: `<li><strong>name</strong> (type; Default: value): description</li>`
-
-**Top pages by list property count:**
-
-| Page | Count | Notes |
-|------|-------|-------|
-| Queues | 61 | CIR/MIR params, burst settings, PCQ classifiers |
-| Hotspot customisation | 58 | HotSpot variables and template params |
-| RADIUS | 46 | RADIUS attribute definitions (Service-Type, NAS-Port-Type, etc.) |
-| Product Naming | 37 | Product code conventions (not really properties) |
-| CRS1xx/2xx series switches | 25 | Switch chip feature flags |
-| Packet Sniffer | 23 | Capture filter params |
-
-54 of 73 pages have ≤5 list properties each (long tail).
-
-**Recommendation:** Extract into the same `properties` table — same schema fits. Add to `extract-properties.ts` as a second pass after table extraction. The pattern is regular enough for reliable parsing. Queues, Hotspot, and RADIUS alone justify the effort — these are high-traffic reference pages for agents.
+8.8% more properties available from `<ul><li><strong>name</strong> (type; Default: value)</li></ul>` lists on pages like Queues, Hotspot, RADIUS. Integrate as a second pass in `extract-properties.ts` using the same `properties` table schema. The pattern is regular enough for reliable parsing. Queues, Hotspot, and RADIUS alone justify the effort.
 
 ### Special hardware pages
 
-Several pages contain device-specific tables that are uniquely valuable for agents — they're the only structured source for "does this router actually support X":
+Several pages contain device-specific tables that are the only structured source for "does this router actually support X":
 
-- **Switch Chip Features** (`ROS/pages/15302988`) — chip model → feature matrix
-- **Marvell Prestera** (`ROS/pages/30474317`) — Prestera switch chip model table
+- **Switch Chip Features** (`ROS/pages/15302988`)
+- **Marvell Prestera** (`ROS/pages/30474317`)
 - **Bridging and Switching** (`ROS/pages/328068`) — RouterBoard/Switch Chip Model table
-- **Peripherals** (`ROS/pages/13500447`) — supported USB/LTE/etc. peripherals
+- **Peripherals** (`ROS/pages/13500447`)
 
-These are worth extracting into dedicated tables or enriching the device data. If MikroTik renames/moves these pages, that's a signal "something important changed."
+Worth extracting into dedicated tables or enriching device data. If MikroTik renames/moves these, that's a signal "something important changed."
 
-Note: absence from the Peripherals page doesn't mean unsupported — most MBIM modems work without being listed.
-
-### `_completion` data from deep-inspect.json
-
-~~[tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices like `protocol=tcp,udp,icmp`). This would significantly enrich the command tree. Watch for that PR to ship, then design schema extension.~~
-
-**Investigated 2026-04-04.** deep-inspect.json is now published on restraml GitHub Pages. Available at `https://tikoci.github.io/restraml/<version>/extra/deep-inspect.json` starting from **7.22.1** (stable) and **7.23beta4** (dev). Not present for 7.22 or earlier, or 7.23beta2.
-
-**Current state:** The file exists and includes a `_meta` root field with version info and completion stats, but **`_completion` fields are not yet populated** — `argsWithCompletion: 0` across all checked versions (7.22.1, 7.23beta4, 7.23beta5). The command tree content is otherwise identical to inspect.json.
-
-**`_meta` structure:**
-
-```json
-{
-  "version": "7.22.1",
-  "generatedAt": "2026-03-28T03:25:43.709Z",
-  "completionStats": { "argsTotal": 34548, "argsWithCompletion": 0, "argsFailed": 0 }
-}
-```
-
-**Next steps:**
-
-1. Watch for future restraml builds where `argsWithCompletion > 0` — that's the trigger
-2. The `_meta.version` and `generatedAt` fields are immediately useful for extraction traceability — consider capturing these in `ros_versions` even before completion data arrives
-3. Prefer deep-inspect.json over inspect.json for versions where it exists (superset of data)
+Note: absence from Peripherals doesn't mean unsupported — most MBIM modems work without being listed.
 
 ### inspect.json extra-package coverage gaps
 
-Our inspect.json data comes from CHR (x86_64) with extra-packages enabled. CHR does not have all packages — known gaps:
+Known gaps (CHR-based inspect.json): WiFi driver packages (`wifi-qcom`, etc.) absent; LoRa + IoT GPIO have linking gaps; ZeroTier and scripting builtins missing/under-linked.
 
-- **Wi-Fi driver packages** — `wifi-qcom.npk`, `wifi-qcom-ac.npk`, and other wireless driver packages. VMs don't have wireless hardware so these aren't present on CHR.
-- **zerotier.npk** — not available on CHR builds.
-- **Architecture-specific packages** — some packages exist only for certain hardware architectures (ARM, MIPS, etc.) and aren't in the CHR build.
+**Actionable now, independent of restraml:**
 
-The HTML documentation covers all packages including these. The `Packages` page lists the full set of available packages.
+1. Tool description hints on `routeros_command_tree` noting the gaps and suggesting `routeros_search` as fallback.
+2. Targeted linking pass for WiFi, LoRa, scripting — the 92% dir coverage stat masks much lower coverage for these high-value subsystems.
+3. Extract the definitive package list from the `Packages` doc page into a `packages` table so agents can get a clear "these packages are not in the command tree" signal.
 
-**Investigated 2026-04-04.** Cross-referenced the command tree against HTML docs. Key findings:
+### MikroTik /app auto-update behavior
 
-**Pages with docs but poor/no command tree coverage:**
+`/app` YAML supports `auto-update: true`, set in our rosetta template. Initial testing on CHR 7.23beta5 confirms install/run. Unverified: does RouterOS pull `:latest` fresh on each boot, or cache by digest? Does it require `docker-tag-based-pulling` or `checking-for-updates`? Needs multi-reboot test with images pushed between reboots.
 
-| Subsystem | Doc pages | Commands in tree | Gap reason |
-|-----------|-----------|-----------------|------------|
-| WiFi (`/interface/wifi`) | WiFi (224559120), Interworking (334168086) | 2,584 cmds, only 3 pages linked | Linking gap + CHR has no wifi hardware |
-| Wireless (`/interface/wireless`) | Wireless (1409138), Wireless Interface (8978446) | 128 cmds | Legacy; main overview page has 0 links |
-| ZeroTier | ZeroTier (83755083) | 1 cmd in tree | Package missing from CHR |
-| LoRa (`/iot/lora`) | LoRa (16351615) | 475 cmds, only 17 documented | Linking gap |
-| IoT GPIO | GPIO (68944101) | Under `/iot`, 0 links | Linking gap |
-| Scripting builtins | Scripting (47579229), etc. | `/if`, `/while`, `/put`, `/tonum`, etc. | Script functions in tree but not linked to doc pages |
+### MCP resources beyond current CSVs
 
-**Impact for agents:** When a user asks about WiFi, ZeroTier, or LoRa commands, the command tree tools return incomplete/no results. The docs have the information but agents don't know to fall back to `routeros_search` or `routeros_get_page`.
+Shipped: `device-test-results.csv`, `devices.csv`. Candidates to add:
 
-**Actionable improvements:**
+- Raw product matrix CSV (as published by MikroTik, not the normalized version)
+- Versioned inspect.json dumps
+- RouterOS RAML/YAML schema (once restraml ships it)
 
-1. **Tool description hints** — add guidance to `routeros_command_tree` tool description noting that WiFi/wireless, ZeroTier, and LoRa commands may be incomplete in the tree; suggest `routeros_search` as fallback
-2. **Improve linking** — the 92% dir coverage stat masks that some high-value subsystems (WiFi, LoRa, scripting) have much lower coverage. A targeted linking pass for these specific subsystems would have outsized impact
-3. **Package manifest** — extract the definitive package list from the Packages doc page and cross-reference with what inspect.json actually contains, so agents get a clear "these packages are not in the command tree" signal
-
-### MCP resources (beyond tools)
-
-The MCP spec supports **resources** — static or semi-static data that clients can fetch without a tool call. Worth investigating whether we should expose some data as resources rather than (or in addition to) tools:
-
-- Implemented: `rosetta://datasets/device-test-results.csv` and `rosetta://datasets/devices.csv` expose the two main reporting datasets as CSV resources for clients that support MCP resources.
-- **Product matrix CSV** — `matrix/2026-03-25/matrix.csv` (144 products, 34 columns). The normalized `devices.csv` resource exists now, but the raw source CSV might still be useful as a resource for agents that want the original export columns exactly as MikroTik published them.
-- **Versioned inspect.json** — raw command tree data. Some agents might want the raw JSON rather than our SQL interpretation.
-- **RouterOS YAML schema** — restraml also generates RAML/YAML schemas. Could expose as a resource for code generation use cases.
-
-Resources are a better fit than tools for large, infrequently-changing data that agents consume wholesale rather than querying. In VS Code/Copilot they are explicitly attached context, not an automatic substitute for tool calls.
-
-### Product matrix CSV automation
-
-The product matrix CSV is downloaded manually via browser from `https://mikrotik.com/products/matrix` (PowerGrid table with export button). There is no stable URL for direct download. A GitHub agent could potentially automate this: navigate the site, trigger the export, and open a PR with the updated CSV — no URL input needed in the release workflow.
+Resources are for explicit attachment, not tool-call substitution — don't overinvest.
 
 ### Cross-reference with forum data
 
-The MikroTik forum archive (also an SQL-as-RAG project using SQLite FTS5) could be cross-searched with official docs. A JOIN or cross-search could surface community knowledge alongside official documentation. Need to think about: same DB vs. separate MCP tools vs. query-time federation.
+The MikroTik forum archive (`~/Lab/mcp-discourse`, also SQL-as-RAG with FTS5) could cross-search with official docs. Open design: same DB vs. separate MCP tools vs. query-time federation. No action until the forum archive is stable **and** the North Star classifier is in place — the classifier may be the natural plug-in point for a secondary retrieval source.
 
-### macOS code signing and notarization for compiled binaries
+### Debounce inspect.json fetches in `extract-all-versions`
 
-Compiled Bun binaries trigger macOS Gatekeeper because they are unsigned and unnotarized. Current workaround is documented in README (System Settings → Privacy & Security → Allow Anyway, or `xattr -d com.apple.quarantine`). The "Run with Bun" install option avoids this entirely.
+~48 sequential GitHub Pages fetches. Not urgent (GitHub Pages has no rate limit) but a concurrency-limited prefetch would cut extraction time. Low priority.
 
-To properly sign and notarize:
+### ETL pipeline streamlining
 
-- **Ad-hoc signing** (`codesign -s -`) — free, no account needed, but does NOT suppress Gatekeeper on other machines. Only useful for local development.
-- **Developer ID signing + notarization** — requires an **active** Apple Developer Program membership ($99/year). The certificate type needed is "Developer ID Application". The flow: `codesign --sign "Developer ID Application: ..."` → `xcrun notarytool submit` → `xcrun stapler staple`.
-- Windows SmartScreen has a similar story — EV code signing certificates (~$200-400/year) from a CA are needed to build SmartScreen reputation.
+The extraction pipeline works but it's messier than it should be. Each data source has slightly different semantics — mix of local files (HTML archive in `box/`, product matrix in `matrix/`), GitHub-fetched (inspect.json from restraml), HTTP-scraped (product pages, changelogs), and yt-dlp (videos). Some extractors are in the `make extract` / `make extract-full` chain; `extract-videos` is excluded because it needs `yt-dlp`; CI uses `extract-videos-from-cache` instead. Clean-slate rebuild isn't quite a 1-2-3 process.
 
-**Recommendation:** The Bun-based install option is the pragmatic alternative. Code signing is worth doing if the compiled binaries get wider distribution, but not a blocker for early testers.
+**Observed friction:**
 
-## Deferred
+- `extract-devices` FK failure on non-clean DB (listed in Ready to Build)
+- Different idempotency semantics across extractors (DROP+CREATE vs DELETE vs UNIQUE constraint)
+- Local vs CI path divergence for videos specifically
+- No single "is the DB healthy?" check beyond `routeros_stats`
+
+**Not urgent** — the TUI gives humans enough visibility to catch issues ("data should be there; isn't"), and CI runs the full pipeline regularly. But a future cleanup pass should unify the idempotency pattern, add a `make doctor` or `rosetta --check` command that validates row counts and FK integrity, and document the expected state after each extractor in one place.
+
+### Product matrix CSV automation
+
+No stable direct-download URL. A GitHub agent could potentially navigate, export, and PR the updated CSV. Low priority — manual export happens quarterly and works.
+
+### macOS code signing and notarization
+
+Documented workaround is sufficient; full signing needs a $99/year Apple Developer Program membership. Bun-based install avoids the issue. Revisit only if compiled binaries see wider distribution.
+
+### SafeSkill residual scan items
+
+Prior review closed the real findings (shell injection in `build-release.ts`, added `SECURITY.md`). Remaining low scores are metric artifacts ("Code quality 1/5", "Transparency 3/7"). Not worth chasing. Revisit only if a new real finding surfaces.
+
+---
+
+## Deferred (waiting on a trigger)
 
 Items explicitly postponed until a trigger condition is met.
 
-### Automate official MCP Registry publish in release workflow
+### Dependency on restraml — `deep-inspect.json` completion data (Principle 4)
 
-`server.json` and CI validation are now in place, but release-time publication to `registry.modelcontextprotocol.io` is deferred until namespace auth is set up for CI (`mcp-publisher login github-oidc` or DNS/HTTP method with secrets).
+**Blocking:** `deep-inspect.json` with populated `_completion` fields (enum choices, type hints, validation). As of 2026-04-04 the file exists from 7.22.1 / 7.23beta4 forward, but `argsWithCompletion: 0` — structure present, content empty. restraml iteration speed is the bottleneck, and their unblock depends on quickchr maturing.
 
-**Trigger:** CI auth method finalized and secrets configured for publish.
+**What to do now (safe, cheap cleanup):**
 
-When triggered:
+1. Capture `_meta.version` and `_meta.generatedAt` from `deep-inspect.json` in `ros_versions` for provenance.
+2. Prefer `deep-inspect.json` over `inspect.json` in the extraction order wherever a version has both.
 
-- Add publish step to `.github/workflows/release.yml` after `npm publish`.
-- Sync `server.json` version from release tag (`vX.Y.Z` -> `X.Y.Z`) before publish.
-- Execute `mcp-publisher publish server.json` in release job and fail release if publish fails.
-- Verify result with registry search API query for `io.github.tikoci/rosetta`.
+**What's blocked until `argsWithCompletion > 0`:**
 
-### Docker v1 tar / crane — OCI build anti-pattern
+1. Extending the `commands` schema with argument enum values (schema design happens *then*, when we know the data shape).
+2. Wiring completion values into the classifier — property-name matches offer valid enum values. This is where the cross-project payoff lands.
 
-All crane-based OCI image construction approaches (single-layer hand-crafted tars; `crane append` + jq config modification) failed on Docker 28's containerd image store: all exec calls returned `no such file or directory` despite `crane export` confirming files existed. Root cause never diagnosed.
+**What not to do now:** no speculative schema changes or abstractions anticipating deep-inspect's final shape. Light cleanup only.
 
-**Status:** Resolved — switched to `Dockerfile.release` + `docker buildx build --push --platform linux/amd64,linux/arm64`. Standard Docker builds work correctly.
+### MCP Registry publish automation
 
-**If re-evaluation of crane is needed:** See `~/.copilot/skills/tikoci-oci-image-building/SKILL.md` for the full anti-pattern documentation and what was tried.
+`server.json` and CI validation are in place. Release-time publication to `registry.modelcontextprotocol.io` deferred until CI namespace auth is configured (`mcp-publisher login github-oidc` or DNS/HTTP method with secrets).
 
-### OCI image armv7 support in release pipeline
+**Trigger:** CI auth method finalized and secrets configured. Then: add publish step to `release.yml` after `npm publish`; sync `server.json` version from the release tag (`vX.Y.Z` → `X.Y.Z`); fail the release if publish fails; verify via registry search API for `io.github.tikoci/rosetta`.
 
-Current CI builds linux/amd64 and linux/arm64 via `docker buildx`. `linux/arm/v7` is deferred because Bun target support for this path is unverified.
+### OCI image armv7 support
 
-**Trigger:** Bun reliably supports armv7 compilation for `src/mcp.ts`.
+Current CI builds linux/amd64 + linux/arm64 via `docker buildx`. armv7 deferred for **two independent reasons** — documenting both because PR requests for armv7 are likely and "Bun doesn't support it" alone sounds like a temporary excuse:
 
-When triggered:
+1. **Bun doesn't target armv7.** Bun's single-file compile (`bun build --compile`) has no armv7 target. Until that changes, there's no way to produce the binary the OCI image needs.
+2. **MikroTik `/app` doesn't support armv7 either.** The `/app` container framework (the layer above `/container`) is x86_64 and ARM64 only. MikroTik `/container` supports armv7, but our primary router-admin deployment path is `/app`. So even if Bun shipped armv7 tomorrow, rosetta-on-armv7-RouterOS wouldn't have a home through the router UI.
 
-- Add `linux/arm/v7` to `--platform` in the `docker buildx build` CI step
-- Add arm/v7 case to the `TARGETARCH` switch in `Dockerfile.release`
+**Trigger:** *either* reason being resolved isn't enough — both need to flip. Realistically this means Bun + MikroTik both catching up. When that happens, add `linux/arm/v7` to the buildx `--platform` flag and a case to the `TARGETARCH` switch in `Dockerfile.release`.
 
 ### Documentation version tracking
 
-**Trigger:** Second HTML export is available.
+**Trigger:** second HTML export is available. Then add a `doc_exports` metadata table (date, page count, text hashes). Simple diff — don't overengineer. Watch the special hardware pages above for renames/moves; those are the "something important changed" signal.
 
-When it arrives:
+### Copilot context provider via `lsp-routeros-ts`
 
-- Add `doc_exports` metadata table (export date, page count, hash)
-- Compare text hashes to detect changed pages
-- Watch the special hardware pages above for renames/moves — these are the ones that matter most if they change
-- Simple diff is fine; don't overengineer
+VS Code extension client-side can provide doc context via MCP or direct DB queries. Depends on `lsp-routeros-ts` integration maturing.
 
-### Copilot context provider
+### Cross-DB federation with forum archive
 
-VSCode extension client-side can provide doc context via MCP or direct DB queries. Depends on `lsp-routeros-ts` integration being further along.
+Depends on the forum archive being stable and the North Star classifier being in place as a plug-in point. See "Cross-reference with forum data" under Investigate.
 
-### ~~DB schema version check for bunx auto-updates~~ ✓ DONE
+---
 
-`SCHEMA_VERSION = 1` exported from `paths.ts`, stamped via `PRAGMA user_version` in `initDb()`, and checked at MCP server startup before `db.ts` is imported. On mismatch, auto-re-downloads the DB (same pattern as the empty-DB auto-download). `setup.ts --setup` validation also prints the schema version and warns on mismatch. Covered by a `checkSchemaVersion()` test in `query.test.ts`.
+## Improvements (smaller items, not urgent)
 
-**Increment `SCHEMA_VERSION` in `src/paths.ts` whenever a destructive schema change is made (DROP/RENAME table or column).**
+### Changelog tool: compact summary mode and version-range output size
 
-## Improvements
+Observed in a real Copilot CLI session: querying 7.21.3 → 7.22.1 produced 802 lines / 23.2 KB of JSON — Copilot CLI saved it to a temp file as "too large to read at once." Issues:
 
-Smaller items that would make things better but aren't urgent.
-
-### Unified search entry point — routeros_search as the primary discovery tool
-
-**Problem:** With 14 tools, agents face a "which tool do I start with?" decision. In practice, `routeros_search` is the documented primary entry point, but it only searches page FTS. Video transcripts, callouts, properties, and changelogs each require a separate tool call. Agents observed in real sessions rarely call `routeros_search_videos` unprompted — they don't know video data exists unless they happen to read the tool list carefully or get directed to it.
-
-**Approach options (not mutually exclusive):**
-
-1. **`routeros_search` surfaces video results** — add an `include_videos` boolean param (default: true). When enabled, interleave video segment results (tagged with source type) alongside page results. BM25 scores aren't directly comparable across FTS tables, so interleaving would need a heuristic (e.g., top N pages + top M videos, clearly labeled). Start with separate sections in the response: `pages: [...]`, `videos: [...]`.
-
-2. **Unified search mode** — a new `routeros_unified_search` that queries pages, videos, callouts, and properties in parallel and returns a merged ranked result. More ambitious but addresses the broader "too many entry points" problem. Risk: larger output, slower, harder to tune ranking across content types.
-
-3. **Tool description routing** — improve `routeros_search` tool description to explicitly mention that video transcripts exist and suggest `routeros_search_videos` as a follow-up. Cheapest change, but relies on agents reading and following routing hints (they sometimes do, sometimes don't).
-
-**Recommended first step:** Option 3 (description routing) is trivial and helps immediately. Then option 1 for the next release — `include_videos=true` by default, with a `pages` + `videos` split in the response. Defer option 2 until the pattern is validated.
-
-**Signal to watch:** Which tools agents actually invoke in real sessions. If agents consistently skip `routeros_search_videos`, that's a strong signal that option 1 is needed. See "Usage analytics" backlog item below.
+- **Output too verbose** — each entry returns full `description` + `excerpt` + `released`. For range queries this wall-of-JSON repeats. Compact summary mode: group by version then category, with counts and descriptions only (no excerpt duplication).
+- **`limit` max of 100 is too low for range queries** — raise to 200–500, or make grouped-summary the default when `from_version != to_version`.
+- **No `exclude_from` parameter** — range queries re-include `from_version` entries the user already has. Add an `exclude_from` flag or make `from_version` exclusive.
 
 ### Usage analytics — which tools do agents actually call?
 
-**Problem:** With 14 tools, tool descriptions are the primary steering mechanism for agent behavior. But we have no visibility into which tools agents invoke, in what order, or which queries return empty. Without data, tool description tuning is guesswork.
+Local-only `usage_log` table, opt-in via `ROSETTA_LOG_USAGE=1`. Tracks tool invocations, empty-result rates, query terms, and tool-chaining patterns. Data-driven consolidation decisions. **Becomes more important after the North Star ships** — we'll want to see whether the consolidated `routeros_search` actually replaced the specialized tools in practice.
 
-**What to track (local-only, no outbound network):**
-- Tool invocation counts (which tools are popular, which are never used)
-- Empty-result rates per tool (signals misunderstanding or bad queries)
-- Query terms per tool (what agents are asking for)
-- Tool chaining patterns (search → get_page → lookup_property vs. search → dead end)
-- Session-level sequences (do agents discover the right tool, or do they give up?)
+Privacy constraints: no outbound network; disabled by default; single `INSERT` per call into a local `usage_log` (separate `usage.db` to avoid bloating the main DB). `routeros_stats` can optionally include a usage summary.
 
-**Privacy and design constraints:**
-- **No outbound network** — data stays in a local SQLite table or log file. No phoning home.
-- **Opt-in** — disabled by default. Enable via env var (`ROSETTA_LOG_USAGE=1`) or CLI flag.
-- **Minimal overhead** — a single `INSERT` per tool call into a `usage_log` table in the existing DB (or a separate `usage.db` to avoid bloating the main DB).
-- **Read access** — `routeros_stats` could optionally include usage summary if logging is enabled.
+### Agent-assisted linking for remaining ~8% of command dirs
 
-**Schema sketch:**
-```sql
-usage_log (
-  id INTEGER PRIMARY KEY,
-  timestamp TEXT NOT NULL,  -- ISO 8601
-  tool TEXT NOT NULL,       -- 'routeros_search', 'routeros_get_page', etc.
-  query TEXT,               -- the user's query/input (first 200 chars)
-  result_count INTEGER,     -- number of results returned
-  session_id TEXT           -- MCP session ID for chaining analysis
-)
-```
-
-**Trigger:** Implement when there's a real question about which tools to consolidate or deprecate. The REST API page popularity mentioned in conversation is a good initial data point — but anecdotal. Systematic data would inform the unified search design above.
-
-**Long-term:** If the MikroTik /app deployment gets traction, aggregate usage across routers (opt-in) could reveal what the RouterOS community actually asks AI about. But that requires outbound network + consent, so it's a separate, much later consideration.
-
-### Agent-assisted linking
-
-Currently ~92% of dirs are linked to documentation pages. The remaining ~8% could be mapped by having agents manually review unlinked commands and match them to pages. Low priority — 92% is good enough for most queries.
+Targeted manual review of WiFi, LoRa, scripting could close the highest-value gaps without a full linking overhaul. Pair with the "inspect.json extra-package coverage gaps" item above.
 
 ### LSP integration
 
-[tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) hover handler should consume property data from this DB. Needs a settings field for `routeros.helpDatabasePath`. The data is ready; the consumer needs work.
+`lsp-routeros-ts` hover handler should consume property data from this DB. Needs a `routeros.helpDatabasePath` settings field on the consumer side. The data is ready; the consumer needs work.
 
-### ~~npm package experience (`bunx @tikoci/rosetta`)~~ ✓ DONE
+### Browse REPL — lower-priority wishlist
 
-Implemented. Three-mode DB path resolution (`src/paths.ts`): compiled → next to executable, dev → project root, package → `~/.rosetta/`. `setup.ts` detects mode and prints `bunx @tikoci/rosetta` configs for package mode (VS Code Copilot, Claude Desktop, Claude Code, Copilot CLI, Cursor). `bin/rosetta.js` Node error path now prints clear message directing to `bunx`. README restructured with bunx as primary Quick Start option, compiled binaries as secondary. `package.json` has `engines: {bun: ">=1.1"}` field.
+- **Tab completion** — command names + path prefixes from the `commands` table via readline's completer callback.
+- **History persistence** — `~/.rosetta/browse_history` so queries survive across sessions.
+- **Raw SQL mode** — `sql SELECT …` behind `--allow-sql`.
+- **Export** — `export <format>` dumps the current view as JSON / CSV / Markdown.
+- **Audit views** — data-quality commands: unlinked commands, pages with no properties, devices with no test results. These double as a test surface for the MCP side.
+- **Bookmarks** — save frequent queries/pages to `~/.rosetta/bookmarks.json`.
 
-### Changelog tool output size and version-range queries
+### Video extraction — periodic retry for consistent-fail set
 
-Observed in a real Copilot CLI session: querying changelogs between 7.21.3 and 7.22.1 produced 802 lines / 23.2KB of JSON output, which Copilot CLI saved to a temp file as "too large to read at once." Issues:
+143 videos fail consistently across passes (likely rate-limited rather than permanently gone; gradual 154 → 149 → 143 improvement across 3 passes suggests slow anti-bot relaxation). Re-run `make extract-videos` after 48–72h gaps; add to `transcripts/known-bad.json` with reason if a video fails 4+ times over several days.
 
-- **Output too verbose** — each entry returns full `description` + `excerpt` + `released` date. For version-range queries spanning multiple releases, this produces a wall of JSON. Consider a compact summary mode: group by version, then by category, with counts and only the descriptions (no excerpt duplication).
-- **`limit` max of 100 may be too low** — the model's first attempt used limit > 100 and hit a validation error. For "what changed between X and Y" queries spanning 3+ releases, 100 entries may genuinely not be enough. Consider raising to 200 or 500, or making the grouped summary the default for range queries.
-- **No `exclude_version` parameter** — asking for changes between 7.21.3 and 7.22.1 likely includes 7.21.3 entries too, which the user already has. Consider making `from_version` exclusive (changes *after* 7.21.3) or adding an `exclude_from` flag.
+The 84 no-transcript videos are stored successfully as metadata-only; they're a different case from "failed." Many are old MUM conference talks with no auto-captions.
 
-### Browse REPL enhancements (Phase 3)
+---
 
-The `browse` command provides a keyboard-driven REPL over all extracted data. It doubles as a test harness — interacting with data the same way an MCP agent would, so gaps visible in `browse` often point to MCP tool deficiencies. Tracked issues and improvements:
+## Recently Done
 
-#### Navigation and context
+One-liners for continuity; delete entries after a release cycle passes. Details live in git history and `CLAUDE.md`.
 
-- ~~**`b` (back) is unreliable**~~ — **Done (Phase 3).** Context-aware prompt shows `rosetta[search: "DHCP"]>`, `rosetta[Bridge VLAN Table]>`, etc. using `buildPrompt()` / `contextLabel()`. All 14 context types mapped. Prompt updates after every command.
-- ~~**Number references don't consistently navigate**~~ — **Done (Phase 3).** `handleNumberSelect()` now handles callouts (→ source page), videos (→ timestamped URL), properties (→ source page), and changelogs (→ full entry detail). Changelog entries also got numbering in the display.
-- **`[XX more results...]` is not actionable** — search results show "X of Y results" but there's no way to page forward or request more. Need either: (a) a `more` / `next` command to load the next page, or (b) increase default limit and truncate display with paging. The pager handles long output already, so (b) may be simpler — bump the query limit and let the existing pager handle display.
-
-#### Parameter alignment with MCP tools
-
-- ~~**`tests` command has no device filter**~~ — **Done (Phase 3).** Added `device` field to `DeviceTestFilters` type (LIKE match), `routeros_search_tests` MCP tool schema, and TUI `doTests()` parser (positional: `tests rb5009 ethernet 1518`). Tests in `query.test.ts`.
-- **Search parameters not exposed** — MCP tools like `routeros_search` accept `limit`, `routeros_search_changelogs` accepts `breakingOnly`, `fromVersion`, `toVersion`, `category`, but the TUI doesn't expose these. Consider a parameter syntax like `s firewall .limit=20` or flags like `s firewall --limit 20`. Alternatively, specific shorthands: `cl 7.21..7.22 iot` already works for changelogs, similar patterns for other tools.
-- ~~**Commands should mirror MCP tool catalogs**~~ — **Done (Phase 3).** `renderHelp()` now shows the MCP tool name for each command, e.g., `search <query>  s  Explicit page search  (routeros_search)`.
-
-#### Pager and display polish
-
-- ~~**Pager controls should use RouterOS style**~~ — **Done (Phase 3).** Footer now shows `-- N more lines [Q quit | SPACE next page | ENTER next line]`. SPACE advances one page, ENTER/arrow-down advances one line.
-- **Document text formatting could be improved** — page text from `getPage()` is raw extracted text with no spacing between headings and body text. During HTML extraction, we could insert blank lines before headings and retain some minimal formatting signals (e.g., `**bold**` from `<strong>`, `-` from `<li>`). This would cost little in token overhead but improve readability both in `browse` and in MCP tool output. This is an extraction-level improvement (affects `extract-html.ts`), not just a display concern.
-- ~~**Code blocks lack visual separation**~~ — **Done (Phase 3).** Code lines in `renderPage()` are now 2-space indented for visual separation from text.
-
-#### Version and metadata display
-
-- **`ver` / `versions` should include WinBox version** — add WinBox 4 latest version info alongside RouterOS channels. Available from `https://upgrade.mikrotik.com/routeros/winbox/LATEST.4`. Small fetch, high value for the target audience. Consider adding to both the TUI command and the `routeros_current_versions` MCP tool.
-- **Stats could show more operational info** — database file size, last extraction date, schema version. Some of this is in `getDbStats()` already.
-
-#### Wishlist (lower priority)
-
-- **Tab completion** — complete command names (`cmd`, `prop`, `dev`…) and path prefixes (`/ip/firewall/…`) using readline's completer callback. Command paths could be pre-fetched from the `commands` table at startup.
-- **History persistence** — save readline history to `~/.rosetta/browse_history` so queries survive across sessions.
-- **Raw SQL mode** — `sql SELECT …` command for ad-hoc queries. Guard with `--allow-sql` flag.
-- **Export** — `export <format>` to dump the current view as JSON, CSV, or Markdown.
-- **Audit views** — data quality commands: unlinked commands, pages with no properties, devices with no test results.
-- **Bookmarks** — save frequent queries/pages for quick recall. Store in `~/.rosetta/bookmarks.json`.
-
-### `routeros_search` cross-table awareness
-
-**Problem:** `routeros_search` only searches the `pages_fts` index. When an agent starts with a broad question like "VRRP" or "BGP route reflection", the search returns page results but gives no signal that there are also relevant callouts, properties, changelogs, video transcripts, or device-specific data. The agent has to know about and call 5+ other tools independently.
-
-**Observed in TUI testing (2026-04-09):** Using `browse` as an LLM proxy, the search results are often a good starting point but the user (or agent) has no way to know what *else* is available without manually trying each catalog. An agent that only calls `routeros_search` misses warnings in callouts, version-specific gotchas in changelogs, and tutorial videos.
-
-**Current state of tool description routing:** `routeros_search` description includes `→ routeros_search_videos`, `→ routeros_search_callouts` hints, but agents inconsistently follow these. Real-session observation: agents rarely call `routeros_search_videos` unprompted.
-
-**Recommended approach (incremental):**
-
-1. **Phase 1 — Summary counts in search results** (low effort, high signal): When `routeros_search` returns page results, also run quick `SELECT count(*)` queries against other FTS tables for the same query terms. Include in the response: `"related": { "callouts": 3, "changelogs": 12, "videos": 2 }`. This gives agents (and TUI) a clear signal that more data exists without bloating the response. The agent can then make an informed decision to call the specific tool.
-
-2. **Phase 2 — Top-N cross-table results** (medium effort): Include the top 2-3 results from each related table directly in the search response, tagged by source type. Still separate sections, not interleaved. This is the `include_videos=true` option from the existing "Unified search" backlog item.
-
-3. **Phase 3 — Unified ranked search** (high effort, questionable value): True cross-table BM25 ranking. Probably not worth it — BM25 scores aren't comparable across different FTS tables with different column weights.
-
-**Signal:** Phase 1 is the clear next step. It directly addresses the "agent doesn't know other data exists" problem with minimal response size impact.
-
-### `routeros_search_tests` missing device filter
-
-The `routeros_search_tests` MCP tool and `searchDeviceTests()` function accept `test_type`, `mode`, `configuration`, `packet_size`, and `sort_by` — but no `device` or `product_name` filter. This makes the tool nearly useless for the most common query: "show me benchmarks for [specific device]."
-
-**Current workaround:** `routeros_device_lookup` auto-attaches test results for exact matches and small result sets (≤5), so agents can get per-device benchmarks that way. But `routeros_search_tests` positioned as a "cross-device" comparison tool has no way to scope to a subset of devices.
-
-**Fix:** Add `product_name` to `DeviceTestFilters`. In SQL: `JOIN devices d ON ... WHERE d.product_name LIKE ?`. Also update the `browse` `tests` command to accept a device name in the filter string.
-
-**In TUI:** `tests rb5009 ethernet 1518` should match product names containing "rb5009" and filter to ethernet tests at 1518 bytes.
-
-### ~~Archival Python scripts~~
-
-`ros-pdf-to-sqlite.py` and `ros-pdf-assess.py` were from the original PDF-based approach. **Removed** — files are in git history if needed.
-
-### ~~MikroTik YouTube transcript extraction~~ ✓ DONE (local extraction + CI import complete)
-
-Full pipeline implemented (2026-04-08):
-- `videos` + `video_segments` + `videos_fts` + `video_segments_fts` tables in schema
-- `src/extract-videos.ts` — `yt-dlp`-based extractor: fetches playlist, downloads VTT + info.json per video, parses cues, splits by chapters, stores in DB. Only English subtitles via `--sub-langs en`.
-- `routeros_search_videos` MCP tool — FTS over chapter titles + transcript text, with timestamps for deep links
-- Timeout guardrails: `--socket-timeout 15`, `--retries 2`, `Bun.spawnSync timeout: 120_000ms`
-- Cache system: `saveCache` / `importCache` / `loadKnownBad` / `findLatestCache` in `extract-videos.ts`. NDJSON format, `transcripts/YYYY-MM-DD/videos.ndjson` committed to git.
-- `transcripts/known-bad.json` — 10 known non-English video IDs seeded (Russian, Spanish, Latvian, Albanian, Indonesian)
-- Makefile: `extract-videos`, `extract-videos-from-cache`, `save-videos-cache`
-- `--from-cache` mode runs without `yt-dlp` (CI path), `--save-cache` exports DB → NDJSON after run
-- Tests: 12 yt-dlp mock tests + cache function tests (saveCache, importCache, loadKnownBad, findLatestCache)
-- Non-English videos: ~27 stored as metadata-only (no transcript — `yt-dlp` finds no English VTT). Graceful, not a failure.
-
-**Local extraction completed** for 518 videos (April 2026). Cache committed at `transcripts/2026-04-09/videos.ndjson`. CI import step added to `release.yml`.
-
-### ~~Add extract-videos-from-cache to release.yml~~ ✓ DONE
-
-Added `make extract-videos-from-cache` step to `release.yml` after "Extract changelogs" and before "Link commands to pages". Stats step already includes VIDEOS/SEGMENTS counts with `2>/dev/null || echo 0` safeguards. No `yt-dlp` needed in CI — the committed NDJSON (`transcripts/2026-04-09/videos.ndjson`, 518 videos) is the sole source.
-
-For fresh transcript updates: run `make extract-videos && make save-videos-cache` locally, then commit `transcripts/YYYY-MM-DD/videos.ndjson` and push.
-
-### Video extraction failures — periodic retry or known-bad additions
-
-**Context (2026-04-09 extraction, 3 passes over ~26 hours):**
-- Pass 1: 232 new, 275 skipped, 81 no-transcript, 154 failed
-- Pass 2: 5 new, 499 skipped, 0 no-transcript, 149 failed
-- Pass 3 (make save-videos-cache): 6 new, 504 skipped, 0 no-transcript, 143 failed
-- **Final DB: 518 videos, 1890 segments, ~1799 with transcripts, 84 metadata-only (no transcript)**
-
-**Failure pattern:** 143 videos consistently fail across all passes. Gradual improvement (154 → 149 → 143) suggests YouTube rate limiting / anti-bot that slowly allows access rather than permanent unavailability. Not the same as "no-transcript" (those are stored successfully).
-
-**Possible causes for consistent failures:**
-1. YouTube anti-bot measures triggering on the same IPs
-2. Videos with no English captions *and* yt-dlp can't even get metadata
-3. Age-restricted / geo-restricted videos (yt-dlp errors on access)
-
-**Recommended next step:** Run another round of `make extract-videos` after a 48–72 hour gap. If a video fails 4+ times over several days, add it to `transcripts/known-bad.json` with the reason (or investigate with `yt-dlp <url>` manually to confirm the error type).
-
-**No-transcript (84 videos):** These are stored successfully in DB as metadata-only. Many are old MUM conference talks with no auto-captions. `known-bad.json` has 10 explicitly non-English IDs seeded. Additional ones can be added as they're identified.
-
-### Video title superscript normalization (applied 2026-04-09)
-
-**Implemented:** `normalizeSuperscripts()` in `extract-videos.ts` normalizes ⁰¹²³⁴⁵⁶⁷⁸⁹ and ₀₁₂₃₄₅₆₇₈₉ → ASCII digits at insert time (both yt-dlp and importCache paths). Existing DB rows updated via SQL UPDATE (triggers propagated to FTS5 index).
-
-**Effect:** Searching "hap ax3" now finds "hAP ax3" (was "hAP ax³"). Searching "hap ax2" finds "hAP ax2" (was "hAP ax²"). The NDJSON cache retains original form (fidelity to source); normalization applied at import time.
-
-**Note:** The `devices_fts` table (products) uses `unicode61` without porter and stores the original product names from the matrix CSV (e.g. "hAP ax³" in the CSV). ✅ Same normalization applied to `extract-devices.ts` and existing DB rows updated — searching "ax3" now finds "hAP ax3" (was "hAP ax³"), "ac2" finds "hAP ac2" (was "hAP ac²"), etc.
+- Section-level page chunks (TOC + `section` param on `get_page`)
+- Device/product data Phase 1 + Phase 2 (devices, test results, block diagrams)
+- Device AKA matching Phase 1 + 1.5 (separator/slug/superscript normalization + disambiguation notes)
+- Product page slug coverage via sitemap + override table (144/144)
+- Command diff tool (`routeros_command_diff`)
+- HTTP transport (Streamable HTTP via `--http`, optional TLS)
+- npm package (`bunx @tikoci/rosetta`) with three-mode path resolution
+- DB schema version check for auto-updates
+- MikroTik YouTube transcript extraction + CI import from committed NDJSON cache
+- Video title + device superscript normalization (both `videos_fts` and `devices_fts`)
+- Browse TUI Phase 3 — context-aware prompts, number navigation, device filter on `tests`, MCP tool names in `help`, RouterOS-style pager footer, code-block indentation
+- Fixed CI workflow (in-memory SQLite tests, re-enabled push/PR triggers)
+- `make extract-videos-from-cache` step in `release.yml`
+- SafeSkill security scan review — shell-injection fix in `build-release.ts`, added `SECURITY.md`

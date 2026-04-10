@@ -4,12 +4,19 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse
 ---
 # MCP Server & Query Engine
 
+## Core Principle — TUI and MCP are a pair
+
+The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. Both the MCP tool layer and the TUI are thin adapters over query functions in `src/query.ts`. When adding a feature, default to putting the logic in core (`query.ts`) so both surfaces inherit it. PRs that grow TUI-only or MCP-only heuristics are a smell — flag and move the logic to core. See `BACKLOG.md` "Guiding Principles" and "North Star — unified `routeros_search`".
+
+**Consolidation direction:** the current 14 tools are being compressed toward ~8–10 via a smarter `routeros_search` that classifies the input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. See the North Star in `BACKLOG.md` before adding a new tool — the right answer is usually "make `routeros_search` smarter, not more tools."
+
 ## MCP Tool Conventions
 - Server name: `"rosetta"` — never change
 - Zod v4 installed, but import from `"zod/v3"` — MCP SDK requires Zod v3 API
 - Transport: stdio (default) or Streamable HTTP (`--http` flag). HTTP uses `Bun.serve()` + per-session `WebStandardStreamableHTTPServerTransport` routing — each client session gets its own transport + McpServer instance via `createServer()` factory.
 - Tools return structured objects, not raw SQL rows
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
+- **Before adding a new tool, ask:** can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
 
 ## 14 Tools
 | Tool | Purpose |
