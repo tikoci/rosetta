@@ -64,6 +64,120 @@ interface SectionRow {
   sort_order: number;
 }
 
+const BLOCK_TAGS = new Set([
+  "address",
+  "article",
+  "aside",
+  "blockquote",
+  "dd",
+  "div",
+  "dl",
+  "dt",
+  "fieldset",
+  "figcaption",
+  "figure",
+  "footer",
+  "form",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "hr",
+  "li",
+  "main",
+  "nav",
+  "ol",
+  "p",
+  "pre",
+  "section",
+  "table",
+  "tbody",
+  "td",
+  "th",
+  "thead",
+  "tr",
+  "ul",
+]);
+
+/**
+ * Remove Confluence TOC style leakage that may survive DOM cleanup when HTML is malformed.
+ * Keeps cleanup narrow to rbtoc CSS so normal content is not affected.
+ */
+export function sanitizeExtractedText(input: string): string {
+  if (!input) return "";
+
+  return input
+    // Full CDATA-wrapped TOC style block.
+    .replace(/\/\*<!\[CDATA\[\*\/[\s\S]*?\/\*\]\]>\*\//g, "")
+    // Bare TOC CSS lines that can leak without wrappers.
+    .replace(/^\s*div\.rbtoc\d+[^\n]*(?:\n\s*div\.rbtoc\d+[^\n]*)*/gm, "")
+    // Any orphaned CDATA markers.
+    .replace(/\/\*<!\[CDATA\[\*\//g, "")
+    .replace(/\/\*\]\]>\*\//g, "")
+    // Prevent giant gaps in rendered output.
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Convert a DOM subtree to readable plain text while preserving block boundaries.
+ * This avoids merged tokens like "OverviewThe" caused by raw textContent collapse.
+ */
+export function extractPlainText(root: Element | null): string {
+  if (!root) return "";
+
+  let out = "";
+
+  const addBreak = () => {
+    if (!out) return;
+    if (!out.endsWith("\n")) out += "\n";
+  };
+
+  const addText = (text: string) => {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    if (!normalized) return;
+    if (out && !out.endsWith("\n") && !out.endsWith(" ")) out += " ";
+    out += normalized;
+  };
+
+  const walk = (node: Node) => {
+    if (node.nodeType === 3) {
+      addText(node.textContent || "");
+      return;
+    }
+
+    if (node.nodeType !== 1) return;
+
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+
+    if (tag === "style" || tag === "script" || tag === "noscript") return;
+    if (tag === "br") {
+      addBreak();
+      return;
+    }
+
+    const isBlock = BLOCK_TAGS.has(tag);
+    if (isBlock) addBreak();
+
+    for (const child of el.childNodes) {
+      walk(child as unknown as Node);
+    }
+
+    if (isBlock) addBreak();
+  };
+
+  walk(root as unknown as Node);
+
+  return out
+    .replace(/[ \t]*\n[ \t]*/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /**
  * Split main content into sections by h1–h3 headings with id attributes.
  * Uses innerHTML + regex to locate heading boundaries, then parses each
@@ -105,7 +219,7 @@ function extractSections(mainContent: Element, pageId: number): SectionRow[] {
       codeChunks.push(ce.textContent?.trim() || "");
     }
 
-    const text = root?.textContent?.trim() || "";
+    const text = sanitizeExtractedText(extractPlainText(root));
     const code = codeChunks.join("\n\n");
 
     return {
@@ -187,7 +301,7 @@ function extractPage(file: string, html: string): (PageRow & { callouts: Callout
   }
 
   // Plain text from main content (includes code block text too, which is fine for FTS)
-  const text = mainContent?.textContent?.trim() || "";
+  const text = sanitizeExtractedText(extractPlainText(mainContent));
   const wordCount = text.split(/\s+/).filter(Boolean).length;
 
   // Callouts: extract note/warning/info blocks
@@ -238,149 +352,155 @@ function extractPage(file: string, html: string): (PageRow & { callouts: Callout
 
 // ---- Main ----
 
-console.log("Initializing database...");
-initDb();
+function main() {
+  console.log("Initializing database...");
+  initDb();
 
 // Drop existing data for clean re-extraction (respect FK order)
-db.run("DELETE FROM sections;");
-db.run("DELETE FROM callouts;");
-db.run("INSERT INTO callouts_fts(callouts_fts) VALUES('rebuild');");
-db.run("DELETE FROM properties;");
-db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
-db.run("PRAGMA foreign_keys = OFF;");
-db.run("DELETE FROM pages;");
-db.run("PRAGMA foreign_keys = ON;");
-db.run("INSERT INTO pages_fts(pages_fts) VALUES('rebuild');");
+  db.run("DELETE FROM sections;");
+  db.run("DELETE FROM callouts;");
+  db.run("INSERT INTO callouts_fts(callouts_fts) VALUES('rebuild');");
+  db.run("DELETE FROM properties;");
+  db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
+  db.run("PRAGMA foreign_keys = OFF;");
+  db.run("DELETE FROM pages;");
+  db.run("PRAGMA foreign_keys = ON;");
+  db.run("INSERT INTO pages_fts(pages_fts) VALUES('rebuild');");
 
-const htmlFiles = readdirSync(HTML_DIR)
-  .filter((f) => f.endsWith(".html") && f !== "index.html")
-  .sort();
+  const htmlFiles = readdirSync(HTML_DIR)
+    .filter((f) => f.endsWith(".html") && f !== "index.html")
+    .sort();
 
-console.log(`Extracting ${htmlFiles.length} HTML files from ${HTML_DIR}`);
+  console.log(`Extracting ${htmlFiles.length} HTML files from ${HTML_DIR}`);
 
 // Two-pass insert: first without parent_id (avoids FK ordering issues),
 // then update parent relationships.
-const insertPage = db.prepare(`
+  const insertPage = db.prepare(`
   INSERT OR REPLACE INTO pages
     (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
      author, last_updated, word_count, code_lines, html_file)
   VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
-const updateParent = db.prepare("UPDATE pages SET parent_id = ? WHERE id = ?");
+  const updateParent = db.prepare("UPDATE pages SET parent_id = ? WHERE id = ?");
 
-let extracted = 0;
-let skipped = 0;
-let totalWords = 0;
-let totalCodeLines = 0;
-let totalCallouts = 0;
+  let extracted = 0;
+  let skipped = 0;
+  let totalWords = 0;
+  let totalCodeLines = 0;
+  let totalCallouts = 0;
 
-const allPages: (PageRow & { callouts: CalloutRow[]; sections: SectionRow[] })[] = [];
+  const allPages: (PageRow & { callouts: CalloutRow[]; sections: SectionRow[] })[] = [];
 
 // Pass 1: extract and insert all pages (parent_id = NULL)
-const insertAll = db.transaction(() => {
-  for (const file of htmlFiles) {
-    const html = readFileSync(resolve(HTML_DIR, file), "utf-8");
-    const page = extractPage(file, html);
-    if (!page) {
-      skipped++;
-      console.warn(`  skipped: ${file}`);
-      continue;
+  const insertAll = db.transaction(() => {
+    for (const file of htmlFiles) {
+      const html = readFileSync(resolve(HTML_DIR, file), "utf-8");
+      const page = extractPage(file, html);
+      if (!page) {
+        skipped++;
+        console.warn(`  skipped: ${file}`);
+        continue;
+      }
+      insertPage.run(
+        page.id,
+        page.slug,
+        page.title,
+        page.path,
+        page.depth,
+        page.url,
+        page.text,
+        page.code,
+        page.code_lang,
+        page.author,
+        page.last_updated,
+        page.word_count,
+        page.code_lines,
+        page.html_file,
+      );
+      allPages.push(page);
+      extracted++;
+      totalWords += page.word_count;
+      totalCodeLines += page.code_lines;
     }
-    insertPage.run(
-      page.id,
-      page.slug,
-      page.title,
-      page.path,
-      page.depth,
-      page.url,
-      page.text,
-      page.code,
-      page.code_lang,
-      page.author,
-      page.last_updated,
-      page.word_count,
-      page.code_lines,
-      page.html_file,
-    );
-    allPages.push(page);
-    extracted++;
-    totalWords += page.word_count;
-    totalCodeLines += page.code_lines;
-  }
-});
-insertAll();
+  });
+  insertAll();
 
 // Pass 2: set parent_id where the parent actually exists in the DB
-const pageIds = new Set(allPages.map((p) => p.id));
-const setParents = db.transaction(() => {
-  for (const page of allPages) {
-    if (page.parent_id && pageIds.has(page.parent_id)) {
-      updateParent.run(page.parent_id, page.id);
+  const pageIds = new Set(allPages.map((p) => p.id));
+  const setParents = db.transaction(() => {
+    for (const page of allPages) {
+      if (page.parent_id && pageIds.has(page.parent_id)) {
+        updateParent.run(page.parent_id, page.id);
+      }
     }
-  }
-});
-setParents();
+  });
+  setParents();
 
 // Pass 3: insert callouts
-const insertCallout = db.prepare(`
+  const insertCallout = db.prepare(`
   INSERT INTO callouts (page_id, type, content, sort_order)
   VALUES (?, ?, ?, ?)
 `);
-const insertCallouts = db.transaction(() => {
-  for (const page of allPages) {
-    for (const c of page.callouts) {
-      insertCallout.run(c.page_id, c.type, c.content, c.sort_order);
-      totalCallouts++;
+  const insertCallouts = db.transaction(() => {
+    for (const page of allPages) {
+      for (const c of page.callouts) {
+        insertCallout.run(c.page_id, c.type, c.content, c.sort_order);
+        totalCallouts++;
+      }
     }
-  }
-});
-insertCallouts();
+  });
+  insertCallouts();
 
 // Pass 4: insert sections
-let totalSections = 0;
-let pagesWithSections = 0;
-const insertSection = db.prepare(`
+  let totalSections = 0;
+  let pagesWithSections = 0;
+  const insertSection = db.prepare(`
   INSERT INTO sections (page_id, heading, level, anchor_id, text, code, word_count, sort_order)
   VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `);
-const insertSections = db.transaction(() => {
-  for (const page of allPages) {
-    if (page.sections.length > 0) {
-      pagesWithSections++;
-      for (const s of page.sections) {
-        insertSection.run(s.page_id, s.heading, s.level, s.anchor_id, s.text, s.code, s.word_count, s.sort_order);
-        totalSections++;
+  const insertSections = db.transaction(() => {
+    for (const page of allPages) {
+      if (page.sections.length > 0) {
+        pagesWithSections++;
+        for (const s of page.sections) {
+          insertSection.run(s.page_id, s.heading, s.level, s.anchor_id, s.text, s.code, s.word_count, s.sort_order);
+          totalSections++;
+        }
       }
     }
-  }
-});
-insertSections();
+  });
+  insertSections();
 
-const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM pages_fts").get() as { c: number }).c;
+  const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM pages_fts").get() as { c: number }).c;
 
-console.log(`\nExtraction complete:`);
-console.log(`  Pages extracted: ${extracted}`);
-console.log(`  Pages skipped:   ${skipped}`);
-console.log(`  Total words:     ${totalWords.toLocaleString()}`);
-console.log(`  Total code lines: ${totalCodeLines.toLocaleString()}`);
-console.log(`  Total callouts:  ${totalCallouts}`);
-console.log(`  Total sections:  ${totalSections} (across ${pagesWithSections} pages)`);
-console.log(`  FTS index rows:  ${ftsCount}`);
+  console.log(`\nExtraction complete:`);
+  console.log(`  Pages extracted: ${extracted}`);
+  console.log(`  Pages skipped:   ${skipped}`);
+  console.log(`  Total words:     ${totalWords.toLocaleString()}`);
+  console.log(`  Total code lines: ${totalCodeLines.toLocaleString()}`);
+  console.log(`  Total callouts:  ${totalCallouts}`);
+  console.log(`  Total sections:  ${totalSections} (across ${pagesWithSections} pages)`);
+  console.log(`  FTS index rows:  ${ftsCount}`);
 
 // Quick search test
-const testResults = db
-  .prepare(
-    `SELECT s.id, s.title, s.path,
-            snippet(pages_fts, 2, '>>>', '<<<', '...', 20) as excerpt
-     FROM pages_fts fts
-     JOIN pages s ON s.id = fts.rowid
-     WHERE pages_fts MATCH 'firewall filter'
-     ORDER BY rank LIMIT 5`,
-  )
-  .all();
+  const testResults = db
+    .prepare(
+      `SELECT s.id, s.title, s.path,
+              snippet(pages_fts, 2, '>>>', '<<<', '...', 20) as excerpt
+       FROM pages_fts fts
+       JOIN pages s ON s.id = fts.rowid
+       WHERE pages_fts MATCH 'firewall filter'
+       ORDER BY rank LIMIT 5`,
+    )
+    .all();
 
-console.log(`\nTest search for "firewall filter":`);
-for (const r of testResults as Array<{ id: number; title: string; path: string; excerpt: string }>) {
-  console.log(`  [${r.id}] ${r.path}`);
-  console.log(`    ${r.excerpt}`);
+  console.log(`\nTest search for "firewall filter":`);
+  for (const r of testResults as Array<{ id: number; title: string; path: string; excerpt: string }>) {
+    console.log(`  [${r.id}] ${r.path}`);
+    console.log(`    ${r.excerpt}`);
+  }
+}
+
+if (import.meta.main) {
+  main();
 }

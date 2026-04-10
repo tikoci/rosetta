@@ -69,6 +69,21 @@ Implemented 2026-04-05. Three improvements to `searchDevices()` in `query.ts`:
 
 Items that need research or experimentation before they're actionable.
 
+### extract-devices foreign key failure on non-clean DB
+
+Observed 2026-04-09 while re-running `make extract` against an existing local DB populated by a previous full extract.
+
+- Failure: `src/extract-devices.ts` runs `DELETE FROM devices`, which can fail with `SQLITE_CONSTRAINT_FOREIGNKEY` when `device_test_results` still references rows in `devices`.
+- Repro: run `make extract` twice in a row without `make clean` in between.
+- Current workaround: `make clean && make extract`.
+- Expected behavior: extractors should remain idempotent on an existing DB without requiring a clean first.
+
+Potential fixes (pick one):
+
+1. In `extract-devices.ts`, clear dependent rows first (`DELETE FROM device_test_results`) before deleting `devices`.
+2. Add `ON DELETE CASCADE` to `device_test_results.device_id` FK and confirm extractor semantics still match expectations.
+3. Adjust Makefile extraction order only if needed (less preferred than fixing table-level idempotency).
+
 ### SafeSkill automated security scan — review notes (2026-04-06)
 
 Reviewed https://safeskill.dev/scan/tikoci-rosetta (v0.4.0 scan, 107 findings, overall score 73).
@@ -88,24 +103,6 @@ Reviewed https://safeskill.dev/scan/tikoci-rosetta (v0.4.0 scan, 107 findings, o
 - "Code quality 1/5" — likely reflects test coverage or strict TypeScript settings. Not worth chasing SafeSkill's metric blindly.
 - "Transparency 3/7" — improved by adding `SECURITY.md`. Could further improve with `CODE_OF_CONDUCT.md` if the project grows a contributor community, but overkill now.
 - "Prompt injection 18/20" — our tool descriptions are clean. Minor gap likely cosmetic.
-
-### `vcheck` attribute-in-path false negative
-
-`vcheck /ip/address/add interface=ether1` returns "No version data found" because the full input string (including `interface=ether1`) is treated as a command path. RouterOS paths are `/ip/address/add`; attributes/arguments are separate. The `commands` table stores paths without arguments, so any key=value suffix causes a failed lookup.
-
-**Root cause:** `doVersionCheck()` in `browse.ts` (and the underlying `checkCommandVersions()`) passes the raw input verbatim. No argument-stripping logic exists.
-
-**Fix:** Strip `key=value` pairs (and bare arguments after the path) before lookup. A simple regex `input.replace(/\s+\S+=\S+/g, '').trim()` would extract the base path. Apply in `browse.ts` `doVersionCheck()` and note the limitation in the MCP tool description for `routeros_command_version_check`.
-
-**Trigger:** Fix when confirmed as a recurring user confusion point or when deep-inspect.json adds per-command argument metadata.
-
-### Version normalization (7.22.0 → 7.22)
-
-`cl 7.22.0` returns "No changelog entries found" while `cl 7.22` works. RouterOS does not use `.0` patch suffixes — `7.22` is the canonical form, not `7.22.0` — but humans and LLMs frequently write the `.0` form.
-
-**Fix:** Strip trailing `.0` from version inputs in `doSearchChangelogs()`, `doDiff()`, `doVersionCheck()` in `browse.ts`, and the MCP handlers for `search_changelogs` (version param), `command_diff` (from_version/to_version), and `command_version_check`. A `normalizeVersion(v: string)` helper in `query.ts` that removes a trailing `.0` segment (e.g., `7.22.0` → `7.22`, `7.22.1.0` → `7.22.1`, `7.22.1` unchanged) would centralize this.
-
-**Trigger:** Fix when version normalization causes visible agent confusion or user reports, or as a quick quality-of-life pass.
 
 ### MikroTik /app auto-update behavior
 
@@ -139,63 +136,6 @@ Implemented in `extract-test-results.ts`. Two-layer approach:
 
 **Trigger:** Address when user reports false-empty on a renamed product, or when adding new products that have breaking renaming patterns.
 
-
-### Download links and tool URLs as MCP data
-
-`https://mikrotik.com/software/all` lists stable download links for WinBox, NetInstall, RouterOS NPK files, and other tools with consistent per-channel URLs. These are not currently exposed by any tool.
-
-**Specific URLs already usable:**
-- WinBox 4 latest: `https://upgrade.mikrotik.com/routeros/winbox/LATEST.4`
-- NetInstall latest: `https://upgrade.mikrotik.com/routeros/netinstall/LATEST.4`
-- RouterOS CHR latest (per channel): format similar to existing `routeros_current_versions` fetches
-
-**Options:**
-1. Extend `routeros_current_versions` to include WinBox + NetInstall version + download URL alongside RouterOS channels
-2. Add a separate `routeros_downloads` tool with the full tool matrix from mikrotik.com/software/all
-3. Include static download URL patterns in the `routeros_current_versions` output as a structured field
-
-Option 1 is lowest friction — same tool, more data. The WinBox LATEST.4 fetch is a single HTTP call, same pattern as the existing version channel fetches.
-
-**SNMP MIBs:** MikroTik publishes MIBs for RouterOS — these could be exposed as an MCP resource similarly to `rosetta://datasets/devices.csv`. Useful for agents helping with SNMP monitoring setup.
-
-**Trigger:** Implement when agents start giving version answers that require download URLs (e.g., "upgrade to X, download from Y").
-
-### MikroTik security announcements
-
-`https://mikrotik.com/supportsec` publishes security bulletins. An RSS/Atom feed is available at the same domain.
-
-**Use case:** Agents answering "is my RouterOS version affected by X CVE?" or "what versions fixed this?" currently have no structured data to answer from. Changelogs sometimes mention security fixes but they're not flagged consistently (the `is_breaking` field covers breaking changes, not security specifically).
-
-**Approach:**
-1. Scrape `https://mikrotik.com/supportsec` for the bulletin list + per-bulletin detail pages
-2. Extract: CVE ID (if any), affected versions, fixed-in version, bulletin date, severity, description
-3. Store in a `security_bulletins` table (similar to `changelogs`)
-4. Expose via `routeros_search_changelogs` with a `security_only=true` filter, or as a separate `routeros_search_security` tool
-5. Alternatively, parse the RSS feed for simpler metadata-only extraction
-
-**Trigger:** Implement when security-related queries become common, or when CVE data would substantively improve agent answers on patching/upgrade questions.
-
-### CI workflow_dispatch version scheme cleanup
-
-The `release.yml` `workflow_dispatch` inputs use freeform string fields for `html_url` and `docs_date`. These have no defaults and require the operator to know the URL pattern and current date.
-
-**Improvements:**
-- `html_url`: default to the last known stable export URL pattern — ideally derived from `docs_date` so only one input needs updating
-- `docs_date`: default to `2026-03-25` (last known export); make it an explicit "date of HTML export" field with clear format note
-- Consider a `matrix_date` input for the product matrix CSV snapshot to use (currently hardcoded in Makefile)
-- The relationship between `html_url`, `docs_date`, and the actual HTML archive filename should be documented in the workflow input descriptions
-
-**Trigger:** Next time a release is run from CI, update inputs to have sensible defaults rather than requiring the operator to look up the URL each time.
-
-### CSS CDATA extraction cleanup (re-extraction needed)
-
-`extract-html.ts` now removes `<style>` elements from `mainContent` before `textContent` extraction. This fixes Confluence table-of-contents CSS (e.g., `div.rbtoc1740419399890{padding:0;list-style:none;}`) from appearing in the page text index and in page views via `routeros_get_page`.
-
-**Effect:** Any page with a Confluence TOC macro had its CSS embedded in the plain-text `text` column of the `pages` table: mixed CSS selectors and property declarations among the actual documentation text. This polluted FTS search results and made page text hard to read in the TUI.
-
-**Action required:** Re-run `make extract-html` (or `make extract` / `make extract-full`) to rebuild the `pages` table with the clean text. The current DB still has the CSS CDATA in the text columns.
-
-**Scope:** Affects all pages with Confluence TOC macros (estimated: most pages with long headings sections, ~100+ pages). No schema change required — just re-extraction.
 
 ### Tool count and MCP client tool-list limits
 
@@ -515,9 +455,6 @@ The `browse` command provides a keyboard-driven REPL over all extracted data. It
 - **Export** — `export <format>` to dump the current view as JSON, CSV, or Markdown.
 - **Audit views** — data quality commands: unlinked commands, pages with no properties, devices with no test results.
 - **Bookmarks** — save frequent queries/pages for quick recall. Store in `~/.rosetta/bookmarks.json`.
-- **Pagination / `more` command** — no way to fetch more than the default result set in most contexts. Options: (a) `more` / `next` command to load the next page from the same query, (b) limit syntax like `s firewall .limit=20`, (c) cap selectors at 1–9 results so they stay single-digit and add `more` to fetch next 9. The pager handles long output; the issue is fetching additional rows from the DB.
-- **Paging: press #N to navigate** — pressing a digit during paging (instead of SPACE or Q) should directly open item #N from the current result set, avoiding the return-to-prompt round-trip. Requires integrating number-key detection into the pager `waitForKey()` handler and wiring it to `handleNumberSelect()`.
-- **Video view count** — `yt-dlp` provides `view_count` in `info.json` at extraction time. Storing it in the `videos` table would enable relevance-weighted sorting (popular videos rank higher in default search results). Add `view_count INTEGER` column, populate at extract time, consider as a tiebreaker sort when FTS rank is similar. Schema version bump required.
 
 ### `routeros_search` cross-table awareness
 

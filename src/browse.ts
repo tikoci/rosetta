@@ -281,7 +281,7 @@ function renderSearchResults(resp: SearchResponse): string {
 
   // Navigation hints
   const hints = [
-    `${cyan("#N")} view page`,
+    `${cyan("[N]")} view page`,
     `${cyan("[s <query>]")} search`,
     `${cyan("[p <query>]")} properties`,
     `${cyan("[cmd <path>]")} commands`,
@@ -374,7 +374,7 @@ function renderPage(page: NonNullable<ReturnType<typeof getPage>>): string {
   // Navigation hints
   out.push("");
   const hints: string[] = [];
-  if (page.sections && page.sections.length > 0) hints.push(`${cyan("#N")} section`);
+  if (page.sections && page.sections.length > 0) hints.push(`${cyan("[N]")} section`);
   hints.push(`${cyan("[p]")} properties`);
   hints.push(`${cyan("[cmd]")} command tree`);
   hints.push(`${cyan("[cal]")} callouts`);
@@ -480,7 +480,7 @@ function renderDeviceResults(results: DeviceResult[], mode: string, total: numbe
     out.push("");
   }
 
-  out.push(`  ${cyan("#N")} view device  ${cyan("[tests]")} benchmarks  ${cyan("[b]")} back`);
+  out.push(`  ${cyan("[N]")} view device  ${cyan("[tests]")} benchmarks  ${cyan("[b]")} back`);
   return out.join("\n");
 }
 
@@ -529,24 +529,17 @@ function renderDeviceCard(d: DeviceResult): string {
     out.push(`  ${dim("Block diagram:")} ${cyan(link(d.block_diagram_url, "view"))}`);
   }
 
-  // Test results (attached for exact matches) — default to 512B for a useful baseline
+  // Test results (attached for exact matches)
   if (d.test_results && d.test_results.length > 0) {
-    const pkt512 = d.test_results.filter((t) => t.packet_size === 512);
-    const displayTests = pkt512.length > 0 ? pkt512 : d.test_results.slice(0, 20);
-    const pktNote = pkt512.length > 0 ? " (512B baseline)" : "";
     out.push("");
-    out.push(`  ${bold("Benchmarks:")}  ${dim(`(${displayTests.length} of ${d.test_results.length} tests${pktNote})`)}`);
-    for (const t of displayTests) {
+    out.push(`  ${bold("Benchmarks:")}  ${dim(`(${d.test_results.length} tests)`)}`);
+    for (const t of d.test_results.slice(0, 12)) {
       const mbps = t.throughput_mbps ? `${fmt(t.throughput_mbps)} Mbps` : "";
       const kpps = t.throughput_kpps ? `${fmt(t.throughput_kpps)} Kpps` : "";
       out.push(`    ${dim(pad(t.test_type, 9))} ${pad(t.mode, 16)} ${dim(pad(t.configuration, 28))} ${pad(`${t.packet_size}B`, 6)} ${bold(mbps)} ${dim(kpps)}`);
     }
-    if (d.test_results.length > displayTests.length) {
-      const otherSizes = [...new Set(
-        d.test_results.filter((t) => t.packet_size !== 512).map((t) => t.packet_size),
-      )].sort((a, b) => a - b);
-      const sizesStr = otherSizes.map((s) => `${s}B`).join(", ");
-      out.push(`    ${dim(`Also at ${sizesStr} — use`)} ${cyan("tests")} ${dim("<type> <size> for other packet sizes")}`);
+    if (d.test_results.length > 12) {
+      out.push(`    ${dim(`... and ${d.test_results.length - 12} more (use`)} ${cyan("tests")} ${dim("for full listing)")}`);
     }
   }
 
@@ -637,7 +630,7 @@ function renderChangelogs(results: ChangelogResult[]): string {
   }
 
   out.push("");
-  out.push(`  ${cyan("[cl 7.22 bgp]")} version + topic  ${cyan("[cl 7.21..7.22]")} range  ${cyan("[cl breaking]")} breaking only  ${cyan("[b]")} back`);
+  out.push(`  ${cyan("[cl breaking]")} breaking only  ${cyan("[cl <ver>]")} specific version  ${cyan("[b]")} back`);
   return out.join("\n");
 }
 
@@ -771,7 +764,7 @@ function renderHelp(): string {
   cmd("props <query>", "sp", "Search properties by FTS", "routeros_search_properties");
   cmd("cmd [path]", "tree", "Browse command tree", "routeros_command_tree");
   cmd("device <query>", "dev", "Look up device specs", "routeros_device_lookup");
-  cmd("tests [device] <type> [packet_size] [mode]", "", "Cross-device benchmarks (512B default)", "routeros_search_tests");
+  cmd("tests [device] [type]", "", "Cross-device benchmarks", "routeros_search_tests");
   cmd("callouts [query]", "cal", "Search callouts (type filter: cal warning)", "routeros_search_callouts");
   cmd("changelog [query]", "cl", "Search changelogs (cl 7.22, cl breaking)", "routeros_search_changelogs");
   cmd("videos <query>", "vid", "Search video transcripts", "routeros_search_videos");
@@ -791,68 +784,7 @@ function renderHelp(): string {
   return out.join("\n");
 }
 
-/** Fetch the full transcript text for a specific video segment. */
-function getVideoSegmentTranscript(youtubeVideoId: string, startS: number): string | null {
-  try {
-    const row = db
-      .prepare(
-        `SELECT vs.transcript FROM video_segments vs
-         JOIN videos v ON v.id = vs.video_id
-         WHERE v.video_id = ? AND vs.start_s = ? LIMIT 1`,
-      )
-      .get(youtubeVideoId, startS) as { transcript: string } | null;
-    return row?.transcript ?? null;
-  } catch {
-    return null;
-  }
-}
-
 // ── Command dispatcher ──
-
-/** Re-render the current context after going back — uses cached results where possible. */
-async function renderCurrentCtx(): Promise<void> {
-  switch (ctx.type) {
-    case "home":
-      console.log(renderWelcome());
-      return;
-    case "search":
-      await paged(renderSearchResults(ctx.response));
-      return;
-    case "commands": {
-      const children = browseCommands(ctx.path);
-      if (children.length > 0) await paged(renderCommandTree(ctx.path, children));
-      else console.log(dim(`  No children at "${ctx.path}".`));
-      return;
-    }
-    case "devices":
-      await paged(renderDeviceResults(ctx.results, "cached", ctx.results.length));
-      return;
-    case "device":
-      await paged(renderDeviceCard(ctx.device));
-      return;
-    case "callouts":
-      if (ctx.results.length > 0) await paged(renderCallouts(ctx.results));
-      return;
-    case "changelogs":
-      if (ctx.results.length > 0) await paged(renderChangelogs(ctx.results));
-      return;
-    case "videos":
-      if (ctx.results.length > 0) await paged(renderVideos(ctx.results));
-      return;
-    case "page": {
-      const page = getPage(ctx.pageId);
-      if (page) await paged(renderPage(page));
-      return;
-    }
-    case "sections": {
-      const page = getPage(ctx.pageId);
-      if (page) await paged(renderPage(page));
-      return;
-    }
-    default:
-      console.log(dim(`  In ${ctx.type} context. Type a command or help.`));
-  }
-}
 
 async function dispatch(input: string): Promise<void> {
   const trimmed = input.trim();
@@ -888,8 +820,7 @@ async function dispatch(input: string): Promise<void> {
       if (!popCtx()) {
         console.log(dim("  Already at top."));
       } else {
-        console.log(dim(`  ← ${ctx.type}`));
-        await renderCurrentCtx();
+        console.log(dim(`  ← back to ${ctx.type}`));
       }
       return;
 
@@ -904,20 +835,7 @@ async function dispatch(input: string): Promise<void> {
       return;
 
     case "page": {
-      if (!rest) {
-        // From commands context: navigate to the linked page
-        if (ctx.type === "commands") {
-          const row = db.prepare("SELECT page_id FROM commands WHERE path = ? LIMIT 1").get(ctx.path) as { page_id: number | null } | null;
-          if (row?.page_id) {
-            await doPage(String(row.page_id));
-            return;
-          }
-          console.log(dim(`  No linked page for ${ctx.path}.`));
-          return;
-        }
-        console.log(dim("  Usage: page <id|title>"));
-        return;
-      }
+      if (!rest) { console.log(dim("  Usage: page <id|title>")); return; }
       await doPage(rest);
       return;
     }
@@ -925,12 +843,13 @@ async function dispatch(input: string): Promise<void> {
     case "p":
     case "prop": {
       if (!rest) {
-        // Context-scoped: show properties for current page or sections context
-        const pageId = ctx.type === "page" ? ctx.pageId : ctx.type === "sections" ? ctx.pageId : null;
-        const title = ctx.type === "page" ? ctx.title : ctx.type === "sections" ? ctx.title : null;
-        if (pageId !== null && title !== null) {
-          await doPropsForPage(pageId, title);
-          return;
+        // Context-scoped: show properties for current page
+        if (ctx.type === "page") {
+          const page = getPage(ctx.pageId, 0); // just get metadata
+          if (page) {
+            await doPropsForPage(ctx.pageId, ctx.title);
+            return;
+          }
         }
         console.log(dim("  Usage: prop <name> — or navigate to a page first"));
         return;
@@ -948,15 +867,8 @@ async function dispatch(input: string): Promise<void> {
 
     case "cmd":
     case "tree": {
-      let cmdPath = rest;
-      if (!cmdPath && ctx.type === "commands") {
-        // Re-display current commands context
-        cmdPath = ctx.path;
-      } else if (cmdPath && !cmdPath.startsWith("/") && ctx.type === "commands") {
-        // Relative path: resolve against current commands path
-        cmdPath = `${ctx.path}/${cmdPath}`;
-      }
-      await doCommandTree(cmdPath);
+      const path = rest || (ctx.type === "commands" ? ctx.path : "");
+      await doCommandTree(path);
       return;
     }
 
@@ -974,24 +886,13 @@ async function dispatch(input: string): Promise<void> {
 
     case "cal":
     case "callouts": {
-      if (!rest) {
-        // Context-aware: show callouts for the current page directly
-        const pageId = ctx.type === "page" ? ctx.pageId
-          : ctx.type === "sections" ? ctx.pageId
-          : null;
-        if (pageId !== null) {
-          const pageCallouts = db.prepare(
-            `SELECT c.type, c.content, p.title as page_title, p.url as page_url,
-                    c.page_id, c.content as excerpt
-             FROM callouts c JOIN pages p ON p.id = c.page_id
-             WHERE c.page_id = ? ORDER BY c.sort_order`,
-          ).all(pageId) as CalloutResult[];
-          if (pageCallouts.length > 0) {
-            await paged(renderCallouts(pageCallouts));
-            pushCtx({ type: "callouts", query: "", results: pageCallouts });
-          } else {
-            console.log(dim("  No callouts for this page."));
-          }
+      if (!rest && ctx.type === "page") {
+        // Show callouts for current page
+        const results = searchCallouts("", undefined, 50);
+        const pageCallouts = results.filter((c) => c.page_id === (ctx as { pageId: number }).pageId);
+        if (pageCallouts.length > 0) {
+          await paged(renderCallouts(pageCallouts));
+          pushCtx({ type: "callouts", query: "", results: pageCallouts });
           return;
         }
       }
@@ -1006,7 +907,6 @@ async function dispatch(input: string): Promise<void> {
     }
 
     case "vid":
-    case "video":
     case "videos": {
       if (!rest) { console.log(dim("  Usage: videos <query>")); return; }
       await doSearchVideos(rest);
@@ -1077,18 +977,9 @@ async function handleNumberSelect(idx: number): Promise<void> {
   if (ctx.type === "videos" && ctx.results[idx]) {
     const v = ctx.results[idx];
     const timeUrl = v.start_s > 0 ? `${v.url}&t=${v.start_s}` : v.url;
-    const out: string[] = [];
-    out.push(`\n  ${bold(v.title)}`);
-    if (v.chapter_title) out.push(`  ${magenta(`§ ${v.chapter_title}`)}  ${dim(`@ ${formatTime(v.start_s)}`)}`);
-    out.push(`  ${cyan(link(timeUrl))}`);
-    // Fetch and show full transcript for this segment
-    const transcript = getVideoSegmentTranscript(v.video_id, v.start_s);
-    if (transcript) {
-      out.push("");
-      out.push(`  ${dim("── transcript ──")}`);
-      out.push(transcript.split("\n").map((l) => `  ${l}`).join("\n"));
-    }
-    await paged(out.join("\n"));
+    console.log(`\n  ${bold(v.title)}`);
+    if (v.chapter_title) console.log(`  ${magenta(`§ ${v.chapter_title}`)}  ${dim(`@ ${formatTime(v.start_s)}`)}`);
+    console.log(`  ${cyan(link(timeUrl))}\n`);
     return;
   }
   if (ctx.type === "properties" && ctx.results[idx]) {
@@ -1215,64 +1106,33 @@ async function doDeviceLookup(query: string): Promise<void> {
 }
 
 async function doTests(argsStr: string): Promise<void> {
-  const parts = argsStr.split(/\s+/).filter(Boolean);
-  const filters: Record<string, string | number> = {};
-
-  // Parse args if provided
-  if (argsStr) {
-    const knownTypes = ["ethernet", "ipsec"];
-    let offset = 0;
-    if (parts[0] && !knownTypes.includes(parts[0].toLowerCase())) {
-      filters.device = parts[0];
-      offset = 1;
-    }
-    if (parts[offset]) filters.test_type = parts[offset];
-    // packet_size is always numeric; mode can be multi-word — identify by type
-    const remaining = parts.slice(offset + 1);
-    const pktIdx = remaining.findIndex((p) => /^\d+$/.test(p));
-    if (pktIdx !== -1) {
-      filters.packet_size = Number.parseInt(remaining[pktIdx], 10);
-      const modeParts = [...remaining.slice(0, pktIdx), ...remaining.slice(pktIdx + 1)];
-      if (modeParts.length > 0) filters.mode = modeParts.join(" ");
-    } else if (remaining.length > 0) {
-      filters.mode = remaining.join(" ");
-    }
-  }
-
-  // Auto-inject device name from context when in a device view and none specified
-  if (!filters.device && ctx.type === "device") {
-    filters.device = ctx.device.product_name;
-  }
-
-  // Show help if no filters could be determined
-  if (!argsStr && !filters.device) {
+  if (!argsStr) {
+    // Show available filter values
     const meta = getTestResultMeta();
     console.log(`  ${bold("Test filters:")}`);
     console.log(`  ${dim("Types:")} ${meta.test_types.join(", ")}`);
     console.log(`  ${dim("Modes:")} ${meta.modes.join(", ")}`);
     console.log(`  ${dim("Packet sizes:")} ${meta.packet_sizes.join(", ")}`);
     console.log("");
-    console.log(`  ${dim("Usage: tests [device] <type> [packet_size] [mode]")}`);
+    console.log(`  ${dim("Usage: tests [device] <type> [mode] [packet_size]")}`);
     console.log(`  ${dim("Example: tests ethernet Routing 1518")}`);
     console.log(`  ${dim("Example: tests rb5009 ethernet 1518")}`);
     return;
   }
 
-  // Round packet_size to the nearest valid test packet size
-  if (filters.packet_size) {
-    const validSizes = [64, 512, 1400, 1518];
-    const size = Number(filters.packet_size);
-    const rounded = validSizes.reduce((prev, curr) =>
-      Math.abs(curr - size) < Math.abs(prev - size) ? curr : prev,
-    );
-    if (rounded !== size) {
-      console.log(dim(`  Rounding ${size}B → ${rounded}B (nearest test packet size)`));
-      filters.packet_size = rounded;
-    }
-  }
+  const parts = argsStr.split(/\s+/);
+  const filters: Record<string, string | number> = {};
 
-  // Default packet_size to 512 for a focused baseline comparison
-  if (!filters.packet_size && !filters.mode) filters.packet_size = 512;
+  // Known test types — if parts[0] is not a known type, treat it as a device filter
+  const knownTypes = ["ethernet", "ipsec"];
+  let offset = 0;
+  if (parts[0] && !knownTypes.includes(parts[0].toLowerCase())) {
+    filters.device = parts[0];
+    offset = 1;
+  }
+  if (parts[offset]) filters.test_type = parts[offset];
+  if (parts[offset + 1]) filters.mode = parts[offset + 1];
+  if (parts[offset + 2] && /^\d+$/.test(parts[offset + 2])) filters.packet_size = Number.parseInt(parts[offset + 2], 10);
 
   const result = searchDeviceTests(filters);
   if (result.results.length === 0) {
@@ -1429,9 +1289,6 @@ async function main() {
     } catch (err) {
       console.error(red(`  Error: ${err instanceof Error ? err.message : String(err)}`));
     }
-    // Clear any keys that leaked from the pager into readline's internal line buffer
-    // (the key pressed to exit paging — q/SPACE/ENTER — can appear in the next prompt)
-    rl.write(null as unknown as string, { ctrl: true, name: "u" });
     rl.setPrompt(buildPrompt());
     rl.prompt();
   });
