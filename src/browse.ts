@@ -721,6 +721,13 @@ function renderStats(): string {
   const out: string[] = [];
   out.push(`  ${bold("Database Statistics")}`);
   out.push(`  ${dim("Path:")} ${stats.db_path}`);
+  if (stats.db_size_bytes != null) {
+    const mb = stats.db_size_bytes / (1024 * 1024);
+    out.push(`  ${dim("Size:")} ${mb.toFixed(1)} MB`);
+  }
+  if (stats.schema_version != null) {
+    out.push(`  ${dim("Schema:")} v${stats.schema_version}`);
+  }
   out.push(`  ${dim("Export:")} ${stats.doc_export}`);
   out.push("");
 
@@ -1239,6 +1246,7 @@ async function doCurrentVersions(): Promise<void> {
     const ch = pad(channel, 14);
     out.push(`  ${dim(ch)} ${bold(String(v))}`);
   }
+  out.push(`  ${dim(pad("winbox 4", 14))} ${bold(String(result.winbox ?? dim("unavailable")))}`);
   console.log(out.join("\n"));
 }
 

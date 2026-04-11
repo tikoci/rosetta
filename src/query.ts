@@ -1493,27 +1493,31 @@ function runVideosFtsQuery(ftsQuery: string, limit: number): VideoSearchResult[]
 const VERSION_BASE_URL = "https://upgrade.mikrotik.com/routeros/NEWESTa7";
 
 /** Fetch current RouterOS versions from MikroTik's upgrade server. */
+const WINBOX_URL = "https://upgrade.mikrotik.com/routeros/winbox/LATEST.4";
+
 export async function fetchCurrentVersions(): Promise<{
   channels: Record<string, string | null>;
+  winbox: string | null;
   fetched_at: string;
 }> {
   const channels: Record<string, string | null> = {};
-  await Promise.all(
-    VERSION_CHANNELS.map(async (channel) => {
-      try {
-        const resp = await fetch(`${VERSION_BASE_URL}.${channel}`, {
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (resp.ok) {
-          const text = await resp.text();
-          channels[channel] = text.trim().split(/\s+/)[0] || null;
-        } else {
-          channels[channel] = null;
-        }
-      } catch {
-        channels[channel] = null;
-      }
-    }),
-  );
-  return { channels, fetched_at: new Date().toISOString() };
+  const fetchOne = async (url: string): Promise<string | null> => {
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      if (!resp.ok) return null;
+      const text = await resp.text();
+      return text.trim().split(/\s+/)[0] || null;
+    } catch {
+      return null;
+    }
+  };
+  const [, winbox] = await Promise.all([
+    Promise.all(
+      VERSION_CHANNELS.map(async (channel) => {
+        channels[channel] = await fetchOne(`${VERSION_BASE_URL}.${channel}`);
+      }),
+    ),
+    fetchOne(WINBOX_URL),
+  ]);
+  return { channels, winbox, fetched_at: new Date().toISOString() };
 }

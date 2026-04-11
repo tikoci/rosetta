@@ -1069,7 +1069,7 @@ server.registerTool(
   {
     description: `Fetch current RouterOS version numbers from MikroTik's upgrade server.
 
-Returns the latest version for each release channel: stable, long-term, testing, development.
+Returns the latest version for each release channel (stable, long-term, testing, development) plus the current WinBox 4 version.
 Useful for determining if a user's version is current, outdated, or unpatched.
 
 Key context for version reasoning:

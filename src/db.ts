@@ -441,8 +441,24 @@ export function checkSchemaVersion(): { ok: boolean; actual: number; expected: n
 export function getDbStats() {
   const count = (sql: string) =>
     Number((db.prepare(sql).get() as { c: number }).c ?? 0);
+  const dbSizeBytes = (() => {
+    try {
+      return Bun.file(DB_PATH).size;
+    } catch {
+      return null;
+    }
+  })();
+  const schemaVersion = (() => {
+    try {
+      return (db.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
+    } catch {
+      return null;
+    }
+  })();
   return {
     db_path: DB_PATH,
+    db_size_bytes: dbSizeBytes,
+    schema_version: schemaVersion,
     pages: count("SELECT COUNT(*) AS c FROM pages"),
     sections: count("SELECT COUNT(*) AS c FROM sections"),
     properties: count("SELECT COUNT(*) AS c FROM properties"),

@@ -120,7 +120,11 @@ if (lines.length < 2) {
 // Skip header row
 const dataLines = lines.slice(1);
 
-// Idempotent: clear existing data (FTS triggers handle cleanup)
+// Idempotent: clear existing data (FTS triggers handle cleanup).
+// device_test_results FKs into devices — wipe it first to avoid a FOREIGN KEY
+// constraint failure on re-run over a populated DB. extract-test-results runs
+// later in the pipeline and repopulates it.
+db.run("DELETE FROM device_test_results");
 db.run("DELETE FROM devices");
 
 const insert = db.prepare(`INSERT INTO devices (
