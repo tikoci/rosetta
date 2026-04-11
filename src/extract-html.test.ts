@@ -1,6 +1,11 @@
+// Set BEFORE any import that transitively loads db.ts
+process.env.DB_PATH = ":memory:";
+
 import { describe, expect, it } from "bun:test";
 import { parseHTML } from "linkedom";
-import { extractPlainText, sanitizeExtractedText } from "./extract-html.ts";
+
+// Dynamic import so the DB_PATH assignment above wins over module caching
+const { extractPlainText, sanitizeExtractedText } = await import("./extract-html.ts");
 
 describe("sanitizeExtractedText", () => {
   it("removes Confluence TOC CDATA style blocks", () => {
