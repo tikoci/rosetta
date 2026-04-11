@@ -163,7 +163,7 @@ if (_dbSchemaVersion !== SCHEMA_VERSION) {
 }
 
 // Now import db.ts (opens the DB) and query.ts
-const { getDbStats, initDb } = await import("./db.ts");
+const { db, getDbStats, initDb } = await import("./db.ts");
 const {
   browseCommands,
   browseCommandsAtVersion,
@@ -225,6 +225,200 @@ server.registerResource(
       uri: "rosetta://datasets/devices.csv",
       mimeType: "text/csv",
       text: exportDevicesCsv(),
+    }],
+  }),
+);
+
+server.registerResource(
+  "schema-sql",
+  "rosetta://schema.sql",
+  {
+    title: "Database Schema DDL",
+    description: "Full SQLite DDL (CREATE TABLE/VIRTUAL TABLE/TRIGGER/INDEX statements) for ros-help.db. Read this before constructing raw SQL queries.",
+    mimeType: "application/sql",
+  },
+  async () => {
+    const rows = db
+      .prepare(
+        "SELECT sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type DESC, name ASC",
+      )
+      .all() as Array<{ sql: string }>;
+    const ddl = rows.map((r) => `${r.sql};`).join("\n\n");
+    return {
+      contents: [{
+        uri: "rosetta://schema.sql",
+        mimeType: "application/sql",
+        text: ddl,
+      }],
+    };
+  },
+);
+
+server.registerResource(
+  "schema-guide",
+  "rosetta://schema-guide.md",
+  {
+    title: "Schema Guide",
+    description: "How to query ros-help.db: table relationships, FTS5 tokenizer differences, BM25 weights, and example query patterns.",
+    mimeType: "text/markdown",
+  },
+  async () => ({
+    contents: [{
+      uri: "rosetta://schema-guide.md",
+      mimeType: "text/markdown",
+      text: `# ros-help.db Schema Guide
+
+Read \`rosetta://schema.sql\` for full DDL. This guide explains relationships, FTS5 quirks, and good query patterns.
+
+## Table Map
+
+| Table | Rows (approx) | Description |
+|-------|-------------|-------------|
+| \`pages\` | 317 | One row per Confluence HTML page. Primary content store. |
+| \`sections\` | 2,984 | h1–h3 chunks of pages with anchor IDs for deep-linking. |
+| \`properties\` | 4,860 | CLI property rows extracted from confluenceTable elements. |
+| \`callouts\` | 1,034 | Note/Warning/Info/Tip blocks from Confluence callout macros. |
+| \`commands\` | ~40K | RouterOS command tree entries (dir/cmd/arg) from inspect.json. |
+| \`command_versions\` | 1.67M | Junction: which command paths exist in which RouterOS versions. |
+| \`ros_versions\` | 46 | Metadata per extracted RouterOS version (7.9–7.23beta2). |
+| \`devices\` | 144 | MikroTik hardware specs from product matrix CSV. |
+| \`device_test_results\` | 2,874 | Ethernet/IPSec benchmark rows from mikrotik.com product pages. |
+| \`changelogs\` | varies | Parsed per-entry changelog lines from MikroTik download server. |
+| \`videos\` | 518 | MikroTik YouTube video metadata. |
+| \`video_segments\` | ~1,890 | Chapter-level transcript segments (one per chapter or one per video). |
+
+## Foreign Keys
+
+\`\`\`
+pages ←── sections.page_id
+pages ←── properties.page_id
+pages ←── callouts.page_id
+pages ←── commands.page_id          (nullable — not all commands link to a page)
+devices ←── device_test_results.device_id
+ros_versions ←── command_versions.ros_version
+videos ←── video_segments.video_id  (INTEGER FK to videos.id, NOT videos.video_id TEXT)
+\`\`\`
+
+## FTS5 Virtual Tables
+
+Each table has a companion \`*_fts\` virtual table kept in sync via INSERT/UPDATE/DELETE triggers.
+
+| FTS table | Source | Tokenizer | Indexed columns |
+|-----------|--------|-----------|----------------|
+| \`pages_fts\` | \`pages\` | \`porter unicode61\` | title (3×), path (2×), text (1×), code (0.5×) |
+| \`properties_fts\` | \`properties\` | \`porter unicode61\` | name, description |
+| \`callouts_fts\` | \`callouts\` | \`porter unicode61\` | content |
+| \`changelogs_fts\` | \`changelogs\` | \`porter unicode61\` | category, description |
+| \`videos_fts\` | \`videos\` | \`porter unicode61\` | title, description |
+| \`video_segments_fts\` | \`video_segments\` | \`porter unicode61\` | chapter_title, transcript |
+| \`devices_fts\` | \`devices\` | **\`unicode61\` only** | product_name, product_code, architecture, cpu |
+
+**Why devices use \`unicode61\` without porter:** Model numbers like "RB5009" and "hAP ax3" must not be stemmed. Porter would corrupt them.
+
+## BM25 Column Weights (pages_fts)
+
+The MCP tools use \`bm25(pages_fts, 3.0, 2.0, 1.0, 0.5)\` — title gets 3× weight, path 2×, body text 1×, code blocks 0.5×. In SQLite FTS5 BM25, **lower (more negative) scores rank better**.
+
+\`\`\`sql
+SELECT p.id, p.title, p.url,
+       bm25(pages_fts, 3.0, 2.0, 1.0, 0.5) AS rank
+FROM pages_fts
+JOIN pages p ON p.id = pages_fts.rowid
+WHERE pages_fts MATCH 'firewall filter'
+ORDER BY rank          -- ascending = best match first
+LIMIT 10;
+\`\`\`
+
+## FTS5 Query Syntax
+
+\`\`\`sql
+-- Phrase search (exact sequence)
+WHERE pages_fts MATCH '"firewall filter"'
+
+-- AND (default — all terms must appear)
+WHERE pages_fts MATCH 'dhcp relay'
+
+-- OR
+WHERE pages_fts MATCH 'dhcp OR relay'
+
+-- Column-scoped search
+WHERE pages_fts MATCH 'title:firewall'
+
+-- NEAR (terms within N tokens of each other)
+WHERE pages_fts MATCH 'NEAR(firewall filter, 5)'
+
+-- Prefix match
+WHERE pages_fts MATCH 'route*'
+\`\`\`
+
+Porter stemming is automatic — "configuring" matches "configuration", "configured", "configure".
+
+## Common Join Patterns
+
+### Page + its properties
+\`\`\`sql
+SELECT p.title, pr.name, pr.type, pr.default_val, pr.description
+FROM pages p
+JOIN properties pr ON pr.page_id = p.id
+WHERE p.id = 328220;
+\`\`\`
+
+### FTS search → full section content
+\`\`\`sql
+SELECT p.title, s.heading, s.text, s.anchor_id
+FROM pages_fts
+JOIN pages p ON p.id = pages_fts.rowid
+JOIN sections s ON s.page_id = p.id
+WHERE pages_fts MATCH 'mangle routing mark'
+ORDER BY bm25(pages_fts, 3.0, 2.0, 1.0, 0.5)
+LIMIT 5;
+\`\`\`
+
+### Command path → linked documentation page
+\`\`\`sql
+SELECT c.path, c.type, p.title, p.url
+FROM commands c
+LEFT JOIN pages p ON p.id = c.page_id
+WHERE c.path = '/ip/firewall/filter';
+\`\`\`
+
+### Commands available in a specific RouterOS version
+\`\`\`sql
+SELECT c.path, c.type
+FROM commands c
+JOIN command_versions cv ON cv.command_path = c.path
+WHERE cv.ros_version = '7.22'
+  AND c.path LIKE '/ip/firewall/%'
+ORDER BY c.path;
+\`\`\`
+
+### Device hardware lookup + benchmarks
+\`\`\`sql
+SELECT d.product_name, d.ram_mb, d.cpu,
+       t.test_type, t.mode, t.packet_size, t.throughput_mbps
+FROM devices d
+JOIN device_test_results t ON t.device_id = d.id
+WHERE d.product_name LIKE '%RB5009%'
+ORDER BY t.test_type, t.packet_size;
+\`\`\`
+
+### Changelog entries for a version range, breaking changes only
+\`\`\`sql
+SELECT version, released, category, description
+FROM changelogs
+WHERE is_breaking = 1
+  AND version >= '7.20' AND version <= '7.22'
+ORDER BY version, sort_order;
+\`\`\`
+
+## Gotchas
+
+- **Version sorting:** \`ORDER BY version\` is lexicographic, not numeric. '7.9' > '7.10' lexicographically. Use the \`compareVersions()\` helper in query.ts or fetch all and sort in application code.
+- **content= FTS tables:** Do not SELECT directly from \`*_fts\` tables — they are content tables and must be JOINed via rowid to the source table to get non-indexed columns.
+- **video_segments.video_id** is an INTEGER FK to \`videos.id\`, not the TEXT \`videos.video_id\` (YouTube ID). Join on \`video_segments.video_id = videos.id\`.
+- **NULL page_id in commands:** ~8% of command dirs have no linked page (\`page_id IS NULL\`). Use LEFT JOIN when joining commands to pages.
+- **devices_fts LIKE fallback:** For model numbers ending in ™/® or containing superscripts, FTS may miss them. Use \`LIKE '%RB5009%'\` as a fallback on \`devices.product_name\`.
+`,
     }],
   }),
 );

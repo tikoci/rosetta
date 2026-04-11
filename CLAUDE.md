@@ -46,7 +46,7 @@ This is a deliberate design, not a happy accident. The TUI's dual use (human too
 - **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 14 tools and 2 CSV resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`
+- **MCP server** with 14 tools and 4 resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`
 
 ## Schema
 
@@ -264,6 +264,8 @@ Device lookup matching is intentionally heuristic, not perfect canonical identit
 |----------|---------|
 | `rosetta://datasets/device-test-results.csv` | Full joined benchmark dataset as CSV for reporting, charts, and bulk export |
 | `rosetta://datasets/devices.csv` | Full device catalog as CSV with normalized fields and URLs |
+| `rosetta://schema.sql` | Live DDL from sqlite_master — all CREATE TABLE/VIRTUAL TABLE/TRIGGER/INDEX statements |
+| `rosetta://schema-guide.md` | Table relationships, FTS5 tokenizer differences, BM25 weights, join patterns, and gotchas |
 
 Resources are for explicit context attachment in MCP clients that support them (for example, VS Code's Add Context > MCP Resources). They complement the tools rather than replacing them.
 

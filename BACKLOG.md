@@ -253,13 +253,13 @@ Items where the design isn't obvious enough to just build. Flagging for user rev
 
 **Options, least to most invasive:**
 
-1. **Schema-as-resource** — expose the schema DDL as an MCP resource (`rosetta://schema.sql`) plus a short `rosetta://schema-guide.md` explaining table relationships, FTS5 tokenizer differences, and good-query patterns. Agents that want to construct SQL can read this once and know what they're looking at. Zero runtime exposure, pure documentation.
+1. ~~**Schema-as-resource** — expose the schema DDL as an MCP resource (`rosetta://schema.sql`) plus a short `rosetta://schema-guide.md` explaining table relationships, FTS5 tokenizer differences, and good-query patterns. Agents that want to construct SQL can read this once and know what they're looking at. Zero runtime exposure, pure documentation.~~ **Done** — `rosetta://schema.sql` (live DDL from sqlite_master) and `rosetta://schema-guide.md` (guide covering table relationships, FTS5 tokenizer differences, BM25 weights, join patterns, and gotchas).
 2. **Read-only `rosetta_query_sql(sql)` tool** — opens a second connection with `mode=ro`, executes the query, returns rows. Enforced via connection URI (`file:ros-help.db?mode=ro`), not a query parser. Still a meaningful attack surface if we ever add write tables, but at the current data shape it's effectively safe.
 3. **Write-password gate** — wrap the main (read-write) connection behind a password required only for schema-modifying statements. The "password" is a constant derived from the codebase (e.g., a hash of `server.json` version), so it's not a real secret, just a tripwire against agents that try `DROP TABLE` or `UPDATE pages SET ...`. Corruption prevention, not security. Makes option 2 more tenable.
 
-**Trade-off to weigh:** option 1 is free and already consistent with how CSV resources work. Option 2 eats some of the "shell out to sqlite3" motivation but at the cost of another tool in the catalog — exactly what we're trying to shrink. Option 3 is cheap but opinionated.
+**Trade-off to weigh:** ~~option 1 is free and already consistent with how CSV resources work.~~ Option 2 eats some of the "shell out to sqlite3" motivation but at the cost of another tool in the catalog — exactly what we're trying to shrink. Option 3 is cheap but opinionated.
 
-**Straw-man recommendation:** ship option 1 now; revisit option 2 only if (a) usage data shows `sqlite3` shell-out is happening a lot and (b) the classifier/`searchAll` path proves insufficient for those queries. A CSV export from the TUI (`export csv` over the current view) handles the "make a CSV of all release notes" case without touching MCP at all.
+**Straw-man recommendation:** ~~ship option 1 now;~~ revisit option 2 only if (a) usage data shows `sqlite3` shell-out is happening a lot and (b) the classifier/`searchAll` path proves insufficient for those queries. A CSV export from the TUI (`export csv` over the current view) handles the "make a CSV of all release notes" case without touching MCP at all.
 
 ### How to express "looks like a command, but syntax might be wrong"
 
