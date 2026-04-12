@@ -75,12 +75,12 @@ beforeAll(() => {
     (id, page_id, name, type, default_val, description, section, sort_order)
     VALUES (2, 1, 'address-pool', 'string', '', 'Name of the address pool to use', NULL, 1)`);
 
-  db.run(`INSERT INTO ros_versions (version, channel, extra_packages, extracted_at)
-    VALUES ('7.22', 'stable', 0, '2024-01-01T00:00:00Z')`);
-  db.run(`INSERT INTO ros_versions (version, channel, extra_packages, extracted_at)
-    VALUES ('7.9', 'stable', 0, '2023-01-01T00:00:00Z')`);
-  db.run(`INSERT INTO ros_versions (version, channel, extra_packages, extracted_at)
-    VALUES ('7.10.2', 'stable', 0, '2023-06-01T00:00:00Z')`);
+  db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
+    VALUES ('7.22', 'x86', 'stable', 0, '2024-01-01T00:00:00Z')`);
+  db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
+    VALUES ('7.9', 'x86', 'stable', 0, '2023-01-01T00:00:00Z')`);
+  db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
+    VALUES ('7.10.2', 'x86', 'stable', 0, '2023-06-01T00:00:00Z')`);
 
   db.run(`INSERT INTO commands
     (id, path, name, type, parent_path, page_id, description, ros_version)

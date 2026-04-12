@@ -205,17 +205,83 @@ export function initDb() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_commands_type ON commands(type);`);
 
   // -- Command version tracking --
+  //
+  // ros_versions is keyed on (version, arch) — restraml emits per-arch
+  // deep-inspect.<arch>.json (x86 vs arm64; arm64 carries ~1K extra nodes
+  // for wifi-qcom etc.). _meta fields capture provenance from the inspect
+  // file (generatedAt, crashPaths, completionStats). _attrs is a JSON
+  // catch-all for forward-compat: anything restraml later emits lands here
+  // first and gets promoted to a column once shape is stable.
+  //
+  // command_versions intentionally has no FK to ros_versions — the composite
+  // PK on the parent makes a single-column FK invalid, and command_versions
+  // is slated for replacement by schema_node_presence in the upcoming
+  // schema_nodes refactor (BACKLOG.md "Multi-arch schema import").
+
+  // Migration: legacy ros_versions had `version TEXT PRIMARY KEY` with no
+  // arch column. Detect via PRAGMA table_info and rebuild both tables in
+  // place — the FK on command_versions.ros_version requires the dance.
+  // Idempotent: only fires when arch column is missing.
+  {
+    const rvCols = db.prepare("PRAGMA table_info(ros_versions)").all() as Array<{ name: string }>;
+    if (rvCols.length > 0 && !rvCols.some((c) => c.name === "arch")) {
+      db.run("PRAGMA foreign_keys=OFF;");
+      db.run("BEGIN;");
+      try {
+        db.run(`CREATE TABLE ros_versions_new (
+          version              TEXT NOT NULL,
+          arch                 TEXT NOT NULL DEFAULT 'x86',
+          channel              TEXT,
+          extra_packages       INTEGER NOT NULL DEFAULT 0,
+          extracted_at         TEXT NOT NULL,
+          generated_at         TEXT,
+          crash_paths_tested   TEXT,
+          crash_paths_crashed  TEXT,
+          completion_stats     TEXT,
+          source_url           TEXT,
+          _attrs               TEXT,
+          PRIMARY KEY (version, arch)
+        );`);
+        db.run(`INSERT INTO ros_versions_new (version, arch, channel, extra_packages, extracted_at)
+                SELECT version, 'x86', channel, extra_packages, extracted_at FROM ros_versions;`);
+        db.run("DROP TABLE ros_versions;");
+        db.run("ALTER TABLE ros_versions_new RENAME TO ros_versions;");
+
+        db.run(`CREATE TABLE command_versions_new (
+          command_path TEXT NOT NULL,
+          ros_version  TEXT NOT NULL,
+          PRIMARY KEY (command_path, ros_version)
+        );`);
+        db.run("INSERT INTO command_versions_new SELECT command_path, ros_version FROM command_versions;");
+        db.run("DROP TABLE command_versions;");
+        db.run("ALTER TABLE command_versions_new RENAME TO command_versions;");
+        db.run("COMMIT;");
+      } catch (e) {
+        db.run("ROLLBACK;");
+        throw e;
+      }
+      db.run("PRAGMA foreign_keys=ON;");
+    }
+  }
 
   db.run(`CREATE TABLE IF NOT EXISTS ros_versions (
-    version        TEXT PRIMARY KEY,
-    channel        TEXT,
-    extra_packages INTEGER NOT NULL DEFAULT 0,
-    extracted_at   TEXT NOT NULL
+    version              TEXT NOT NULL,
+    arch                 TEXT NOT NULL DEFAULT 'x86',
+    channel              TEXT,
+    extra_packages       INTEGER NOT NULL DEFAULT 0,
+    extracted_at         TEXT NOT NULL,
+    generated_at         TEXT,
+    crash_paths_tested   TEXT,
+    crash_paths_crashed  TEXT,
+    completion_stats     TEXT,
+    source_url           TEXT,
+    _attrs               TEXT,
+    PRIMARY KEY (version, arch)
   );`);
 
   db.run(`CREATE TABLE IF NOT EXISTS command_versions (
     command_path TEXT NOT NULL,
-    ros_version  TEXT NOT NULL REFERENCES ros_versions(version),
+    ros_version  TEXT NOT NULL,
     PRIMARY KEY (command_path, ros_version)
   );`);
 
@@ -470,12 +536,12 @@ export function getDbStats() {
     devices_with_tests: count("SELECT COUNT(DISTINCT device_id) AS c FROM device_test_results"),
     changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
     changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
-    ros_versions: count("SELECT COUNT(*) AS c FROM ros_versions"),
+    ros_versions: count("SELECT COUNT(DISTINCT version) AS c FROM ros_versions"),
     videos: count("SELECT COUNT(*) AS c FROM videos"),
     video_segments: count("SELECT COUNT(*) AS c FROM video_segments"),
     ...(() => {
       // Semantic version sort — SQL MIN/MAX is lexicographic ("7.10" < "7.9")
-      const versions = (db.prepare("SELECT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);
+      const versions = (db.prepare("SELECT DISTINCT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);
       if (versions.length === 0) return { ros_version_min: null, ros_version_max: null };
       const norm = (v: string) => {
         const clean = v.replace(/beta\d*/, "").replace(/rc\d*/, "");

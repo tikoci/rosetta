@@ -108,6 +108,8 @@ function createFixtureDb(dbPath: string): void {
     1, '/system', 'system', 'dir', NULL, 1, 'fixture command', '7.22'
   );`);
 
+  // Stamp schema version so mcp.ts doesn't trigger a 50MB auto-download
+  fixture.run("PRAGMA user_version = 1;");
   fixture.close();
 }
 

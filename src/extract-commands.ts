@@ -1,18 +1,24 @@
 #!/usr/bin/env bun
 /**
- * extract-commands.ts — Load RouterOS command tree from inspect.json into SQLite.
+ * extract-commands.ts — Load RouterOS command tree from inspect.json (or
+ * deep-inspect.<arch>.json) into SQLite.
  *
  * Walks the nested JSON tree and flattens it into a `commands` table with:
  *   path, name, type (dir|cmd|arg), parent_path, description
  *
- * Also populates command_versions for version tracking.
+ * Also populates command_versions for version tracking, and ros_versions
+ * with provenance (arch, _meta.generatedAt, crashPaths, completionStats)
+ * when the source file is a deep-inspect.json (i.e. has a `_meta` envelope).
  *
  * Usage:
- *   bun run src/extract-commands.ts [inspect.json-path-or-url] [--version=7.22] [--channel=stable] [--extra]
- *   bun run src/extract-commands.ts --accumulate [inspect.json-path] [--version=X]
+ *   bun run src/extract-commands.ts [path-or-url] [--version=7.22] [--channel=stable] [--extra] [--arch=x86|arm64]
+ *   bun run src/extract-commands.ts --accumulate [path] [--version=X]
  *
  * In default mode: replaces commands table and sets as primary version.
  * With --accumulate: only adds to command_versions, does not touch commands table.
+ *
+ * --arch defaults to x86 (back-compat for legacy single-arch inspect.json).
+ * deep-inspect.x86.json / deep-inspect.arm64.json filenames auto-derive arch.
  */
 
 import { db, initDb } from "./db.ts";
@@ -33,6 +39,13 @@ const flagArgs = Object.fromEntries(
 const DEFAULT_INSPECT_URL = `${RESTRAML_PAGES_URL}/7.22.1/extra/inspect.json`;
 const INSPECT_SOURCE = positional[0] || DEFAULT_INSPECT_URL;
 
+function deriveArch(filepath: string, flag: string | undefined): "x86" | "arm64" {
+  if (flag === "x86" || flag === "arm64") return flag;
+  if (/deep-inspect\.arm64\b/.test(filepath)) return "arm64";
+  if (/deep-inspect\.x86\b/.test(filepath)) return "x86";
+  return "x86";
+}
+
 // Derive version from path if not explicitly set
 function deriveVersion(filepath: string): string {
   const match = filepath.match(/\/(\d+\.\d+(?:\.\d+)?(?:beta\d+|rc\d+)?)\//);
@@ -48,10 +61,29 @@ function deriveChannel(version: string): string {
 
 const version = flagArgs.version || deriveVersion(INSPECT_SOURCE);
 const channel = flagArgs.channel || deriveChannel(version);
+const arch = deriveArch(INSPECT_SOURCE, flagArgs.arch);
 
 console.log(`Loading inspect.json from ${INSPECT_SOURCE}...`);
-console.log(`Version: ${version}, Channel: ${channel}, Extra: ${extraPackages}, Accumulate: ${accumulate}`);
+console.log(`Version: ${version}, Channel: ${channel}, Arch: ${arch}, Extra: ${extraPackages}, Accumulate: ${accumulate}`);
 const inspectData = await loadJson<Record<string, unknown>>(INSPECT_SOURCE);
+
+// deep-inspect.json files carry a `_meta` envelope; vanilla inspect.json does not.
+interface DeepInspectMeta {
+  version?: string;
+  generatedAt?: string;
+  crashPathsTested?: string[];
+  crashPathsCrashed?: string[];
+  completionStats?: Record<string, unknown>;
+}
+const meta = (inspectData._meta && typeof inspectData._meta === "object")
+  ? (inspectData._meta as DeepInspectMeta)
+  : null;
+if (meta) {
+  console.log(`  _meta.version=${meta.version} generatedAt=${meta.generatedAt}`);
+  if (meta.completionStats) {
+    console.log(`  completionStats=${JSON.stringify(meta.completionStats)}`);
+  }
+}
 
 interface CommandRow {
   path: string;
@@ -65,7 +97,7 @@ const rows: CommandRow[] = [];
 
 function walk(obj: Record<string, unknown>, parentPath: string) {
   for (const [key, value] of Object.entries(obj)) {
-    if (key === "_type" || key === "desc") continue;
+    if (key === "_type" || key === "desc" || key === "_meta") continue;
     if (typeof value !== "object" || value === null) continue;
 
     const node = value as Record<string, unknown>;
@@ -104,11 +136,24 @@ console.log(`  dirs: ${dirs}, cmds: ${cmds}, args: ${args}`);
 // Initialize DB and insert
 initDb();
 
-// Register this version
+// Register this version (per-arch row). _meta fields are populated when the
+// source is a deep-inspect.json; legacy inspect.json leaves them NULL.
 db.run(
-  `INSERT OR REPLACE INTO ros_versions (version, channel, extra_packages, extracted_at)
-   VALUES (?, ?, ?, datetime('now'))`,
-  [version, channel, extraPackages ? 1 : 0],
+  `INSERT OR REPLACE INTO ros_versions
+   (version, arch, channel, extra_packages, extracted_at,
+    generated_at, crash_paths_tested, crash_paths_crashed, completion_stats, source_url)
+   VALUES (?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?)`,
+  [
+    version,
+    arch,
+    channel,
+    extraPackages ? 1 : 0,
+    meta?.generatedAt ?? null,
+    meta?.crashPathsTested ? JSON.stringify(meta.crashPathsTested) : null,
+    meta?.crashPathsCrashed ? JSON.stringify(meta.crashPathsCrashed) : null,
+    meta?.completionStats ? JSON.stringify(meta.completionStats) : null,
+    INSPECT_SOURCE,
+  ],
 );
 
 if (!accumulate) {

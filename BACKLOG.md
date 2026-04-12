@@ -28,9 +28,11 @@ The TUI's dual role (user tool + test harness for MCP behavior) is deliberate. G
 
 Agents observed in real sessions typically reach for `routeros_search` and `routeros_get_page`; anything beyond that is rare. The right response is not more tool-description steering — it's making `routeros_search` answer more of the question before the agent has to ask again. See the "North Star" section below.
 
-### Principle 4 — Command/schema work is downstream of restraml
+### Principle 4 — Command/schema work tracks restraml's output shape
 
-Any deep reshaping of the `commands`, `command_versions`, or property schemas is blocked on restraml delivering populated `deep-inspect.json` (argument enums, type info, validation hints). Until then, limit scope to cleanup, idempotency, and light heuristics. Don't design a new schema in the dark.
+The shape of `deep-inspect.json` drives the schema on this side. As of 2026-04-11 restraml has split deep-inspect into per-arch files (`deep-inspect.x86.json`, `deep-inspect.arm64.json` — arm64 carries ~1K more nodes, mostly `wifi-qcom` and friends). Structural and per-arch presence work is now **unblocked** and should land. Completion/enum data is still blocked (`argsWithCompletion: 0`) — the structural refactor is designed so completion values slot in later without another migration.
+
+Until the completion blob is populated, limit dynamic enum extraction to what can be parsed best-effort from the existing `desc` strings (`string value, max length 20`, `a|b|c[,Type*]`, `00:00:00.020..00:00:30    (time interval)`). Anything unparseable stays in `desc_raw` verbatim — no data is lost.
 
 **The shape of the eventual schema is known, even if the data isn't yet.** RouterOS commands have four parts that the current schema munges together:
 
@@ -143,6 +145,191 @@ A baker's dozen is the ceiling, not the goal. If customers are only eating half 
 ## Ready to Build
 
 Clear scope, no blockers, ready to act.
+
+### Multi-arch schema import — `schema_nodes` with full-fidelity round-trip
+
+**Context.** restraml now produces per-arch `deep-inspect.<arch>.json` (see `scripts/deep-inspect-multi-arch.ts`). arm64 has ~1K more nodes than x86 (wifi-qcom etc.), x86 has ~50 not in arm64. The current `commands` table was seeded from an early diff-oriented flattening and has two problems: (a) paths aren't valid CLI (no space between dir and verb, subshell context lost) so user-input matching breaks, and (b) there's no per-arch presence, no provenance from `_meta`, no desc decomposition, nowhere to land future completion data without migrating again.
+
+**Goals (pick these apart if any conflict).**
+
+1. **Lossless fidelity** — any `deep-inspect.<arch>.json` can be reconstructed from SQL. Tested via a canonical-JSON round-trip. `desc_raw` is stored verbatim; structured columns are best-effort on top.
+2. **Queryable without loading the JSON** — `WHERE path = ?` / `WHERE _arch = 'arm64'` is one round-trip. No consumer should ever `JSON.parse(readFile(...))` on the 1.3 MB blob to answer a simple question.
+3. **Extensible via `_attrs`** — a JSON catch-all column on the node row. Anything restraml starts emitting (completion enums, constraints, per-package metadata, OpenAPI refs) lands in `_attrs` first and gets promoted to a structured column once shape is stable. No schema migration for each new field.
+4. **Sparse arch tracking, not per-arch duplication.** ~99% of nodes exist on both arches. The ~1K platform-specific nodes (wifi-qcom on arm64, ~50 x86-only) get a non-NULL `_arch` marker on `schema_nodes`. The `schema_node_presence` junction is flat `(node_id, version)` with no arch column — arch specificity is a property of the node, not the version-presence. This avoids doubling the biggest table for 1K rows of real signal (measured: 40K rows/version × 64 bytes/row = ~2.5 MB/version; doubling for arch would add ~250 MB across 46 versions for 1K meaningful rows).
+5. **Merge at import.** Rosetta imports both `deep-inspect.x86.json` and `deep-inspect.arm64.json` for the same version, set-diffs the path sets, and marks the delta nodes. The importer doesn't care about `_package` — it just diffs. When restraml later emits `_package`, it lands in `_attrs` (or a column) and provides the *why* behind the arch split (wifi-qcom is arm64-only). `_arch` can be derived from `_package` + a package-arch mapping, but storing it directly is cheaper for queries.
+6. **Rosetta as the keeper, not the interpreter.** Rosetta stores structural truth. CLI canonicalization (mapping `/ip/address/set` ≡ `/ip/address set` ≡ contextual `set`) and REST API mapping (`PATCH`, `.../set_POST`) are consumer concerns — they live in a small shared lib (see "Normalizer lib" below), not inside this DB.
+
+**Core schema.**
+
+```sql
+-- Already landed (2026-04-11): keyed on (version, arch) for per-arch provenance.
+-- _meta differs per arch (different generatedAt, different argsTotal since arm64
+-- has more nodes), so per-arch rows here are correct even though the node junction
+-- below is arch-agnostic.
+ros_versions (
+    version      TEXT NOT NULL,
+    arch         TEXT NOT NULL,           -- 'x86' | 'arm64'
+    channel      TEXT,
+    extra_packages INTEGER DEFAULT 1,
+    generated_at TEXT,                    -- _meta.generatedAt
+    crash_paths_tested   TEXT,            -- JSON array from _meta
+    crash_paths_crashed  TEXT,            -- JSON array from _meta
+    completion_stats     TEXT,            -- JSON from _meta.completionStats
+    source_url   TEXT,
+    _attrs       TEXT,                    -- forward-compat catch-all
+    PRIMARY KEY (version, arch)
+)
+
+-- Canonical structural nodes. Replaces `commands`.
+schema_nodes (
+    id          INTEGER PRIMARY KEY,
+    path        TEXT NOT NULL,            -- tree-walk, '/ip/address/set/disabled'
+    name        TEXT NOT NULL,            -- final segment
+    type        TEXT NOT NULL,            -- 'dir' | 'cmd' | 'arg'
+    parent_id   INTEGER REFERENCES schema_nodes(id),
+    parent_path TEXT,                     -- denormalized for cheap WHERE
+    dir_role    TEXT,                     -- 'list' | 'namespace' | 'hybrid' | NULL
+    desc_raw    TEXT,                     -- verbatim from inspect.json
+
+    -- best-effort decomposition of desc_raw (NULL where unparseable)
+    data_type   TEXT,                     -- 'string' | 'int' | 'time' | 'enum' | 'script' | 'ip' | ...
+    enum_values TEXT,                     -- JSON array
+    enum_multi  INTEGER,                  -- 1 if desc used [,Foo*] multi-select
+    type_tag    TEXT,                     -- trailing [,Foo*] type name
+    range_min   TEXT,
+    range_max   TEXT,
+    max_length  INTEGER,
+
+    -- sparse arch marker: NULL = both arches, 'arm64' or 'x86' = platform-specific.
+    -- Set at import by diffing x86 vs arm64 path sets. ~1K of ~40K nodes are non-NULL.
+    _arch       TEXT,
+    _package    TEXT,                     -- NULL until restraml emits it
+    _attrs      TEXT,                     -- JSON; forward-compat blob
+    page_id     INTEGER REFERENCES pages(id),
+    UNIQUE(path, type)
+)
+
+-- Flat version-presence junction. No arch column — arch specificity lives on the
+-- node via _arch. One row per (node, version). Replaces `command_versions`.
+schema_node_presence (
+    node_id  INTEGER NOT NULL REFERENCES schema_nodes(id),
+    version  TEXT NOT NULL,
+    PRIMARY KEY (node_id, version)
+);
+CREATE INDEX idx_snp_version ON schema_node_presence(version);
+```
+
+`commands` and `command_versions` survive the transition as **views** (or as regenerated denormalized tables at import time if view perf bites). Downstream callers — classifier, `query.ts`, TUI, MCP tools — keep working without a synchronized rewrite.
+
+**Example queries (no JSON parsing, pure SQL):**
+
+```sql
+-- "What's arm64-only?" — sparse column, ~1K rows.
+SELECT path, type, _package FROM schema_nodes WHERE _arch = 'arm64';
+
+-- "Does /interface/wifi exist in 7.22.1?"
+SELECT n.path, n._arch FROM schema_nodes n
+JOIN schema_node_presence p ON p.node_id = n.id
+WHERE n.path = '/interface/wifi' AND p.version = '7.22.1';
+
+-- "What changed between long-term and stable?"
+SELECT n.path, n.type FROM schema_nodes n
+JOIN schema_node_presence p ON p.node_id = n.id WHERE p.version = '7.22.1'
+EXCEPT
+SELECT n.path, n.type FROM schema_nodes n
+JOIN schema_node_presence p ON p.node_id = n.id WHERE p.version = '7.20.8';
+```
+
+**Dir role derivation.** Deterministic at import time: a `type='dir'` whose direct children are all cmds → `'list'` (list-root like `/ip/address`); all dirs → `'namespace'` (pure nav like `/ip`); both → `'hybrid'` (like `/certificate`, which has `add` + sub-dir `builtin`). This is what lets the classifier say "`/ip` is a namespace, don't suggest `/ip set`, suggest drilling down" without a per-path heuristic.
+
+**desc parsing spec (first pass).**
+
+| Pattern | Example | Fields set |
+|---|---|---|
+| `string value` | literal | `data_type='string'` |
+| `string value, max length N` | `max length 20` | `data_type='string', max_length=20` |
+| `time interval` | literal | `data_type='time'` |
+| `A..B    (time interval)` | `00:00:00.020..00:00:30    (time interval)` | `data_type='time', range_min, range_max` |
+| `a\|b\|c` lowercase tokens | `auto\|disabled\|enabled` | `data_type='enum', enum_values` |
+| `a\|b\|c[,Foo*]` | `ipsec\|wpa-eap[,Component*]` | `data_type='enum', enum_values, enum_multi=1, type_tag='Component'` |
+| `script` | literal | `data_type='script'` |
+| unknown / empty | — | all NULL; `desc_raw` preserved |
+
+When `argsWithCompletion > 0`, completion entries land in `_attrs.completion` first (Principle 4: don't promote until shape is stable).
+
+**Normalizer lib (lives outside rosetta).**
+
+A pure function — call it `canonicalize(input, cwd)` — that maps every CLI-ish form to a canonical `(path, verb, args)` tuple rosetta can `WHERE path = ?` on:
+
+- `/ip/address/set` → `{ path: '/ip/address', verb: 'set', args: [] }`
+- `/ip/address set` → same
+- `ip address/set` → same (missing leading slash tolerated)
+- `set disabled=yes` with `cwd='/ip/address'` → `{ path: '/ip/address', verb: 'set', args: ['disabled=yes'] }`
+- `/ip/address set [find default-gateway=foo]` → outer `(/ip/address, set, ...)` plus subshell `(/ip/address, find, ...)` (subshells inherit outer path — this is the trap the current flattened `commands` walks into)
+
+This lib is **shared** across rosetta, LSP, TUI, browse, and any future static-lint tool. Most likely shape: a small standalone package (`@tikoci/routeros-path` or similar), or vendor as `src/canonicalize.ts` if package ceremony is too much for a first pass. It knows **nothing** about REST API mapping, `.../set_POST` hybrids, or OpenAPI — those are restraml/consumer concerns. It only deals with CLI-shape canonicalization. This is the "lib in between that's shared to help map things" — rosetta doesn't have to know how REST maps in deep-inspect.json; it only has to know the canonical node path.
+
+**Round-trip test gates the refactor.**
+
+`src/schema-roundtrip.test.ts`: load both `fixtures/deep-inspect.{x86,arm64}.sample.json`, run the merge-import into an in-memory DB, then export per-arch by filtering `schema_nodes` on `_arch` (NULL = both, 'arm64' = arm64-only) and reconstructing the tree. `expect(canonical(exported)).toBe(canonical(original))` for each arch file. Passing this test is the merge bar.
+
+Once this holds, the filtered-subset use case — "give me a partial inspect.json for just `/ip/firewall` in 7.22.1, or everything that changed between long-term and stable" — is a SQL query plus an `exportSchemaNodesAsJson(filter)` call. No JSON parsing, no memory bloat.
+
+**Sequencing.**
+
+1. ~~**Capture `_meta` + extend `ros_versions` with `arch`.**~~ **Done (2026-04-11).** ros_versions PK is `(version, arch)` with `_meta` columns. Migration backfills existing rows as `arch='x86'`. Fixtures landed in `fixtures/deep-inspect.{x86,arm64}.sample.json`.
+2. **Normalizer lib** — pure function, unit-tested against a corpus of ~30 real RouterOS CLI strings (`/ip/firewall/filter add ...`, `[find]` subshells, contextual verbs, REST-shaped paths). Standalone package or inlined `src/canonicalize.ts`.
+3. **Add `schema_nodes` + `schema_node_presence` alongside the current `commands` table.** New `src/extract-schema.ts` importer that takes **both** arch files for a version, diffs path sets, merges into one pass, and marks the ~1K delta nodes with `_arch`. `commands` stays untouched for now — zero downstream churn.
+4. **Round-trip test** over the fixtures. Blocks further work until green.
+5. **Import real data** — 4 channel heads (long-term, stable, testing, development) on both arches. Populate the junction.
+6. **Version retention** — implement GC that drops schema_node_presence rows for versions older than the previous long-term on each extraction run. See "Schema version retention policy" below.
+7. **Swap `commands` to a view (or regen-at-import table) over `schema_nodes`.** Downstream code keeps working.
+8. **Fold arch awareness into `routeros_command_diff`** — new optional `arch` param. The sparse `_arch` marker makes filtered diffs cheap.
+9. **When `argsWithCompletion > 0`:** parse completion into `_attrs.completion`, promote fields once stable.
+
+Steps 2–4 can run in parallel with the North Star classifier work — the classifier will consume the canonical path form from the same normalizer lib.
+
+**What rosetta is explicitly not responsible for.**
+
+- REST API verb mapping (`PATCH`/`set`, `.../set_POST` hybrids) — restraml's OpenAPI output and consumer libs handle this.
+- OpenAPI generation — restraml already emits `openapi.<arch>.json`.
+- Full CLI parser / AST — lives in LSP or a future static-analysis lib. Rosetta stores structural facts and answers lookups; it doesn't validate values. Value validation remains a live-CHR concern (quickchr + `/console/inspect request=completion`).
+- "Is this user command correct?" — rosetta can answer "this path exists in version X with these args and `_arch` marker," not "your chosen value is legal." The classifier's "looks right / cannot confirm" wording (see Needs Input below) is deliberate.
+
+Rosetta's job: own the structural truth, answer canonical-path lookups with high confidence, be the first place a consumer looks before reaching for a live CHR.
+
+### Schema version retention policy
+
+**Keep ~4 active channel heads**, one per channel (long-term, stable, testing/rc, development). On each new extraction run, drop `schema_node_presence` rows for versions older than the previous long-term. This keeps the junction at ~160K rows / ~10 MB instead of growing unboundedly.
+
+**Why only back to long-term:** anyone on a version older than LT is running unsupported/unpatched RouterOS. The fact that rosetta's schema data only extends to the current LT window is a subtle but useful signal — "we can tell you about 7.20.8 through 7.23beta5, and if your version isn't in that range, consider upgrading." The window between long-term and development can span months to a year, which is exactly the upgrade path most admins are on.
+
+**What stays in the window matters more than depth.** Knowing that `/interface/wifi/provisioning` appeared in 7.22 but not in 7.20.8 (LT) is directly actionable for someone upgrading. Knowing that it didn't exist in 7.12 is trivia — if they're on 7.12, the entire world has changed. For historical archaeology, restraml's raw inspect.json on GitHub Pages is the archive.
+
+**Retention slots:**
+
+| Slot | Current example | Rolls when |
+|------|-----------------|------------|
+| long-term | 7.20.8 | new LT release ships |
+| stable | 7.22.1 | new stable ships |
+| testing (rc) | 7.22rc4 | new rc or stable ships |
+| development | 7.23beta5 | new beta ships |
+
+Optional: keep one or two additional versions between LT and stable for finer-grained diff granularity. Exact policy TBD at implementation.
+
+**GC is a release-pipeline step, not a user action.** `extract-schema.ts` (or a `make gc-versions` target) identifies versions to drop based on the retention policy, deletes their `schema_node_presence` rows and `ros_versions` entries, then runs `VACUUM` (or defers to next `make build-release`).
+
+**Changelogs are exempt from schema GC.** See "Extend changelog coverage to 7.0" below — changelogs follow a different retention policy (full v7 record) because they're tiny and text-searchable.
+
+### Extend changelog coverage to 7.0
+
+Decouple changelog retention from schema retention. Changelogs are small (~4K entries for 41 versions currently, starting at 7.9). Extend back to 7.0 to provide a complete v7 record.
+
+**Why:** Changelogs are text — searchable, taggable, and useful for tracing when a feature or fix first appeared. "When was BGP route reflection added?" is answerable from changelogs alone, no schema needed. The current 7.9 start is an artifact of schema extraction history (that's when restraml's inspect.json data begins), not a meaningful boundary. Pegging changelogs to the same starting point as schemas feels arbitrary and loses signal.
+
+**How:** `extract-changelogs.ts` already has `--versions=` and `--probe-patches` flags. Run with explicit versions `7.0` through `7.8.x` (or use `--probe-patches` to auto-discover). The changelog URL format (`download.mikrotik.com/routeros/<version>/CHANGELOG`) goes back to the beginning of v7. Add to the default `make extract-changelogs` target.
+
+**Size impact:** Negligible. Each version's changelog is a few KB of text. 30-40 additional versions ≈ a few hundred KB in the changelogs table + FTS index. The full v7 changelog corpus is likely under 1 MB total.
 
 ### Known topics extraction
 
@@ -372,19 +559,16 @@ Items explicitly postponed until a trigger condition is met.
 
 ### Dependency on restraml — `deep-inspect.json` completion data (Principle 4)
 
-**Blocking:** `deep-inspect.json` with populated `_completion` fields (enum choices, type hints, validation). As of 2026-04-04 the file exists from 7.22.1 / 7.23beta4 forward, but `argsWithCompletion: 0` — structure present, content empty. restraml iteration speed is the bottleneck, and their unblock depends on quickchr maturing.
+**Now unblocked (2026-04-11):** structural + multi-arch work. restraml has landed per-arch `deep-inspect.<arch>.json` (`scripts/deep-inspect-multi-arch.ts`) with populated `_meta` (version, generatedAt, crashPaths, completionStats). That's enough to build the `schema_nodes` + `schema_node_presence` refactor — see "Multi-arch schema import" under Ready to Build. Structural fidelity and arch-delta queries don't need completion data.
 
-**What to do now (safe, cheap cleanup):**
-
-1. Capture `_meta.version` and `_meta.generatedAt` from `deep-inspect.json` in `ros_versions` for provenance.
-2. Prefer `deep-inspect.json` over `inspect.json` in the extraction order wherever a version has both.
+**Still blocked:** `_completion` blob contents. As of 2026-04-11 `argsWithCompletion: 0` — structure present, content empty. restraml's enrichment loop is the bottleneck, and that depends on quickchr stability + MikroTik p1 license provisioning.
 
 **What's blocked until `argsWithCompletion > 0`:**
 
-1. Extending the `commands` schema with argument enum values (schema design happens *then*, when we know the data shape).
-2. Wiring completion values into the classifier — property-name matches offer valid enum values. This is where the cross-project payoff lands.
+1. Promoting enum values out of `_attrs.completion` into structured columns. (The importer should already land raw completion entries in `_attrs` when it sees them — Principle 4's "don't promote speculatively" applies to the *column*, not the *storage*.)
+2. Wiring completion values into the classifier — property-name matches should offer valid enum values. This is where the cross-project payoff lands.
 
-**What not to do now:** no speculative schema changes or abstractions anticipating deep-inspect's final shape. Light cleanup only.
+**What not to do now:** no speculative enum-specific columns or abstractions anticipating the completion blob shape. The `_attrs` catch-all is the explicit mechanism to avoid a second migration when completion ships.
 
 ### MCP Registry publish automation
 

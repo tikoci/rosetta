@@ -615,7 +615,7 @@ export function diffCommandVersions(
   pathPrefix?: string,
 ): CommandDiffResult {
   const allVersionRows = db
-    .prepare("SELECT version FROM ros_versions")
+    .prepare("SELECT DISTINCT version FROM ros_versions")
     .all() as Array<{ version: string }>;
   const knownVersions = allVersionRows.map((r) => r.version).sort(compareVersions);
 
@@ -689,7 +689,7 @@ export function checkCommandVersions(
   const versions = rows.map((r) => r.ros_version).sort(compareVersions);
 
   const allVersionRows = db
-    .prepare("SELECT version FROM ros_versions")
+    .prepare("SELECT DISTINCT version FROM ros_versions")
     .all() as Array<{ version: string }>;
   const allVersions = allVersionRows.map((r) => r.version).sort(compareVersions);
   const minTracked = allVersions[0] ?? null;
