@@ -44,29 +44,42 @@ Fixed critical database corruption and setup validation bug preventing `bunx @ti
 ## ⏳ Final Step: npm Registry Publication
 
 ### Status
-`npm publish` requires NPM_TOKEN credentials not available in this environment.
+**READY TO PUBLISH** — All code, tests, database, and artifacts are complete. Only requires executor with npm credentials.
 
-### Options to Complete
+### 🚀 How to Complete (One Command)
 
-**Option A: Local Publish (Recommended)**
 ```bash
+# If you have npm credentials configured:
 cd ~/GitHub/rosetta
-npm login  # if needed
-npm publish --access public
-echo "✓ Published to npm"
-curl https://registry.npmjs.org/@tikoci/rosetta | jq .version  # verify
+./scripts/publish-npm.sh
 ```
 
-**Option B: GitHub Actions CI**
-The `release.yml` workflow can publish if triggered with proper credentials (see `.npm-publish-checklist.md`).
+**OR** (if npm credentials not yet configured):
+```bash
+cd ~/GitHub/rosetta
+npm login  # Enter your npm credentials (username/email/password/OTP)
+./scripts/publish-npm.sh
+```
 
-**Option C: Verify Current Reach**
-Without npm registry sync, v0.6.2 is still accessible via:
-- ✅ `gh release download v0.6.2` — GitHub binaries
-- ✅ `/app install` — RouterOS 7.22+
-- ✅ `docker pull ammo74/rosetta:v0.6.2` — Container
-- ✅ Compiled binaries — standalone executables
-- ⏳ `bunx @tikoci/rosetta` — awaiting npm sync
+**OR** (direct npm publish):
+```bash
+cd ~/GitHub/rosetta
+npm publish --access public
+```
+
+### Verification After Publishing
+```bash
+npm view @tikoci/rosetta version  # Should show 0.6.2
+bunx @tikoci/rosetta --help       # Should work with v0.6.2
+```
+
+### Current Reach (Without npm Registry Sync)
+v0.6.2 is **already accessible** via:
+- ✅ `gh release download v0.6.2` — GitHub binaries (all platforms)
+- ✅ `/app install` — RouterOS 7.22+ (container)
+- ✅ `docker pull ammo74/rosetta:v0.6.2` — Docker/Podman
+- ✅ Compiled standalone binaries — Windows/macOS/Linux
+- ⏳ `bunx @tikoci/rosetta` — **awaiting this npm publish**
 
 ## 🚀 Impact
 
