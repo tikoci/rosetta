@@ -28,6 +28,7 @@ Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/rel
 | `browse --once` | One-shot search for piping |
 | `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
+| `--refresh` | Shortcut for `--setup --force` (refresh DB) |
 | `--version` | Print version |
 | `--help` | Print usage |
 | `--http` | Start with Streamable HTTP transport (instead of stdio) |

@@ -72,7 +72,7 @@ export async function runSetup(force = false) {
   const needsDownload = force || !dbHasData(dbPath);
   if (!needsDownload) {
     console.log(`Database already exists: ${dbPath}`);
-    console.log(`  (use --setup --force to re-download)`);
+    console.log(`  (use --refresh or --setup --force to re-download)`);
   } else {
     await downloadDb(dbPath);
   }
@@ -94,7 +94,7 @@ export async function runSetup(force = false) {
   } catch (e) {
     console.error(`✗ Database validation failed: ${e}`);
     const retryCmd = mode === "compiled" ? "rosetta" : mode === "package" ? "bunx @tikoci/rosetta" : "bun run src/setup.ts";
-    console.error(`  Try re-downloading with: ${retryCmd} --setup --force`);
+    console.error(`  Try re-downloading with: ${retryCmd} --refresh`);
     process.exit(1);
   }
 

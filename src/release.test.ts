@@ -320,6 +320,10 @@ describe("CLI flags", () => {
   test("supports --setup flag", () => {
     expect(src).toContain("--setup");
   });
+
+  test("supports --refresh flag", () => {
+    expect(src).toContain("--refresh");
+  });
 });
 
 // ---------------------------------------------------------------------------

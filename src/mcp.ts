@@ -8,6 +8,7 @@
  * CLI flags (for compiled binary or `bun run src/mcp.ts`):
  *   browse             Interactive terminal browser (REPL)
  *   --setup [--force]  Download database + print MCP client config
+ *   --refresh          Shortcut for --setup --force (refresh DB)
  *   --version          Print version
  *   --help             Print usage
  *   --http             Start with Streamable HTTP transport (instead of stdio)
@@ -59,6 +60,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  rosetta browse       Interactive terminal browser");
   console.log("  rosetta --setup      Download database + print MCP client config");
   console.log("  rosetta --setup --force  Re-download database");
+  console.log("  rosetta --refresh    Shortcut for --setup --force");
   console.log("  rosetta --version    Print version");
   console.log("  rosetta --help       Print this help");
   console.log();
@@ -92,6 +94,12 @@ if (args[0] === "browse") {
 if (args.includes("--setup")) {
   const { runSetup } = await import("./setup.ts");
   await runSetup(args.includes("--force"));
+  process.exit(0);
+}
+
+if (args.includes("--refresh")) {
+  const { runSetup } = await import("./setup.ts");
+  await runSetup(true);
   process.exit(0);
 }
 
@@ -158,7 +166,7 @@ if (_dbSchemaVersion !== SCHEMA_VERSION) {
     log("Database updated successfully.");
   } catch (e) {
     log(`Auto-download failed: ${e}`);
-    log(`Run: ${process.argv[0]} --setup --force`);
+    log(`Run: ${process.argv[0]} --refresh`);
   }
 }
 

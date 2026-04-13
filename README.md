@@ -115,6 +115,12 @@ bunx @tikoci/rosetta --setup
 
 This downloads the database and prints config snippets for all supported MCP clients. Copy-paste the config for your client and you're done.
 
+Need to force a database reload later? Use:
+
+```sh
+bunx @tikoci/rosetta --refresh
+```
+
 ### Configure your MCP client
 
 <details>

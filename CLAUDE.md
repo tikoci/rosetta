@@ -385,6 +385,7 @@ bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 |------|---------|| `browse` | Interactive terminal browser (REPL) |
 | `browse --once` | One-shot search for piping || `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
+| `--refresh` | Shortcut for `--setup --force` (refresh DB) |
 | `--version` | Print version |
 | `--help` | Print usage |
 | `--http` | Start with Streamable HTTP transport (instead of stdio) |
