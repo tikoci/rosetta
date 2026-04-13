@@ -423,6 +423,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
+| `src/canonicalize.ts` | Pure RouterOS CLI path canonicalizer — maps any input form to `{ path, verb, args }` tuples |
 | `src/extract-properties.ts` | Property table parsing from HTML |
 | `src/restraml.ts` | Shared helpers for fetching from tikoci/restraml (GitHub API + Pages) |
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
@@ -437,6 +438,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/search.ts` | CLI search tool |
 | `src/browse.ts` | Interactive terminal browser — REPL with paging, OSC 8 links, context-scoped navigation |
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
+| `src/canonicalize.test.ts` | Bun tests — CLI path canonicalization: 61 tests for path forms, subshells, blocks, navigation |
 | `src/extract-videos.test.ts` | yt-dlp mock tests + cache function tests (saveCache/importCache/loadKnownBad/findLatestCache) |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |
 | `src/mcp-http.test.ts` | HTTP transport integration — session lifecycle, multi-client, errors (live server process) |
