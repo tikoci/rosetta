@@ -101,7 +101,7 @@ extract-dude:
 
 # Re-extract from cached HTML in dude/pages/ — no network dependency.
 extract-dude-from-cache:
-	bun run src/extract-dude.ts --from-cache
+	bun run src/extract-dude.ts --from-cache --skip-images
 
 link:
 	bun run src/link-commands.ts

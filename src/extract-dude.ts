@@ -7,8 +7,9 @@
  * caches raw HTML to dude/pages/, and populates dude_pages + dude_images tables.
  *
  * Usage:
- *   bun run src/extract-dude.ts              # Fetch from Wayback Machine
- *   bun run src/extract-dude.ts --from-cache # Re-extract from cached HTML
+ *   bun run src/extract-dude.ts              # Fetch from Wayback Machine + download images
+ *   bun run src/extract-dude.ts --from-cache # Re-extract from cached dude/pages/ HTML
+ *   bun run src/extract-dude.ts --from-cache --skip-images  # CI path: no image download
  *   bun run src/extract-dude.ts --force      # Force re-download even if cached
  */
 
@@ -26,6 +27,7 @@ const FETCH_DELAY_MS = 500;
 
 const FROM_CACHE = process.argv.includes("--from-cache");
 const FORCE = process.argv.includes("--force");
+const SKIP_IMAGES = process.argv.includes("--skip-images");
 
 /** Page definition: wiki path suffix → metadata */
 interface PageDef {
@@ -372,25 +374,28 @@ async function main() {
   }
 
   // Download images outside the DB transaction loop (allows partial success)
-  console.log("\nDownloading images...");
-  const allImages = db.prepare("SELECT DISTINCT filename, wayback_url FROM dude_images").all() as Array<{ filename: string; wayback_url: string }>;
-  let downloadedCount = 0;
-  let skipCount = 0;
-  for (const img of allImages) {
-    const destPath = join(IMAGES_DIR, img.filename);
-    if (existsSync(destPath) && !FORCE) {
-      skipCount++;
-      continue;
+  if (SKIP_IMAGES) {
+    console.log("\nSkipping image download (--skip-images).");
+  } else {
+    console.log("\nDownloading images...");
+    const allImages = db.prepare("SELECT DISTINCT filename, wayback_url FROM dude_images").all() as Array<{ filename: string; wayback_url: string }>;
+    let downloadedCount = 0;
+    let skipCount = 0;
+    for (const img of allImages) {
+      const destPath = join(IMAGES_DIR, img.filename);
+      if (existsSync(destPath) && !FORCE) {
+        skipCount++;
+        continue;
+      }
+      const ok = await downloadImage(img.wayback_url, destPath);
+      if (ok) {
+        downloadedCount++;
+        console.log(`  ✓ ${img.filename}`);
+      }
+      await delay(FETCH_DELAY_MS);
     }
-    const ok = await downloadImage(img.wayback_url, destPath);
-    if (ok) {
-      downloadedCount++;
-      console.log(`  ✓ ${img.filename}`);
-    }
-    await delay(FETCH_DELAY_MS);
+    console.log(`\nDone: ${pageCount} pages, ${imageCount} image refs, ${downloadedCount} downloaded, ${skipCount} cached, ${errorCount} errors`);
   }
-
-  console.log(`\nDone: ${pageCount} pages, ${imageCount} image refs, ${downloadedCount} downloaded, ${skipCount} cached, ${errorCount} errors`);
 
   // Summary
   const stats = db.prepare("SELECT COUNT(*) AS c FROM dude_pages").get() as { c: number };
