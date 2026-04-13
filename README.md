@@ -269,7 +269,7 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server exposes 14 tools designed to work together — agents start with `routeros_search` and drill into specific data as needed:
+The server exposes 16 tools designed to work together — agents start with `routeros_search` and drill into specific data as needed:
 
 | Tool | What it does |
 |------|-------------|
@@ -285,6 +285,8 @@ The server exposes 14 tools designed to work together — agents start with `rou
 | `routeros_device_lookup` | Hardware specs — filter by architecture, RAM, PoE, wireless, etc. |
 | `routeros_search_tests` | Cross-device ethernet and IPSec benchmarks |
 | `routeros_search_videos` | YouTube transcript search with chapter timestamps |
+| `routeros_dude_search` | FTS across archived Dude wiki docs (separate from RouterOS search) |
+| `routeros_dude_get_page` | Full Dude wiki page by ID or title, with screenshot metadata |
 | `routeros_stats` | Database health and coverage stats |
 | `routeros_current_versions` | Live-fetch current RouterOS versions from MikroTik |
 

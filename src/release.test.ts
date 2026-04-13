@@ -202,6 +202,21 @@ describe("Makefile", () => {
     expect(phonyBlock).toContain("extract-videos");
   });
 
+  test("has extract-dude target", () => {
+    expect(makefile).toContain("extract-dude:");
+  });
+
+  test("has extract-dude-from-cache target", () => {
+    expect(makefile).toContain("extract-dude-from-cache:");
+  });
+
+  test("extract-dude is in PHONY", () => {
+    const phonyStart = makefile.indexOf(".PHONY:");
+    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    expect(phonyBlock).toContain("extract-dude");
+  });
+
   test("release depends on preflight", () => {
     expect(makefile).toMatch(/^release:.*preflight/m);
   });
@@ -253,6 +268,11 @@ describe("release.yml", () => {
     expect(src).toContain("extract-test-results.ts");
     expect(src).toContain("extract-changelogs.ts");
     expect(src).toContain("link-commands.ts");
+  });
+
+  test("imports Dude wiki from cache", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("extract-dude-from-cache");
   });
 
   test("runs quality gate before release", () => {

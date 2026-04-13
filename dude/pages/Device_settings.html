@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html class="client-nojs" lang="en" dir="ltr">
+<head><script type="text/javascript" src="https://web-static.archive.org/_static/js/bundle-playback.js?v=2N_sDSC0" charset="utf-8"></script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/wombat.js?v=txqj7nKC" charset="utf-8"></script>
+<script>window.RufflePlayer=window.RufflePlayer||{};window.RufflePlayer.config={"autoplay":"on","unmuteOverlay":"hidden","showSwfDownload":true};</script>
+<script type="text/javascript" src="https://web-static.archive.org/_static/js/ruffle/ruffle.js"></script>
+<script type="text/javascript">
+    __wm.init("https://web.archive.org/web");
+  __wm.wombat("https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_settings","20240912162959","https://web.archive.org/","web","https://web-static.archive.org/_static/",
+	      "1726158599");
+</script>
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/banner-styles.css?v=1utQkbB3" />
+<link rel="stylesheet" type="text/css" href="https://web-static.archive.org/_static/css/iconochive.css?v=3PDvdIFv" />
+<!-- End Wayback Rewrite JS Include -->
+
+<meta charset="UTF-8"/>
+<title>Manual:The Dude v6/Device settings - MikroTik Wiki</title>
+<script>document.documentElement.className="client-js";RLCONF={"wgBreakFrames":false,"wgSeparatorTransformTable":["",""],"wgDigitTransformTable":["",""],"wgDefaultDateFormat":"dmy","wgMonthNames":["","January","February","March","April","May","June","July","August","September","October","November","December"],"wgRequestId":"34ade85380c7c33281094a52","wgCSPNonce":false,"wgCanonicalNamespace":"Manual","wgCanonicalSpecialPageName":false,"wgNamespaceNumber":100,"wgPageName":"Manual:The_Dude_v6/Device_settings","wgTitle":"The Dude v6/Device settings","wgCurRevisionId":27929,"wgRevisionId":27929,"wgArticleId":6421,"wgIsArticle":true,"wgIsRedirect":false,"wgAction":"view","wgUserName":null,"wgUserGroups":["*"],"wgCategories":["Dude"],"wgPageContentLanguage":"en","wgPageContentModel":"wikitext","wgRelevantPageName":"Manual:The_Dude_v6/Device_settings","wgRelevantArticleId":6421,"wgIsProbablyEditable":false,"wgRelevantPageIsProbablyEditable":false,"wgRestrictionEdit":[],"wgRestrictionMove":[]};RLSTATE=
+{"site.styles":"ready","user.styles":"ready","user":"ready","user.options":"loading","skins.vector.styles.legacy":"ready"};RLPAGEMODULES=["site","mediawiki.page.ready","mediawiki.toc","skins.vector.legacy.js"];</script>
+<script>(RLQ=window.RLQ||[]).push(function(){mw.loader.implement("user.options@1i9g4",function($,jQuery,require,module){mw.user.tokens.set({"patrolToken":"+\\","watchToken":"+\\","csrfToken":"+\\"});});});</script>
+<link rel="stylesheet" href="/web/20240912162959cs_/https://wiki.mikrotik.com/load.php?lang=en&amp;modules=skins.vector.styles.legacy&amp;only=styles&amp;skin=vector"/>
+<script async="" src="/web/20240912162959js_/https://wiki.mikrotik.com/load.php?lang=en&amp;modules=startup&amp;only=scripts&amp;raw=1&amp;skin=vector"></script>
+<meta name="ResourceLoaderDynamicStyles" content=""/>
+<link rel="stylesheet" href="/web/20240912162959cs_/https://wiki.mikrotik.com/load.php?lang=en&amp;modules=site.styles&amp;only=styles&amp;skin=vector"/>
+<meta name="generator" content="MediaWiki 1.38.2"/>
+<meta name="format-detection" content="telephone=no"/>
+<link rel="shortcut icon" href="/web/20240912162959im_/https://wiki.mikrotik.com/favicon.ico"/>
+<link rel="search" type="application/opensearchdescription+xml" href="/web/20240912162959/https://wiki.mikrotik.com/opensearch_desc.php" title="MikroTik Wiki (en)"/>
+<link rel="EditURI" type="application/rsd+xml" href="https://wiki.mikrotik.com/api.php?action=rsd"/>
+<link rel="alternate" type="application/atom+xml" title="MikroTik Wiki Atom feed" href="/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Special:RecentChanges&amp;feed=atom"/>
+</head>
+<body class="mediawiki ltr sitedir-ltr mw-hide-empty-elt ns-100 ns-subject page-Manual_The_Dude_v6_Device_settings rootpage-Manual_The_Dude_v6 skin-vector action-view skin-vector-legacy"><div id="mw-page-base" class="noprint"></div>
+<div id="mw-head-base" class="noprint"></div>
+<div id="content" class="mw-body" role="main">
+	<a id="top"></a>
+	<div id="siteNotice"></div>
+	<div class="mw-indicators">
+	</div>
+	<h1 id="firstHeading" class="firstHeading mw-first-heading">Manual:The Dude v6/Device settings</h1>
+	<div id="bodyContent" class="vector-body">
+		<div id="siteSub" class="noprint">From MikroTik Wiki</div>
+		<div id="contentSub"></div>
+		<div id="contentSub2"></div>
+		
+		<div id="jump-to-nav"></div>
+		<a class="mw-jump-link" href="#mw-head">Jump to navigation</a>
+		<a class="mw-jump-link" href="#searchInput">Jump to search</a>
+		<div id="mw-content-text" class="mw-body-content mw-content-ltr" lang="en" dir="ltr"><div class="mw-parser-output"><div id="shbox" style="float:right; border:1px solid #c1c1c1; padding: 10px; width:100px;">
+<div class="floatright"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Version.png" class="image"><img alt="Version.png" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/c/c4/Version.png" decoding="async" width="32" height="32"/></a></div>
+<p><small><b>Applies to RouterOS:</b> <strong>v6.34+</strong></small>
+</p>
+</div>
+<div id="toc" class="toc" role="navigation" aria-labelledby="mw-toc-heading"><input type="checkbox" role="button" id="toctogglecheckbox" class="toctogglecheckbox" style="display:none"/><div class="toctitle" lang="en" dir="ltr"><h2 id="mw-toc-heading">Contents</h2><span class="toctogglespan"><label class="toctogglelabel" for="toctogglecheckbox"></label></span></div>
+<ul>
+<li class="toclevel-1 tocsection-1"><a href="#Adding_a_new_device"><span class="tocnumber">1</span> <span class="toctext">Adding a new device</span></a></li>
+<li class="toclevel-1 tocsection-2"><a href="#Device_settings"><span class="tocnumber">2</span> <span class="toctext">Device settings</span></a>
+<ul>
+<li class="toclevel-2 tocsection-3"><a href="#General"><span class="tocnumber">2.1</span> <span class="toctext">General</span></a>
+<ul>
+<li class="toclevel-3 tocsection-4"><a href="#Device_specific_actions"><span class="tocnumber">2.1.1</span> <span class="toctext">Device specific actions</span></a></li>
+</ul>
+</li>
+<li class="toclevel-2 tocsection-5"><a href="#Polling"><span class="tocnumber">2.2</span> <span class="toctext">Polling</span></a></li>
+<li class="toclevel-2 tocsection-6"><a href="#Services"><span class="tocnumber">2.3</span> <span class="toctext">Services</span></a></li>
+<li class="toclevel-2 tocsection-7"><a href="#Outages"><span class="tocnumber">2.4</span> <span class="toctext">Outages</span></a></li>
+<li class="toclevel-2 tocsection-8"><a href="#SNMP"><span class="tocnumber">2.5</span> <span class="toctext">SNMP</span></a></li>
+<li class="toclevel-2 tocsection-9"><a href="#RouterOS"><span class="tocnumber">2.6</span> <span class="toctext">RouterOS</span></a></li>
+<li class="toclevel-2 tocsection-10"><a href="#History"><span class="tocnumber">2.7</span> <span class="toctext">History</span></a></li>
+<li class="toclevel-2 tocsection-11"><a href="#Tools"><span class="tocnumber">2.8</span> <span class="toctext">Tools</span></a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h1><span class="mw-headline" id="Adding_a_new_device">Adding a new device</span></h1>
+<p>To add a new device to The Dude, you can either use the <a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_discovery" title="Manual:The Dude v6/Device discovery">Discovery interface</a>, in which case the device will automatically be added with no settings asked from you, or you can add a device manually, by clicking the <a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Interface#Add_item" title="Manual:The Dude v6/Interface">Add item button</a> above the Map window. 
+</p><p>Once you click the Add Item button, you can then add a new device by clicking anywhere on the Map. The New device window will be opened: 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-0.PNG" class="image"><img alt="Dude-addeddit-dev-0.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/3/30/Dude-addeddit-dev-0.PNG" decoding="async" width="530" height="314"/></a>
+</p>
+<div id="shbox" style="border-width:1px; border-color:lightgrey; padding: 2px 5px 2px 10px; min-height:56px; border-style:solid; font-size: 0.9em; width=500px; display: block; margin-top:20px">
+<div class="floatleft"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Icon-note.png" class="image"><img alt="Icon-note.png" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/thumb/e/ee/Icon-note.png/56px-Icon-note.png" decoding="async" width="56" height="56" srcset="/web/20240912162959im_/https://wiki.mikrotik.com/images/thumb/e/ee/Icon-note.png/84px-Icon-note.png 1.5x, /web/20240912162959im_/https://wiki.mikrotik.com/images/thumb/e/ee/Icon-note.png/112px-Icon-note.png 2x"/></a></div>
+<p style="margin-top:10px; margin-left: 56px;"><b>Note:</b> You can also add new devices in the Devices pane, in this case you will be asked to specify the Map onto which you like to add the device</p></div>
+<p><br style="clear:both"/>
+</p><p>You will then need to provide the following information: 
+</p>
+<ul><li><b>Address</b> - The IP or DNS name of the device you are about to add. Must be reachable from the Dude server</li>
+<li><b>Username</b> - Username for using tools such as Winbox (in case it's RouterOS), FTP, Telnet etc.</li>
+<li><b>Password</b> -  Password for the same</li>
+<li><b>Secure mode</b> - Whether to use Secure mode when connecting to a RouterOS device. Uses TLS connection.</li>
+<li><b>RouterOS</b> - Whether this device is running RouterOS. Decides whether to show RouterOS specific configuration options. This option also makes sure that the devices can be grouped in Groups, to allow mass upgrades.</li></ul>
+<p>After clicking <b>Next</b> you will be asked to select which services you wish to be monitored on the newly created device. It is also possible to scan for services with the <b>Discover</b> button 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-1.PNG" class="image"><img alt="Dude-addeddit-dev-1.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/e/ed/Dude-addeddit-dev-1.PNG" decoding="async" width="530" height="314"/></a>
+</p><p>After clicking <b>Finish</b>, the device will show up in the Map window and also in the Devices list. You can now double click it to open it's settings. It's also possible to right-click it and select <b>Settings</b>.
+</p>
+<h1><span class="mw-headline" id="Device_settings">Device settings</span></h1>
+<p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-2.PNG" class="image"><img alt="Dude-addeddit-dev-2.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/1/16/Dude-addeddit-dev-2.PNG" decoding="async" width="859" height="478"/></a>
+</p>
+<h2><span class="mw-headline" id="General">General</span></h2>
+<p>This window allows you to configure the most important settings of the device:
+</p>
+<ul><li><b>Name</b> - any name, for example <i>Our main E-mail server</i></li>
+<li><b>Addresses</b> - the IP addresses of the device. You can enter one, or use the <b>arrows</b> to add more fields</li>
+<li><b>DNS names</b> - DNS names of the device, if any</li>
+<li><b>DNS lookup</b> - How to perform automatic DNS lookup if needed</li>
+<li><b>DNS lookup interval</b> - How often to check for DNS name changes</li>
+<li><b>MAC addresses</b> - MAC address of the device</li>
+<li><b>MAC lookup</b> - How to perform MAC address lookup if needed. See more about this in the <a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_list#MAC_mappings" title="Manual:The Dude v6/Device list">MAC Mappings section</a>.</li>
+<li><b>Type</b> - <a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_discovery#Device_Types" title="Manual:The Dude v6/Device discovery">Device type</a> selects what icon to use on the map. <b>Some device</b> (generic) is used by default</li>
+<li><b>Parents</b> - Which device is the hierarchical parent of this one, builds reachability dependencies to avoid multiple notifications in case parent device fails (in which case child devices are also unreachable)</li>
+<li><b>Custom Fields</b> - Any data can be used in the custom fields, like address, coordinates or contact info</li>
+<li><b>Agent</b> - <a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Agents" title="Manual:The Dude v6/Agents">Agent</a> to be used to reach and monitor this particular device. Agents are other Dude servers that have access to networks the current server can't reach.</li>
+<li><b>SNMP profile</b> - SNMP profile to be used for this device. Default selection between SNMP1 and 2, can add SNMPv3 by opening the Edit window.</li>
+<li><b>Username and Password</b> - How to access the device from within the Tools menu (Winbox, Telnet, etc)</li>
+<li><b>Secure mode</b> - Whether to use TLS secure connection for Winbox</li>
+<li><b>RouterOS</b> - Whether to show RouterOS specific menus</li>
+<li><b>Dude server</b> - If it's another Dude server that could be used as an agent. Devices marked as Dude Servers also have a <b>Dude tab</b> in their settings, where you can directly view their maps, without disconnecting from the currently opened server.</li></ul>
+<p><br/>
+</p>
+<h4><span class="mw-headline" id="Device_specific_actions">Device specific actions</span></h4>
+<div class="thumb tright"><div class="thumbinner" style="width:89px;"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:SS-2010-07-01_16.08.10.png" class="image"><img alt="SS-2010-07-01 16.08.10.png" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/6/63/SS-2010-07-01_16.08.10.png" decoding="async" width="87" height="315" class="thumbimage"/></a>  <div class="thumbcaption"><div class="magnify"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:SS-2010-07-01_16.08.10.png" class="internal" title="Enlarge"></a></div></div></div></div>
+<ul><li><b>Ack</b> - This button acknowledges that a problem exists, and an administrator is working on it. This will stop any notifications from being sent. The device icon will turn <b>Blue</b></li>
+<li><b>Unack</b> - This button removes previously set <b>Ack</b> and reprobes the device, to check if the solution was effective. If the service is still down, the Device icon will again turn Red.</li>
+<li><b>Reprobe</b> - Manually run poll for all the services sooner than the Probe Interval.</li>
+<li><b>Note</b> - Possibility to add comments about the device</li>
+<li><b>Reconnect</b> - For RouterOS devices, it's possible to reconnect to reload settings</li>
+<li><b>Reboot</b> - restarts the device physically</li></ul>
+<div style="clear:both"></div>
+<h2><span class="mw-headline" id="Polling">Polling</span></h2>
+<p>This tab allows you to configure polling times and timeouts specifically for this device. Device specific settings are always overriding general settings and map settings.
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-3.PNG" class="image"><img alt="Dude-addeddit-dev-3.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/5/53/Dude-addeddit-dev-3.PNG" decoding="async" width="859" height="478"/></a>
+</p>
+<ul><li><b>Enabled</b> - Whether to poll any services on this device</li>
+<li><b>Probe interval</b> - How often should the services be polled, in seconds</li>
+<li><b>Probe timeout</b> - how much time should pass from start of a specific poll until the service is considered non responsive (<b>timeout</b>). When this state is reached, the device is still <i>Green</i>, but the individual <i>Service</i> will show <i>Timeout</i> and will turn <i>Orange</i></li>
+<li><b>Probe down count</b> - how many times should the poll fail until the service is considered <b>down</b>. When this state is reached, the Device icon will turn <i>Orange</i>, any specified <i>Notifications</i> will be run, and the individual Service will turn <i>Red</i></li>
+<li><b>Use notifications</b> - what action should The Dude take if one of the services reaches <b>Probe down</b> state. Notifications can be chosen from the predefined list, new notifications can be created in the <b>Notifications pane</b>, which is available in the main Menu pane, or in this same window by clicking the <b>...</b> button.</li></ul>
+<p><b>Example</b>: <i>In this case one service has reached "Probe down" state, as all the required polls ended with timeout. The service has turned red (down) but device icon is Orange, because other services are reachable.</i> 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-4.PNG" class="image"><img alt="Dude-addeddit-dev-4.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/2/2c/Dude-addeddit-dev-4.PNG" decoding="async" width="334" height="295"/></a>
+</p>
+<h2><span class="mw-headline" id="Services">Services</span></h2>
+<p>In this tab it is possible to configure services that should be monitored for this specific device. You can also automatically discover available services.
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-5.PNG" class="image"><img alt="Dude-addeddit-dev-5.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/8/83/Dude-addeddit-dev-5.PNG" decoding="async" width="859" height="478"/></a>
+</p><p>To add a new service, use the <b>add item</b> (plus) icon. To discover all services that respond to The Dude, use the  <b>Discover button</b>.
+</p><p>Each service can have <b>specific settings</b>, which override the <b>device settings</b>, the <b>map settings</b> and the <b>general settings</b>. Double click to edit a certain service, or click <b>Add item</b> to add new service and set all the settings in the Add dialog. 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-6.PNG" class="image"><img alt="Dude-addeddit-dev-6.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/c/cd/Dude-addeddit-dev-6.PNG" decoding="async" width="676" height="363"/></a>
+</p><p>It is also possible to specifically set notification types for the individual service of the individual device in this window. 
+</p><p>In the <b>Outages tab</b> you can see current and previous outages, their start times and durations. Note, that if the device is <b>Acked</b>, the Outage will still be visible as <b>Active</b> 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-7.PNG" class="image"><img alt="Dude-addeddit-dev-7.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/9/93/Dude-addeddit-dev-7.PNG" decoding="async" width="859" height="478"/></a>
+</p>
+<h2><span class="mw-headline" id="Outages">Outages</span></h2>
+<p>Shows current and past issues of the specific device. 
+</p>
+<h2><span class="mw-headline" id="SNMP">SNMP</span></h2>
+<p>Shows information about device configuration, if this information is available over SNMP. All of these parameters are available from RouterOS. If the device is not RouterOS, it could still provide some of the information, so some tabs would show it, some would be blank. The information is read only. 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-8.PNG" class="image"><img alt="Dude-addeddit-dev-8.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/4/49/Dude-addeddit-dev-8.PNG" decoding="async" width="859" height="478"/></a>
+</p>
+<ul><li>Interface</li>
+<li>IP</li>
+<li>Route</li>
+<li>ARP</li>
+<li>Bridge FDB</li>
+<li>Storage</li>
+<li>CPU</li>
+<li>Wireless station</li>
+<li>Registration Table</li>
+<li>Simple queues</li>
+<li>DHCP leases</li></ul>
+<h2><span class="mw-headline" id="RouterOS">RouterOS</span></h2>
+<p>This Tab is specific to RouterOS devices and allows you to configure RouterOS basic settings. Unlike the SNMP tab, this tab allows editing of settings, if the username and password were correcly provided in the <b>General</b> tab. This tab is only available if the device was marked as RouterOS in the <b>General</b> tab. 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-9.PNG" class="image"><img alt="Dude-addeddit-dev-9.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/0/04/Dude-addeddit-dev-9.PNG" decoding="async" width="859" height="478"/></a>
+</p><p>Allows configuration of the following settings: 
+</p>
+<ul><li>Interface</li>
+<li>IP</li>
+<li>Route</li>
+<li>ARP</li>
+<li>Package</li>
+<li>File</li>
+<li>Neighbor</li>
+<li>Registration table</li>
+<li>Simple Queue</li>
+<li>DHCP lease</li></ul>
+<p>See the respective RouterOS documentation sections to see how to configure these items. The configuration is just like in Winbox, in some cases more simplified (for example for Simple Queue).
+</p>
+<h2><span class="mw-headline" id="History">History</span></h2>
+<p>Shows response time graphs of the configured services for this device. Image of the graph can be exported to raster image file. Different zoom ranges are available either by the scale switch, or by the dropdown menu (more granular).
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-10.PNG" class="image"><img alt="Dude-addeddit-dev-10.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/e/eb/Dude-addeddit-dev-10.PNG" decoding="async" width="859" height="478"/></a>
+</p>
+<h2><span class="mw-headline" id="Tools">Tools</span></h2>
+<p>Allows you to configure specific Tools to be available for this certain device, in addition to the default tools (FTP, Telnet, Winbox etc.) Once configured, the new tools will be available in the Map (Right click device) or by opening the Device settings in the Tools button. 
+</p><p>Can be useful for executing custom programs and passing them variables, which can be practically anything the Dude knows about the device.
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-11.PNG" class="image"><img alt="Dude-addeddit-dev-11.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/e/e8/Dude-addeddit-dev-11.PNG" decoding="async" width="859" height="478"/></a>
+</p><p>After you have configured the new tool in the Device specific settings window, the new Tool will become available inside the Device settings window "Tools" button, and also upon right click on the device. Only this specific device will have this tool available, if it was added in the device settings window. To add tools available for all devices, use the Tools Pane, available from the Main Menu pane. 
+</p><p><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/File:Dude-addeddit-dev-12.PNG" class="image"><img alt="Dude-addeddit-dev-12.PNG" src="/web/20240912162959im_/https://wiki.mikrotik.com/images/9/95/Dude-addeddit-dev-12.PNG" decoding="async" width="515" height="434"/></a>
+</p>
+<!-- 
+NewPP limit report
+Cached time: 20240911200335
+Cache expiry: 86400
+Reduced expiry: false
+Complications: []
+CPU time usage: 0.142 seconds
+Real time usage: 0.156 seconds
+Preprocessor visited node count: 67/1000000
+Post‐expand include size: 661/2097152 bytes
+Template argument size: 143/2097152 bytes
+Highest expansion depth: 3/100
+Expensive parser function count: 0/100
+Unstrip recursion depth: 0/20
+Unstrip post‐expand size: 0/5000000 bytes
+-->
+<!--
+Transclusion expansion time report (%,ms,calls,template)
+100.00%   11.671      1 -total
+ 54.09%    6.313      1 Template:Versions
+ 44.67%    5.213      1 Template:Note
+-->
+
+<!-- Saved in parser cache with key wiki:pcache:idhash:6421-0!canonical and timestamp 20240911200335 and revision id 27929. Serialized with JSON.
+ -->
+</div>
+<div class="printfooter">Retrieved from "<a dir="ltr" href="https://web.archive.org/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Manual:The_Dude_v6/Device_settings&amp;oldid=27929">https://wiki.mikrotik.com/index.php?title=Manual:The_Dude_v6/Device_settings&amp;oldid=27929</a>"</div></div>
+		<div id="catlinks" class="catlinks" data-mw="interface"><div id="mw-normal-catlinks" class="mw-normal-catlinks"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Special:Categories" title="Special:Categories">Category</a>: <ul><li><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Category:Dude" title="Category:Dude">Dude</a></li></ul></div></div>
+	</div>
+</div>
+
+<div id="mw-navigation">
+	<h2>Navigation menu</h2>
+	<div id="mw-head">
+		
+<nav id="p-personal" class="mw-portlet mw-portlet-personal vector-user-menu-legacy vector-menu" aria-labelledby="p-personal-label" role="navigation">
+	<label id="p-personal-label" aria-label="" class="vector-menu-heading">
+		<span class="vector-menu-heading-label">Personal tools</span>
+	</label>
+	<div class="vector-menu-content">
+		
+		<ul class="vector-menu-content-list"><li id="pt-login" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Special:UserLogin&amp;returnto=Manual%3AThe+Dude+v6%2FDevice+settings" title="You are encouraged to log in; however, it is not mandatory [o]" accesskey="o"><span>Log in</span></a></li></ul>
+		
+	</div>
+</nav>
+
+		<div id="left-navigation">
+			
+<nav id="p-namespaces" class="mw-portlet mw-portlet-namespaces vector-menu vector-menu-tabs" aria-labelledby="p-namespaces-label" role="navigation">
+	<label id="p-namespaces-label" aria-label="" class="vector-menu-heading">
+		<span class="vector-menu-heading-label">Namespaces</span>
+	</label>
+	<div class="vector-menu-content">
+		
+		<ul class="vector-menu-content-list"><li id="ca-nstab-manual" class="selected mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_settings"><span>Manual</span></a></li><li id="ca-talk" class="new mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Manual_talk:The_Dude_v6/Device_settings&amp;action=edit&amp;redlink=1" rel="discussion" title="Discussion about the content page (page does not exist) [t]" accesskey="t"><span>Discussion</span></a></li></ul>
+		
+	</div>
+</nav>
+
+			
+<nav id="p-variants" class="mw-portlet mw-portlet-variants emptyPortlet vector-menu-dropdown-noicon vector-menu vector-menu-dropdown" aria-labelledby="p-variants-label" role="navigation">
+	<input type="checkbox" id="p-variants-checkbox" role="button" aria-haspopup="true" data-event-name="ui.dropdown-p-variants" class="vector-menu-checkbox" aria-labelledby="p-variants-label"/>
+	<label id="p-variants-label" aria-label="Change language variant" class="vector-menu-heading">
+		<span class="vector-menu-heading-label">English</span>
+			<span class="vector-menu-checkbox-expanded">expanded</span>
+			<span class="vector-menu-checkbox-collapsed">collapsed</span>
+	</label>
+	<div class="vector-menu-content">
+		
+		<ul class="vector-menu-content-list"></ul>
+		
+	</div>
+</nav>
+
+		</div>
+		<div id="right-navigation">
+			
+<nav id="p-views" class="mw-portlet mw-portlet-views vector-menu vector-menu-tabs" aria-labelledby="p-views-label" role="navigation">
+	<label id="p-views-label" aria-label="" class="vector-menu-heading">
+		<span class="vector-menu-heading-label">Views</span>
+	</label>
+	<div class="vector-menu-content">
+		
+		<ul class="vector-menu-content-list"><li id="ca-view" class="selected mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_settings"><span>Read</span></a></li><li id="ca-viewsource" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Manual:The_Dude_v6/Device_settings&amp;action=edit" title="This page is protected.
+You can view its source [e]" accesskey="e"><span>View source</span></a></li><li id="ca-history" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Manual:The_Dude_v6/Device_settings&amp;action=history" title="Past revisions of this page [h]" accesskey="h"><span>View history</span></a></li></ul>
+		
+	</div>
+</nav>
+
+			
+<nav id="p-cactions" class="mw-portlet mw-portlet-cactions emptyPortlet vector-menu-dropdown-noicon vector-menu vector-menu-dropdown" aria-labelledby="p-cactions-label" role="navigation" title="More options">
+	<input type="checkbox" id="p-cactions-checkbox" role="button" aria-haspopup="true" data-event-name="ui.dropdown-p-cactions" class="vector-menu-checkbox" aria-labelledby="p-cactions-label"/>
+	<label id="p-cactions-label" aria-label="" class="vector-menu-heading">
+		<span class="vector-menu-heading-label">More</span>
+			<span class="vector-menu-checkbox-expanded">expanded</span>
+			<span class="vector-menu-checkbox-collapsed">collapsed</span>
+	</label>
+	<div class="vector-menu-content">
+		
+		<ul class="vector-menu-content-list"></ul>
+		
+	</div>
+</nav>
+
+			
+<div id="p-search" role="search" class="vector-search-box-vue  vector-search-box-show-thumbnail vector-search-box-auto-expand-width vector-search-box">
+	<div>
+			<h3>
+				<label for="searchInput">Search</label>
+			</h3>
+		<form action="/web/20240912162959/https://wiki.mikrotik.com/index.php" id="searchform" class="vector-search-box-form">
+			<div id="simpleSearch" class="vector-search-box-inner" data-search-loc="header-navigation">
+				<input class="vector-search-box-input" type="search" name="search" placeholder="Search MikroTik Wiki" aria-label="Search MikroTik Wiki" autocapitalize="sentences" title="Search MikroTik Wiki [f]" accesskey="f" id="searchInput"/>
+				<input type="hidden" name="title" value="Special:Search"/>
+				<input id="mw-searchButton" class="searchButton mw-fallbackSearchButton" type="submit" name="fulltext" title="Search the pages for this text" value="Search"/>
+				<input id="searchButton" class="searchButton" type="submit" name="go" title="Go to a page with this exact name if it exists" value="Go"/>
+			</div>
+		</form>
+	</div>
+</div>
+
+		</div>
+	</div>
+	
+
+<div id="mw-panel">
+	<div id="p-logo" role="banner">
+		<a class="mw-wiki-logo" href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Main_Page" title="Visit the main page"></a>
+	</div>
+	
+<nav id="p-navigation" class="mw-portlet mw-portlet-navigation vector-menu vector-menu-portal portal" aria-labelledby="p-navigation-label" role="navigation">
+	<label id="p-navigation-label" aria-label="" class="vector-menu-heading">
+		<span class="vector-menu-heading-label">Navigation</span>
+	</label>
+	<div class="vector-menu-content">
+		
+		<ul class="vector-menu-content-list"><li id="n-mainpage" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Main_Page" title="Visit the main page [z]" accesskey="z"><span>Main Page</span></a></li><li id="n-recentchanges" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Special:RecentChanges" icon="recentChanges" title="A list of recent changes in the wiki [r]" accesskey="r"><span>Recent changes</span></a></li></ul>
+		
+	</div>
+</nav>
+
+	
+<nav id="p-tb" class="mw-portlet mw-portlet-tb vector-menu vector-menu-portal portal" aria-labelledby="p-tb-label" role="navigation">
+	<label id="p-tb-label" aria-label="" class="vector-menu-heading">
+		<span class="vector-menu-heading-label">Tools</span>
+	</label>
+	<div class="vector-menu-content">
+		
+		<ul class="vector-menu-content-list"><li id="t-whatlinkshere" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Special:WhatLinksHere/Manual:The_Dude_v6/Device_settings" title="A list of all wiki pages that link here [j]" accesskey="j"><span>What links here</span></a></li><li id="t-recentchangeslinked" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Special:RecentChangesLinked/Manual:The_Dude_v6/Device_settings" rel="nofollow" title="Recent changes in pages linked from this page [k]" accesskey="k"><span>Related changes</span></a></li><li id="t-specialpages" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/Special:SpecialPages" title="A list of all special pages [q]" accesskey="q"><span>Special pages</span></a></li><li id="t-print" class="mw-list-item"><a href="javascript:print();" rel="alternate" title="Printable version of this page [p]" accesskey="p"><span>Printable version</span></a></li><li id="t-permalink" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Manual:The_Dude_v6/Device_settings&amp;oldid=27929" title="Permanent link to this revision of the page"><span>Permanent link</span></a></li><li id="t-info" class="mw-list-item"><a href="/web/20240912162959/https://wiki.mikrotik.com/index.php?title=Manual:The_Dude_v6/Device_settings&amp;action=info" title="More information about this page"><span>Page information</span></a></li></ul>
+		
+	</div>
+</nav>
+
+	
+</div>
+
+</div>
+
+<footer id="footer" class="mw-footer" role="contentinfo">
+	<ul id="footer-info">
+	<li id="footer-info-lastmod"> This page was last edited on 18 December 2015, at 15:53.</li>
+</ul>
+
+	<ul id="footer-places">
+	<li id="footer-places-privacy"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/MikroTik_Wiki:Privacy_policy" title="MikroTik Wiki:Privacy policy">Privacy policy</a></li>
+	<li id="footer-places-about"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/MikroTik_Wiki:About" title="MikroTik Wiki:About">About MikroTik Wiki</a></li>
+	<li id="footer-places-disclaimer"><a href="/web/20240912162959/https://wiki.mikrotik.com/wiki/MikroTik_Wiki:General_disclaimer" title="MikroTik Wiki:General disclaimer">Disclaimers</a></li>
+</ul>
+
+	<ul id="footer-icons" class="noprint">
+	<li id="footer-poweredbyico"><a href="https://web.archive.org/web/20240912162959/https://www.mediawiki.org/"><img src="/web/20240912162959im_/https://wiki.mikrotik.com/resources/assets/poweredby_mediawiki_88x31.png" alt="Powered by MediaWiki" srcset="/web/20240912162959im_/https://wiki.mikrotik.com/resources/assets/poweredby_mediawiki_132x47.png 1.5x, /web/20240912162959im_/https://wiki.mikrotik.com/resources/assets/poweredby_mediawiki_176x62.png 2x" width="88" height="31" loading="lazy"/></a></li>
+</ul>
+
+</footer>
+
+<script>(RLQ=window.RLQ||[]).push(function(){mw.config.set({"wgPageParseReport":{"limitreport":{"cputime":"0.142","walltime":"0.156","ppvisitednodes":{"value":67,"limit":1000000},"postexpandincludesize":{"value":661,"limit":2097152},"templateargumentsize":{"value":143,"limit":2097152},"expansiondepth":{"value":3,"limit":100},"expensivefunctioncount":{"value":0,"limit":100},"unstrip-depth":{"value":0,"limit":20},"unstrip-size":{"value":0,"limit":5000000},"timingprofile":["100.00%   11.671      1 -total"," 54.09%    6.313      1 Template:Versions"," 44.67%    5.213      1 Template:Note"]},"cachereport":{"timestamp":"20240911200335","ttl":86400,"transientcontent":false}}});mw.config.set({"wgBackendResponseTime":491});});</script>
+</body>
+</html><!--
+     FILE ARCHIVED ON 16:29:59 Sep 12, 2024 AND RETRIEVED FROM THE
+     INTERNET ARCHIVE ON 00:35:04 Apr 13, 2026.
+     JAVASCRIPT APPENDED BY WAYBACK MACHINE, COPYRIGHT INTERNET ARCHIVE.
+
+     ALL OTHER CONTENT MAY ALSO BE PROTECTED BY COPYRIGHT (17 U.S.C.
+     SECTION 108(a)(3)).
+-->
+<!--
+playback timings (ms):
+  captures_list: 0.706
+  exclusion.robots: 0.078
+  exclusion.robots.policy: 0.066
+  esindex: 0.01
+  cdx.remote: 7.012
+  LoadShardBlock: 305.882 (3)
+  PetaboxLoader3.datanode: 284.782 (5)
+  PetaboxLoader3.resolve: 159.147 (2)
+  load_resource: 151.023
+  loaddict: 58.36
+-->

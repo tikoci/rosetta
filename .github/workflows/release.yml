@@ -126,6 +126,9 @@ jobs:
       - name: Import video transcripts from cache
         run: make extract-videos-from-cache
 
+      - name: Import Dude wiki docs from cache
+        run: make extract-dude-from-cache
+
       - name: Link commands to pages
         run: bun run src/link-commands.ts
 
