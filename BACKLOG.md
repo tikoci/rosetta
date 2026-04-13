@@ -472,6 +472,18 @@ Current `lookup_property` is exact-match. Observed gap: agents (and humans) ofte
 
 Items that need research or experimentation before they're actionable.
 
+### Dude — `/dude` command tree cross-reference
+
+The `/dude` command tree exists in inspect.json (versions where Dude package is present). Cross-referencing `/dude` command paths with `dude_pages` entries would enable `routeros_command_tree` to link into Dude docs. Needs: (1) check which inspect.json versions include `/dude`, (2) build a linker pass similar to `link-commands.ts` for dude_pages. Low priority — Dude usage is declining.
+
+### Dude — SQLite schema extraction from `dude.db`
+
+The Dude stores its monitoring data in a SQLite database (`/dude/dude.db` on the router). Extracting and documenting the schema would help users who script against the Dude DB directly. Needs: (1) get a sample `dude.db` from a running Dude instance, (2) extract `sqlite_master` DDL, (3) decide whether to store as a page in `dude_pages` or a separate resource.
+
+### Dude — image rendering in MCP responses
+
+`dude_images` stores Wayback Machine URLs and local paths for wiki screenshots. Currently `routeros_dude_get_page` returns image metadata but not the images themselves. For multimodal LLM clients, consider returning image URLs or base64-encoded images. Depends on MCP SDK image support maturity and client capabilities.
+
 ### Device AKA matching — Phase 2 (renames requiring an alias table)
 
 After Phase 1 + 1.5, the remaining failure is genuine renames like `hex 2024` → `hEX refresh`. Needs a small `device_aliases (alias TEXT, device_id INTEGER)` table, seeded with known renames. Keep it small — only aliases that can't be derived from names/codes/slugs.

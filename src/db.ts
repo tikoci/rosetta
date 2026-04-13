@@ -21,6 +21,9 @@
  *   videos_fts       — FTS5 over title, description
  *   video_segments   — transcript segments (one per chapter, or full video if no chapters)
  *   video_segments_fts — FTS5 over chapter_title, transcript
+ *   dude_pages       — The Dude documentation pages (archived from wiki.mikrotik.com via Wayback Machine)
+ *   dude_pages_fts   — FTS5 over title, path, text, code
+ *   dude_images      — screenshot images from The Dude wiki pages
  */
 
 import sqlite from "bun:sqlite";
@@ -492,6 +495,58 @@ export function initDb() {
   END;`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_video_segs_video ON video_segments(video_id);`);
+
+  // -- The Dude documentation (archived from MikroTik wiki via Wayback Machine) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS dude_pages (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug        TEXT NOT NULL UNIQUE,
+    title       TEXT NOT NULL,
+    path        TEXT NOT NULL,
+    version     TEXT NOT NULL DEFAULT 'v6',
+    url         TEXT NOT NULL,
+    wayback_url TEXT NOT NULL,
+    text        TEXT NOT NULL,
+    code        TEXT,
+    last_edited TEXT,
+    word_count  INTEGER
+  );`);
+
+  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS dude_pages_fts USING fts5(
+    title, path, text, code,
+    content=dude_pages,
+    content_rowid=id,
+    tokenize='porter unicode61'
+  );`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS dude_pages_ai AFTER INSERT ON dude_pages BEGIN
+    INSERT INTO dude_pages_fts(rowid, title, path, text, code)
+    VALUES (new.id, new.title, new.path, new.text, new.code);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS dude_pages_ad AFTER DELETE ON dude_pages BEGIN
+    INSERT INTO dude_pages_fts(dude_pages_fts, rowid, title, path, text, code)
+    VALUES('delete', old.id, old.title, old.path, old.text, old.code);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS dude_pages_au AFTER UPDATE ON dude_pages BEGIN
+    INSERT INTO dude_pages_fts(dude_pages_fts, rowid, title, path, text, code)
+    VALUES('delete', old.id, old.title, old.path, old.text, old.code);
+    INSERT INTO dude_pages_fts(rowid, title, path, text, code)
+    VALUES (new.id, new.title, new.path, new.text, new.code);
+  END;`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS dude_images (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    page_id      INTEGER NOT NULL REFERENCES dude_pages(id),
+    filename     TEXT NOT NULL,
+    alt_text     TEXT,
+    caption      TEXT,
+    local_path   TEXT NOT NULL,
+    original_url TEXT,
+    wayback_url  TEXT,
+    sort_order   INTEGER NOT NULL
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_dude_images_page ON dude_images(page_id);`);
 }
 
 /**
@@ -539,6 +594,8 @@ export function getDbStats() {
     ros_versions: count("SELECT COUNT(DISTINCT version) AS c FROM ros_versions"),
     videos: count("SELECT COUNT(*) AS c FROM videos"),
     video_segments: count("SELECT COUNT(*) AS c FROM video_segments"),
+    dude_pages: count("SELECT COUNT(*) AS c FROM dude_pages"),
+    dude_images: count("SELECT COUNT(*) AS c FROM dude_images"),
     ...(() => {
       // Semantic version sort — SQL MIN/MAX is lexicographic ("7.10" < "7.9")
       const versions = (db.prepare("SELECT DISTINCT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);

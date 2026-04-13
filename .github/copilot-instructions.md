@@ -57,7 +57,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| MCP Server | `src/mcp.ts` | 14 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
+| MCP Server | `src/mcp.ts` | 16 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
 | Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition |
 | Database | `src/db.ts` | Schema init, WAL mode, FTS5 triggers, singleton pattern |
 | Extractors | `src/extract-*.ts` | HTML/JSON → SQLite (each drops and recreates its tables) |

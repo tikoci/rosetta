@@ -32,6 +32,8 @@ const {
   getTestResultMeta,
   normalizeDeviceQuery,
   searchVideos,
+  searchDude,
+  getDudePage,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
@@ -350,6 +352,41 @@ beforeAll(() => {
     (id, video_id, chapter_title, start_s, end_s, transcript, sort_order)
     VALUES
     (3, 2, NULL, 0, NULL, 'BGP peering and route reflection allow scalable routing in large networks.', 0)`);
+
+  // Dude wiki page fixtures for searchDude tests
+  db.run(`INSERT INTO dude_pages
+    (id, slug, title, path, version, url, wayback_url, text, code, word_count)
+    VALUES
+    (1, 'Probes', 'Probes', 'The Dude > v6 > Probes', 'v6',
+     'https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Probes',
+     'https://web.archive.org/web/2024/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Probes',
+     'Probes are used to monitor specific services on devices. SNMP probes query MIB values. TCP probes check port availability. The Dude supports custom probe definitions with thresholds and alerts.',
+     NULL, 30)`);
+  db.run(`INSERT INTO dude_pages
+    (id, slug, title, path, version, url, wayback_url, text, code, word_count)
+    VALUES
+    (2, 'Device_discovery', 'Device Discovery', 'The Dude > v6 > Device Discovery', 'v6',
+     'https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_discovery',
+     'https://web.archive.org/web/2024/https://wiki.mikrotik.com/wiki/Manual:The_Dude_v6/Device_discovery',
+     'Device discovery scans networks using SNMP, TCP, and ICMP. The Dude can automatically discover routers, switches, and other network devices on specified subnets.',
+     '/dude discovery add address=10.0.0.0/24', 25)`);
+  db.run(`INSERT INTO dude_pages
+    (id, slug, title, path, version, url, wayback_url, text, code, word_count)
+    VALUES
+    (3, 'Notifications', 'Notifications', 'The Dude > v3 > Notifications', 'v3',
+     'https://wiki.mikrotik.com/wiki/Manual:The_Dude/Notifications',
+     'https://web.archive.org/web/2024/https://wiki.mikrotik.com/wiki/Manual:The_Dude/Notifications',
+     'The Dude can send email and SMS notifications when device status changes. Configure SMTP settings for email alerts.',
+     NULL, 20)`);
+  db.run(`INSERT INTO dude_images (page_id, filename, alt_text, caption, local_path, original_url, sort_order)
+    VALUES (1, 'Dude-probes-all.JPG', 'Probes list', 'All probes view', 'dude/images/Dude-probes-all.JPG',
+     'https://wiki.mikrotik.com/wiki/File:Dude-probes-all.JPG', 0)`);
+  db.run(`INSERT INTO dude_images (page_id, filename, alt_text, caption, local_path, original_url, sort_order)
+    VALUES (1, 'Dude-probe-settings.JPG', 'Probe settings', 'Probe configuration dialog', 'dude/images/Dude-probe-settings.JPG',
+     'https://wiki.mikrotik.com/wiki/File:Dude-probe-settings.JPG', 1)`);
+  db.run(`INSERT INTO dude_images (page_id, filename, alt_text, caption, local_path, original_url, sort_order)
+    VALUES (2, 'Dude-discovery.JPG', 'Discovery settings', NULL, 'dude/images/Dude-discovery.JPG',
+     'https://wiki.mikrotik.com/wiki/File:Dude-discovery.JPG', 0)`);
 });
 
 // ---------------------------------------------------------------------------
@@ -1502,6 +1539,13 @@ describe("schema", () => {
     expect(triggers).toContain("video_segs_au");
   });
 
+  test("content-sync triggers exist for dude_pages", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("dude_pages_ai");
+    expect(triggers).toContain("dude_pages_ad");
+    expect(triggers).toContain("dude_pages_au");
+  });
+
   test("PRAGMA user_version matches SCHEMA_VERSION", () => {
     const result = checkSchemaVersion();
     expect(result.ok).toBe(true);
@@ -1665,5 +1709,79 @@ describe("searchVideos", () => {
   test("respects limit parameter", () => {
     const results = searchVideos("RouterOS", 1);
     expect(results.length).toBeLessThanOrEqual(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// searchDude: FTS against dude_pages_fts (integration, uses fixture DB)
+// ---------------------------------------------------------------------------
+
+describe("searchDude", () => {
+  test("finds pages matching query", () => {
+    const results = searchDude("probes SNMP");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].title).toBe("Probes");
+  });
+
+  test("returns image_count for pages with images", () => {
+    const results = searchDude("probes");
+    expect(results[0].image_count).toBe(2);
+  });
+
+  test("returns version field", () => {
+    const results = searchDude("probes");
+    expect(results[0].version).toBe("v6");
+  });
+
+  test("finds v3 pages", () => {
+    const results = searchDude("notifications email");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results[0].version).toBe("v3");
+  });
+
+  test("AND→OR fallback finds results", () => {
+    const results = searchDude("device discovery subnet ICMP");
+    expect(results.length).toBeGreaterThan(0);
+  });
+
+  test("returns empty array for empty query", () => {
+    expect(searchDude("")).toEqual([]);
+  });
+
+  test("respects limit parameter", () => {
+    const results = searchDude("dude", 1);
+    expect(results.length).toBeLessThanOrEqual(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getDudePage: full page retrieval with images (integration, uses fixture DB)
+// ---------------------------------------------------------------------------
+
+describe("getDudePage", () => {
+  test("returns page by ID with images", () => {
+    const page = getDudePage(1);
+    expect(page).not.toBeNull();
+    expect(page!.title).toBe("Probes");
+    expect(page!.images.length).toBe(2);
+    expect(page!.images[0].filename).toBe("Dude-probes-all.JPG");
+  });
+
+  test("returns page by title", () => {
+    const page = getDudePage("Probes");
+    expect(page).not.toBeNull();
+    expect(page!.id).toBe(1);
+  });
+
+  test("returns page by slug", () => {
+    const page = getDudePage("Device_discovery");
+    expect(page).not.toBeNull();
+    expect(page!.title).toBe("Device Discovery");
+    expect(page!.images.length).toBe(1);
+  });
+
+  test("returns null for non-existent page", () => {
+    expect(getDudePage(999)).toBeNull();
+    expect(getDudePage("NonExistent")).toBeNull();
   });
 });

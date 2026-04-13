@@ -22,7 +22,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Three outputs (three surfaces, one core):
 
-1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — currently 14 tools plus 2 CSV resources for LLM agents. Consolidation target: ~8–10 tools via a smarter `routeros_search`. See `BACKLOG.md` "North Star".
+1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — currently 16 tools plus 2 CSV resources for LLM agents. Consolidation target: ~8–10 tools via a smarter `routeros_search`. See `BACKLOG.md` "North Star".
 2. **Browse TUI** (`src/browse.ts`) — interactive terminal browser with keyword-driven NL-like input. **First-class path into the data, not a test harness that happens to be usable.** Every MCP tool has a TUI command that mirrors its shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.).
 3. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration.
 
@@ -46,7 +46,7 @@ This is a deliberate design, not a happy accident. The TUI's dual use (human too
 - **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 14 tools and 4 resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`
+- **MCP server** with 16 tools and 4 resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`
 
 ## Schema
 
@@ -209,6 +209,35 @@ video_segments_fts USING fts5(chapter_title, transcript,
     content=video_segments, content_rowid=id,
     tokenize='porter unicode61'
 )
+
+-- The Dude wiki documentation (archived from wiki.mikrotik.com via Wayback Machine)
+dude_pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,   -- 'Probes', 'Device_discovery'
+    title, path,                 -- path = 'The Dude > v6 > Probes'
+    version TEXT NOT NULL DEFAULT 'v6',  -- 'v6' or 'v3'
+    url,                         -- original wiki.mikrotik.com URL
+    wayback_url,                 -- web.archive.org snapshot URL used
+    text, code,
+    last_edited,
+    word_count
+)
+
+-- Dude page screenshots (downloaded from Wayback Machine)
+dude_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    page_id INTEGER NOT NULL REFERENCES dude_pages(id),
+    filename, alt_text, caption,
+    local_path,                  -- 'dude/images/Dude-probes-all.JPG'
+    original_url, wayback_url,
+    sort_order
+)
+
+-- FTS5 over dude pages
+dude_pages_fts USING fts5(title, path, text, code,
+    content=dude_pages, content_rowid=id,
+    tokenize='porter unicode61'
+)
 ```
 
 ## Usage
@@ -251,6 +280,8 @@ Register in MCP client config (bunx example — no paths needed):
 | `routeros_device_lookup` | Hardware specs by product name/code, FTS search with structured filters (architecture, RAM, license, PoE, wireless) |
 | `routeros_search_tests` | Cross-device performance benchmarks — filter by test_type, mode, configuration, packet_size; one call replaces 125+ individual lookups |
 | `routeros_search_videos` | FTS across YouTube video transcript segments — chapter-level results with timestamps and excerpts |
+| `routeros_dude_search` | FTS across archived Dude wiki docs — separate from main RouterOS search |
+| `routeros_dude_get_page` | Full Dude wiki page by ID or title, with screenshot metadata |
 | `routeros_stats` | DB health: page/property/command/device counts, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions per channel |
 
@@ -387,7 +418,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 14 tools + 2 CSV resources, stdio + Streamable HTTP transport |
+| `src/mcp.ts` | MCP server — 16 tools + 2 CSV resources, stdio + Streamable HTTP transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
@@ -399,6 +430,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
 | `src/extract-videos.ts` | MikroTik YouTube channel transcripts → videos + video_segments tables (incremental; requires yt-dlp). Cache functions: `saveCache`/`importCache`/`loadKnownBad`/`findLatestCache` for CI-friendly NDJSON cache. |
+| `src/extract-dude.ts` | Wayback Machine → dude_pages + dude_images tables (one-time, caches HTML to `dude/pages/`) |
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |

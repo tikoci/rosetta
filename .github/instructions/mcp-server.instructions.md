@@ -8,7 +8,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse
 
 The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. Both the MCP tool layer and the TUI are thin adapters over query functions in `src/query.ts`. When adding a feature, default to putting the logic in core (`query.ts`) so both surfaces inherit it. PRs that grow TUI-only or MCP-only heuristics are a smell — flag and move the logic to core. See `BACKLOG.md` "Guiding Principles" and "North Star — unified `routeros_search`".
 
-**Consolidation direction:** the current 14 tools are being compressed toward ~8–10 via a smarter `routeros_search` that classifies the input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. See the North Star in `BACKLOG.md` before adding a new tool — the right answer is usually "make `routeros_search` smarter, not more tools."
+**Consolidation direction:** the current 16 tools are being compressed toward ~8–10 via a smarter `routeros_search` that classifies the input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. See the North Star in `BACKLOG.md` before adding a new tool — the right answer is usually "make `routeros_search` smarter, not more tools."
 
 ## MCP Tool Conventions
 - Server name: `"rosetta"` — never change
@@ -18,7 +18,7 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 - **Before adding a new tool, ask:** can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
 
-## 14 Tools
+## 16 Tools
 | Tool | Purpose |
 |------|---------|  
 | `routeros_search` | FTS5 across pages, BM25 ranked |
@@ -33,6 +33,8 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 | `routeros_command_diff` | Diff two RouterOS versions — added/removed command paths, optional path_prefix to scope |
 | `routeros_device_lookup` | Hardware specs by name/code, FTS + structured filters, auto-attaches test results |
 | `routeros_search_tests` | Cross-device performance benchmarks — filter by test_type, mode, packet_size; one call replaces 125+ individual lookups |
+| `routeros_dude_search` | FTS across archived Dude wiki docs — separate from main RouterOS search |
+| `routeros_dude_get_page` | Full Dude wiki page by ID or title, with screenshot metadata |
 | `routeros_stats` | DB health: counts, version range, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions from MikroTik |
 
@@ -135,6 +137,7 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 | `callouts` / `cal` | `routeros_search_callouts` | `cal` with no args shows callouts for current page |
 | `changelog` / `cl` | `routeros_search_changelogs` | — |
 | `videos` / `vid` /  `video` | `routeros_search_videos` | `video` is an alias |
+| `dude` | `routeros_dude_search` | Number selection → `routeros_dude_get_page` |
 | `diff` | `routeros_command_diff` | — |
 | `vcheck` / `vc` | `routeros_command_version_check` | — |
 | `versions` / `ver` | `routeros_current_versions` | — |

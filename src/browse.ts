@@ -19,6 +19,7 @@ import type {
   ChangelogResult,
   DeviceResult,
   DeviceTestRow,
+  DudeSearchResult,
   SearchResponse,
   SearchResult,
   SectionTocEntry,
@@ -29,6 +30,7 @@ import {
   checkCommandVersions,
   diffCommandVersions,
   fetchCurrentVersions,
+  getDudePage,
   getPage,
   getTestResultMeta,
   lookupProperty,
@@ -36,6 +38,7 @@ import {
   searchChangelogs,
   searchDevices,
   searchDeviceTests,
+  searchDude,
   searchPages,
   searchProperties,
   searchVideos,
@@ -196,6 +199,7 @@ type Context =
   | { type: "callouts"; query: string; results: CalloutResult[] }
   | { type: "changelogs"; results: ChangelogResult[] }
   | { type: "videos"; query: string; results: VideoSearchResult[] }
+  | { type: "dude"; query: string; results: DudeSearchResult[] }
   | { type: "properties"; query: string; pageId?: number; results: Array<{ name: string; page_id: number; page_title: string }> }
   | { type: "diff" }
   | { type: "vcheck"; path: string };
@@ -235,6 +239,7 @@ function contextLabel(c: Context): string {
     case "callouts": return c.query ? truncate(`cal: "${c.query}"`, 30) : "callouts";
     case "changelogs": return "changelogs";
     case "videos": return truncate(`vid: "${c.query}"`, 30);
+    case "dude": return truncate(`dude: "${c.query}"`, 30);
     case "diff": return "diff";
     case "vcheck": return truncate(`vc: ${c.path}`, 30);
   }
@@ -662,6 +667,65 @@ function renderVideos(results: VideoSearchResult[]): string {
   return out.join("\n");
 }
 
+function renderDudeResults(results: DudeSearchResult[]): string {
+  const out: string[] = [];
+  if (results.length === 0) {
+    out.push(`  ${dim("No Dude wiki results found.")}`);
+    return out.join("\n");
+  }
+
+  for (let i = 0; i < results.length; i++) {
+    const d = results[i];
+    const num = dim(`${String(i + 1).padStart(3)}  `);
+    const title = bold(truncate(d.title, 60));
+    const ver = dim(`[${d.version}]`);
+    const imgs = d.image_count > 0 ? dim(`📷 ${d.image_count}`) : "";
+    out.push(`${num}${title}  ${ver}  ${imgs}`);
+    out.push(`       ${dim(d.path)}`);
+    const excerpt = d.excerpt.replace(/\*\*/g, `${ESC}[1m`);
+    out.push(`       ${dim(truncate(excerpt, termWidth() - 8))}`);
+    out.push("");
+  }
+
+  out.push(`  ${cyan("[<n>]")} view page  ${cyan("[s <query>]")} search docs  ${cyan("[b]")} back`);
+  return out.join("\n");
+}
+
+function renderDudePage(page: import("./query.ts").DudePageResult): string {
+  const out: string[] = [];
+  out.push(`  ${bold(page.title)}  ${dim(`[${page.version}]`)}`);
+  out.push(`  ${dim(page.path)}`);
+  out.push(`  ${cyan(link(page.url))}`);
+  if (page.wayback_url) out.push(`  ${dim(`Archived: ${page.wayback_url}`)}`);
+  out.push("");
+
+  if (page.images.length > 0) {
+    out.push(`  ${bold("Screenshots:")} ${page.images.length}`);
+    for (const img of page.images) {
+      out.push(`    ${dim("•")} ${img.filename}${img.caption ? `  ${dim(img.caption)}` : ""}`);
+      out.push(`      ${dim(img.local_path)}`);
+    }
+    out.push("");
+  }
+
+  // Truncate long pages for TUI display
+  const maxChars = 8000;
+  const text = page.text.length > maxChars
+    ? `${page.text.slice(0, maxChars)}\n\n  ${dim(`... truncated (${page.text.length} chars total)`)}`
+    : page.text;
+  out.push(text);
+
+  if (page.code) {
+    out.push("");
+    out.push(`  ${bold("Code:")}`);
+    out.push(page.code.length > 2000 ? `${page.code.slice(0, 2000)}\n  ${dim("... truncated")}` : page.code);
+  }
+
+  out.push("");
+  out.push(`  ${cyan("[dude <query>]")} search dude  ${cyan("[s <query>]")} search docs  ${cyan("[b]")} back`);
+  return out.join("\n");
+}
+
 function renderDiff(result: ReturnType<typeof diffCommandVersions>): string {
   const out: string[] = [];
   out.push(`  ${bold("Command diff:")} ${result.from_version} → ${result.to_version}`);
@@ -775,6 +839,7 @@ function renderHelp(): string {
   cmd("callouts [query]", "cal", "Search callouts (type filter: cal warning)", "routeros_search_callouts");
   cmd("changelog [query]", "cl", "Search changelogs (cl 7.22, cl breaking)", "routeros_search_changelogs");
   cmd("videos <query>", "vid", "Search video transcripts", "routeros_search_videos");
+  cmd("dude <query>", "", "Search archived Dude wiki docs", "routeros_dude_search");
   cmd("diff <from> <to> [path]", "", "Command tree diff between versions", "routeros_command_diff");
   cmd("vcheck <path>", "vc", "Version range for a command path", "routeros_command_version_check");
   cmd("versions", "ver", "Live-fetch current RouterOS versions", "routeros_current_versions");
@@ -920,6 +985,12 @@ async function dispatch(input: string): Promise<void> {
       return;
     }
 
+    case "dude": {
+      if (!rest) { console.log(dim("  Usage: dude <query>")); return; }
+      await doSearchDude(rest);
+      return;
+    }
+
     case "diff": {
       const diffParts = rest.split(/\s+/);
       if (diffParts.length < 2) {
@@ -987,6 +1058,15 @@ async function handleNumberSelect(idx: number): Promise<void> {
     console.log(`\n  ${bold(v.title)}`);
     if (v.chapter_title) console.log(`  ${magenta(`§ ${v.chapter_title}`)}  ${dim(`@ ${formatTime(v.start_s)}`)}`);
     console.log(`  ${cyan(link(timeUrl))}\n`);
+    return;
+  }
+  if (ctx.type === "dude" && ctx.results[idx]) {
+    const d = ctx.results[idx];
+    const page = getDudePage(d.id);
+    if (page) {
+      await paged(renderDudePage(page));
+      pushCtx({ type: "dude", query: ctx.query, results: ctx.results });
+    }
     return;
   }
   if (ctx.type === "properties" && ctx.results[idx]) {
@@ -1220,6 +1300,16 @@ async function doSearchVideos(query: string): Promise<void> {
   }
   await paged(`  ${bold(String(results.length))} video results for ${cyan(`"${query}"`)}\n\n${renderVideos(results)}`);
   pushCtx({ type: "videos", query, results });
+}
+
+async function doSearchDude(query: string): Promise<void> {
+  const results = searchDude(query, 10);
+  if (results.length === 0) {
+    console.log(dim(`  No Dude wiki results for "${query}".`));
+    return;
+  }
+  await paged(`  ${bold(String(results.length))} Dude wiki results for ${cyan(`"${query}"`)}\n\n${renderDudeResults(results)}`);
+  pushCtx({ type: "dude", query, results });
 }
 
 async function doDiff(from: string, to: string, pathPrefix?: string): Promise<void> {

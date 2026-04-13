@@ -1490,6 +1490,97 @@ function runVideosFtsQuery(ftsQuery: string, limit: number): VideoSearchResult[]
 
 // ── Current versions ──
 
+// ── Dude wiki search ──
+
+export type DudeSearchResult = {
+  id: number;
+  title: string;
+  path: string;
+  version: string;
+  url: string;
+  word_count: number | null;
+  image_count: number;
+  excerpt: string;
+};
+
+export type DudeImageResult = {
+  id: number;
+  filename: string;
+  alt_text: string | null;
+  caption: string | null;
+  local_path: string;
+  original_url: string | null;
+  wayback_url: string | null;
+};
+
+export type DudePageResult = {
+  id: number;
+  slug: string;
+  title: string;
+  path: string;
+  version: string;
+  url: string;
+  wayback_url: string;
+  text: string;
+  code: string | null;
+  last_edited: string | null;
+  word_count: number | null;
+  images: DudeImageResult[];
+};
+
+/** Search archived Dude wiki pages via FTS, with AND→OR fallback. */
+export function searchDude(query: string, limit = 8): DudeSearchResult[] {
+  const terms = extractTerms(query);
+  if (terms.length === 0) return [];
+
+  let ftsQuery = buildFtsQuery(terms, "AND");
+  if (!ftsQuery) return [];
+  let results = runDudeFtsQuery(ftsQuery, limit);
+
+  if (results.length === 0 && terms.length > 1) {
+    ftsQuery = buildFtsQuery(terms, "OR");
+    results = runDudeFtsQuery(ftsQuery, limit);
+  }
+
+  return results;
+}
+
+function runDudeFtsQuery(ftsQuery: string, limit: number): DudeSearchResult[] {
+  if (!ftsQuery) return [];
+  try {
+    return db
+      .prepare(
+        `SELECT dp.id, dp.title, dp.path, dp.version, dp.url, dp.word_count,
+                (SELECT COUNT(*) FROM dude_images di WHERE di.page_id = dp.id) as image_count,
+                snippet(dude_pages_fts, 2, '**', '**', '...', 25) as excerpt
+         FROM dude_pages_fts fts
+         JOIN dude_pages dp ON dp.id = fts.rowid
+         WHERE dude_pages_fts MATCH ?
+         ORDER BY rank
+         LIMIT ?`,
+      )
+      .all(ftsQuery, limit) as DudeSearchResult[];
+  } catch {
+    return [];
+  }
+}
+
+/** Get a Dude wiki page by ID or title, with associated images. */
+export function getDudePage(idOrTitle: number | string): DudePageResult | null {
+  const row =
+    typeof idOrTitle === "number"
+      ? db.prepare("SELECT * FROM dude_pages WHERE id = ?").get(idOrTitle)
+      : db.prepare("SELECT * FROM dude_pages WHERE title = ? COLLATE NOCASE OR slug = ? COLLATE NOCASE").get(idOrTitle, idOrTitle);
+  if (!row) return null;
+  const page = row as DudePageResult;
+  page.images = db
+    .prepare("SELECT id, filename, alt_text, caption, local_path, original_url, wayback_url FROM dude_images WHERE page_id = ? ORDER BY sort_order")
+    .all(page.id) as DudeImageResult[];
+  return page;
+}
+
+// ── Current versions (live fetch) ──
+
 const VERSION_BASE_URL = "https://upgrade.mikrotik.com/routeros/NEWESTa7";
 
 /** Fetch current RouterOS versions from MikroTik's upgrade server. */

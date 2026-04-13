@@ -182,6 +182,8 @@ const {
   searchPages,
   searchProperties,
   searchVideos,
+  searchDude,
+  getDudePage,
 } = await import("./query.ts");
 
 initDb();
@@ -915,6 +917,87 @@ and explanations that complement the text documentation.
     }
     return {
       content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_dude_search ----
+
+server.registerTool(
+  "routeros_dude_search",
+  {
+    description: `Search archived "The Dude" network monitor documentation (from wiki.mikrotik.com via Wayback Machine).
+
+The Dude GUI client is retired, but the Dude server/database remains in RouterOS under /dude.
+These are archived wiki pages covering the Dude v6 GUI (primary) and legacy v3/v4 (reference).
+Many pages include GUI screenshots — use routeros_dude_get_page to see image references.
+
+Separate from routeros_search (which covers current RouterOS v7 docs only).
+For current RouterOS /dude command-line interface, use routeros_command_tree with path "/dude".
+
+→ routeros_dude_get_page: read full page text + screenshot list
+→ routeros_command_tree: browse /dude commands in current RouterOS
+→ routeros_search: search current RouterOS v7 documentation`,
+    inputSchema: {
+      query: z.string().describe("Search terms (e.g., 'probes SNMP', 'device discovery', 'notifications')"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(20)
+        .default(8)
+        .optional()
+        .describe("Max results (1–20, default 8)"),
+    },
+  },
+  async ({ query, limit }) => {
+    const results = searchDude(query, limit ?? 8);
+    if (results.length === 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No Dude wiki results for: "${query}"\n\nTry:\n- Broader search terms (e.g., 'monitor' instead of 'monitoring')\n- routeros_search for current RouterOS documentation\n- routeros_command_tree with path "/dude" for current /dude commands`,
+          },
+        ],
+      };
+    }
+    return {
+      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_dude_get_page ----
+
+server.registerTool(
+  "routeros_dude_get_page",
+  {
+    description: `Get full content of an archived Dude wiki page by ID or title.
+
+Returns the complete page text, code blocks, and a list of GUI screenshots with local file paths.
+Screenshots are downloaded images from the archived wiki — use a file viewer for multimodal analysis.
+
+→ routeros_dude_search: find pages by topic
+→ routeros_command_tree: browse /dude commands in current RouterOS`,
+    inputSchema: {
+      id: z.union([z.number().int(), z.string()]).describe("Page ID (number) or title/slug (string)"),
+    },
+  },
+  async ({ id }) => {
+    const page = getDudePage(typeof id === "string" && /^\d+$/.test(id) ? Number.parseInt(id, 10) : id);
+    if (!page) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `No Dude page found for: "${id}"\n\nTry routeros_dude_search to find available pages.`,
+          },
+        ],
+      };
+    }
+    return {
+      content: [{ type: "text", text: JSON.stringify(page, null, 2) }],
     };
   },
 );

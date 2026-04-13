@@ -79,7 +79,7 @@ export function detectMode(srcDir: string): InvocationMode {
  * Stamped into the DB via `PRAGMA user_version` by initDb() and checked at MCP
  * startup to detect stale DBs for bunx users who auto-update the package.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * Resolve the version string.
