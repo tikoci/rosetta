@@ -57,9 +57,9 @@ preflight:
 
 # ── Extraction pipeline ──
 
-extract: extract-html extract-properties extract-commands extract-devices extract-test-results extract-changelogs link
+extract: extract-html extract-properties extract-commands extract-devices extract-test-results extract-changelogs extract-dude-from-cache link
 
-extract-full: extract-html extract-properties extract-all-versions extract-devices extract-test-results extract-changelogs link
+extract-full: extract-html extract-properties extract-all-versions extract-devices extract-test-results extract-changelogs extract-dude-from-cache link
 
 extract-html:
 	bun run src/extract-html.ts

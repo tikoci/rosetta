@@ -225,6 +225,14 @@ describe("Makefile", () => {
     expect(makefile).toMatch(/^release:.*build-release/m);
   });
 
+  test("extract target includes Dude cache import", () => {
+    expect(makefile).toMatch(/^extract:.*extract-dude-from-cache/m);
+  });
+
+  test("extract-full target includes Dude cache import", () => {
+    expect(makefile).toMatch(/^extract-full:.*extract-dude-from-cache/m);
+  });
+
   test("preflight checks dirty tree", () => {
     expect(makefile).toContain("git diff --quiet");
   });
