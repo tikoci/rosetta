@@ -324,6 +324,11 @@ describe("CLI flags", () => {
   test("supports --refresh flag", () => {
     expect(src).toContain("--refresh");
   });
+
+  test("browse mode bootstraps database before importing browse.ts", () => {
+    expect(src).toContain('if (args[0] === "browse")');
+    expect(src).toContain("await ensureDbReady");
+  });
 });
 
 // ---------------------------------------------------------------------------

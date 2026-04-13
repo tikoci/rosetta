@@ -46,6 +46,62 @@ function link(url: string, display?: string): string {
   return `\x1b]8;;${url}\x07${display ?? url}\x1b]8;;\x07`;
 }
 
+/**
+ * Ensure the DB exists, has page data, and matches the current schema version.
+ * This must run before importing db.ts/query.ts to avoid creating an empty DB file
+ * on fresh installs.
+ */
+async function ensureDbReady(log: (msg: string) => void): Promise<void> {
+  const { resolveDbPath, SCHEMA_VERSION } = await import("./paths.ts");
+  const { downloadDb } = await import("./setup.ts");
+
+  const dbPath = resolveDbPath(import.meta.dirname);
+
+  const pageCount = (() => {
+    try {
+      const check = new (require("bun:sqlite").default)(dbPath, { readonly: true });
+      const row = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
+      check.close();
+      return row.c;
+    } catch {
+      return 0;
+    }
+  })();
+
+  if (pageCount === 0) {
+    try {
+      await downloadDb(dbPath, log);
+      log("Database downloaded successfully.");
+    } catch (e) {
+      log(`Auto-download failed: ${e}`);
+      log(`Run: ${process.argv[0]} --setup`);
+      return;
+    }
+  }
+
+  const dbSchemaVersion = (() => {
+    try {
+      const check = new (require("bun:sqlite").default)(dbPath, { readonly: true });
+      const row = check.prepare("PRAGMA user_version").get() as { user_version: number };
+      check.close();
+      return row.user_version;
+    } catch {
+      return SCHEMA_VERSION;
+    }
+  })();
+
+  if (dbSchemaVersion !== SCHEMA_VERSION) {
+    log(`DB schema version mismatch (DB=${dbSchemaVersion}, expected=${SCHEMA_VERSION}) - re-downloading updated database...`);
+    try {
+      await downloadDb(dbPath, log);
+      log("Database updated successfully.");
+    } catch (e) {
+      log(`Auto-download failed: ${e}`);
+      log(`Run: ${process.argv[0]} --refresh`);
+    }
+  }
+}
+
 if (args.includes("--version") || args.includes("-v")) {
   console.log(`rosetta ${RESOLVED_VERSION}`);
   process.exit(0);
@@ -85,6 +141,7 @@ if (args.includes("--help") || args.includes("-h")) {
 (async () => {
 
 if (args[0] === "browse") {
+  await ensureDbReady((msg) => process.stderr.write(`${msg}\n`));
   // Strip "browse" from argv so browse.ts only sees flags/queries
   process.argv.splice(2, 1);
   await import("./browse.ts");
@@ -113,62 +170,7 @@ const { z } = await import("zod/v3");
 // Dynamic imports — db.ts eagerly opens the DB file on import,
 // so we must import after the --setup guard to avoid creating
 // an empty ros-help.db on fresh installs.
-//
-// Check if DB has data BEFORE importing db.ts. If empty/missing,
-// auto-download so db.ts opens the real database.
-const { resolveDbPath, SCHEMA_VERSION } = await import("./paths.ts");
-const _dbPath = resolveDbPath(import.meta.dirname);
-
-const _pageCount = (() => {
-  try {
-    const check = new (require("bun:sqlite").default)(_dbPath, { readonly: true });
-    const row = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
-    check.close();
-    return row.c;
-  } catch {
-    return 0;
-  }
-})();
-
-if (_pageCount === 0) {
-  const { downloadDb } = await import("./setup.ts");
-  // Use stderr — stdout is the MCP stdio transport
-  const log = (msg: string) => process.stderr.write(`${msg}\n`);
-  try {
-    await downloadDb(_dbPath, log);
-    log("Database downloaded successfully.");
-  } catch (e) {
-    log(`Auto-download failed: ${e}`);
-    log(`Run: ${process.argv[0]} --setup`);
-  }
-}
-
-// Check schema version — a bunx auto-update may bring a new code version whose
-// schema is incompatible with the existing ~/.rosetta/ros-help.db.
-// MUST be checked before importing db.ts, because initDb() stamps user_version.
-const _dbSchemaVersion = (() => {
-  try {
-    const check = new (require("bun:sqlite").default)(_dbPath, { readonly: true });
-    const row = check.prepare("PRAGMA user_version").get() as { user_version: number };
-    check.close();
-    return row.user_version;
-  } catch {
-    return SCHEMA_VERSION; // unreadable — assume ok, initDb() will stamp it
-  }
-})();
-
-if (_dbSchemaVersion !== SCHEMA_VERSION) {
-  const { downloadDb } = await import("./setup.ts");
-  const log = (msg: string) => process.stderr.write(`${msg}\n`);
-  log(`DB schema version mismatch (DB=${_dbSchemaVersion}, expected=${SCHEMA_VERSION}) — re-downloading updated database...`);
-  try {
-    await downloadDb(_dbPath, log);
-    log("Database updated successfully.");
-  } catch (e) {
-    log(`Auto-download failed: ${e}`);
-    log(`Run: ${process.argv[0]} --refresh`);
-  }
-}
+await ensureDbReady((msg) => process.stderr.write(`${msg}\n`));
 
 // Now import db.ts (opens the DB) and query.ts
 const { db, getDbStats, initDb } = await import("./db.ts");

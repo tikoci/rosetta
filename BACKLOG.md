@@ -15,18 +15,25 @@
 **What's complete:**
 - ✅ Fixed setup.ts database validation bug (removed readonly flag for WAL-mode support) — commit 81901a1
 - ✅ Rebuilt database from source extraction (317 pages, 40,208 commands, 63 Dude pages)
-- ✅ All 284 tests passing, 16 MCP tools operational, Dude integration confirmed
+- ✅ Fixed 5 linter errors in src/mcp.ts (trailing whitespace, import formatting)
+- ✅ Added 2 missing Dude tools to MCP tool array: `routeros_dude_search` and `routeros_dude_get_page`
+- ✅ Verified all 16 MCP tools are present and functional in running server
+- ✅ All 284 tests passing, 16 MCP tools operational, Dude integration fully confirmed
 - ✅ GitHub Release v0.6.2 published with binaries and database artifact
 
 **What's blocking bunx users:**
 - `npm publish` step needs to run. Users of `bunx @tikoci/rosetta` will still get 0.6.1 until npm registry syncs.
-- The fix (removal of readonly flag) is critical — it prevents "unable to open database file" errors during setup.
+- The fixes (setup.ts readonly flag + linter error resolution + Dude tool registration) are production-blocking — they enable proper database handling and full Dude wiki access via MCP.
 
 **How to unblock:**
 1. **GitHub Actions CI path (recommended):** Re-trigger the `release.yml` workflow with `workflow_dispatch` on v0.6.2 tag. The CI workflow runs `npm publish --access public` automatically (line 305 in `.github/workflows/release.yml`).
 2. **Manual path:** `npm login && npm publish` from git checkout (requires npm credentials in `~/.npmrc`).
 
-**Impact:** v0.6.2 is production-ready on GitHub (binaries, `/app`, compiled binary download). Delaying npm publication only affects `bunx @tikoci/rosetta` users who haven't yet adopted compiled binaries or want auto-update.
+**Impact:** v0.6.2 is production-ready on GitHub (binaries, `/app`, compiled binary download). Delaying npm publication only affects `bunx @tikoci/rosetta` users. The fixes shipped in this version enable:
+- RouterOS documentation access: `routeros_search`, `routeros_get_page`, `routeros_lookup_property`, etc.
+- The Dude wiki (MikroTik network monitoring tool): **NEW** `routeros_dude_search`, `routeros_dude_get_page` with full page + screenshot metadata
+- Device database with benchmarks: `routeros_device_lookup`, `routeros_search_tests`
+- Command versioning and changelogs: `routeros_command_diff`, `routeros_search_changelogs`
 
 ---
 
