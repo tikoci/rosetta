@@ -81,7 +81,9 @@ export async function runSetup(force = false) {
   console.log();
   try {
     const { default: sqlite } = await import("bun:sqlite");
-    const db = new sqlite(dbPath, { readonly: true });
+    // Note: open in read-write mode (not readonly) to allow WAL checkpoint.
+    // WAL-mode databases can fail to initialize properly in readonly mode.
+    const db = new sqlite(dbPath);
     const row = db.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
     const cmdRow = db.prepare("SELECT COUNT(*) AS c FROM commands WHERE type='cmd'").get() as { c: number };
     const versionRow = db.prepare("PRAGMA user_version").get() as { user_version: number };
