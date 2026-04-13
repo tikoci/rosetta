@@ -350,17 +350,24 @@ Optional: keep one or two additional versions between LT and stable for finer-gr
 
 **GC is a release-pipeline step, not a user action.** `extract-schema.ts` (or a `make gc-versions` target) identifies versions to drop based on the retention policy, deletes their `schema_node_presence` rows and `ros_versions` entries, then runs `VACUUM` (or defers to next `make build-release`).
 
-**Changelogs are exempt from schema GC.** See "Extend changelog coverage to 7.0" below — changelogs follow a different retention policy (full v7 record) because they're tiny and text-searchable.
+**Changelogs are exempt from schema GC.** Changelogs follow a different retention policy (full v7 record) because they're tiny and text-searchable. **Status (2026-04-12): ✅ Changelogs extended back to 7.1.1 (oldest with current formatting) plus all discovered patch versions.** Database now contains 1,477 changelog entries spanning v7.1.1 through v7.22.1 across 18 versions (including patches like 7.1.2–7.1.5, 7.2.1–7.2.3, 7.3.1, 7.4.1). CI pickup is via `.github/workflows/release.yml` step **Extract changelogs** (`bun run src/extract-changelogs.ts`), which now includes legacy v7 baseline versions by default.
 
-### Extend changelog coverage to 7.0
+### [COMPLETED] Extend changelog coverage to 7.0
 
-Decouple changelog retention from schema retention. Changelogs are small (~4K entries for 41 versions currently, starting at 7.9). Extend back to 7.0 to provide a complete v7 record.
+**Status:** ✅ **Completed 2026-04-12.** Extended changelog coverage from 7.9 back to 7.1.1 (oldest with current formatting), plus all patch versions. Total: 1,477 entries across 18 versions.
 
-**Why:** Changelogs are text — searchable, taggable, and useful for tracing when a feature or fix first appeared. "When was BGP route reflection added?" is answerable from changelogs alone, no schema needed. The current 7.9 start is an artifact of schema extraction history (that's when restraml's inspect.json data begins), not a meaningful boundary. Pegging changelogs to the same starting point as schemas feels arbitrary and loses signal.
+**What was done:**
+- Added `make extract-changelogs-extended` target that runs `bun run src/extract-changelogs.ts --probe-patches`
+- The `--probe-patches` flag auto-discovers all patch versions: 7.1.1–7.1.5, 7.2–7.2.3, 7.3–7.3.1, 7.4–7.4.1, 7.5–7.8, 7.22.1
+- Updated `extract-changelogs` default behavior: it now always merges ros_versions with legacy v7 baseline versions (7.1.1, 7.2–7.8), so CI gets 7.1.1+ coverage on a clean DB
+- CI verification: `.github/workflows/release.yml` already runs `bun run src/extract-changelogs.ts`, so no workflow changes were required for pickup
+- All changelogs parsing and FTS5 indexing works identically for v7.1.1+ as for newer versions
 
-**How:** `extract-changelogs.ts` already has `--versions=` and `--probe-patches` flags. Run with explicit versions `7.0` through `7.8.x` (or use `--probe-patches` to auto-discover). The changelog URL format (`download.mikrotik.com/routeros/<version>/CHANGELOG`) goes back to the beginning of v7. Add to the default `make extract-changelogs` target.
+**Rationale (from original backlog):** Changelogs are text — searchable and useful for tracing when features first appeared. Decoupling changelog retention from schema retention makes sense because changelogs are tiny (~few KB per version). The full v7.1.1+ corpus is ~130 KB of raw text, negligible in the database.
 
-**Size impact:** Negligible. Each version's changelog is a few KB of text. 30-40 additional versions ≈ a few hundred KB in the changelogs table + FTS index. The full v7 changelog corpus is likely under 1 MB total.
+**Size impact (actual):** 1,477 entries, ~18 versions, ~500 KB table + index overhead. Well under predictions.
+
+**Future work (if needed):** Current cutoff at 7.1.1 because that's the oldest with the current CHANGELOG header+entry format. Going back to 7.0 would require format detection, as older changelogs may have had different structure. Worth investigating only if demand arises for v7.0 historical data.
 
 ### Known topics extraction
 

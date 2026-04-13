@@ -5,6 +5,7 @@ FORCE      ?=
 
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
         extract-all-versions extract-devices extract-test-results extract-changelogs \
+        extract-changelogs-extended \
         extract-videos extract-videos-from-cache save-videos-cache \
         extract-dude extract-dude-from-cache \
         link assess search browse serve \
@@ -81,6 +82,11 @@ extract-test-results:
 
 extract-changelogs:
 	bun run src/extract-changelogs.ts
+
+# Extract changelogs for all available RouterOS v7 versions (7.1.1 back through current).
+# Discovers patch versions automatically using --probe-patches.
+extract-changelogs-extended:
+	bun run src/extract-changelogs.ts --probe-patches
 
 extract-videos:
 	bun run src/extract-videos.ts

@@ -34,6 +34,15 @@ When deferring work or recording ideas, add them to `BACKLOG.md` under the appro
 
 **The test:** if you deleted the entire conversation history, would a new agent (or the maintainer) be able to discover this information from the project files alone? If not, you haven't captured it.
 
+### Completion must include CI pickup verification
+
+When marking a backlog item or implementation step as completed, explicitly verify and record how CI will pick it up:
+
+- **Workflow coverage:** Identify the exact workflow/step that executes the changed behavior (for example, `.github/workflows/release.yml` extraction step, `.github/workflows/test.yml` quality gate).
+- **Trigger path:** Confirm the change is exercised by normal CI triggers (`push`, `pull_request`, or `workflow_dispatch`) without requiring local-only commands.
+- **No local build assumption:** Do not require the user to run `make`/build commands to validate completion unless they explicitly ask for a local verification run.
+- **If CI will not pick it up:** treat as incomplete and either update CI in the same change or record a concrete deferred item in `BACKLOG.md` with what workflow step must be added.
+
 ## Build and Test
 
 ```sh
@@ -112,7 +121,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 - New CLI flag, build artifact, or file structure → `release.test.ts`
 - Schema change → schema health section in `query.test.ts`
 
-**Run `bun test` and `make lint` before any commit.** CI runs both, but catching failures locally is faster.
+**Run `bun test` and `bun run lint` before any commit when feasible.** CI runs both, but catching failures locally is faster. Do not ask the user to run local `make` checks unless they explicitly want a manual local verification.
 
 **Hard rule for agents:** if lint fails, do not commit or stop at partial work. Fix the lint errors in the files touched by the change before handing work back.
 

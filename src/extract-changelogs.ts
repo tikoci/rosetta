@@ -15,6 +15,10 @@ import { db, initDb } from "./db.ts";
 const CHANGELOG_BASE = "https://download.mikrotik.com/routeros";
 const FETCH_DELAY_MS = 200; // polite delay between requests
 
+// Oldest RouterOS v7 versions that use the current changelog header/entry format.
+// Keep these in default extraction even though command tree retention starts later.
+export const LEGACY_FORMATTED_V7_BASE_VERSIONS = ["7.1.1", "7.2", "7.3", "7.4", "7.5", "7.6", "7.7", "7.8"];
+
 // ── Types ──
 
 type ChangelogEntry = {
@@ -145,9 +149,18 @@ function getKnownVersions(): string[] {
   return rows.map((r) => r.version);
 }
 
+export function buildChangelogVersionSet(knownVersions: string[]): string[] {
+  const all = new Set([...knownVersions, ...LEGACY_FORMATTED_V7_BASE_VERSIONS]);
+  return [...all];
+}
+
+function getDefaultVersions(): string[] {
+  return buildChangelogVersionSet(getKnownVersions());
+}
+
 /** Probe patch versions: for each minor (7.X), try 7.X.1, 7.X.2, ... up to first 404. */
 async function probePatchVersions(): Promise<string[]> {
-  const known = new Set(getKnownVersions());
+  const known = new Set(getDefaultVersions());
   const patches: string[] = [];
 
   // Find all minor versions: extract unique 7.X prefixes
@@ -198,15 +211,15 @@ if (versionsArg) {
   console.log(`Changelog extraction: ${versions.length} explicit versions`);
 } else if (probePatches) {
   console.log("Changelog extraction: probing patch versions...");
-  const known = getKnownVersions();
+  const known = getDefaultVersions();
   const patches = await probePatchVersions();
   // Merge: known + discovered patches (deduplicated)
   const all = new Set([...known, ...patches]);
   versions = [...all];
   console.log(`  ${versions.length} versions (${patches.length} from patch probing)`);
 } else {
-  versions = getKnownVersions();
-  console.log(`Changelog extraction: ${versions.length} versions from ros_versions`);
+  versions = getDefaultVersions();
+  console.log(`Changelog extraction: ${versions.length} versions from ros_versions + legacy v7 baseline`);
 }
 
 if (versions.length === 0) {

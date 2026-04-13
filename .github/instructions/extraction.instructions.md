@@ -24,6 +24,17 @@ make extract-full
 
 **Note:** `extract-videos` is NOT in either chain — it requires `yt-dlp` installed and takes 30–60 min. Run separately with `make extract-videos` (full fetch) or `make extract-videos-from-cache` (from committed NDJSON, used in CI).
 
+## CI Pickup Checklist (Required)
+
+When an extraction/backfill item is marked complete, verify CI behavior explicitly:
+
+1. Confirm the release workflow step in `.github/workflows/release.yml` runs the extractor with the required flags/defaults.
+2. If extraction defaults changed, confirm CI uses that default path (not a local-only Make target).
+3. If a new Make target was added for convenience, do not rely on it for CI unless the workflow actually calls it.
+4. If CI does not yet execute the new behavior, update the workflow in the same PR or keep the backlog item open/deferred with a specific CI follow-up.
+
+Do not assume maintainers will run local `make` commands to compensate for missing CI wiring.
+
 ## HTML Parsing (extract-html.ts)
 - Use `linkedom` (not jsdom) — `import { parseHTML } from 'linkedom'`
 - Confluence HTML class patterns:
