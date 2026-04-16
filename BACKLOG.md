@@ -8,35 +8,6 @@
 
 ---
 
-## 🚨 BLOCKING: v0.6.2 npm publication
-
-**Status:** GitHub Release published (https://github.com/tikoci/rosetta/releases/tag/v0.6.2), npm registry still has 0.6.1.
-
-**What's complete:**
-- ✅ Fixed setup.ts database validation bug (removed readonly flag for WAL-mode support) — commit 81901a1
-- ✅ Rebuilt database from source extraction (317 pages, 40,208 commands, 63 Dude pages)
-- ✅ Fixed 5 linter errors in src/mcp.ts (trailing whitespace, import formatting)
-- ✅ Added 2 missing Dude tools to MCP tool array: `routeros_dude_search` and `routeros_dude_get_page`
-- ✅ Verified all 16 MCP tools are present and functional in running server
-- ✅ All 284 tests passing, 16 MCP tools operational, Dude integration fully confirmed
-- ✅ GitHub Release v0.6.2 published with binaries and database artifact
-
-**What's blocking bunx users:**
-- `npm publish` step needs to run. Users of `bunx @tikoci/rosetta` will still get 0.6.1 until npm registry syncs.
-- The fixes (setup.ts readonly flag + linter error resolution + Dude tool registration) are production-blocking — they enable proper database handling and full Dude wiki access via MCP.
-
-**How to unblock:**
-1. **GitHub Actions CI path (recommended):** Re-trigger the `release.yml` workflow with `workflow_dispatch` on v0.6.2 tag. The CI workflow runs `npm publish --access public` automatically (line 305 in `.github/workflows/release.yml`).
-2. **Manual path:** `npm login && npm publish` from git checkout (requires npm credentials in `~/.npmrc`).
-
-**Impact:** v0.6.2 is production-ready on GitHub (binaries, `/app`, compiled binary download). Delaying npm publication only affects `bunx @tikoci/rosetta` users. The fixes shipped in this version enable:
-- RouterOS documentation access: `routeros_search`, `routeros_get_page`, `routeros_lookup_property`, etc.
-- The Dude wiki (MikroTik network monitoring tool): **NEW** `routeros_dude_search`, `routeros_dude_get_page` with full page + screenshot metadata
-- Device database with benchmarks: `routeros_device_lookup`, `routeros_search_tests`
-- Command versioning and changelogs: `routeros_command_diff`, `routeros_search_changelogs`
-
----
-
 ## Guiding Principles
 
 These shape everything below. If a backlog item conflicts with them, the item is wrong and should be reframed.
@@ -403,11 +374,13 @@ The glossary lookup is the cheapest detector in the classifier pipeline — O(1)
 
 **MCP surface:** Consider a `routeros_glossary(term?)` tool or fold into `routeros_search` response as a `glossary_match` field when a query term hits the glossary. The latter is more aligned with Principle 3 (fewer tools, smarter search).
 
-**Note on %notation:** The mcp-monorepo project uses `%term` as a notation convention in human prompts — the `%` prefix signals "look this up in the glossary." Whether that convention carries over to rosetta depends on whether rosetta has human prompt input (the TUI does). Worth experimenting — the theory is that `%` may carry implicit "expand this" meaning to LLMs from historical template/variable usage in training data.
+**`%notation` — not adopting.** The mcp-monorepo project uses `%term` as a glossary trigger in human prompts. This doesn't carry to rosetta's MCP surface — LLM agents type `CHR`, not `%CHR`. The glossary lookup should be implicit (classifier detects the term), not prefix-triggered. The TUI could support it as syntactic sugar, but it's not worth the cognitive load of teaching users a sigil convention.
 
-### Table-driven compound terms (refactor COMPOUND_TERMS array)
+### Table-driven compound terms (refactor COMPOUND_TERMS array) — DEFERRED
 
 **Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16).
+
+**Review note (2026-04-16):** Over-engineering at current scale. ~46 static pairs work, are auditable in one screen, and compile to a fast Set lookup. A SQL table adds migration/cache/startup complexity for marginal gain. Revisit only if the list grows past ~100 pairs or if there's a need for runtime updates by agents.
 
 The hardcoded `COMPOUND_TERMS` array in `query.ts:43-88` works but scales poorly as the corpus grows. RouterOS adds new subsystems (containers, IoT, wifi replacing CAPsMAN) — each needs new compound pairs. A table-driven approach makes the knowledge auditable and extensible:
 
@@ -496,14 +469,13 @@ The TUI half shipped in Phase 3 (`tests rb5009 ethernet 1518`). Verify whether t
 
 `cl 7.21..7.22 iot` already works for changelogs. Add a general flag parser for TUI commands (`--limit`, `--version`, `--breaking`, `--category`) so the TUI can exercise the same surface as MCP clients. Keeps Principle 2 honest (the TUI *is* the MCP surface for humans).
 
-### HTML extraction: preserve more signal tokens
+### [PARTIAL] HTML extraction: preserve more signal tokens
 
-Page text from `getPage()` is currently near-raw text — blank line between headings landed in a prior fix, but almost nothing else survives extraction. Signals worth preserving in `extract-html.ts`:
+**Status: ✅ Code change landed (2026-04-16).** `extractPlainText()` in `src/extract-html.ts` now emits `## Heading` markers, `- item` / `1. item` list markers, `**bold**` emphasis, and `` `code` `` backticks. 8 tests cover the new behavior. **Requires re-extraction (`make extract-html`) to take effect in DB.** CI pickup: `.github/workflows/release.yml` runs extraction from HTML export, so the next release build will use the new extractor.
 
-- **Headings** — prefix with `#`/`##`/`###` (matching level), *and* wrap in `**bold**`. Gives both markdown parsers and plain-text readers a clear cue. Current state is borderline unreadable in the TUI.
-- **Lists** — keep `-` for `<ul>` items, numbered `1.` for `<ol>`.
-- **Emphasis** — `<strong>` → `**bold**`, `<code>` → backticks. Low cost, high signal; today they're silently stripped.
-- **Script example demarcation** — code blocks already track `brush: ros` but the current extraction flattens them into a separate `code` field. Consider inlining them back into the text field as fenced blocks (```` ```routeros ... ``` ````) so they appear in-line with surrounding prose, matching how the docs are actually structured.
+**Remaining (not yet implemented):**
+
+- **Script example demarcation** — code blocks already track `brush: ros` but the current extraction flattens them into a separate `code` field. Consider inlining them back into the text field as fenced blocks (```` ```routeros ... ``` ````) so they appear in-line with surrounding prose, matching how the docs are actually structured. This is a structural change to the page schema (code currently lives in a separate field) and should be considered alongside Smart `get_page()`.
 
 Affects TUI readability and MCP tool output equally — classic Principle 1 core change. Pairs with the "Smart `get_page()`" item: once script examples are properly fenced in the text stream, the budget-aware prioritizer can identify and preserve them.
 
@@ -714,21 +686,17 @@ Observed in a real Copilot CLI session: querying 7.21.3 → 7.22.1 produced 802 
 - **`limit` max of 100 is too low for range queries** — raise to 200–500, or make grouped-summary the default when `from_version != to_version`.
 - **No `exclude_from` parameter** — range queries re-include `from_version` entries the user already has. Add an `exclude_from` flag or make `from_version` exclusive.
 
-### Centralized SERVER_INSTRUCTIONS block in MCP initialize
+### [COMPLETED] Centralized SERVER_INSTRUCTIONS block in MCP initialize
 
 **Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16), pattern P-CDF621.
 
-Currently rosetta's agent guidance is distributed across 16 individual tool descriptions. This works when a model reads all tool descriptions, but some clients truncate or filter them. A compact `instructions` field set during `server.connect()` would give every model the same orientation:
+**Status:** ✅ **Completed 2026-04-16.** Added `instructions` field to `McpServer` `ServerOptions` in `src/mcp.ts`. The instructions give every model routing guidance ("start with `routeros_search`") even if individual tool descriptions are truncated or filtered by the client. CI pickup: `.github/workflows/test.yml` typechecks the change; runtime behavior exercised by `mcp-http.test.ts`.
 
-> "Start with `routeros_search` for any RouterOS question. Drill into specific pages with `routeros_get_page`. For device hardware specs: `routeros_device_lookup`. For version-specific command changes: `routeros_command_diff`. v6 is out of scope — only v7 data exists. When in doubt, `routeros_search` first."
-
-This is 3 sentences that carry the most important routing information. Individual tool descriptions keep their detailed guidance. The instructions field is the "if you read nothing else, read this" — aligns with Principle 3 (make `routeros_search` the default entry point).
-
-**Implementation:** The MCP SDK's `McpServer` constructor or the connect handler supports an `instructions` field. Lightweight change.
-
-### Stop words review for RouterOS command verbs
+### Stop words review for RouterOS command verbs — DEFERRED (post-classifier)
 
 **Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16).
+
+**Review note (2026-04-16):** Good analysis, wrong timing. Touching stop words before the classifier exists creates churn because the fix IS the classifier \u2014 context-dependent stop words are exactly what `classifyQuery()` will handle. NL questions ("how do I set up") should stop-list "set"; command-shaped input (`/ip/address set`) should keep it. Filed correctly as post-classifier work. No action now.
 
 The stop word list in `query.ts:34-41` filters `"command"`, `"commands"`, `"show"` — but these can be meaningful in RouterOS context. `"show"` appears in BGP/routing contexts. `"command"` in "system script command" loses signal.
 
@@ -738,15 +706,11 @@ More importantly, the stop list does NOT filter `"print"`, `"set"`, `"add"`, `"l
 
 **Low priority** — current behavior is acceptable. File under "tune after classifier ships."
 
-### Section-level excerpts after FTS match
+### [COMPLETED] Section-level excerpts after FTS match
 
 **Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16).
 
-`snippet(pages_fts, 2, '**', '**', '...', 30)` returns 30 tokens from the body text column. For pages with large code blocks, the snippet may land in code rather than prose. Since rosetta already has a `sections` table, consider: after FTS finds a page, run a secondary FTS or LIKE query against `sections` for the matching `page_id` to find the best-matching section heading. This gives agents "the answer is in section X of page Y" — much more actionable than a 30-token body excerpt.
-
-This pairs with "Smart `get_page()`" — once the agent knows which section, it can call `get_page(page_id, section="...")` directly. Two-step workflow becomes one.
-
-**Implementation:** in `runFtsQuery()`, after getting page results, run `SELECT heading, sort_order FROM sections WHERE page_id = ? AND (text LIKE ? OR code LIKE ?)` with the top search terms. Return `best_section: "Firewall Filter Rules"` alongside the existing excerpt. Core change in `query.ts`.
+**Status:** ✅ **Completed 2026-04-16.** Added `best_section` field to `SearchResult` in `query.ts`. After FTS matches pages, `attachBestSections()` runs a secondary lookup against the `sections` table for each result page, scoring sections by search-term overlap. Returns `best_section: { heading, anchor_id, url }` when a section matches at least one search term. Both MCP (`routeros_search` JSON output) and TUI (`browse` search results with `§ Heading` indicator) surface the new field. CI pickup: `bun test` in `.github/workflows/test.yml`; two new tests in `query.test.ts` validate section matching and absence.
 
 ### Usage analytics — which tools do agents actually call?
 
@@ -801,3 +765,6 @@ One-liners for continuity; delete entries after a release cycle passes. Details 
 - `routeros_current_versions` + TUI `ver` — WinBox 4 version added (fetch `LATEST.4` in parallel with channels; `winbox` field in response; rendered in TUI)
 - `getDbStats()` enhancements — `db_size_bytes` + `schema_version` added; TUI `stats` renders size in MB and schema version
 - `actions/checkout` v4 → v5 in `test.yml` and `release.yml` — Node 24 support, ahead of June 2026 Node 20 deprecation
+- SERVER_INSTRUCTIONS — added `instructions` field to MCP server options (routing guidance for all models regardless of tool description truncation)
+- HTML extraction: markdown signal tokens — `extractPlainText()` now emits `## Heading` markers, `- item` / `1. item` list markers, `**bold**` emphasis, and `` `code` `` backticks. Requires re-extraction (`make extract-html`) to take effect in DB.
+- mcp-monorepo cross-review — rationalized 5 suggestions from cortex third-eye review; implemented SERVER_INSTRUCTIONS, HTML extraction signals, section-level excerpts (`best_section` in search results); deferred compound terms table and stop words review as post-classifier work; glossary table accepted as Ready to Build

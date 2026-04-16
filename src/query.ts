@@ -15,6 +15,7 @@ export type SearchResult = {
   word_count: number;
   code_lines: number;
   excerpt: string;
+  best_section?: { heading: string; anchor_id: string; url: string };
 };
 
 export type SearchResponse = {
@@ -157,6 +158,8 @@ export function searchPages(question: string, limit = DEFAULT_LIMIT): SearchResp
     fallbackMode = "or";
   }
 
+  attachBestSections(results, terms);
+
   return { query: question, ftsQuery, fallbackMode, results, total: results.length };
 }
 
@@ -176,6 +179,43 @@ function runFtsQuery(ftsQuery: string, limit: number): SearchResult[] {
       .all(ftsQuery, limit) as SearchResult[];
   } catch {
     return [];
+  }
+}
+
+/** For each search result with sections, find the section whose text best matches the search terms. */
+function attachBestSections(results: SearchResult[], terms: string[]): void {
+  if (results.length === 0 || terms.length === 0) return;
+
+  const stmt = db.prepare(
+    `SELECT heading, anchor_id, text FROM sections WHERE page_id = ? ORDER BY sort_order`,
+  );
+
+  for (const result of results) {
+    const sections = stmt.all(result.id) as Array<{ heading: string; anchor_id: string; text: string }>;
+    if (sections.length === 0) continue;
+
+    let bestSection: (typeof sections)[0] | null = null;
+    let bestScore = 0;
+
+    for (const sec of sections) {
+      const haystack = `${sec.heading} ${sec.text}`.toLowerCase();
+      let score = 0;
+      for (const term of terms) {
+        if (haystack.includes(term)) score++;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestSection = sec;
+      }
+    }
+
+    if (bestSection && bestScore > 0) {
+      result.best_section = {
+        heading: bestSection.heading,
+        anchor_id: bestSection.anchor_id,
+        url: `${result.url}#${bestSection.anchor_id}`,
+      };
+    }
   }
 }
 

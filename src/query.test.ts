@@ -505,6 +505,24 @@ describe("searchPages", () => {
     expect(res.ftsQuery).toBeTruthy();
     expect(res.query).toBe("dhcp server");
   });
+
+  test("returns best_section for pages with matching sections", () => {
+    // Page 3 (Bridging and Switching) has sections including "VLAN Setup" with VLAN content
+    const res = searchPages("bridge vlan");
+    const bridging = res.results.find((r) => r.id === 3);
+    expect(bridging).toBeDefined();
+    expect(bridging?.best_section).toBeDefined();
+    expect(bridging?.best_section?.heading).toBe("VLAN Setup");
+    expect(bridging?.best_section?.anchor_id).toBe("BridgingandSwitching-VLANSetup");
+    expect(bridging?.best_section?.url).toContain("#BridgingandSwitching-VLANSetup");
+  });
+
+  test("omits best_section for pages without sections", () => {
+    // Page 1 (DHCP Server) has no sections
+    const res = searchPages("dhcp lease");
+    expect(res.results.length).toBeGreaterThan(0);
+    expect(res.results[0].best_section).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------

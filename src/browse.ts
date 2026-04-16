@@ -278,6 +278,10 @@ function renderSearchResults(resp: SearchResponse): string {
     if (r.url) {
       out.push(`       ${cyan(link(r.url, dim(r.url)))}`);
     }
+    // Show best matching section if available
+    if (r.best_section) {
+      out.push(`       ${dim("§")} ${r.best_section.heading}`);
+    }
     // Show excerpt with highlight markers converted to bold
     const excerpt = r.excerpt.replace(/>>>/g, `${ESC}[1m`).replace(/<<</g, `${ESC}[0m`);
     out.push(`       ${dim(truncate(excerpt, w - 8))}`);

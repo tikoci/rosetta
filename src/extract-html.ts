@@ -123,13 +123,17 @@ export function sanitizeExtractedText(input: string): string {
 }
 
 /**
- * Convert a DOM subtree to readable plain text while preserving block boundaries.
- * This avoids merged tokens like "OverviewThe" caused by raw textContent collapse.
+ * Convert a DOM subtree to readable text with lightweight markdown signals.
+ * Preserves block boundaries (avoids "OverviewThe" token merge) and emits:
+ *   - Heading markers: ## Heading (matching h1–h6 level)
+ *   - List markers: - item (ul) or 1. item (ol)
+ *   - Emphasis: **bold** for <strong>/<b>, `code` for <code>
  */
 export function extractPlainText(root: Element | null): string {
   if (!root) return "";
 
   let out = "";
+  let olCounter = 0;
 
   const addBreak = () => {
     if (!out) return;
@@ -158,6 +162,78 @@ export function extractPlainText(root: Element | null): string {
     if (tag === "br") {
       addBreak();
       return;
+    }
+
+    // Heading markers: ## Heading
+    const headingMatch = tag.match(/^h([1-6])$/);
+    if (headingMatch) {
+      addBreak();
+      const level = Number.parseInt(headingMatch[1], 10);
+      const prefix = "#".repeat(level);
+      const headingText = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if (headingText) {
+        addText(`${prefix} ${headingText}`);
+      }
+      addBreak();
+      return; // don't recurse into heading children — already captured via textContent
+    }
+
+    // Ordered list: reset counter
+    if (tag === "ol") {
+      const savedCounter = olCounter;
+      olCounter = 0;
+      addBreak();
+      for (const child of el.childNodes) {
+        walk(child as unknown as Node);
+      }
+      addBreak();
+      olCounter = savedCounter;
+      return;
+    }
+
+    // Unordered list
+    if (tag === "ul") {
+      addBreak();
+      for (const child of el.childNodes) {
+        walk(child as unknown as Node);
+      }
+      addBreak();
+      return;
+    }
+
+    // List item: prefix with - or N.
+    if (tag === "li") {
+      addBreak();
+      const parentTag = (el.parentElement?.tagName || "").toLowerCase();
+      if (parentTag === "ol") {
+        olCounter++;
+        addText(`${olCounter}.`);
+      } else {
+        addText("-");
+      }
+      for (const child of el.childNodes) {
+        walk(child as unknown as Node);
+      }
+      addBreak();
+      return;
+    }
+
+    // Inline emphasis: **bold**
+    if (tag === "strong" || tag === "b") {
+      const inner = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if (inner) {
+        addText(`**${inner}**`);
+      }
+      return; // don't recurse — already captured
+    }
+
+    // Inline code: `code`
+    if (tag === "code") {
+      const inner = (el.textContent || "").replace(/\s+/g, " ").trim();
+      if (inner) {
+        addText(`\`${inner}\``);
+      }
+      return; // don't recurse — already captured
     }
 
     const isBlock = BLOCK_TAGS.has(tag);
