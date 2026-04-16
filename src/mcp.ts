@@ -991,14 +991,26 @@ server.registerTool(
 Returns the complete page text, code blocks, and a list of GUI screenshots with local file paths.
 Screenshots are downloaded images from the archived wiki — use a file viewer for multimodal analysis.
 
+max_length defaults to 16000. If the page text+code exceeds it, content is truncated and a
+truncated field shows the original lengths. Dude pages are generally small (< 12K chars)
+so truncation is uncommon.
+
 → routeros_dude_search: find pages by topic
 → routeros_command_tree: browse /dude commands in current RouterOS`,
     inputSchema: {
       id: z.union([z.number().int(), z.string()]).describe("Page ID (number) or title/slug (string)"),
+      max_length: z
+        .number()
+        .int()
+        .min(1000)
+        .max(200000)
+        .optional()
+        .default(16000)
+        .describe("Max combined text+code characters to return (default: 16000)."),
     },
   },
-  async ({ id }) => {
-    const page = getDudePage(typeof id === "string" && /^\d+$/.test(id) ? Number.parseInt(id, 10) : id);
+  async ({ id, max_length }) => {
+    const page = getDudePage(typeof id === "string" && /^\d+$/.test(id) ? Number.parseInt(id, 10) : id, max_length);
     if (!page) {
       return {
         content: [

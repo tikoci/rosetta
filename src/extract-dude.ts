@@ -44,7 +44,7 @@ interface PageDef {
 // ── Page list (from CDX API enumeration) ──
 
 const V6_PAGES: PageDef[] = [
-  { wikiPath: "Manual:The_Dude", slug: "The_Dude", path: "The Dude", version: "v6" },
+  // Note: Manual:The_Dude and Manual:The_Dude_v6 are wiki stubs (no content)
   { wikiPath: "Manual:The_Dude_v6/Installation", slug: "Installation", path: "The Dude > v6 > Installation", version: "v6" },
   { wikiPath: "Manual:The_Dude_v6/First_use", slug: "First_use", path: "The Dude > v6 > First Use", version: "v6" },
   { wikiPath: "Manual:The_Dude_v6/Interface", slug: "Interface", path: "The Dude > v6 > Interface", version: "v6" },
@@ -90,8 +90,7 @@ const V3_PAGES: PageDef[] = [
   { wikiPath: "Manual:The_Dude/Interface", slug: "v3_Interface", path: "The Dude > v3/v4 > Interface", version: "v3" },
   { wikiPath: "Manual:The_Dude/Device_settings", slug: "v3_Device_settings", path: "The Dude > v3/v4 > Device Settings", version: "v3" },
   { wikiPath: "Manual:The_Dude/Device_discovery", slug: "v3_Device_discovery", path: "The Dude > v3/v4 > Device Discovery", version: "v3" },
-  { wikiPath: "Manual:The_Dude/Device_map", slug: "v3_Device_map", path: "The Dude > v3/v4 > Device Map", version: "v3" },
-  { wikiPath: "Manual:The_Dude/Device_list", slug: "v3_Device_list", path: "The Dude > v3/v4 > Device List", version: "v3" },
+  // Note: Manual:The_Dude/Device_map and Manual:The_Dude/Device_list are wiki stubs (no content)
   { wikiPath: "Manual:The_Dude/Networks", slug: "v3_Networks", path: "The Dude > v3/v4 > Networks", version: "v3" },
   { wikiPath: "Manual:The_Dude/Links", slug: "v3_Links", path: "The Dude > v3/v4 > Links", version: "v3" },
   { wikiPath: "Manual:The_Dude/Agents", slug: "v3_Agents", path: "The Dude > v3/v4 > Agents", version: "v3" },

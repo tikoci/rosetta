@@ -1576,6 +1576,7 @@ export type DudePageResult = {
   last_edited: string | null;
   word_count: number | null;
   images: DudeImageResult[];
+  truncated?: { text_total: number; code_total: number };
 };
 
 /** Search archived Dude wiki pages via FTS, with AND→OR fallback. */
@@ -1617,8 +1618,9 @@ function runDudeFtsQuery(ftsQuery: string, limit: number): DudeSearchResult[] {
   }
 }
 
-/** Get a Dude wiki page by ID or title, with associated images. */
-export function getDudePage(idOrTitle: number | string): DudePageResult | null {
+/** Get a Dude wiki page by ID or title, with associated images.
+ *  maxLength: if set, truncates text+code combined and adds a truncated field. */
+export function getDudePage(idOrTitle: number | string, maxLength?: number): DudePageResult | null {
   const row =
     typeof idOrTitle === "number"
       ? db.prepare("SELECT * FROM dude_pages WHERE id = ?").get(idOrTitle)
@@ -1628,6 +1630,21 @@ export function getDudePage(idOrTitle: number | string): DudePageResult | null {
   page.images = db
     .prepare("SELECT id, filename, alt_text, caption, local_path, original_url, wayback_url FROM dude_images WHERE page_id = ? ORDER BY sort_order")
     .all(page.id) as DudeImageResult[];
+
+  if (maxLength) {
+    const textLen = page.text.length;
+    const codeLen = page.code?.length ?? 0;
+    if (textLen + codeLen > maxLength) {
+      const codeBudget = Math.min(codeLen, Math.floor(maxLength * 0.2));
+      const textBudget = maxLength - codeBudget;
+      page.truncated = { text_total: textLen, code_total: codeLen };
+      page.text = textLen > textBudget ? `${page.text.slice(0, textBudget)}\n\n[... truncated — ${textLen} chars total, showing first ${textBudget}]` : page.text;
+      if (page.code && codeLen > codeBudget) {
+        page.code = `${page.code.slice(0, codeBudget)}\n# [... truncated — ${codeLen} chars total]`;
+      }
+    }
+  }
+
   return page;
 }
 
