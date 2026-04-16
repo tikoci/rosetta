@@ -380,7 +380,7 @@ The glossary lookup is the cheapest detector in the classifier pipeline — O(1)
 
 **Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16).
 
-**Review note (2026-04-16):** Over-engineering at current scale. ~46 static pairs work, are auditable in one screen, and compile to a fast Set lookup. A SQL table adds migration/cache/startup complexity for marginal gain. Revisit only if the list grows past ~100 pairs or if there's a need for runtime updates by agents.
+**Review note (2026-04-16):** Over-engineering at current scale. ~44 static pairs work, are auditable in one screen, and compile to a fast Set lookup. A SQL table adds migration/cache/startup complexity for marginal gain. Revisit only if the list grows past ~100 pairs or if there's a need for runtime updates by agents.
 
 The hardcoded `COMPOUND_TERMS` array in `query.ts:43-88` works but scales poorly as the corpus grows. RouterOS adds new subsystems (containers, IoT, wifi replacing CAPsMAN) — each needs new compound pairs. A table-driven approach makes the knowledge auditable and extensible:
 
@@ -395,7 +395,7 @@ compound_terms (
 
 The query planner pulls from the table at startup (or caches on first query). The existing `COMPOUND_TERMS` array becomes the seed data. New pairs can be added by agents, humans, or extraction scripts (e.g., mining two-word patterns from `commands.path` segments).
 
-**Sequencing:** this naturally pairs with the glossary table — both are "controlled vocabulary" infrastructure that the classifier consumes. Could share a migration. Low priority relative to the glossary, since the static array works fine at the current size (~45 pairs).
+**Sequencing:** this naturally pairs with the glossary table — both are "controlled vocabulary" infrastructure that the classifier consumes. Could share a migration. Low priority relative to the glossary, since the static array works fine at the current size (~44 pairs).
 
 ### Known topics extraction
 

@@ -41,8 +41,8 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 ## FTS5 Query Rules
 - BM25 weights: title=3.0, path=2.0, text=1.0, code=0.5
 - AND mode first, fallback to OR if zero results (all search tools: pages, properties, callouts, changelogs)
-- Stop words list in `query.ts` (~72 words) — do not duplicate elsewhere
-- Compound terms (~37 RouterOS pairs) → FTS5 NEAR expressions
+- Stop words list in `query.ts` (~50 words) — do not duplicate elsewhere
+- Compound terms (~44 RouterOS pairs) → FTS5 NEAR expressions
 - Porter unicode61 tokenizer for pages/properties/callouts/changelogs — stemming is automatic
 - Device search uses unicode61 only (no porter) + LIKE substring fallback + FTS prefix matching
 - Device exact matches and small result sets (≤5) auto-attach `test_results` (ethernet/IPSec benchmarks) and `product_url`/`block_diagram_url` from `device_test_results` table
