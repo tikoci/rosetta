@@ -265,6 +265,9 @@ function renderSearchResults(resp: SearchResponse): string {
   const out: string[] = [];
   const modeNote = resp.fallbackMode === "or" ? dim(" (OR fallback)") : "";
   out.push(`  ${bold(String(resp.results.length))} of ${resp.total} results for ${cyan(`"${resp.query}"`)}${modeNote}`);
+  if (resp.note) {
+    out.push(`  ${yellow("Hint:")} ${resp.note}`);
+  }
   out.push("");
 
   const w = termWidth();
@@ -1092,7 +1095,8 @@ async function handleNumberSelect(idx: number): Promise<void> {
 async function doSearch(query: string): Promise<void> {
   const resp = searchPages(query);
   if (resp.results.length === 0) {
-    console.log(`  ${dim("No results.")} Try: ${cyan("props")} ${query}, ${cyan("cal")} ${query}, ${cyan("vid")} ${query}`);
+    const extra = resp.note ? ` ${yellow("Hint:")} ${resp.note}` : "";
+    console.log(`  ${dim("No results.")} Try: ${cyan("props")} ${query}, ${cyan("cal")} ${query}, ${cyan("vid")} ${query}${extra}`);
     return;
   }
   await paged(renderSearchResults(resp));

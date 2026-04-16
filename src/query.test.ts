@@ -1770,6 +1770,11 @@ describe("searchDude", () => {
     const results = searchDude("dude", 1);
     expect(results.length).toBeLessThanOrEqual(1);
   });
+
+  test("searchPages adds a Dude-specific hint for explicit Dude queries", () => {
+    const results = searchPages("the dude probes");
+    expect(results.note).toContain("routeros_dude_search");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1780,22 +1785,22 @@ describe("getDudePage", () => {
   test("returns page by ID with images", () => {
     const page = getDudePage(1);
     expect(page).not.toBeNull();
-    expect(page!.title).toBe("Probes");
-    expect(page!.images.length).toBe(2);
-    expect(page!.images[0].filename).toBe("Dude-probes-all.JPG");
+    expect(page?.title).toBe("Probes");
+    expect(page?.images.length).toBe(2);
+    expect(page?.images[0]?.filename).toBe("Dude-probes-all.JPG");
   });
 
   test("returns page by title", () => {
     const page = getDudePage("Probes");
     expect(page).not.toBeNull();
-    expect(page!.id).toBe(1);
+    expect(page?.id).toBe(1);
   });
 
   test("returns page by slug", () => {
     const page = getDudePage("Device_discovery");
     expect(page).not.toBeNull();
-    expect(page!.title).toBe("Device Discovery");
-    expect(page!.images.length).toBe(1);
+    expect(page?.title).toBe("Device Discovery");
+    expect(page?.images.length).toBe(1);
   });
 
   test("returns null for non-existent page", () => {

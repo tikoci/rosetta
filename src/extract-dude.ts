@@ -161,7 +161,44 @@ interface ParsedPage {
   images: Array<{ filename: string; altText: string | null; originalUrl: string; waybackImageUrl: string }>;
 }
 
-function parsePage(html: string, _waybackBaseUrl: string): ParsedPage {
+const DUDE_NOISE_SELECTORS = [
+  "#toc",
+  ".toc",
+  ".mw-editsection",
+  ".navbox",
+  "#catlinks",
+  ".printfooter",
+  "#wm-ipp-base",
+  "#wm-ipp",
+  "#donato",
+  ".wb-autocomplete-suggestions",
+  "#mw-navigation",
+  "#footer",
+  ".noprint",
+  "#jump-to-nav",
+  ".mw-jump-link",
+  "#siteSub",
+  "#contentSub",
+  "#contentSub2",
+  "script",
+  "style",
+  "noscript",
+] as const;
+
+function removeNoise(root: ParentNode): void {
+  for (const sel of DUDE_NOISE_SELECTORS) {
+    for (const el of root.querySelectorAll(sel)) el.remove();
+  }
+}
+
+function getPrimaryContent(document: Document): Element | null {
+  return document.querySelector("#mw-content-text .mw-parser-output")
+    ?? document.querySelector("#mw-content-text")
+    ?? document.querySelector("#bodyContent .mw-parser-output")
+    ?? document.querySelector("#bodyContent");
+}
+
+export function parseDudePage(html: string, _waybackBaseUrl: string): ParsedPage {
   const { document } = parseHTML(html);
 
   // Title from first h1 or page heading
@@ -172,21 +209,17 @@ function parsePage(html: string, _waybackBaseUrl: string): ParsedPage {
     .replace(/_/g, " ") ?? "Unknown";
 
   // Main content area
-  const content = document.querySelector("#mw-content-text, .mw-parser-output, #bodyContent");
+  const content = getPrimaryContent(document);
   if (!content) return { title, text: "", code: "", lastEdited: null, images: [] };
-
-  // Remove navigation, TOC, edit links, Wayback Machine toolbar
-  for (const sel of ["#toc", ".toc", ".mw-editsection", ".navbox", "#catlinks",
-    ".printfooter", "#wm-ipp-base", "#wm-ipp", "#donato", ".wb-autocomplete-suggestions",
-    "#mw-navigation", "#footer", ".noprint"]) {
-    for (const el of content.querySelectorAll(sel)) el.remove();
-  }
 
   // Extract code blocks
   const codeBlocks: string[] = [];
-  for (const pre of content.querySelectorAll("pre, code.ros")) {
+  const seenCodeBlocks = new Set<string>();
+  for (const pre of content.querySelectorAll("pre, code")) {
     const text = pre.textContent?.trim();
-    if (text && text.length > 10) codeBlocks.push(text);
+    if (!text || text.length < 6 || seenCodeBlocks.has(text)) continue;
+    seenCodeBlocks.add(text);
+    codeBlocks.push(text);
   }
 
   // Extract images
@@ -195,6 +228,8 @@ function parsePage(html: string, _waybackBaseUrl: string): ParsedPage {
   for (const img of content.querySelectorAll("img")) {
     const src = img.getAttribute("src") ?? "";
     const alt = img.getAttribute("alt") ?? null;
+    const parentA = img.closest("a");
+    const href = parentA?.getAttribute("href") ?? "";
 
     // Skip tiny icons, navigation icons, and Wayback Machine UI images
     const width = Number.parseInt(img.getAttribute("width") ?? "0", 10);
@@ -204,21 +239,17 @@ function parsePage(html: string, _waybackBaseUrl: string): ParsedPage {
     // Extract filename from MediaWiki image URLs
     // Patterns: /images/X/XX/Filename.JPG or /wiki/File:Filename.JPG
     let filename: string | null = null;
+    const fileMatch = href.match(/File:([^&"]+)/);
+    if (fileMatch) filename = decodeURIComponent(fileMatch[1]);
+
     const srcMatch = src.match(/\/images\/[0-9a-f]\/[0-9a-f]{2}\/([^/?]+)/i)
       ?? src.match(/\/([^/]+\.(?:jpg|jpeg|png|gif|svg))(?:\?|$)/i);
     if (srcMatch) {
-      filename = decodeURIComponent(srcMatch[1]);
-    }
-
-    // Also check parent <a> links for File: references
-    if (!filename) {
-      const parentA = img.closest("a");
-      const href = parentA?.getAttribute("href") ?? "";
-      const fileMatch = href.match(/File:([^&"]+)/);
-      if (fileMatch) filename = decodeURIComponent(fileMatch[1]);
+      filename ??= decodeURIComponent(srcMatch[1]);
     }
 
     if (!filename) continue;
+    filename = filename.replace(/^\d+px-/, "");
     if (seenFilenames.has(filename)) continue;
     // Skip common wiki icons
     if (/^Icon-\w+\.png$/i.test(filename)) continue;
@@ -242,9 +273,17 @@ function parsePage(html: string, _waybackBaseUrl: string): ParsedPage {
   }
 
   // Extract body text
-  const textContent = content.textContent ?? "";
+  const textRoot = content.cloneNode(true) as Element;
+  removeNoise(textRoot);
+  for (const img of textRoot.querySelectorAll("img")) img.remove();
+
+  const textContent = textRoot.textContent ?? "";
   // Clean up whitespace: collapse multiple blank lines, trim
-  const text = textContent.replace(/\n{3,}/g, "\n\n").trim();
+  const text = textContent
+    .replace(/Retrieved from\s+"https?:\/\/[^\n"]+"/gi, "")
+    .replace(/FILE ARCHIVED ON[\s\S]*$/i, "")
+    .replace(/\n[ \t]*\n[ \t]*\n+/g, "\n\n")
+    .trim();
 
   // Last edited date from footer
   const lastEditedEl = document.querySelector("#footer-info-lastmod, .lastmod");
@@ -326,7 +365,7 @@ async function main() {
     }
 
     // Parse HTML
-    const parsed = parsePage(html, wbUrl);
+    const parsed = parseDudePage(html, wbUrl);
     if (!parsed.text && !parsed.code) {
       console.log(`  WARN: empty content for ${pageDef.slug}`);
     }
@@ -403,7 +442,9 @@ async function main() {
   console.log(`DB: ${stats.c} dude_pages, ${imgStats.c} dude_images`);
 }
 
-main().catch((e) => {
-  console.error("Fatal:", e);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error("Fatal:", e);
+    process.exit(1);
+  });
+}

@@ -537,6 +537,14 @@ Current `lookup_property` is exact-match. Observed gap: agents (and humans) ofte
 
 Items that need research or experimentation before they're actionable.
 
+### Dude cache completeness — three committed pages missing from `dude/pages/`
+
+Observed during 2026-04-16 cache-import verification: `extract-dude-from-cache` skips `The_Dude`, `v3_Device_map`, and `v3_Device_list` because the corresponding cached HTML files are absent. That means cache-only extraction currently produces a partial Dude dataset without failing.
+
+**CI pickup:** this already ships in normal CI. `.github/workflows/release.yml` step `Import Dude wiki docs from cache` runs `make extract-dude-from-cache`, and both `extract` / `extract-full` targets in `Makefile` include `extract-dude-from-cache`. So `push`/`pull_request`/`workflow_dispatch` validation exercises the partial import path today; no local-only command is required to reproduce it.
+
+Needs: (1) determine whether Wayback snapshots exist for those pages and add them to `dude/pages/`, or (2) remove/update the hardcoded page list and add a row-count/assertion so cache imports fail loudly instead of silently skipping expected pages.
+
 ### Dude — `/dude` command tree cross-reference
 
 The `/dude` command tree exists in inspect.json (versions where Dude package is present). Cross-referencing `/dude` command paths with `dude_pages` entries would enable `routeros_command_tree` to link into Dude docs. Needs: (1) check which inspect.json versions include `/dude`, (2) build a linker pass similar to `link-commands.ts` for dude_pages. Low priority — Dude usage is declining.

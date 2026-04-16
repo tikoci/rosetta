@@ -24,6 +24,7 @@ export type SearchResponse = {
   fallbackMode: "or" | null;
   results: SearchResult[];
   total: number;
+  note?: string;
 };
 
 type CsvScalar = string | number | null;
@@ -88,6 +89,14 @@ const COMPOUND_TERMS: [string, string][] = [
   ["address", "list"],
 ];
 
+function getSpecialSearchHint(question: string): string | undefined {
+  const normalized = question.toLowerCase();
+  if (/(?:^|\b)(?:the\s+)?dude(?:\b|$)/.test(normalized)) {
+    return 'This looks like a Dude query. For retired Dude GUI or wiki topics, use routeros_dude_search. For current RouterOS CLI and server paths, use routeros_command_tree with path "/dude".';
+  }
+  return undefined;
+}
+
 function escapeCsv(value: CsvScalar): string {
   if (value === null) return "";
   const text = String(value);
@@ -141,8 +150,9 @@ export function buildFtsQuery(terms: string[], mode: "AND" | "OR"): string {
 
 export function searchPages(question: string, limit = DEFAULT_LIMIT): SearchResponse {
   const terms = extractTerms(question);
+  const note = getSpecialSearchHint(question);
   if (terms.length === 0) {
-    return { query: question, ftsQuery: "", fallbackMode: null, results: [], total: 0 };
+    return { query: question, ftsQuery: "", fallbackMode: null, results: [], total: 0, ...(note ? { note } : {}) };
   }
 
   // Try AND first
@@ -160,7 +170,7 @@ export function searchPages(question: string, limit = DEFAULT_LIMIT): SearchResp
 
   attachBestSections(results, terms);
 
-  return { query: question, ftsQuery, fallbackMode, results, total: results.length };
+  return { query: question, ftsQuery, fallbackMode, results, total: results.length, ...(note ? { note } : {}) };
 }
 
 function runFtsQuery(ftsQuery: string, limit: number): SearchResult[] {
@@ -1596,7 +1606,9 @@ function runDudeFtsQuery(ftsQuery: string, limit: number): DudeSearchResult[] {
          FROM dude_pages_fts fts
          JOIN dude_pages dp ON dp.id = fts.rowid
          WHERE dude_pages_fts MATCH ?
-         ORDER BY rank
+         ORDER BY bm25(dude_pages_fts, 3.0, 2.0, 1.0, 0.5),
+                  CASE dp.version WHEN 'v6' THEN 0 ELSE 1 END,
+                  dp.title
          LIMIT ?`,
       )
       .all(ftsQuery, limit) as DudeSearchResult[];

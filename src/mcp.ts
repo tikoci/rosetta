@@ -462,6 +462,7 @@ Workflow — what to do next:
 
 Tips:
 - Use specific technical terms: "DHCP relay agent" not "how to set up DHCP"
+- For retired Dude GUI or wiki topics, prefer routeros_dude_search; routeros_search covers current RouterOS v7 docs
 - Documentation: 317 pages from March 2026 Confluence export (~515K words)
 - Docs reflect the then-current long-term release (~7.22), not version-pinned
 - Command data: RouterOS 7.9–7.23beta2. No v6 data available.
