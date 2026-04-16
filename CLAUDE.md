@@ -488,7 +488,7 @@ Non-English videos (~27 known) are stored as metadata-only rows (no transcript).
 
 The `release.yml` workflow (`workflow_dispatch`) builds the database from a remote HTML export URL and creates a GitHub Release — same pipeline as local, but traceable to a specific commit and CI log.
 
-**Inputs:** `html_url` (required — direct download URL to `.zip`), `version` (required — tag like `v0.2.0`), `docs_date` (optional — export date for traceability), `full_versions` (default: true — all 46 RouterOS versions), `force` (default: false — overwrite existing release).
+**Inputs:** `html_url` (required — direct download URL to `.zip`, pre-populated with the current known MikroTik export link), `version` (optional override — defaults to `v` + `package.json` version), `docs_date` (optional — export date for traceability), `full_versions` (default: true — all 46 RouterOS versions), `force` (default: false — overwrite existing release).
 
 **Steps:** download + validate zip → extract HTML → run full extraction pipeline → quality gate (typecheck + test + lint) → build release artifacts + OCI image tars → publish OCI images to Docker Hub/GHCR → smoke-test pulled `sha-*` images on `/mcp` → create GitHub Release with DB stats in release notes.
 

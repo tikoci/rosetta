@@ -8,10 +8,12 @@ on:
           For box.mikrotik.com Seafile links, append &dl=1 to get the actual file.
         required: true
         type: string
+        default: 'https://box.mikrotik.com/d/df76f0d495284eb1b6a1/files/?p=%2FConfluence-space-export-112800-380.html.zip&dl=1'
       version:
-        description: 'Release version tag (e.g. v0.2.0)'
-        required: true
+        description: 'Optional release version override (e.g. v0.2.0). Default: v + package.json version.'
+        required: false
         type: string
+        default: ''
       docs_date:
         description: 'Export date or presumed RouterOS version for traceability (e.g. 2026-03-25)'
         required: false
@@ -98,6 +100,23 @@ jobs:
           fi
           echo "ros_dir=$ROS_DIR" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve release version
+        id: release_version
+        run: |
+          set -euo pipefail
+          INPUT_VERSION="${{ inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+            SOURCE="workflow input"
+          else
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            VERSION="v${PKG_VERSION}"
+            SOURCE="package.json"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "source=$SOURCE" >> "$GITHUB_OUTPUT"
+          echo "✓ Release version: $VERSION (from $SOURCE)"
+
       # ── Extraction pipeline ──
 
       - name: Extract HTML pages
@@ -165,7 +184,7 @@ jobs:
           echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments)"
 
       - name: Build release artifacts
-        run: bun run scripts/build-release.ts ${{ inputs.version }}
+        run: bun run scripts/build-release.ts ${{ steps.release_version.outputs.version }}
 
       - name: Compute image metadata
         id: image_meta
@@ -190,7 +209,7 @@ jobs:
         run: |
           set -euo pipefail
           SHORT_SHA="${{ steps.image_meta.outputs.short_sha }}"
-          VERSION="${{ inputs.version }}"
+          VERSION="${{ steps.release_version.outputs.version }}"
 
           tags=""
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
@@ -273,7 +292,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${{ inputs.version }}"
+          VERSION="${{ steps.release_version.outputs.version }}"
           DOCS_DATE="${{ inputs.docs_date }}"
           NOTES="## Database Stats
           - **Pages:** ${{ steps.stats.outputs.pages }}
@@ -286,6 +305,7 @@ jobs:
           ## Build Info
           - **Commit:** ${{ github.sha }}
           - **Docs date:** ${DOCS_DATE:-not specified}
+          - **Release version source:** ${{ steps.release_version.outputs.source }}
           - **Full version extraction:** ${{ inputs.full_versions }}
           - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 

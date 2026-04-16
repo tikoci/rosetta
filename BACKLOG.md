@@ -666,6 +666,8 @@ Current CI builds linux/amd64 + linux/arm64 via `docker buildx`. armv7 deferred 
 
 **Trigger:** second HTML export is available. Then add a `doc_exports` metadata table (date, page count, text hashes). Simple diff — don't overengineer. Watch the special hardware pages above for renames/moves; those are the "something important changed" signal.
 
+Also evaluate page identity stability across exports: Confluence page IDs are currently used in deep links and model/tool citations, but a future dump could rekey pages. If IDs churn, add a stable rosetta-level reference key (plus an `old_page_id -> new_page_id` mapping table) so historical citations remain resolvable.
+
 ### Copilot context provider via `lsp-routeros-ts`
 
 VS Code extension client-side can provide doc context via MCP or direct DB queries. Depends on `lsp-routeros-ts` integration maturing.
