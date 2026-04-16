@@ -369,6 +369,61 @@ Optional: keep one or two additional versions between LT and stable for finer-gr
 
 **Future work (if needed):** Current cutoff at 7.1.1 because that's the oldest with the current CHANGELOG header+entry format. Going back to 7.0 would require format detection, as older changelogs may have had different structure. Worth investigating only if demand arises for v7.0 historical data.
 
+### Glossary table — domain jargon resolution before query planning
+
+**Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16). The mcp-monorepo project uses a `glossary` table in its cortex.sqlite state store for domain jargon resolution — terms like `%CHR`, `%CAPsMAN`, `%mangle` that carry overloaded meaning. The same pattern applies directly to rosetta, where RouterOS jargon trips up LLMs during search.
+
+**The problem:** An agent searching for "CAPsMAN" needs to know it was replaced by the `wifi` package in ~7.13. An agent searching for "CHR" needs to know it means Cloud Hosted Router (x86 virtual), not a typo. "The Dude" needs disambiguation. "mangle" means packet-marking, not text mangling. These are exactly the kind of terms where a cheap pre-FTS lookup saves a round-trip or prevents a bad search.
+
+**Schema (lightweight):**
+
+```sql
+glossary (
+    term        TEXT PRIMARY KEY,  -- 'CAPsMAN', 'CHR', 'mangle', 'The Dude'
+    definition  TEXT NOT NULL,     -- short: 1-2 sentences max
+    aliases     TEXT,              -- JSON array: ['capsman', 'caps-man']
+    category    TEXT,              -- 'subsystem' | 'hardware' | 'tool' | 'concept'
+    search_hint TEXT               -- optional: terms to add to FTS query when this term is detected
+)
+```
+
+The `search_hint` column is the key integration point: when the classifier detects "CAPsMAN" in input, the glossary lookup returns `search_hint: "wifi capsman"` — expanding the FTS query to also find the newer wifi docs. This is a controlled vocabulary layer on top of FTS5, not a replacement for it.
+
+**Seeding strategy:**
+
+1. **Manual seed** (~30-50 terms): CHR, CAPsMAN, WinBox, The Dude, RoMON, mangle, netinstall, SwOS, RouterBOARD, CCR, CRS, hAP, hEX, RB (prefix), MIPSBE, MMIPS, SMIPS, MetaROUTER, Torch, Safe Mode, etc.
+2. **Auto-derive candidates** from callouts — many Note/Info callouts define terms inline ("CAPsMAN has been replaced by WiFi starting from..."). A one-time extraction pass over `callouts.content` could propose terms.
+3. **Incremental growth** — agents and humans add terms as they discover confusion points.
+
+**Integration with the North Star classifier:**
+
+The glossary lookup is the cheapest detector in the classifier pipeline — O(1) hash lookup. It fires before FTS and can both expand queries (via `search_hint`) and annotate responses (via `definition`). It also feeds the TUI: `glossary capsman` → instant definition + "see also: wifi".
+
+**TUI surface:** `g <term>` or `glossary <term>` for lookup. `glossary` with no args lists all terms. Per Principle 1, the query in `query.ts`, adapters in `mcp.ts` and `browse.ts`.
+
+**MCP surface:** Consider a `routeros_glossary(term?)` tool or fold into `routeros_search` response as a `glossary_match` field when a query term hits the glossary. The latter is more aligned with Principle 3 (fewer tools, smarter search).
+
+**Note on %notation:** The mcp-monorepo project uses `%term` as a notation convention in human prompts — the `%` prefix signals "look this up in the glossary." Whether that convention carries over to rosetta depends on whether rosetta has human prompt input (the TUI does). Worth experimenting — the theory is that `%` may carry implicit "expand this" meaning to LLMs from historical template/variable usage in training data.
+
+### Table-driven compound terms (refactor COMPOUND_TERMS array)
+
+**Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16).
+
+The hardcoded `COMPOUND_TERMS` array in `query.ts:43-88` works but scales poorly as the corpus grows. RouterOS adds new subsystems (containers, IoT, wifi replacing CAPsMAN) — each needs new compound pairs. A table-driven approach makes the knowledge auditable and extensible:
+
+```sql
+compound_terms (
+    term_a TEXT NOT NULL,
+    term_b TEXT NOT NULL,
+    proximity INTEGER NOT NULL DEFAULT 5,  -- NEAR distance
+    PRIMARY KEY (term_a, term_b)
+)
+```
+
+The query planner pulls from the table at startup (or caches on first query). The existing `COMPOUND_TERMS` array becomes the seed data. New pairs can be added by agents, humans, or extraction scripts (e.g., mining two-word patterns from `commands.path` segments).
+
+**Sequencing:** this naturally pairs with the glossary table — both are "controlled vocabulary" infrastructure that the classifier consumes. Could share a migration. Low priority relative to the glossary, since the static array works fine at the current size (~45 pairs).
+
 ### Known topics extraction
 
 Build a small seed list of topic tokens from three sources:
@@ -658,6 +713,40 @@ Observed in a real Copilot CLI session: querying 7.21.3 → 7.22.1 produced 802 
 - **Output too verbose** — each entry returns full `description` + `excerpt` + `released`. For range queries this wall-of-JSON repeats. Compact summary mode: group by version then category, with counts and descriptions only (no excerpt duplication).
 - **`limit` max of 100 is too low for range queries** — raise to 200–500, or make grouped-summary the default when `from_version != to_version`.
 - **No `exclude_from` parameter** — range queries re-include `from_version` entries the user already has. Add an `exclude_from` flag or make `from_version` exclusive.
+
+### Centralized SERVER_INSTRUCTIONS block in MCP initialize
+
+**Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16), pattern P-CDF621.
+
+Currently rosetta's agent guidance is distributed across 16 individual tool descriptions. This works when a model reads all tool descriptions, but some clients truncate or filter them. A compact `instructions` field set during `server.connect()` would give every model the same orientation:
+
+> "Start with `routeros_search` for any RouterOS question. Drill into specific pages with `routeros_get_page`. For device hardware specs: `routeros_device_lookup`. For version-specific command changes: `routeros_command_diff`. v6 is out of scope — only v7 data exists. When in doubt, `routeros_search` first."
+
+This is 3 sentences that carry the most important routing information. Individual tool descriptions keep their detailed guidance. The instructions field is the "if you read nothing else, read this" — aligns with Principle 3 (make `routeros_search` the default entry point).
+
+**Implementation:** The MCP SDK's `McpServer` constructor or the connect handler supports an `instructions` field. Lightweight change.
+
+### Stop words review for RouterOS command verbs
+
+**Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16).
+
+The stop word list in `query.ts:34-41` filters `"command"`, `"commands"`, `"show"` — but these can be meaningful in RouterOS context. `"show"` appears in BGP/routing contexts. `"command"` in "system script command" loses signal.
+
+More importantly, the stop list does NOT filter `"print"`, `"set"`, `"add"`, `"list"`, `"remove"` — which is correct, since these are critical RouterOS command verbs. But this means a natural-language query like "how do I set up a firewall" will search for "set" and "firewall" — where "set" matches half the documentation.
+
+**Possible approach:** classifier-aware stop words. When the classifier detects a command-path-shaped input, keep verbs as meaningful. When it detects a natural-language question ("how do I..."), apply broader stop-listing. This naturally sequences after the classifier lands.
+
+**Low priority** — current behavior is acceptable. File under "tune after classifier ships."
+
+### Section-level excerpts after FTS match
+
+**Origin:** cross-project review from `~/Lab/mcp-monorepo` (2026-04-16).
+
+`snippet(pages_fts, 2, '**', '**', '...', 30)` returns 30 tokens from the body text column. For pages with large code blocks, the snippet may land in code rather than prose. Since rosetta already has a `sections` table, consider: after FTS finds a page, run a secondary FTS or LIKE query against `sections` for the matching `page_id` to find the best-matching section heading. This gives agents "the answer is in section X of page Y" — much more actionable than a 30-token body excerpt.
+
+This pairs with "Smart `get_page()`" — once the agent knows which section, it can call `get_page(page_id, section="...")` directly. Two-step workflow becomes one.
+
+**Implementation:** in `runFtsQuery()`, after getting page results, run `SELECT heading, sort_order FROM sections WHERE page_id = ? AND (text LIKE ? OR code LIKE ?)` with the top search terms. Return `best_section: "Firewall Filter Rules"` alongside the existing excerpt. Core change in `query.ts`.
 
 ### Usage analytics — which tools do agents actually call?
 
