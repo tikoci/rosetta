@@ -27,6 +27,7 @@ import type {
 } from "./query.ts";
 import {
   browseCommands,
+  browseCommandsAtVersion,
   checkCommandVersions,
   diffCommandVersions,
   fetchCurrentVersions,
@@ -254,6 +255,9 @@ function contextLabel(c: Context): string {
 function renderWelcome(): string {
   const stats = getDbStats();
   const version = resolveVersion(import.meta.dirname);
+  const dbWarning = stats.commands < 1000
+    ? yellow(`⚠ DB has only ${fmt(stats.commands)} commands — use real DB:  --db ~/.rosetta/ros-help.db`)
+    : null;
   const lines = [
     `RouterOS Documentation Browser  ${dim(`v${version}`)}`,
     `${fmt(stats.pages)} pages · ${fmt(stats.properties)} properties · ${fmt(stats.commands)} commands`,
@@ -261,6 +265,7 @@ function renderWelcome(): string {
     ...(stats.videos > 0 ? [`${fmt(stats.videos)} videos · ${fmt(stats.video_segments)} transcript segments`] : []),
     ...(stats.skills > 0 ? [`${fmt(stats.skills)} agent skills ${dim("(tikoci — community content)")}`] : []),
     "",
+    ...(dbWarning ? [dbWarning, ""] : []),
     `Type a search query, or ${bold("help")} for commands.`,
   ];
   return box(lines, "rosetta");
@@ -906,6 +911,11 @@ function renderHelp(): string {
   out.push(`  ${dim("Navigation: type a number to select from results.")}`);
   out.push(`  ${dim("After viewing a page, [p] = properties for that page.")}`);
   out.push(`  ${dim("URLs are clickable in supported terminals (iTerm2, etc.).")}`);
+  out.push(`  ${dim("cmd supports @version suffix: cmd /ip/address @7.15")}`);
+  out.push("");
+  out.push(`  ${bold("CLI flags")}`);
+  out.push(`  ${cyan(pad("--db <path>", 26))} ${dim("")} Use a specific database file`);
+  out.push(`  ${cyan(pad("--once", 26))} ${dim("")} Search once and exit (for piping)`);
 
   return out.join("\n");
 }
@@ -1256,9 +1266,17 @@ async function doSearchProperties(query: string): Promise<void> {
 }
 
 async function doCommandTree(path: string): Promise<void> {
+  // Extract optional @version suffix: "cmd /ip/address @7.15" or "cmd /ip add @7.20"
+  let version: string | undefined;
+  let pathArg = path;
+  const versionMatch = path.match(/^(.*?)\s*@(\S+)$/);
+  if (versionMatch) {
+    pathArg = versionMatch[1].trim();
+    version = versionMatch[2];
+  }
+
   let cmdPath: string;
-  if (!path) {
-    // No path: use linked command from page context, or current commands path, or root
+  if (!pathArg) {
     if (ctx.type === "page" && (ctx as { commandPath?: string }).commandPath) {
       // biome-ignore lint/style/noNonNullAssertion: narrowed above
       cmdPath = (ctx as { commandPath?: string }).commandPath!;
@@ -1267,22 +1285,39 @@ async function doCommandTree(path: string): Promise<void> {
     } else {
       cmdPath = "";
     }
-  } else if (path.startsWith("/")) {
-    cmdPath = path;
+  } else if (pathArg.startsWith("/")) {
+    cmdPath = pathArg;
   } else if (ctx.type === "commands") {
-    // Relative segment: append to current path so "cmd add" at /ip/address → /ip/address/add
-    cmdPath = `${ctx.path}/${path}`;
+    // Relative segment: "cmd add" at /ip/address → /ip/address/add
+    cmdPath = `${ctx.path}/${pathArg}`;
   } else {
-    cmdPath = `/${path}`;
+    cmdPath = `/${pathArg}`;
   }
 
-  const children = browseCommands(cmdPath);
+  const children = version
+    ? browseCommandsAtVersion(cmdPath, version)
+    : browseCommands(cmdPath);
+
   if (children.length === 0) {
-    console.log(dim(`  No children at "${cmdPath}".`));
-    if (cmdPath) console.log(`  Try: ${cyan("vc")} ${cmdPath}`);
+    // Check if path itself exists as a leaf node
+    const vcResult = cmdPath ? checkCommandVersions(cmdPath) : null;
+    if (vcResult && vcResult.versions.length > 0) {
+      console.log(`  ${bold(cmdPath)}  ${dim("(leaf — no children)")}`);
+      console.log(`  ${dim("First seen:")} ${bold(vcResult.first_seen ?? "?")}  ${dim("Last seen:")} ${bold(vcResult.last_seen ?? "?")}`);
+      console.log(`  ${dim("Present in")} ${bold(String(vcResult.versions.length))} ${dim("versions")}`);
+      if (vcResult.note) console.log(`  ${dim(vcResult.note)}`);
+      console.log(`  ${dim("Try:")} ${cyan("b")} ${dim("to go up,  or")} ${cyan(`s ${cmdPath.split("/").pop() ?? ""}`)} ${dim("to search docs")}`);
+    } else {
+      console.log(dim(`  No results for "${cmdPath}".`));
+      const term = cmdPath.split("/").filter(Boolean).pop() ?? "";
+      if (term) {
+        console.log(`  ${dim("Try:")} ${cyan(`s ${term}`)} ${dim("(search docs)  or")} ${cyan(`vc ${cmdPath}`)} ${dim("(version check)")}`);
+      }
+    }
     return;
   }
-  await paged(renderCommandTree(cmdPath, children));
+  const label = version ? `${cmdPath} @${version}` : cmdPath;
+  await paged(renderCommandTree(label, children));
   pushCtx({ type: "commands", path: cmdPath });
 }
 
@@ -1503,7 +1538,14 @@ async function main() {
 
   const args = process.argv.slice(2);
   const onceMode = args.includes("--once");
-  const queryArgs = args.filter((a) => a !== "--once" && a !== "browse");
+  // Filter out --once, browse, and --db <path> so they don't become search queries
+  const dbArgIdx = args.indexOf("--db");
+  const queryArgs = args.filter((a, i) => {
+    if (a === "--once" || a === "browse") return false;
+    if (a === "--db") return false;
+    if (dbArgIdx !== -1 && i === dbArgIdx + 1) return false;
+    return true;
+  });
   const initialQuery = queryArgs.join(" ");
 
   // Welcome banner (only in interactive mode)

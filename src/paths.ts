@@ -55,11 +55,18 @@ export function resolveBaseDir(srcDir: string): string {
 
 /**
  * Resolve the full path to ros-help.db.
- * DB_PATH env var overrides all detection logic.
+ * Priority: DB_PATH env var → --db CLI flag → auto-detect.
  */
 export function resolveDbPath(srcDir: string): string {
   const envPath = process.env.DB_PATH?.trim();
   if (envPath) return envPath;
+
+  // --db flag parsed at init time so ESM static imports don't race it
+  const dbArgIdx = process.argv.indexOf("--db");
+  if (dbArgIdx !== -1 && process.argv[dbArgIdx + 1]) {
+    return process.argv[dbArgIdx + 1];
+  }
+
   return path.join(resolveBaseDir(srcDir), "ros-help.db");
 }
 
