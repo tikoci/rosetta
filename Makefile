@@ -4,7 +4,7 @@ VERSION    ?=
 FORCE      ?=
 
 .PHONY: extract extract-full extract-html extract-properties extract-commands \
-        extract-all-versions extract-devices extract-test-results extract-changelogs \
+        extract-schema extract-all-versions extract-devices extract-test-results extract-changelogs \
         extract-changelogs-extended \
         extract-videos extract-videos-from-cache save-videos-cache \
         extract-dude extract-dude-from-cache \
@@ -71,6 +71,12 @@ extract-properties:
 
 extract-commands:
 	bun run src/extract-commands.ts
+
+# Import from deep-inspect files (multi-arch, completion data).
+# Requires --x86= and/or --arm64= flags.
+# Example: make extract-schema X86=path/to/deep-inspect.x86.json ARM64=path/to/deep-inspect.arm64.json
+extract-schema:
+	bun run src/extract-schema.ts $(if $(X86),--x86=$(X86)) $(if $(ARM64),--arm64=$(ARM64)) $(EXTRA_FLAGS)
 
 extract-all-versions:
 	bun run src/extract-all-versions.ts

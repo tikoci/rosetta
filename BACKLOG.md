@@ -32,7 +32,7 @@ Agents observed in real sessions typically reach for `routeros_search` and `rout
 
 ### Principle 4 — Command/schema work tracks restraml's output shape
 
-The shape of `deep-inspect.json` drives the schema on this side. As of 2026-04-11 restraml has split deep-inspect into per-arch files (`deep-inspect.x86.json`, `deep-inspect.arm64.json` — arm64 carries ~1K more nodes, mostly `wifi-qcom` and friends). Structural and per-arch presence work is now **unblocked** and should land. Completion/enum data is still blocked (`argsWithCompletion: 0`) — the structural refactor is designed so completion values slot in later without another migration.
+The shape of `deep-inspect.json` drives the schema on this side. As of 2026-07-24, restraml produces per-arch deep-inspect files (`deep-inspect.x86.json`, `deep-inspect.arm64.json`) with full completion data (`argsWithCompletion`: 11K+ x86, 11.8K+ arm64). Structural work, per-arch presence, and completion data are all **landed** in `schema_nodes`. The `_attrs.completion` catch-all holds completion objects; promotion to structured columns is the next step once shape is confirmed stable across versions.
 
 Until the completion blob is populated, limit dynamic enum extraction to what can be parsed best-effort from the existing `desc` strings (`string value, max length 20`, `a|b|c[,Type*]`, `00:00:00.020..00:00:30    (time interval)`). Anything unparseable stays in `desc_raw` verbatim — no data is lost.
 
@@ -282,13 +282,13 @@ Once this holds, the filtered-subset use case — "give me a partial inspect.jso
 
 1. ~~**Capture `_meta` + extend `ros_versions` with `arch`.**~~ **Done (2026-04-11).** ros_versions PK is `(version, arch)` with `_meta` columns. Migration backfills existing rows as `arch='x86'`. Fixtures landed in `fixtures/deep-inspect.{x86,arm64}.sample.json`.
 2. ~~**Normalizer lib** — pure function, unit-tested against a corpus of ~30 real RouterOS CLI strings (`/ip/firewall/filter add ...`, `[find]` subshells, contextual verbs, REST-shaped paths). Standalone package or inlined `src/canonicalize.ts`.~~ **Done (2026-07-10).** Implemented as `src/canonicalize.ts` — pure module, no DB/IO. 61 tests in `src/canonicalize.test.ts` covering absolute/relative/mixed paths, `[...]` subshells (nested, with path inheritance), `{...}` blocks, `..` navigation, `;` separators, ICE commands, `key=[subshell]` values, and real-world examples from the RouterOS Console docs. Public API: `canonicalize(input, cwd)` → `ParseResult`, `extractPaths()`, `primaryPath()`. CI picks this up via `bun test` in `.github/workflows/test.yml`.
-3. **Add `schema_nodes` + `schema_node_presence` alongside the current `commands` table.** New `src/extract-schema.ts` importer that takes **both** arch files for a version, diffs path sets, merges into one pass, and marks the ~1K delta nodes with `_arch`. `commands` stays untouched for now — zero downstream churn.
-4. **Round-trip test** over the fixtures. Blocks further work until green.
-5. **Import real data** — 4 channel heads (long-term, stable, testing, development) on both arches. Populate the junction.
+3. ~~**Add `schema_nodes` + `schema_node_presence` alongside the current `commands` table.** New `src/extract-schema.ts` importer that takes **both** arch files for a version, diffs path sets, merges into one pass, and marks the ~1K delta nodes with `_arch`. `commands` stays untouched for now — zero downstream churn.~~ **Done (2026-07-24).** `src/extract-schema.ts` (~600 lines) implements walk, merge, desc parsing, completion extraction, dir_role derivation, and legacy compat table regeneration. Schema_nodes has 19 columns with UNIQUE(path,type). `_completion` stored in `_attrs` as JSON. `commands` + `command_versions` regenerated from schema_nodes at import time.
+4. ~~**Round-trip test** over the fixtures. Blocks further work until green.~~ **Done (2026-07-24).** `src/schema-roundtrip.test.ts` — 15 tests covering parseDesc unit tests, fixture walk/merge, arch diffs, completion preservation, full DB import, legacy compat verification, parent_id self-join, schema_node_presence.
+5. **Import real data** — 4 channel heads (long-term, stable, testing, development) on both arches. Populate the junction. *Note: extract-all-versions.ts now prefers deep-inspect files and HEAD-probes for availability. Legacy inspect.json fallback for pre-deep-inspect versions.*
 6. **Version retention** — implement GC that drops schema_node_presence rows for versions older than the previous long-term on each extraction run. See "Schema version retention policy" below.
-7. **Swap `commands` to a view (or regen-at-import table) over `schema_nodes`.** Downstream code keeps working.
-8. **Fold arch awareness into `routeros_command_diff`** — new optional `arch` param. The sparse `_arch` marker makes filtered diffs cheap.
-9. **When `argsWithCompletion > 0`:** parse completion into `_attrs.completion`, promote fields once stable.
+7. ~~**Swap `commands` to a view (or regen-at-import table) over `schema_nodes`.** Downstream code keeps working.~~ **Done (2026-07-24).** Option B (regenerated table at import time) chosen — `importSchemaNodes()` rebuilds `commands` + `command_versions` from `schema_nodes` + `schema_node_presence`.
+8. ~~**Fold arch awareness into `routeros_command_diff`** — new optional `arch` param. The sparse `_arch` marker makes filtered diffs cheap.~~ **Done (2026-07-24).** Both `routeros_command_tree` and `routeros_command_diff` MCP tools accept optional `arch` param. `browseCommands()` and `browseCommandsAtVersion()` enriched with `dir_role`, `data_type`, `enum_values`, `_arch`, and completion data from `schema_nodes`.
+9. ~~**When `argsWithCompletion > 0`:** parse completion into `_attrs.completion`, promote fields once stable.~~ **Done (2026-07-24).** `argsWithCompletion` is now 11K+ (was 0). Completion data stored in `_attrs.completion` and exposed in `browseCommands()` responses. Promotion to structured columns deferred until shape confirmed stable across versions.
 
 Steps 2–4 can run in parallel with the North Star classifier work — the classifier will consume the canonical path form from the same normalizer lib.
 
@@ -645,16 +645,13 @@ Items explicitly postponed until a trigger condition is met.
 
 ### Dependency on restraml — `deep-inspect.json` completion data (Principle 4)
 
-**Now unblocked (2026-04-11):** structural + multi-arch work. restraml has landed per-arch `deep-inspect.<arch>.json` (`scripts/deep-inspect-multi-arch.ts`) with populated `_meta` (version, generatedAt, crashPaths, completionStats). That's enough to build the `schema_nodes` + `schema_node_presence` refactor — see "Multi-arch schema import" under Ready to Build. Structural fidelity and arch-delta queries don't need completion data.
+**Structural + multi-arch + completion data: LANDED (2026-07-24).** restraml has per-arch `deep-inspect.<arch>.json` with populated `_meta` and `_completion` data (11K+ x86, 11.8K+ arm64 args with completion values). The `schema_nodes` table stores this data, with completion in `_attrs.completion`. The `commands` table is regenerated from `schema_nodes` at import time.
 
-**Still blocked:** `_completion` blob contents. As of 2026-04-11 `argsWithCompletion: 0` — structure present, content empty. restraml's enrichment loop is the bottleneck, and that depends on quickchr stability + MikroTik p1 license provisioning.
+**Next steps (Ready to Build):**
 
-**What's blocked until `argsWithCompletion > 0`:**
-
-1. Promoting enum values out of `_attrs.completion` into structured columns. (The importer should already land raw completion entries in `_attrs` when it sees them — Principle 4's "don't promote speculatively" applies to the *column*, not the *storage*.)
-2. Wiring completion values into the classifier — property-name matches should offer valid enum values. This is where the cross-project payoff lands.
-
-**What not to do now:** no speculative enum-specific columns or abstractions anticipating the completion blob shape. The `_attrs` catch-all is the explicit mechanism to avoid a second migration when completion ships.
+1. **Column promotion for completion.** Shape is now known: `{ [value]: { style, preference, desc? } }` with 17 style types. Once confirmed stable across 2+ versions, promote `completion` from `_attrs` JSON to structured columns (e.g., `completion_values TEXT` JSON array, `completion_style TEXT`). This enables SQL filtering on completion values.
+2. **Wiring completion values into the classifier** — property-name matches should offer valid enum values. This is where the cross-project payoff lands.
+3. **`_package` metadata** — when restraml emits `_package` on nodes, it lands in the existing `_package TEXT` column on `schema_nodes`. No schema change needed.
 
 ### MCP Registry publish automation
 

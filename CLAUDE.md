@@ -39,7 +39,8 @@ This is a deliberate design, not a happy accident. The TUI's dual use (human too
 - **1,034 callouts** extracted (Note/Warning/Info/Tip) from Confluence callout macros
 - **2,984 sections** extracted from h1–h3 headings across 275 pages, with anchor IDs for deep linking
 - **4,860 properties** extracted from confluenceTable rows (name, type, default, description)
-- **40K command tree entries** from `inspect.json` (551 dirs, 5114 cmds, 34K args), primary version: 7.22 (latest stable)
+- **40K command tree entries** from `inspect.json` / `deep-inspect.json` (551 dirs, 5114 cmds, 34K args), primary version: 7.22 (latest stable)
+- **Multi-arch schema** via `schema_nodes` table — dual-arch deep-inspect files track x86/arm64 differences, completion data (11K+ args with valid values), and desc decomposition (enum, range, type parsing)
 - **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
 - **144 devices** from MikroTik product matrix CSV (hardware specs, license levels, pricing)
@@ -99,7 +100,7 @@ properties (
 -- FTS5 over properties
 properties_fts USING fts5(name, description, ...)
 
--- RouterOS command tree (from inspect.json)
+-- RouterOS command tree (from inspect.json / deep-inspect.json)
 commands (
     id, path UNIQUE,     -- '/ip/firewall/filter'
     name, type,          -- 'dir' | 'cmd' | 'arg'
@@ -114,12 +115,46 @@ ros_versions (
     version PRIMARY KEY, -- '7.22', '7.23beta2'
     channel,             -- 'stable' | 'development'
     extra_packages,      -- 0|1
-    extracted_at
+    extracted_at,
+    api_transport,       -- from deep-inspect _meta (e.g., 'rest')
+    enrichment_duration_ms, -- deep-inspect enrichment time
+    crash_paths_safe     -- deep-inspect crash safety metadata
 )
 
 command_versions (
     command_path, ros_version,
     PRIMARY KEY (command_path, ros_version)
+)
+
+-- Multi-arch schema nodes (from deep-inspect.json — richer than commands table)
+schema_nodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,       -- 'dir' | 'cmd' | 'arg'
+    parent_id INTEGER REFERENCES schema_nodes(id),
+    parent_path TEXT,
+    dir_role TEXT,            -- 'list' | 'namespace' | 'hybrid' (dirs only)
+    desc_raw TEXT,            -- raw description from inspect.json
+    data_type TEXT,           -- parsed: 'string' | 'integer' | 'time' | 'enum' | 'script' | 'range'
+    enum_values TEXT,         -- JSON array of enum values
+    enum_multi INTEGER,       -- 1 if multi-select enum (e.g., "ftp|read[,Permission*]")
+    type_tag TEXT,            -- type tag from multi-select (e.g., "Permission")
+    range_min TEXT,           -- lower bound for ranged types
+    range_max TEXT,           -- upper bound for ranged types
+    max_length INTEGER,       -- max string length
+    _arch TEXT,              -- NULL=both arches, 'x86'/'arm64'=platform-specific
+    _package TEXT,           -- future: package that provides this node
+    _attrs TEXT,             -- JSON catch-all (completion data, future metadata)
+    page_id INTEGER REFERENCES pages(id),
+    UNIQUE(path, type)
+)
+
+-- schema_nodes version presence (flat junction — no arch column, arch is on schema_nodes)
+schema_node_presence (
+    node_id INTEGER NOT NULL REFERENCES schema_nodes(id),
+    version TEXT NOT NULL,
+    PRIMARY KEY (node_id, version)
 )
 
 -- MikroTik product hardware specs (from product matrix CSV)
@@ -461,8 +496,9 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/canonicalize.ts` | Pure RouterOS CLI path canonicalizer — maps any input form to `{ path, verb, args }` tuples |
 | `src/extract-properties.ts` | Property table parsing from HTML |
 | `src/restraml.ts` | Shared helpers for fetching from tikoci/restraml (GitHub API + Pages) |
-| `src/extract-commands.ts` | inspect.json → commands table (version-aware) |
-| `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml |
+| `src/extract-commands.ts` | inspect.json → commands table (version-aware, legacy fallback for pre-deep-inspect versions) |
+| `src/extract-schema.ts` | deep-inspect.json → schema_nodes + schema_node_presence tables (dual-arch, completion data, desc parsing). Also regenerates `commands` + `command_versions` for backward compat |
+| `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml (prefers deep-inspect files, falls back to inspect.json) |
 | `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |
 | `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
@@ -476,6 +512,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
 | `src/canonicalize.test.ts` | Bun tests — CLI path canonicalization: 61 tests for path forms, subshells, blocks, navigation |
 | `src/extract-videos.test.ts` | yt-dlp mock tests + cache function tests (saveCache/importCache/loadKnownBad/findLatestCache) |
+| `src/schema-roundtrip.test.ts` | Bun tests — schema importer round-trip: fixture walk/merge, arch diffs, desc parsing, completion, legacy compat |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |
 | `src/mcp-http.test.ts` | HTTP transport integration — session lifecycle, multi-client, errors (live server process) |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
@@ -541,16 +578,17 @@ For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Produc
 - **Property tables:** 605 tables with "Property | Description" headers across 147 pages
 - **Code blocks:** `data-syntaxhighlighter-params="brush: ros"` for RouterOS CLI
 
-### Command Tree (inspect.json)
+### Command Tree (inspect.json / deep-inspect.json)
 
-- **Source:** `inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml) — 46 versions extracted
-- **Access path:** version discovery via GitHub API (1 call to `api.github.com/repos/tikoci/restraml/contents/docs`), inspect.json fetched from GitHub Pages (`https://tikoci.github.io/restraml/<version>/extra/inspect.json`) — no rate limit on the actual data. Optional local path override for offline extraction.
+- **Source:** `inspect.json` and `deep-inspect.{x86,arm64}.json` files from [tikoci/restraml](https://github.com/tikoci/restraml) — 46 versions extracted
+- **Access path:** version discovery via GitHub API (1 call to `api.github.com/repos/tikoci/restraml/contents/docs`), files fetched from GitHub Pages (`https://tikoci.github.io/restraml/<version>/extra/...`) — no rate limit on the actual data. Optional local path override for offline extraction. Deep-inspect files preferred when available; falls back to inspect.json for older versions.
 - **Generation:** GitHub Actions run RouterOS CHR under QEMU, daily version checks. Two builds per version: base (`routeros.npk` only) and extra (all extra-packages available on CHR). We use the `extra/` variant.
-- **Content:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 cmds, 34K args (primary: 7.22)
+- **Content:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 cmds, 34K args (primary: 7.22). Deep-inspect adds `_completion` data (11K+ args with valid values and style hints) and per-arch coverage (x86/arm64).
 - **Versions:** 7.9 through 7.23beta2 (stable + development channels). New versions appear weekly; the latest stable is auto-detected as primary.
 - **Primary version:** latest stable from inspect.json (currently 7.22.1) — used for the `commands` table and linking. Note: this is newer than the HTML docs export (pinned to 7.22) since HTML exports are manual/monthly while inspect.json versions are automated/daily.
-- **Version tracking:** 1.67M entries in `command_versions` junction table
-- **Coverage gap:** CHR doesn't have Wi-Fi hardware, so wireless driver packages (`wifi-qcom`, etc.) are missing from inspect.json. Some packages like `zerotier` are also absent. The HTML docs cover these — inspect.json doesn't.
+- **Version tracking:** 1.67M entries in `command_versions` junction table; `schema_node_presence` mirrors this with FK to `schema_nodes`
+- **Multi-arch:** deep-inspect files carry separate x86 and arm64 trees. ~97% of paths are shared; ~1.3K arm64-only (wifi-qcom, ethernet/switch), ~36 x86-only (system/check-disk, console/screen). Arch differences tracked via `schema_nodes._arch` (NULL=both, value=platform-specific).
+- **Coverage gap:** CHR doesn't have Wi-Fi hardware, so wireless driver packages (`wifi-qcom`, etc.) are missing from inspect.json. Some packages like `zerotier` are also absent. The HTML docs cover these — deep-inspect arm64 files include wifi-qcom paths that inspect.json lacks.
 
 ### Product Matrix (CSV)
 

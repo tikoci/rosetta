@@ -13,6 +13,8 @@
  *   commands         — RouterOS command tree from inspect.json (latest version)
  *   command_versions — junction: which commands exist in which RouterOS versions
  *   ros_versions     — metadata for each extracted RouterOS version
+ *   schema_nodes     — structured command tree from deep-inspect.json (richer desc, arch, completion)
+ *   schema_node_presence — junction: which schema_nodes exist in which versions
  *   devices          — MikroTik product hardware specs from product matrix CSV
  *   devices_fts      — FTS5 over product name, code, architecture, CPU
  *   changelogs       — parsed changelog entries per RouterOS version
@@ -285,6 +287,20 @@ export function initDb() {
     PRIMARY KEY (version, arch)
   );`);
 
+  // Migration: add deep-inspect _meta provenance columns if missing
+  {
+    const rvCols2 = db.prepare("PRAGMA table_info(ros_versions)").all() as Array<{ name: string }>;
+    if (rvCols2.length > 0 && !rvCols2.some((c) => c.name === "api_transport")) {
+      db.run("ALTER TABLE ros_versions ADD COLUMN api_transport TEXT;");
+    }
+    if (rvCols2.length > 0 && !rvCols2.some((c) => c.name === "enrichment_duration_ms")) {
+      db.run("ALTER TABLE ros_versions ADD COLUMN enrichment_duration_ms INTEGER;");
+    }
+    if (rvCols2.length > 0 && !rvCols2.some((c) => c.name === "crash_paths_safe")) {
+      db.run("ALTER TABLE ros_versions ADD COLUMN crash_paths_safe TEXT;");
+    }
+  }
+
   db.run(`CREATE TABLE IF NOT EXISTS command_versions (
     command_path TEXT NOT NULL,
     ros_version  TEXT NOT NULL,
@@ -292,6 +308,53 @@ export function initDb() {
   );`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_cmdver_version ON command_versions(ros_version);`);
+
+  // -- Schema nodes (structured command tree from deep-inspect.json) --
+  //
+  // schema_nodes replaces the flat commands table with richer structure:
+  // parsed desc fields (data_type, enum_values, range), arch tagging,
+  // dir_role classification, and a JSON _attrs catch-all for completion
+  // data and future metadata like _package.
+  //
+  // The `commands` table is regenerated from schema_nodes at import time
+  // by extract-schema.ts — existing queries continue to read `commands`
+  // with zero downstream churn.
+
+  db.run(`CREATE TABLE IF NOT EXISTS schema_nodes (
+    id          INTEGER PRIMARY KEY,
+    path        TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    type        TEXT NOT NULL,
+    parent_id   INTEGER REFERENCES schema_nodes(id),
+    parent_path TEXT,
+    dir_role    TEXT,
+    desc_raw    TEXT,
+    data_type   TEXT,
+    enum_values TEXT,
+    enum_multi  INTEGER,
+    type_tag    TEXT,
+    range_min   TEXT,
+    range_max   TEXT,
+    max_length  INTEGER,
+    _arch       TEXT,
+    _package    TEXT,
+    _attrs      TEXT,
+    page_id     INTEGER REFERENCES pages(id),
+    UNIQUE(path, type)
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sn_parent ON schema_nodes(parent_path);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sn_type ON schema_nodes(type);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sn_path ON schema_nodes(path);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sn_page ON schema_nodes(page_id);`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS schema_node_presence (
+    node_id     INTEGER NOT NULL REFERENCES schema_nodes(id),
+    version     TEXT NOT NULL,
+    PRIMARY KEY (node_id, version)
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_snp_version ON schema_node_presence(version);`);
 
   // -- Devices (MikroTik product matrix) --
 
@@ -644,6 +707,8 @@ export function getDbStats() {
     dude_images: count("SELECT COUNT(*) AS c FROM dude_images"),
     skills: count("SELECT COUNT(*) AS c FROM skills"),
     skill_references: count("SELECT COUNT(*) AS c FROM skill_references"),
+    schema_nodes: count("SELECT COUNT(*) AS c FROM schema_nodes"),
+    schema_node_presence: count("SELECT COUNT(*) AS c FROM schema_node_presence"),
     ...(() => {
       // Semantic version sort — SQL MIN/MAX is lexicographic ("7.10" < "7.9")
       const versions = (db.prepare("SELECT DISTINCT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);

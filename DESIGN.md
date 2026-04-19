@@ -109,9 +109,21 @@ We prefer the `extra/` variant (see `extract-all-versions.ts` which checks for `
 
 The documentation pages cover all packages regardless of architecture, so the HTML extraction has broader coverage than inspect.json for extra-package commands. See BACKLOG.md for the gap analysis item.
 
-### `_completion` data deferred
+### `schema_nodes` — multi-arch command tree with enrichment
 
-[tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) adds `deep-inspect.json` with argument completion values (enum choices, etc.). Schema stub TBD when that ships. This would enrich the `commands` table significantly.
+`deep-inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml) carry richer data than `inspect.json`: dual-arch (x86/arm64) command trees, `_completion` objects with valid argument values (11K+ args), and extended `_meta` provenance. The `schema_nodes` table stores this enriched data alongside the existing `commands` table.
+
+**Key design decisions:**
+- **`commands` regenerated, not replaced.** `extract-schema.ts` populates `schema_nodes` first, then regenerates `commands` + `command_versions` from it (Option B from the plan). This is the zero-downstream-churn path — all existing queries in `query.ts`, `browse.ts`, and `link-commands.ts` work unchanged.
+- **Sparse `_arch` column.** NULL means both architectures have the node; `'x86'`/`'arm64'` means platform-specific. No per-arch row duplication in `schema_node_presence`.
+- **`_attrs` catch-all for completion.** `_completion` data stores as `{ completion: { "no": { style: "arg", preference: 96 }, ... } }` in `_attrs` JSON. Shape is stable but could evolve, so it lives in the catch-all until we're confident enough to promote to columns.
+- **desc decomposition.** `desc_raw` is parsed into structured `data_type`, `enum_values`, `range_min`/`range_max`, `max_length` — making "what type does this arg take?" answerable via SQL without NLP.
+- **`dir_role` derived deterministically.** `'list'` (has cmd children), `'namespace'` (only dir children), `'hybrid'` (both). Derived at import time from child types.
+- **`_package` placeholder.** Column exists but is NULL until restraml emits `_package` metadata per node. No schema migration needed when it arrives.
+
+### `_completion` data — now available
+
+[tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) shipped and `argsWithCompletion` jumped from 0 to 11K+. Completion objects on `arg` nodes have `{ [value]: { style, preference, desc? } }` with 17 style types (`none`, `arg`, `dir,flag-title`, `syntax-meta`, etc.). Stored in `schema_nodes._attrs` as JSON. Exposed in `browseCommands()` and `browseCommandsAtVersion()` responses. Future: promote to structured columns once the shape is confirmed stable across versions.
 
 ### CSV requires manual download
 

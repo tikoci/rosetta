@@ -437,6 +437,10 @@ function renderCommandTree(path: string, children: Array<{
   description: string | null;
   page_title: string | null;
   page_url: string | null;
+  dir_role?: string | null;
+  data_type?: string | null;
+  enum_values?: string | null;
+  _arch?: string | null;
 }>): string {
   const out: string[] = [];
   out.push(`  ${bold(path || "/")}  ${dim(`(${children.length} children)`)}`);
@@ -455,9 +459,15 @@ function renderCommandTree(path: string, children: Array<{
     for (const c of group.items) {
       const icon = group.icon;
       const name = c.type === "dir" ? bold(c.name) : c.name;
-      const desc = c.description ? dim(` — ${truncate(c.description, 50)}`) : "";
+      // Compose suffix: desc, data_type, arch, page link
+      const parts: string[] = [];
+      if (c.description) parts.push(truncate(c.description, 50));
+      if (c.data_type) parts.push(`<${c.data_type}>`);
+      if (c.dir_role && c.dir_role !== "namespace") parts.push(`[${c.dir_role}]`);
+      const desc = parts.length > 0 ? dim(` — ${parts.join(" ")}`) : "";
+      const archTag = c._arch ? yellow(` [${c._arch}]`) : "";
       const pageLink = c.page_url ? `  ${cyan(link(c.page_url, dim("📄")))}` : "";
-      out.push(`  ${icon} ${name}${desc}${pageLink}`);
+      out.push(`  ${icon} ${name}${desc}${archTag}${pageLink}`);
     }
   }
 

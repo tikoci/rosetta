@@ -475,9 +475,29 @@ export function lookupProperty(
     .all(name) as typeof lookupProperty extends (...a: unknown[]) => infer R ? R : never;
 }
 
+/** Parse _attrs JSON and extract completion, stripping _attrs from output. */
+function enrichWithCompletion(row: unknown): Record<string, unknown> {
+  const r = row as Record<string, unknown>;
+  const attrs = r._attrs as string | null;
+  const result = { ...r };
+  delete result._attrs;
+  if (attrs) {
+    try {
+      const parsed = JSON.parse(attrs);
+      result.completion = parsed.completion ?? null;
+    } catch {
+      result.completion = null;
+    }
+  } else {
+    result.completion = null;
+  }
+  return result;
+}
+
 /** Browse the command tree at a given path. */
 export function browseCommands(
   cmdPath: string,
+  arch?: string,
 ): Array<{
   path: string;
   name: string;
@@ -485,17 +505,29 @@ export function browseCommands(
   description: string | null;
   page_title: string | null;
   page_url: string | null;
+  dir_role: string | null;
+  data_type: string | null;
+  enum_values: string | null;
+  _arch: string | null;
+  completion: Record<string, { style: string; preference: number; desc?: string }> | null;
 }> {
+  const archFilter = arch ? " AND (sn._arch IS NULL OR sn._arch = ?)" : "";
+  const params: (string)[] = [cmdPath];
+  if (arch) params.push(arch);
+
   return db
     .prepare(
       `SELECT c.path, c.name, c.type, c.description,
-              p.title as page_title, p.url as page_url
+              p.title as page_title, p.url as page_url,
+              sn.dir_role, sn.data_type, sn.enum_values, sn._arch, sn._attrs
        FROM commands c
        LEFT JOIN pages p ON c.page_id = p.id
+       LEFT JOIN schema_nodes sn ON sn.path = c.path AND sn.type = c.type${archFilter}
        WHERE c.parent_path = ?
        ORDER BY c.type DESC, c.name`,
     )
-    .all(cmdPath) as typeof browseCommands extends (...a: unknown[]) => infer R ? R : never;
+    .all(...params)
+    .map(enrichWithCompletion) as ReturnType<typeof browseCommands>;
 }
 
 /** Search properties by FTS query. */
@@ -663,6 +695,7 @@ export function diffCommandVersions(
   fromVersion: string,
   toVersion: string,
   pathPrefix?: string,
+  arch?: string,
 ): CommandDiffResult {
   const allVersionRows = db
     .prepare("SELECT DISTINCT version FROM ros_versions")
@@ -682,31 +715,46 @@ export function diffCommandVersions(
   const prefixFilter = prefix ? " AND (command_path = ? OR command_path LIKE ? || '/%')" : "";
   const prefixParams = (v: string) => prefix ? [v, prefix, prefix] : [v];
 
+  // When arch is specified, exclude paths belonging to the other arch
+  const otherArch = arch === "x86" ? "arm64" : arch === "arm64" ? "x86" : null;
+  const archExclude = otherArch
+    ? " AND cv_to.command_path NOT IN (SELECT path FROM schema_nodes WHERE _arch = ?)"
+    : "";
+  const archExcludeFrom = otherArch
+    ? " AND cv_from.command_path NOT IN (SELECT path FROM schema_nodes WHERE _arch = ?)"
+    : "";
+
   type Row = { command_path: string };
 
+  const addedParams = [...prefixParams(toVersion), ...(otherArch ? [otherArch] : []), ...prefixParams(fromVersion)];
   const addedRows = db
     .prepare(
       `SELECT DISTINCT cv_to.command_path
        FROM command_versions cv_to
-       WHERE cv_to.ros_version = ?${prefixFilter}
+       WHERE cv_to.ros_version = ?${prefixFilter}${archExclude}
          AND cv_to.command_path NOT IN (
            SELECT command_path FROM command_versions WHERE ros_version = ?${prefixFilter}
          )
        ORDER BY cv_to.command_path`,
     )
-    .all(...prefixParams(toVersion), ...prefixParams(fromVersion)) as Row[];
+    .all(...addedParams) as Row[];
 
+  const removedParams = [...prefixParams(fromVersion), ...(otherArch ? [otherArch] : []), ...prefixParams(toVersion)];
   const removedRows = db
     .prepare(
       `SELECT DISTINCT cv_from.command_path
        FROM command_versions cv_from
-       WHERE cv_from.ros_version = ?${prefixFilter}
+       WHERE cv_from.ros_version = ?${prefixFilter}${archExcludeFrom}
          AND cv_from.command_path NOT IN (
            SELECT command_path FROM command_versions WHERE ros_version = ?${prefixFilter}
          )
        ORDER BY cv_from.command_path`,
     )
-    .all(...prefixParams(fromVersion), ...prefixParams(toVersion)) as Row[];
+    .all(...removedParams) as Row[];
+
+  if (arch) {
+    notes.push(`Filtered to ${arch} architecture (excluding ${otherArch}-only paths).`);
+  }
 
   return {
     from_version: fromVersion,
@@ -789,6 +837,7 @@ export function compareVersions(a: string, b: string): number {
 export function browseCommandsAtVersion(
   cmdPath: string,
   version: string,
+  arch?: string,
 ): Array<{
   path: string;
   name: string;
@@ -796,18 +845,30 @@ export function browseCommandsAtVersion(
   description: string | null;
   page_title: string | null;
   page_url: string | null;
+  dir_role: string | null;
+  data_type: string | null;
+  enum_values: string | null;
+  _arch: string | null;
+  completion: Record<string, { style: string; preference: number; desc?: string }> | null;
 }> {
+  const archFilter = arch ? " AND (sn._arch IS NULL OR sn._arch = ?)" : "";
+  const params: string[] = [cmdPath, version];
+  if (arch) params.push(arch);
+
   return db
     .prepare(
       `SELECT c.path, c.name, c.type, c.description,
-              p.title as page_title, p.url as page_url
+              p.title as page_title, p.url as page_url,
+              sn.dir_role, sn.data_type, sn.enum_values, sn._arch, sn._attrs
        FROM commands c
        LEFT JOIN pages p ON c.page_id = p.id
        JOIN command_versions cv ON cv.command_path = c.path
+       LEFT JOIN schema_nodes sn ON sn.path = c.path AND sn.type = c.type${archFilter}
        WHERE c.parent_path = ? AND cv.ros_version = ?
        ORDER BY c.type DESC, c.name`,
     )
-    .all(cmdPath, version) as Array<{ path: string; name: string; type: string; description: string | null; page_title: string | null; page_url: string | null }>;
+    .all(...params)
+    .map(enrichWithCompletion) as ReturnType<typeof browseCommandsAtVersion>;
 }
 
 // ── Device lookup and search ──

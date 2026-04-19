@@ -728,6 +728,7 @@ arguments). Each child includes its type and linked documentation page if availa
 Useful for discovering what's available under a command path.
 
 Optionally filter by RouterOS version to check what exists in a specific release.
+Optionally filter by CPU architecture (x86/arm64) to see platform-specific commands.
 Command data covers versions 7.9–7.23beta2. No v6 data.
 
 Workflow — combine with other tools:
@@ -739,7 +740,8 @@ Workflow — combine with other tools:
 Examples:
 - path: "/ip" → address, arp, dhcp-client, dhcp-server, firewall, route, etc.
 - path: "/ip/firewall" → filter, nat, mangle, raw, address-list, etc.
-- path: "", version: "7.15" → top-level menus as of RouterOS 7.15`,
+- path: "", version: "7.15" → top-level menus as of RouterOS 7.15
+- path: "/interface", arch: "arm64" → shows arm64-specific interfaces (wifi-qcom, ethernet/switch)`,
     inputSchema: {
       path: z
         .string()
@@ -750,13 +752,17 @@ Examples:
         .string()
         .optional()
         .describe("RouterOS version to filter by (e.g., '7.15'). Omit for latest."),
+      arch: z
+        .string()
+        .optional()
+        .describe("Filter by CPU architecture: 'x86' or 'arm64'. Omit to show all (including arch-specific nodes)."),
     },
   },
-  async ({ path, version }) => {
+  async ({ path, version, arch }) => {
     const cmdPath = path?.trim() || "";
     const results = version
-      ? browseCommandsAtVersion(cmdPath, version)
-      : browseCommands(cmdPath);
+      ? browseCommandsAtVersion(cmdPath, version, arch)
+      : browseCommands(cmdPath, arch);
 
     if (results.length === 0) {
       return {
@@ -1192,10 +1198,14 @@ Without a prefix, a major-version diff can list hundreds of added paths.
         .string()
         .optional()
         .describe("Optional: scope the diff to a command subtree (e.g., '/ip/firewall', '/routing/bgp', '/interface/bridge')"),
+      arch: z
+        .string()
+        .optional()
+        .describe("Filter by CPU architecture: 'x86' or 'arm64'. Omit to diff all commands regardless of architecture."),
     },
   },
-  async ({ from_version, to_version, path_prefix }) => {
-    const result = diffCommandVersions(from_version, to_version, path_prefix);
+  async ({ from_version, to_version, path_prefix, arch }) => {
+    const result = diffCommandVersions(from_version, to_version, path_prefix, arch);
     if (result.added_count === 0 && result.removed_count === 0) {
       const hint = [
         result.note ?? null,
