@@ -318,13 +318,22 @@ describe("fixture import", () => {
     // Verify command_versions compat
     expect(count("SELECT COUNT(*) as c FROM command_versions")).toBe(36);
 
-    // Verify parent_id self-join
+    // Verify parent_id self-join: dir → dir
     const ipAddrParent = testDb.prepare(`
       SELECT p.path AS parent FROM schema_nodes c
       JOIN schema_nodes p ON p.id = c.parent_id
       WHERE c.path = '/ip/address'
     `).get() as { parent: string } | null;
     expect(ipAddrParent?.parent).toBe("/ip");
+
+    // Verify parent_id self-join: arg → cmd (the fix — previously type='dir' filter broke this)
+    const disabledParent = testDb.prepare(`
+      SELECT p.path AS parent, p.type AS parent_type FROM schema_nodes c
+      JOIN schema_nodes p ON p.id = c.parent_id
+      WHERE c.path = '/ip/address/add/disabled'
+    `).get() as { parent: string; parent_type: string } | null;
+    expect(disabledParent?.parent).toBe("/ip/address/add");
+    expect(disabledParent?.parent_type).toBe("cmd");
 
     testDb.close();
   });

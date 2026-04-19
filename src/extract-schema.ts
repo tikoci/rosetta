@@ -409,11 +409,12 @@ export function importSchemaNodes(
     });
     insertNodes();
 
-    // Set parent_id via self-join
+    // Set parent_id via self-join — no type filter: args have cmd parents, dirs/cmds have dir parents
     db.run(`
       UPDATE schema_nodes SET parent_id = (
         SELECT p.id FROM schema_nodes p
-        WHERE p.path = schema_nodes.parent_path AND p.type = 'dir'
+        WHERE p.path = schema_nodes.parent_path
+        LIMIT 1
       )
       WHERE parent_path IS NOT NULL;
     `);

@@ -512,8 +512,8 @@ export function browseCommands(
   completion: Record<string, { style: string; preference: number; desc?: string }> | null;
 }> {
   const archFilter = arch ? " AND (sn._arch IS NULL OR sn._arch = ?)" : "";
-  const params: (string)[] = [cmdPath];
-  if (arch) params.push(arch);
+  // arch placeholder is in the JOIN clause (before WHERE), so it must come first
+  const params: string[] = [...(arch ? [arch] : []), cmdPath];
 
   return db
     .prepare(
@@ -852,8 +852,8 @@ export function browseCommandsAtVersion(
   completion: Record<string, { style: string; preference: number; desc?: string }> | null;
 }> {
   const archFilter = arch ? " AND (sn._arch IS NULL OR sn._arch = ?)" : "";
-  const params: string[] = [cmdPath, version];
-  if (arch) params.push(arch);
+  // arch placeholder is in the JOIN clause (before WHERE), so it must come first
+  const params: string[] = [...(arch ? [arch] : []), cmdPath, version];
 
   return db
     .prepare(

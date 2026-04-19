@@ -95,6 +95,18 @@ beforeAll(() => {
     (id, path, name, type, parent_path, page_id, description, ros_version)
     VALUES (2, '/ip/dhcp-server', 'dhcp-server', 'dir', '/ip', 1, 'DHCP Server configuration', '7.22')`);
 
+  // schema_nodes for arch-filter tests: shared + x86-only child of /ip
+  db.run(`INSERT INTO schema_nodes (path, name, type, parent_path, dir_role, _arch)
+    VALUES ('/ip', 'ip', 'dir', NULL, 'namespace', NULL)`);
+  db.run(`INSERT INTO schema_nodes (path, name, type, parent_path, dir_role, _arch)
+    VALUES ('/ip/dhcp-server', 'dhcp-server', 'dir', '/ip', 'list', NULL)`);
+  db.run(`INSERT INTO schema_nodes (path, name, type, parent_path, dir_role, _arch)
+    VALUES ('/ip/x86-feature', 'x86-feature', 'cmd', '/ip', NULL, 'x86')`);
+  // Also insert a commands row for x86-feature so it participates in browseCommands
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (99, '/ip/x86-feature', 'x86-feature', 'cmd', '/ip', NULL, 'x86-only', '7.22')`);
+
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.22')`);
   db.run(`INSERT INTO command_versions (command_path, ros_version)
@@ -767,6 +779,28 @@ describe("browseCommands", () => {
     const children = browseCommands("/ip");
     const dhcp = children.find((c) => c.path === "/ip/dhcp-server");
     expect(dhcp?.page_title).toBe("DHCP Server");
+  });
+
+  test("arch param binds correctly — x86-only node gets NULL enrichment when arch=arm64", () => {
+    // /ip/x86-feature has _arch='x86' in schema_nodes; browsing with arch='arm64'
+    // should still return the command (LEFT JOIN from commands), but schema enrichment
+    // (dir_role) should be NULL since the x86 schema_nodes row doesn't match arm64 filter.
+    const children = browseCommands("/ip", "arm64");
+    const x86Feature = children.find((c) => c.path === "/ip/x86-feature");
+    expect(x86Feature).toBeDefined(); // command still in results (from commands table)
+    expect(x86Feature?.dir_role).toBeNull(); // schema enrichment absent for other-arch node
+
+    // dhcp-server (_arch=NULL = shared) still gets enrichment
+    const dhcp = children.find((c) => c.path === "/ip/dhcp-server");
+    expect(dhcp?.dir_role).toBe("list"); // schema enrichment present for shared node
+  });
+
+  test("arch param binds correctly — x86 filter enriches x86-only node", () => {
+    const children = browseCommands("/ip", "x86");
+    const x86Feature = children.find((c) => c.path === "/ip/x86-feature");
+    expect(x86Feature).toBeDefined();
+    // x86-feature has _arch='x86', matches the arch='x86' filter, so _arch is populated
+    expect(x86Feature?._arch).toBe("x86");
   });
 });
 
