@@ -89,6 +89,7 @@ Detectors are non-exclusive. A query like `bgp 7.22 route reflection` should fir
     properties: [ ... top 2 ... ],
     changelogs: [ ... top 3 for bgp in 7.22 ... ],
     videos:     [ ... top 2 with transcript_quality flags ... ],
+    skills:     [ ... top 1 matching skill if any ... ],
     commands:   [ ... if a path matched ... ],
     devices:    [ ... if a device matched ... ]
   },
@@ -778,3 +779,4 @@ One-liners for continuity; delete entries after a release cycle passes. Details 
 - SERVER_INSTRUCTIONS — added `instructions` field to MCP server options (routing guidance for all models regardless of tool description truncation)
 - HTML extraction: markdown signal tokens — `extractPlainText()` now emits `## Heading` markers, `- item` / `1. item` list markers, `**bold**` emphasis, and `` `code` `` backticks. Requires re-extraction (`make extract-html`) to take effect in DB.
 - mcp-monorepo cross-review — rationalized 5 suggestions from cortex third-eye review; implemented SERVER_INSTRUCTIONS, HTML extraction signals, section-level excerpts (`best_section` in search results); deferred compound terms table and stop words review as post-classifier work; glossary table accepted as Ready to Build
+- Agent skills integration — tikoci/routeros-skills embedded in rosetta DB via `extract-skills.ts`. 8 skills + 19 references as MCP Resources (`rosetta://skills/{name}`). Provenance attribution boundary. TUI `skills`/`skill` commands. CI integration in `release.yml`. Schema version 2→3.

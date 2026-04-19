@@ -183,6 +183,8 @@ const {
   exportDeviceTestsCsv,
   fetchCurrentVersions,
   getPage,
+  getSkill,
+  listSkills,
   lookupProperty,
   searchCallouts,
   searchChangelogs,
@@ -436,6 +438,81 @@ ORDER BY version, sort_order;
     }],
   }),
 );
+
+// ── Skills resources (community-created agent guides from tikoci/routeros-skills) ──
+
+server.registerResource(
+  "skills-list",
+  "rosetta://skills",
+  {
+    title: "RouterOS Agent Skills",
+    description: "List of available RouterOS agent skill guides — community-created, AI-generated/human-reviewed supplemental content from tikoci/routeros-skills. NOT official MikroTik documentation.",
+    mimeType: "text/markdown",
+  },
+  async () => {
+    const skills = listSkills();
+    const lines = [
+      "# RouterOS Agent Skills",
+      "",
+      "⚠️ Community-created content from tikoci/routeros-skills — NOT official MikroTik documentation.",
+      "AI-generated, human-reviewed. May contain errors. Verify with routeros_search/routeros_get_page.",
+      "",
+      `${skills.length} skills available:`,
+      "",
+      ...skills.map(s => `- **${s.name}** — ${s.description} (${s.word_count} words, ${s.ref_count} refs) → \`rosetta://skills/${s.name}\``),
+    ];
+    return {
+      contents: [{
+        uri: "rosetta://skills",
+        mimeType: "text/markdown",
+        text: lines.join("\n"),
+      }],
+    };
+  },
+);
+
+// Register individual skill resources using resource templates
+// MCP resource templates allow `rosetta://skills/{name}` pattern matching
+{
+  const skills = listSkills();
+  for (const skill of skills) {
+    server.registerResource(
+      `skill-${skill.name}`,
+      `rosetta://skills/${skill.name}`,
+      {
+        title: `Skill: ${skill.name}`,
+        description: skill.description,
+        mimeType: "text/markdown",
+      },
+      async () => {
+        const detail = getSkill(skill.name);
+        if (!detail) {
+          return { contents: [{ uri: `rosetta://skills/${skill.name}`, mimeType: "text/plain", text: `Skill '${skill.name}' not found.` }] };
+        }
+        const lines = [
+          detail.provenance,
+          "",
+          `# ${detail.name}`,
+          "",
+          detail.content,
+        ];
+        if (detail.references.length > 0) {
+          lines.push("", "---", "", "## Reference Files", "");
+          for (const ref of detail.references) {
+            lines.push(`### ${ref.filename}`, "", ref.content, "");
+          }
+        }
+        return {
+          contents: [{
+            uri: `rosetta://skills/${detail.name}`,
+            mimeType: "text/markdown",
+            text: lines.join("\n"),
+          }],
+        };
+      },
+    );
+  }
+}
 
 // ---- routeros_search ----
 
@@ -700,7 +777,10 @@ server.registerTool(
     description: `Get database statistics for the RouterOS documentation index.
 
 Returns page count, property count, callout count, changelog count, command count, link coverage,
-version range, and documentation export date.
+version range, documentation export date, and available agent skills.
+
+Skills: Community-created agent guides from tikoci/routeros-skills are available as MCP resources
+at rosetta://skills/{name}. Use the resource listing to browse available skills.
 
 Knowledge boundaries:
 - Documentation: March 2026 Confluence HTML export (317 pages), aligned with long-term ~7.22
@@ -713,8 +793,17 @@ Knowledge boundaries:
   },
   async () => {
     const stats = getDbStats();
+    const skills = listSkills();
+    const statsWithSkills = {
+      ...stats,
+      skills: {
+        count: skills.length,
+        available: skills.map(s => s.name),
+        note: "Community-created agent guides from tikoci/routeros-skills. Access via rosetta://skills/{name} resources.",
+      },
+    };
     return {
-      content: [{ type: "text", text: JSON.stringify(stats, null, 2) }],
+      content: [{ type: "text", text: JSON.stringify(statsWithSkills, null, 2) }],
     };
   },
 );

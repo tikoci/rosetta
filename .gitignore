@@ -28,6 +28,9 @@ images/
 # potentially ros-help.db.gz from `gh` ops
 ros-help.db.gz
 
+# Skills cache (fetched from GitHub API — not committed like transcripts/dude)
+skills/
+
 # Claude Code local settings
 .claude/
 .mcp.json

@@ -32,7 +32,9 @@ import {
   fetchCurrentVersions,
   getDudePage,
   getPage,
+  getSkill,
   getTestResultMeta,
+  listSkills,
   lookupProperty,
   searchCallouts,
   searchChangelogs,
@@ -200,6 +202,7 @@ type Context =
   | { type: "changelogs"; results: ChangelogResult[] }
   | { type: "videos"; query: string; results: VideoSearchResult[] }
   | { type: "dude"; query: string; results: DudeSearchResult[] }
+  | { type: "skills" }
   | { type: "properties"; query: string; pageId?: number; results: Array<{ name: string; page_id: number; page_title: string }> }
   | { type: "diff" }
   | { type: "vcheck"; path: string };
@@ -240,6 +243,7 @@ function contextLabel(c: Context): string {
     case "changelogs": return "changelogs";
     case "videos": return truncate(`vid: "${c.query}"`, 30);
     case "dude": return truncate(`dude: "${c.query}"`, 30);
+    case "skills": return "skills";
     case "diff": return "diff";
     case "vcheck": return truncate(`vc: ${c.path}`, 30);
   }
@@ -255,6 +259,7 @@ function renderWelcome(): string {
     `${fmt(stats.pages)} pages · ${fmt(stats.properties)} properties · ${fmt(stats.commands)} commands`,
     `${fmt(stats.devices)} devices · ${fmt(stats.callouts)} callouts · ${fmt(stats.ros_versions)} versions`,
     ...(stats.videos > 0 ? [`${fmt(stats.videos)} videos · ${fmt(stats.video_segments)} transcript segments`] : []),
+    ...(stats.skills > 0 ? [`${fmt(stats.skills)} agent skills ${dim("(tikoci — community content)")}`] : []),
     "",
     `Type a search query, or ${bold("help")} for commands.`,
   ];
@@ -847,6 +852,8 @@ function renderHelp(): string {
   cmd("changelog [query]", "cl", "Search changelogs (cl 7.22, cl breaking)", "routeros_search_changelogs");
   cmd("videos <query>", "vid", "Search video transcripts", "routeros_search_videos");
   cmd("dude <query>", "", "Search archived Dude wiki docs", "routeros_dude_search");
+  cmd("skills", "", "List agent skill guides", "rosetta://skills");
+  cmd("skill <name>", "", "View a skill guide", "rosetta://skills/{name}");
   cmd("diff <from> <to> [path]", "", "Command tree diff between versions", "routeros_command_diff");
   cmd("vcheck <path>", "vc", "Version range for a command path", "routeros_command_version_check");
   cmd("versions", "ver", "Live-fetch current RouterOS versions", "routeros_current_versions");
@@ -998,6 +1005,17 @@ async function dispatch(input: string): Promise<void> {
       return;
     }
 
+    case "skills": {
+      await doListSkills();
+      return;
+    }
+
+    case "skill": {
+      if (!rest) { console.log(dim("  Usage: skill <name>")); return; }
+      await doViewSkill(rest);
+      return;
+    }
+
     case "diff": {
       const diffParts = rest.split(/\s+/);
       if (diffParts.length < 2) {
@@ -1073,6 +1091,13 @@ async function handleNumberSelect(idx: number): Promise<void> {
     if (page) {
       await paged(renderDudePage(page));
       pushCtx({ type: "dude", query: ctx.query, results: ctx.results });
+    }
+    return;
+  }
+  if (ctx.type === "skills") {
+    const skills = listSkills();
+    if (skills[idx]) {
+      await doViewSkill(skills[idx].name);
     }
     return;
   }
@@ -1318,6 +1343,54 @@ async function doSearchDude(query: string): Promise<void> {
   }
   await paged(`  ${bold(String(results.length))} Dude wiki results for ${cyan(`"${query}"`)}\n\n${renderDudeResults(results)}`);
   pushCtx({ type: "dude", query, results });
+}
+
+async function doListSkills(): Promise<void> {
+  const skills = listSkills();
+  if (skills.length === 0) {
+    console.log(dim("  No skills available. Run: make extract-skills"));
+    return;
+  }
+  const out: string[] = [];
+  out.push(`  ${bold(`${skills.length} Agent Skills`)}  ${dim("(tikoci/routeros-skills — community content)")}`);
+  out.push(`  ${yellow("⚠ AI-generated, human-reviewed. NOT official MikroTik docs.")}`);
+  out.push("");
+  skills.forEach((s, i) => {
+    out.push(`  ${cyan(String(i + 1).padStart(2))}. ${bold(s.name)}  ${dim(`${s.word_count} words, ${s.ref_count} refs`)}`);
+    out.push(`      ${s.description}`);
+  });
+  out.push("");
+  out.push(`  ${dim("Type a number to view, or: skill <name>")}`);
+  await paged(out.join("\n"));
+  pushCtx({ type: "skills" });
+}
+
+async function doViewSkill(name: string): Promise<void> {
+  const skill = getSkill(name);
+  if (!skill) {
+    console.log(dim(`  Skill "${name}" not found. Use 'skills' to list available skills.`));
+    return;
+  }
+  const out: string[] = [];
+  out.push(`  ${yellow("⚠ PROVENANCE: Community content from tikoci/routeros-skills")}`);
+  out.push(`  ${yellow("  NOT official MikroTik documentation. May contain errors.")}`);
+  out.push(`  ${dim(`Source: ${link(skill.source_url)}`)}`);
+  out.push("");
+  out.push(`  ${bold(skill.name)}  ${dim(`${skill.word_count} words`)}`);
+  out.push(`  ${skill.description}`);
+  out.push("");
+  out.push(skill.content);
+  if (skill.references.length > 0) {
+    out.push("");
+    out.push(`  ${bold("Reference Files")}  ${dim(`(${skill.references.length} files)`)}`);
+    out.push("");
+    for (const ref of skill.references) {
+      out.push(`  ${cyan("─")} ${bold(ref.filename)}  ${dim(`${ref.word_count} words`)}`);
+    }
+    out.push("");
+    out.push(`  ${dim("To view a reference: skill <name> refs")}`);
+  }
+  await paged(out.join("\n"));
 }
 
 async function doDiff(from: string, to: string, pathPrefix?: string): Promise<void> {

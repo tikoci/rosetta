@@ -210,6 +210,21 @@ describe("Makefile", () => {
     expect(makefile).toContain("extract-dude-from-cache:");
   });
 
+  test("has extract-skills target", () => {
+    expect(makefile).toContain("extract-skills:");
+  });
+
+  test("has extract-skills-from-cache target", () => {
+    expect(makefile).toContain("extract-skills-from-cache:");
+  });
+
+  test("extract-skills is in PHONY", () => {
+    const phonyStart = makefile.indexOf(".PHONY:");
+    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    expect(phonyBlock).toContain("extract-skills");
+  });
+
   test("extract-dude is in PHONY", () => {
     const phonyStart = makefile.indexOf(".PHONY:");
     const phonyEnd = makefile.indexOf("\n\n", phonyStart);
@@ -223,6 +238,14 @@ describe("Makefile", () => {
 
   test("release depends on build-release", () => {
     expect(makefile).toMatch(/^release:.*build-release/m);
+  });
+
+  test("extract target includes skills", () => {
+    expect(makefile).toMatch(/^extract:.*extract-skills/m);
+  });
+
+  test("extract-full target includes skills", () => {
+    expect(makefile).toMatch(/^extract-full:.*extract-skills/m);
   });
 
   test("extract target includes Dude cache import", () => {
@@ -275,12 +298,18 @@ describe("release.yml", () => {
     expect(src).toContain("extract-devices.ts");
     expect(src).toContain("extract-test-results.ts");
     expect(src).toContain("extract-changelogs.ts");
+    expect(src).toContain("extract-skills.ts");
     expect(src).toContain("link-commands.ts");
   });
 
   test("imports Dude wiki from cache", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("extract-dude-from-cache");
+  });
+
+  test("extracts agent skills in CI", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("extract-skills.ts");
   });
 
   test("runs quality gate before release", () => {

@@ -1648,7 +1648,94 @@ export function getDudePage(idOrTitle: number | string, maxLength?: number): Dud
   return page;
 }
 
-// ── Current versions (live fetch) ──
+// ── Skills (agent guides from tikoci/routeros-skills) ──
+
+const SKILLS_PROVENANCE = `⚠️ PROVENANCE: Community-created content from tikoci/routeros-skills —
+NOT official MikroTik documentation. AI-generated, human-reviewed. May contain errors.
+Verify claims using routeros_search and routeros_get_page for official documentation.`;
+
+export type SkillSummary = {
+  name: string;
+  description: string;
+  word_count: number;
+  ref_count: number;
+  source_url: string;
+};
+
+export type SkillReference = {
+  path: string;
+  filename: string;
+  content: string;
+  word_count: number;
+};
+
+export type SkillDetail = {
+  name: string;
+  description: string;
+  content: string;
+  provenance: string;
+  source_repo: string;
+  source_sha: string | null;
+  source_url: string;
+  word_count: number;
+  extracted_at: string | null;
+  references: SkillReference[];
+};
+
+/** List all available skills with reference counts. */
+export function listSkills(): SkillSummary[] {
+  return db
+    .prepare(
+      `SELECT s.name, s.description, s.word_count, s.source_url,
+              (SELECT COUNT(*) FROM skill_references sr WHERE sr.skill_id = s.id) as ref_count
+       FROM skills s
+       ORDER BY s.name`,
+    )
+    .all() as SkillSummary[];
+}
+
+/** Get a single skill by name, including its references and provenance header. */
+export function getSkill(name: string): SkillDetail | null {
+  const row = db
+    .prepare("SELECT * FROM skills WHERE name = ? COLLATE NOCASE")
+    .get(name) as Record<string, unknown> | null;
+  if (!row) return null;
+
+  const refs = db
+    .prepare(
+      `SELECT path, filename, content, word_count
+       FROM skill_references
+       WHERE skill_id = ?
+       ORDER BY path`,
+    )
+    .all(row.id as number) as SkillReference[];
+
+  return {
+    name: row.name as string,
+    description: row.description as string,
+    content: row.content as string,
+    provenance: `${SKILLS_PROVENANCE}\nSource: ${row.source_url as string}`,
+    source_repo: row.source_repo as string,
+    source_sha: row.source_sha as string | null,
+    source_url: row.source_url as string,
+    word_count: row.word_count as number,
+    extracted_at: row.extracted_at as string | null,
+    references: refs,
+  };
+}
+
+/** Get a single reference file from a skill. */
+export function getSkillReference(skillName: string, refFilename: string): SkillReference | null {
+  const row = db
+    .prepare(
+      `SELECT sr.path, sr.filename, sr.content, sr.word_count
+       FROM skill_references sr
+       JOIN skills s ON s.id = sr.skill_id
+       WHERE s.name = ? COLLATE NOCASE AND sr.filename = ? COLLATE NOCASE`,
+    )
+    .get(skillName, refFilename) as SkillReference | null;
+  return row;
+}
 
 const VERSION_BASE_URL = "https://upgrade.mikrotik.com/routeros/NEWESTa7";
 

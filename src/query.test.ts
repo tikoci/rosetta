@@ -34,6 +34,9 @@ const {
   searchVideos,
   searchDude,
   getDudePage,
+  listSkills,
+  getSkill,
+  getSkillReference,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
@@ -1494,6 +1497,7 @@ describe("schema", () => {
       "commands", "command_versions", "ros_versions",
       "devices", "device_test_results", "changelogs", "schema_migrations",
       "videos", "video_segments",
+      "skills", "skill_references",
     ];
     for (const table of expected) {
       expect(names).toContain(table);
@@ -1502,7 +1506,7 @@ describe("schema", () => {
 
   test("all FTS5 virtual tables exist", () => {
     const names = tableNames();
-    const expected = ["pages_fts", "properties_fts", "callouts_fts", "devices_fts", "changelogs_fts", "videos_fts", "video_segments_fts"];
+    const expected = ["pages_fts", "properties_fts", "callouts_fts", "devices_fts", "changelogs_fts", "videos_fts", "video_segments_fts", "skills_fts"];
     for (const fts of expected) {
       expect(names).toContain(fts);
     }
@@ -1564,6 +1568,13 @@ describe("schema", () => {
     expect(triggers).toContain("dude_pages_au");
   });
 
+  test("content-sync triggers exist for skills", () => {
+    const triggers = triggerNames();
+    expect(triggers).toContain("skills_ai");
+    expect(triggers).toContain("skills_ad");
+    expect(triggers).toContain("skills_au");
+  });
+
   test("PRAGMA user_version matches SCHEMA_VERSION", () => {
     const result = checkSchemaVersion();
     expect(result.ok).toBe(true);
@@ -1582,6 +1593,88 @@ describe("getDbStats", () => {
     // Fixtures have 7.9, 7.10.2, 7.22 — lexicographic MIN would give "7.10.2", not "7.9"
     expect(stats.ros_version_min).toBe("7.9");
     expect(stats.ros_version_max).toBe("7.22");
+  });
+
+  test("includes skills count", () => {
+    const stats = getDbStats();
+    expect(stats).toHaveProperty("skills");
+    expect(typeof stats.skills).toBe("number");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Skills: agent guides from tikoci/routeros-skills
+// ---------------------------------------------------------------------------
+
+describe("skills", () => {
+  // Insert fixture data for skills tests
+  beforeAll(() => {
+    db.run("DELETE FROM skill_references");
+    db.run("DELETE FROM skills");
+
+    db.run(`INSERT INTO skills (name, description, content, source_repo, source_sha, source_url, word_count, extracted_at)
+      VALUES ('routeros-test-skill', 'Test skill for unit tests', 'This is test content for the skill.', 'tikoci/routeros-skills', 'abc123', 'https://github.com/tikoci/routeros-skills/blob/abc123/routeros-test-skill/SKILL.md', 7, '2025-01-01T00:00:00Z')`);
+
+    const row = db.prepare("SELECT id FROM skills WHERE name = 'routeros-test-skill'").get() as { id: number };
+
+    db.run(`INSERT INTO skill_references (skill_id, path, filename, content, word_count)
+      VALUES (${row.id}, 'references/test-ref.md', 'test-ref.md', 'Reference content here.', 3)`);
+  });
+
+  test("listSkills returns all skills", () => {
+    const skills = listSkills();
+    expect(skills.length).toBeGreaterThanOrEqual(1);
+    const testSkill = skills.find(s => s.name === "routeros-test-skill");
+    expect(testSkill).toBeDefined();
+    if (!testSkill) throw new Error("Expected test skill to exist");
+    expect(testSkill.description).toBe("Test skill for unit tests");
+    expect(testSkill.word_count).toBe(7);
+    expect(testSkill.ref_count).toBe(1);
+  });
+
+  test("getSkill returns full skill with provenance and references", () => {
+    const skill = getSkill("routeros-test-skill");
+    expect(skill).not.toBeNull();
+    if (!skill) throw new Error("Expected skill details to exist");
+    expect(skill.name).toBe("routeros-test-skill");
+    expect(skill.content).toBe("This is test content for the skill.");
+    expect(skill.provenance).toContain("PROVENANCE");
+    expect(skill.provenance).toContain("tikoci/routeros-skills");
+    expect(skill.source_sha).toBe("abc123");
+    expect(skill.references).toHaveLength(1);
+    expect(skill.references[0]?.filename).toBe("test-ref.md");
+  });
+
+  test("getSkill is case-insensitive", () => {
+    const skill = getSkill("ROUTEROS-TEST-SKILL");
+    expect(skill).not.toBeNull();
+    if (!skill) throw new Error("Expected case-insensitive skill lookup to work");
+    expect(skill.name).toBe("routeros-test-skill");
+  });
+
+  test("getSkill returns null for nonexistent skill", () => {
+    const skill = getSkill("nonexistent-skill");
+    expect(skill).toBeNull();
+  });
+
+  test("getSkillReference returns a specific reference file", () => {
+    const ref = getSkillReference("routeros-test-skill", "test-ref.md");
+    expect(ref).not.toBeNull();
+    if (!ref) throw new Error("Expected skill reference to exist");
+    expect(ref.content).toBe("Reference content here.");
+    expect(ref.word_count).toBe(3);
+  });
+
+  test("getSkillReference returns null for nonexistent reference", () => {
+    const ref = getSkillReference("routeros-test-skill", "nonexistent.md");
+    expect(ref).toBeNull();
+  });
+
+  test("FTS5 indexes skill content via triggers", () => {
+    const results = db.prepare(
+      "SELECT rowid FROM skills_fts WHERE skills_fts MATCH 'test'"
+    ).all();
+    expect(results.length).toBeGreaterThanOrEqual(1);
   });
 });
 

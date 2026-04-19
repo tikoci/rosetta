@@ -298,6 +298,8 @@ The server exposes 16 tools designed to work together — agents start with `rou
 
 Each tool description includes workflow arrows (`→ next_tool`) and empty-result hints so agents chain tools effectively.
 
+The server also exposes **MCP Resources** for bulk data and supplemental content — CSV datasets (`rosetta://datasets/...`), schema documentation (`rosetta://schema...`), and **agent skill guides** (`rosetta://skills/{name}`) from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills). Skills are community-created, human-reviewed guides served with provenance attribution. See [MANUAL.md](MANUAL.md) for details.
+
 
 ## RTFM for Details
 For additional install options, HTTP transport configuration, data source details, and the database schema, see [MANUAL.md](MANUAL.md).

@@ -8,6 +8,7 @@ FORCE      ?=
         extract-changelogs-extended \
         extract-videos extract-videos-from-cache save-videos-cache \
         extract-dude extract-dude-from-cache \
+        extract-skills extract-skills-from-cache \
         link assess search browse serve \
 	typecheck lint test preflight build-release release bump-version \
         install setup clean
@@ -58,9 +59,9 @@ preflight:
 
 # ── Extraction pipeline ──
 
-extract: extract-html extract-properties extract-commands extract-devices extract-test-results extract-changelogs extract-dude-from-cache link
+extract: extract-html extract-properties extract-commands extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
 
-extract-full: extract-html extract-properties extract-all-versions extract-devices extract-test-results extract-changelogs extract-dude-from-cache link
+extract-full: extract-html extract-properties extract-all-versions extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
 
 extract-html:
 	bun run src/extract-html.ts
@@ -108,6 +109,14 @@ extract-dude:
 # Re-extract from cached HTML in dude/pages/ — no network dependency.
 extract-dude-from-cache:
 	bun run src/extract-dude.ts --from-cache --skip-images
+
+# Fetch agent skill guides from tikoci/routeros-skills GitHub repo.
+extract-skills:
+	bun run src/extract-skills.ts
+
+# Re-extract from cached skills/ directory — no network dependency (used in CI).
+extract-skills-from-cache:
+	bun run src/extract-skills.ts --from-cache
 
 link:
 	bun run src/link-commands.ts

@@ -24,6 +24,9 @@
  *   dude_pages       — The Dude documentation pages (archived from wiki.mikrotik.com via Wayback Machine)
  *   dude_pages_fts   — FTS5 over title, path, text, code
  *   dude_images      — screenshot images from The Dude wiki pages
+ *   skills           — agent skill guides (from tikoci/routeros-skills, community content)
+ *   skills_fts       — FTS5 over name, description, content
+ *   skill_references — reference documents for each skill
  */
 
 import sqlite from "bun:sqlite";
@@ -547,6 +550,49 @@ export function initDb() {
   );`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_dude_images_page ON dude_images(page_id);`);
+
+  // -- Skills (agent guides from tikoci/routeros-skills — community content, NOT official MikroTik docs) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS skills (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL UNIQUE,
+    description   TEXT,
+    content       TEXT NOT NULL,
+    source_repo   TEXT NOT NULL DEFAULT 'tikoci/routeros-skills',
+    source_sha    TEXT,
+    source_url    TEXT,
+    word_count    INTEGER,
+    extracted_at  TEXT
+  );`);
+
+  db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS skills_fts USING fts5(
+    name, description, content,
+    content=skills, content_rowid=id,
+    tokenize='porter unicode61'
+  );`);
+
+  db.run(`CREATE TRIGGER IF NOT EXISTS skills_ai AFTER INSERT ON skills BEGIN
+    INSERT INTO skills_fts(rowid, name, description, content) VALUES (new.id, new.name, new.description, new.content);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS skills_ad AFTER DELETE ON skills BEGIN
+    INSERT INTO skills_fts(skills_fts, rowid, name, description, content) VALUES ('delete', old.id, old.name, old.description, old.content);
+  END;`);
+  db.run(`CREATE TRIGGER IF NOT EXISTS skills_au AFTER UPDATE ON skills BEGIN
+    INSERT INTO skills_fts(skills_fts, rowid, name, description, content) VALUES ('delete', old.id, old.name, old.description, old.content);
+    INSERT INTO skills_fts(rowid, name, description, content) VALUES (new.id, new.name, new.description, new.content);
+  END;`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS skill_references (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    skill_id      INTEGER NOT NULL REFERENCES skills(id),
+    path          TEXT NOT NULL,
+    filename      TEXT NOT NULL,
+    content       TEXT NOT NULL,
+    word_count    INTEGER,
+    UNIQUE(skill_id, path)
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_skill_refs_skill ON skill_references(skill_id);`);
 }
 
 /**
@@ -596,6 +642,8 @@ export function getDbStats() {
     video_segments: count("SELECT COUNT(*) AS c FROM video_segments"),
     dude_pages: count("SELECT COUNT(*) AS c FROM dude_pages"),
     dude_images: count("SELECT COUNT(*) AS c FROM dude_images"),
+    skills: count("SELECT COUNT(*) AS c FROM skills"),
+    skill_references: count("SELECT COUNT(*) AS c FROM skill_references"),
     ...(() => {
       // Semantic version sort — SQL MIN/MAX is lexicographic ("7.10" < "7.9")
       const versions = (db.prepare("SELECT DISTINCT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);

@@ -45,8 +45,9 @@ This is a deliberate design, not a happy accident. The TUI's dual use (human too
 - **144 devices** from MikroTik product matrix CSV (hardware specs, license levels, pricing)
 - **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
-- **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 16 tools and 4 resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`
+- **8 agent skills** from tikoci/routeros-skills (community-created, human-reviewed guides with provenance attribution)
+- **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs, skills) and `unicode61` without porter (devices), BM25-weighted ranking
+- **MCP server** with 16 tools and 8+ resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
 
 ## Schema
 
@@ -238,6 +239,36 @@ dude_pages_fts USING fts5(title, path, text, code,
     content=dude_pages, content_rowid=id,
     tokenize='porter unicode61'
 )
+
+-- Agent skill guides (from tikoci/routeros-skills — community content, not official MikroTik docs)
+skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,       -- 'routeros-fundamentals'
+    description TEXT,                 -- from YAML frontmatter
+    content TEXT NOT NULL,            -- full SKILL.md markdown (frontmatter stripped)
+    source_repo TEXT NOT NULL DEFAULT 'tikoci/routeros-skills',
+    source_sha TEXT,                  -- git commit SHA at extraction time
+    source_url TEXT,                  -- GitHub URL to SKILL.md
+    word_count INTEGER,
+    extracted_at TEXT                  -- ISO 8601
+)
+
+-- Reference docs for each skill
+skill_references (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    skill_id INTEGER NOT NULL REFERENCES skills(id),
+    path TEXT NOT NULL,               -- 'references/rest-api-patterns.md'
+    filename TEXT NOT NULL,           -- 'rest-api-patterns.md'
+    content TEXT NOT NULL,
+    word_count INTEGER,
+    UNIQUE(skill_id, path)
+)
+
+-- FTS5 over skills
+skills_fts USING fts5(name, description, content,
+    content=skills, content_rowid=id,
+    tokenize='porter unicode61'
+)
 ```
 
 ## Usage
@@ -297,8 +328,12 @@ Device lookup matching is intentionally heuristic, not perfect canonical identit
 | `rosetta://datasets/devices.csv` | Full device catalog as CSV with normalized fields and URLs |
 | `rosetta://schema.sql` | Live DDL from sqlite_master — all CREATE TABLE/VIRTUAL TABLE/TRIGGER/INDEX statements |
 | `rosetta://schema-guide.md` | Table relationships, FTS5 tokenizer differences, BM25 weights, join patterns, and gotchas |
+| `rosetta://skills` | Listing of all agent skill guides with names, descriptions, and word counts |
+| `rosetta://skills/{name}` | Full skill content with provenance header — one resource per skill (community content from tikoci/routeros-skills) |
 
 Resources are for explicit context attachment in MCP clients that support them (for example, VS Code's Add Context > MCP Resources). They complement the tools rather than replacing them.
+
+**Skills resources** are supplemental, community-created agent guides — not official MikroTik documentation. Every skill response includes a provenance header warning that content is AI-generated, human-reviewed, and may contain errors. Agents should verify claims using `routeros_search` and `routeros_get_page`.
 
 ### CLI Search
 
@@ -433,6 +468,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
 | `src/extract-videos.ts` | MikroTik YouTube channel transcripts → videos + video_segments tables (incremental; requires yt-dlp). Cache functions: `saveCache`/`importCache`/`loadKnownBad`/`findLatestCache` for CI-friendly NDJSON cache. |
 | `src/extract-dude.ts` | Wayback Machine → dude_pages + dude_images tables (one-time, caches HTML to `dude/pages/`) |
+| `src/extract-skills.ts` | tikoci/routeros-skills → skills + skill_references tables (GitHub API fetch, local path, or --from-cache modes) |
 | `src/link-commands.ts` | Command ↔ page mapping |
 | `src/assess-html.ts` | HTML archive assessment (run once) |
 | `src/search.ts` | CLI search tool |
@@ -454,6 +490,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `matrix/YYYY-MM-DD/matrix.csv` | Product matrix CSV snapshots (manually downloaded from mikrotik.com) |
 | `transcripts/known-bad.json` | Manually maintained `{videoId: reason}` skip list for `extract-videos` |
 | `transcripts/YYYY-MM-DD/videos.ndjson` | Committed transcript cache — one `VideoCacheEntry` per line. Used by `make extract-videos-from-cache` (CI path). |
+| `skills/` | Cache of extracted skill files from tikoci/routeros-skills (metadata.json + per-skill SKILL.md + references). Used by `--from-cache` mode. |
 | `CONTRIBUTING.md` | Build, test, development setup, release process |
 | `MANUAL.md` | Extended user reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
@@ -465,8 +502,8 @@ When a new HTML/PDF export is available:
 # Place new export in box/ and update symlink
 # ln -s documents-export-<date> box/latest
 make clean
-make extract       # runs extract-html, extract-properties, extract-commands, extract-devices, link (single version)
-make extract-full  # runs extract-html, extract-properties, extract-all-versions, extract-devices, link (all versions)
+make extract       # runs extract-html, extract-properties, extract-commands, extract-devices, extract-skills, link
+make extract-full  # runs extract-html, extract-properties, extract-all-versions, extract-devices, extract-skills, link
 ```
 
 The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
@@ -536,11 +573,22 @@ For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Produc
 - **URL slugs:** Wildly inconsistent — extractor tries 4–6 slug variants per product (lowercase name, product code, ± `plus` for `+`, Unicode superscript transliteration). 15 products have no discoverable page (kits, discontinued, unpredictable slugs)
 - **Extraction:** `bun run src/extract-test-results.ts` (or `make extract-test-results`). Requires devices table populated first. Rate-limited HTTP fetches (default: 4 concurrent, 500ms delay). Idempotent.
 
+### Agent Skills (tikoci/routeros-skills)
+
+- **Source:** [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) — community-created, human-reviewed agent guides
+- **Content:** 8 skills (~87KB SKILL.md files + ~135KB reference documents, ~30K words total)
+- **Skills:** routeros-fundamentals, routeros-container, routeros-app-yaml, routeros-command-tree, routeros-qemu-chr, routeros-netinstall, routeros-mndp, routeros-sniffer
+- **Format:** YAML frontmatter (name, description) + markdown body. Reference files in `references/` subdirectories
+- **Attribution boundary:** NOT official MikroTik documentation. Every response includes a provenance header. AI-generated, human-reviewed, may contain errors
+- **Extraction:** `bun run src/extract-skills.ts` (GitHub API fetch). Supports `--local <path>` for dev and `--from-cache` for offline. CI uses GitHub API fetch directly
+- **Cache:** `skills/` directory stores fetched files + `metadata.json` with source SHA
+
 ## Related Projects
 
 See `DESIGN.md` for full cross-references, restraml GitHub Pages tools, and rationale.
 
 - **[tikoci/restraml](https://github.com/tikoci/restraml)** — source of `inspect.json` command tree data. Also publishes [interactive lookup/diff tools](https://tikoci.github.io/restraml/) and raw JSON on GitHub Pages.
+- **[tikoci/routeros-skills](https://github.com/tikoci/routeros-skills)** — source of agent skill guides. Community-created RouterOS domain knowledge for AI agents, embedded in the rosetta DB via `extract-skills.ts`.
 - **[tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts)** — consumer of property/command data from this DB
 - **[tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook)** — RouterOS script notebook for VSCode. Potential consumer for Copilot-assisted scripting.
 - **[tikoci/netinstall](https://github.com/tikoci/netinstall)** — RouterOS REST API gotchas (HTTP verb mapping, property name differences)

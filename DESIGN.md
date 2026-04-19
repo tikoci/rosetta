@@ -20,6 +20,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 | YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 518 videos, ~1,890 chapter-level segments |
+| Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 8 skills, ~30K words (community content) |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
@@ -134,11 +135,22 @@ Don't overengineer until there's a second HTML export to compare against. When t
 
 MikroTik publishes per-version changelogs at `https://download.mikrotik.com/routeros/{version}/CHANGELOG` as plain text. Each entry is one `*)` (regular) or `!)` (breaking) line with a category prefix (subsystem name before ` - `). We parse into one row per entry rather than storing the whole changelog text per version — this enables FTS search across entries, category filtering, and breaking-only queries. The `is_breaking` flag corresponds to `!)` entries only; security-related entries are findable via FTS keyword search (no separate flag). Multi-line entries are concatenated into a single description. No FK to `ros_versions` — changelogs may be fetched for patch versions not in the command tree.
 
+### Skills: dual-corpus RAG with attribution boundary
+
+Agent skills from tikoci/routeros-skills are community-created supplemental guides, not official MikroTik documentation. The integration maintains a clear **attribution boundary**: every skill response (MCP resource read, TUI display) prepends a provenance header explaining the content is AI-generated, human-reviewed, may contain errors, and should be verified against official docs via `routeros_search`/`routeros_get_page`.
+
+**Why resources, not tools:** Skills are complete documents (~2K–8K words each), not search results. With only 8 skills, there's nothing to search — agents browse a listing and read one. MCP Resources (`rosetta://skills/{name}`) are the right surface: deliberate context attachment, like the schema and CSV resources. This avoids adding tool #17, aligning with the North Star consolidation direction. If the corpus grows beyond ~20 skills, FTS5 is pre-built for future integration into the unified `routeros_search` via `related.skills`.
+
+**Why include community content in an "unopinionated" project:** Rosetta's primary corpus is authoritative MikroTik docs. Skills are opinionated guides written for agents. The provenance system keeps them clearly separated — agents can choose how much weight to give each. The pattern is textbook + study guide: the system labels which is which. Since RouterOS training data is limited, having curated practical guidance available (with appropriate caveats) is net positive for agent effectiveness.
+
+**Extraction:** GitHub API fetch at build time (in CI). Supports local path (`--local`) for development and `--from-cache` for offline/cached mode. Skills update when a new DB is built — no automatic sync.
+
 ## Cross-References
 
 | Project | Relationship |
 |---------|-------------|
 | [tikoci/restraml](https://github.com/tikoci/restraml) | Source of `inspect.json` command tree + RAML schema. GitHub Actions run CHR under QEMU to extract command AST via `/console/inspect`, daily checks for new versions. PR #35 adds deep-inspect. Also publishes [GitHub Pages tools](https://tikoci.github.io/restraml/) (see below). |
+| [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | Source of agent skill guides. Community-created RouterOS domain knowledge for AI agents. 8 skills with YAML frontmatter + markdown body. Embedded in rosetta DB via `extract-skills.ts`. |
 | [tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook) | RouterOS script notebook for VSCode. Potential consumer of this DB for Copilot-assisted scripting. |
 | [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) | Consumer: hover help, property docs, command path → URL mapping. |
 | [tikoci/netinstall](https://github.com/tikoci/netinstall) | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |

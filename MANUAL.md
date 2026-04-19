@@ -76,14 +76,18 @@ These are the same images used by the [MikroTik /app install](README.md#install-
 
 ## MCP Resources
 
-If your MCP client supports resources, rosetta exposes two read-only CSV datasets for bulk analysis and reporting:
+If your MCP client supports resources, rosetta exposes datasets and supplemental content:
 
 | Resource | Purpose |
 |----------|---------|
 | `rosetta://datasets/device-test-results.csv` | Full joined benchmark dataset as CSV |
 | `rosetta://datasets/devices.csv` | Full device catalog with normalized fields and URLs |
+| `rosetta://skills` | Listing of all agent skill guides with names and descriptions |
+| `rosetta://skills/{name}` | Full skill guide content with provenance header (community content) |
 
-In VS Code Copilot, attach them via **Add Context > MCP Resources** or **MCP: Browse Resources**. Use tools for normal search and drill-down; use resources when you explicitly want the whole dataset as CSV.
+In VS Code Copilot, attach them via **Add Context > MCP Resources** or **MCP: Browse Resources**. Use tools for normal search and drill-down; use resources when you explicitly want the whole dataset as CSV or agent skill guides.
+
+**Agent Skills** are community-created, human-reviewed guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) — practical RouterOS domain knowledge written specifically for AI agents. Every skill response includes a provenance header noting that content is NOT official MikroTik documentation and may contain errors. Agents should verify claims using rosetta's official doc tools (`routeros_search`, `routeros_get_page`).
 
 ## Data Sources
 
@@ -98,6 +102,8 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 - **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
 
 - **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (518 videos, ~1,800 transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
+
+- **Agent Skills** — Community-created agent guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) (8 skills, ~30K words). NOT official MikroTik documentation — AI-generated, human-reviewed, served with provenance attribution. Practical domain knowledge for topics like containers, QEMU CHR, netinstall, and RouterOS fundamentals.
 
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
 
