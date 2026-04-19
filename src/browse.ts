@@ -441,6 +441,7 @@ function renderCommandTree(path: string, children: Array<{
   data_type?: string | null;
   enum_values?: string | null;
   _arch?: string | null;
+  completion?: Record<string, { style?: string; preference?: number; desc?: string }> | null;
 }>): string {
   const out: string[] = [];
   out.push(`  ${bold(path || "/")}  ${dim(`(${children.length} children)`)}`);
@@ -450,29 +451,58 @@ function renderCommandTree(path: string, children: Array<{
   const cmds = children.filter((c) => c.type === "cmd");
   const args = children.filter((c) => c.type === "arg");
 
+  let globalIdx = 0;
   for (const group of [
-    { items: dirs, icon: "📁", label: "directories" },
-    { items: cmds, icon: "⚡", label: "commands" },
-    { items: args, icon: "  ", label: "arguments" },
+    { items: dirs, icon: "📁" },
+    { items: cmds, icon: "⚡" },
+    { items: args, icon: dim("·") },
   ]) {
     if (group.items.length === 0) continue;
-    for (const c of group.items) {
+    for (let i = 0; i < group.items.length; i++) {
+      const c = group.items[i];
+      globalIdx++;
+      const num = dim(`${String(globalIdx).padStart(3)}  `);
       const icon = group.icon;
       const name = c.type === "dir" ? bold(c.name) : c.name;
-      // Compose suffix: desc, data_type, arch, page link
+
+      // Build type hint: enum values, data_type, or completion-derived values
+      let typeHint = "";
+      if (c.data_type === "enum" && c.enum_values) {
+        try {
+          const vals = JSON.parse(c.enum_values) as string[];
+          const shown = vals.length > 6 ? `${vals.slice(0, 6).join("|")}|…` : vals.join("|");
+          typeHint = shown;
+        } catch {
+          typeHint = `<${c.data_type}>`;
+        }
+      } else if (c.data_type === "time" || c.data_type === "integer" || c.data_type === "range") {
+        // Already visible via description range — just tag the type
+        typeHint = `<${c.data_type}>`;
+      } else if (c.data_type) {
+        typeHint = `<${c.data_type}>`;
+      } else if (c.completion && Object.keys(c.completion).length > 0) {
+        // No parsed data_type but completion values exist — surface them
+        const keys = Object.keys(c.completion).filter((k) => k !== "");
+        if (keys.length > 0) {
+          const shown = keys.length > 6 ? `${keys.slice(0, 6).join("|")}|…` : keys.join("|");
+          typeHint = shown;
+        }
+      }
+
       const parts: string[] = [];
-      if (c.description) parts.push(truncate(c.description, 50));
-      if (c.data_type) parts.push(`<${c.data_type}>`);
+      if (c.description) parts.push(truncate(c.description, 40));
+      if (typeHint) parts.push(typeHint);
       if (c.dir_role && c.dir_role !== "namespace") parts.push(`[${c.dir_role}]`);
-      const desc = parts.length > 0 ? dim(` — ${parts.join(" ")}`) : "";
+      const desc = parts.length > 0 ? dim(` — ${parts.join("  ")}`) : "";
       const archTag = c._arch ? yellow(` [${c._arch}]`) : "";
       const pageLink = c.page_url ? `  ${cyan(link(c.page_url, dim("📄")))}` : "";
-      out.push(`  ${icon} ${name}${desc}${archTag}${pageLink}`);
+      out.push(`  ${num}${icon} ${name}${desc}${archTag}${pageLink}`);
     }
+    out.push("");
   }
 
-  out.push("");
   const hints: string[] = [
+    `${cyan("[N]")} select`,
     `${cyan("[cmd <child>]")} drill down`,
     `${cyan("[page <id>]")} view linked page`,
     `${cyan("[b]")} back`,
@@ -1111,6 +1141,31 @@ async function handleNumberSelect(idx: number): Promise<void> {
     }
     return;
   }
+  if (ctx.type === "commands") {
+    // Re-query and navigate to the Nth child (dirs and cmds drill in; args show inline)
+    const children = browseCommands(ctx.path);
+    const child = children[idx];
+    if (child) {
+      if (child.type === "dir" || child.type === "cmd") {
+        await doCommandTree(child.path);
+      } else {
+        // arg — display its details inline
+        const parts: string[] = [];
+        if (child.description) parts.push(child.description);
+        if (child.data_type) parts.push(`type: ${child.data_type}`);
+        if (child.enum_values) {
+          try { parts.push(`values: ${JSON.parse(child.enum_values).join("|")}`); } catch { /* ignore */ }
+        } else if (child.completion) {
+          const keys = Object.keys(child.completion).filter((k) => k !== "");
+          if (keys.length > 0) parts.push(`values: ${keys.join("|")}`);
+        }
+        console.log(`\n  ${bold(child.name)}  ${dim(`(${child.path})`)}`);
+        if (parts.length > 0) console.log(`  ${parts.join("  ·  ")}`);
+        console.log("");
+      }
+      return;
+    }
+  }
   if (ctx.type === "properties" && ctx.results[idx]) {
     const p = ctx.results[idx];
     await doPage(String(p.page_id));
@@ -1201,20 +1256,30 @@ async function doSearchProperties(query: string): Promise<void> {
 }
 
 async function doCommandTree(path: string): Promise<void> {
-  const normalized = path.startsWith("/") ? path : path ? `/${path}` : "";
-  // If at a page context and no explicit path, try linked command
-  const cmdPath = !path && ctx.type === "page" && (ctx as { commandPath?: string }).commandPath
-    // biome-ignore lint/style/noNonNullAssertion: narrowed by the truthiness check above
-    ? (ctx as { commandPath?: string }).commandPath!
-    : normalized;
+  let cmdPath: string;
+  if (!path) {
+    // No path: use linked command from page context, or current commands path, or root
+    if (ctx.type === "page" && (ctx as { commandPath?: string }).commandPath) {
+      // biome-ignore lint/style/noNonNullAssertion: narrowed above
+      cmdPath = (ctx as { commandPath?: string }).commandPath!;
+    } else if (ctx.type === "commands") {
+      cmdPath = ctx.path;
+    } else {
+      cmdPath = "";
+    }
+  } else if (path.startsWith("/")) {
+    cmdPath = path;
+  } else if (ctx.type === "commands") {
+    // Relative segment: append to current path so "cmd add" at /ip/address → /ip/address/add
+    cmdPath = `${ctx.path}/${path}`;
+  } else {
+    cmdPath = `/${path}`;
+  }
 
   const children = browseCommands(cmdPath);
   if (children.length === 0) {
     console.log(dim(`  No children at "${cmdPath}".`));
-    // Try as a command version check instead
-    if (cmdPath) {
-      console.log(`  Try: ${cyan("vc")} ${cmdPath}`);
-    }
+    if (cmdPath) console.log(`  Try: ${cyan("vc")} ${cmdPath}`);
     return;
   }
   await paged(renderCommandTree(cmdPath, children));
