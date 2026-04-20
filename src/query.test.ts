@@ -72,6 +72,8 @@ beforeAll(() => {
   db.run("DELETE FROM callouts");
   db.run("DELETE FROM properties");
   db.run("DELETE FROM pages");
+  // Reset autoincrement counters so fixture IDs are deterministic
+  db.run("DELETE FROM sqlite_sequence");
   db.run("PRAGMA foreign_keys=ON;");
 
   db.run(`INSERT INTO pages
