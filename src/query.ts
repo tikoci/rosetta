@@ -5,8 +5,8 @@
  * no author/date/engagement signals — just text search with BM25 ranking.
  */
 
-import { db } from "./db.ts";
 import { classifyQuery, type QueryClassification } from "./classify.ts";
+import { db } from "./db.ts";
 
 export type SearchResult = {
   id: number;

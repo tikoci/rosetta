@@ -164,6 +164,17 @@ Different idempotency semantics, local/CI path divergence for videos, no `--chec
 
 **Trigger:** Forum archive stable + North Star classifier in place as plug-in point.
 
+### 🟡 TUI<>MCP parity gaps (post North Star)
+
+The North Star folded callouts, videos, and properties into `routeros_search`'s `related` block. The TUI still has standalone commands with richer output than what `related` provides:
+
+- **Callouts** — TUI `cal <query>` runs full `searchCallouts()` with type filtering and returns all matches. MCP `related.callouts` surfaces only 3 per search. Intentional for budget reasons, but agents lose the ability to do a targeted callout-only search.
+- **Videos** — TUI `vid <query>` runs full `searchVideos()` and returns 10 results with chapters. MCP `related.videos` surfaces only 2. Same budget tradeoff.
+- **Properties** — TUI `sp`/`props <query>` runs full `searchProperties()` FTS with multiple results. MCP `related.properties` only surfaces exact-name matches from classified property candidates. Most significant gap — an agent can't do a broad FTS property search.
+- **Glossary** — TUI `glossary`/`g <term>` queries the `glossary` table. No MCP tool exposes this at all. The glossary is seeded in `db.ts` but invisible to agents.
+
+**Decision needed:** Are these acceptable asymmetries (TUI as power-user surface, MCP as guided experience), or should some become MCP tools again? The glossary gap is the most clear-cut — it's data that exists but is completely inaccessible to agents.
+
 ---
 
 ## Improvements (smaller, not urgent)

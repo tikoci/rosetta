@@ -55,18 +55,18 @@ const FRAGMENT_RE = /([a-z][a-z0-9-]{0,30})=([^\s]+)/gi;
  * Captures the full model token so searchAll can pass it to searchDevices.
  */
 const DEVICE_PATTERNS: RegExp[] = [
-  /\bRB\d+[A-Za-z0-9+\-]*\b/,           // RB450G, RB1100AHx4, RB5009UG+S+IN
-  /\bCCR\d+[A-Za-z0-9+\-]*\b/,          // CCR2216-1G-12XS-2XQ
-  /\bCRS\d+[A-Za-z0-9+\-]*\b/,          // CRS354-48G-4S+2Q+RM
-  /\bCSS\d+[A-Za-z0-9+\-]*\b/,          // CSS610-8P-2S+IN
-  /\bSXT\d*[A-Za-z0-9+\-]*\b/,          // SXTsq, SXT5
-  /\bLHG[A-Za-z0-9+\-]*\b/i,            // LHG, LHGG-60ad
-  /\bLtAP[A-Za-z0-9+\-]*\b/i,           // LtAP, LtAP mini
-  /\bh(?:EX|AP)[A-Za-z0-9+\-]*\b/,      // hEX, hEX S, hAP, hAP ax²
-  /\b[cwm]AP[A-Za-z0-9+\-]*\b/,         // cAP, wAP, mAP, cAP ac
-  /\bnetPower[A-Za-z0-9+\-]*\b/i,       // netPower 15FR
-  /\bnetMetal[A-Za-z0-9+\-]*\b/i,       // netMetal 5
-  /\bGroove[A-Za-z0-9+\-]*\b/i,         // Groove A-52HPn
+  /\bRB\d+[A-Za-z0-9+-]*\b/,           // RB450G, RB1100AHx4, RB5009UG+S+IN
+  /\bCCR\d+[A-Za-z0-9+-]*\b/,          // CCR2216-1G-12XS-2XQ
+  /\bCRS\d+[A-Za-z0-9+-]*\b/,          // CRS354-48G-4S+2Q+RM
+  /\bCSS\d+[A-Za-z0-9+-]*\b/,          // CSS610-8P-2S+IN
+  /\bSXT\d*[A-Za-z0-9+-]*\b/,          // SXTsq, SXT5
+  /\bLHG[A-Za-z0-9+-]*\b/i,            // LHG, LHGG-60ad
+  /\bLtAP[A-Za-z0-9+-]*\b/i,           // LtAP, LtAP mini
+  /\bh(?:EX|AP)[A-Za-z0-9+-]*\b/,      // hEX, hEX S, hAP, hAP ax²
+  /\b[cwm]AP[A-Za-z0-9+-]*\b/,         // cAP, wAP, mAP, cAP ac
+  /\bnetPower[A-Za-z0-9+-]*\b/i,       // netPower 15FR
+  /\bnetMetal[A-Za-z0-9+-]*\b/i,       // netMetal 5
+  /\bGroove[A-Za-z0-9+-]*\b/i,         // Groove A-52HPn
 ];
 
 const VERB_TOKENS = new Set([
@@ -122,9 +122,8 @@ function detectCommandPath(input: string): string | undefined {
 /** Extract `key=value` pairs and RouterOS verbs from fragment-style input. */
 function detectCommandFragment(input: string): CommandFragment | undefined {
   const pairs: Array<{ key: string; value: string }> = [];
-  let m: RegExpExecArray | null;
   FRAGMENT_RE.lastIndex = 0;
-  while ((m = FRAGMENT_RE.exec(input)) !== null) {
+  for (let m = FRAGMENT_RE.exec(input); m !== null; m = FRAGMENT_RE.exec(input)) {
     pairs.push({ key: m[1].toLowerCase(), value: m[2] });
   }
 

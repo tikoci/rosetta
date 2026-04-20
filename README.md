@@ -275,21 +275,19 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server exposes 15 tools designed to work together — agents start with `routeros_search` and drill into specific data as needed:
+The server exposes 13 tools designed to work together — agents start with `routeros_search` and drill into specific data as needed:
 
 | Tool | What it does |
 |------|-------------|
-| `routeros_search` | **Start here.** Full-text search across all documentation pages |
+| `routeros_search` | **Start here.** Unified search with input classifier — returns pages + related callouts, videos, properties, changelogs, devices, skills |
 | `routeros_get_page` | Full page content by ID or title, section-aware for large pages |
 | `routeros_lookup_property` | Property by exact name — type, default, description |
 | `routeros_command_tree` | Browse the command hierarchy (`/ip/firewall/filter` style) |
-| `routeros_search_callouts` | Search warnings, notes, and tips |
 | `routeros_search_changelogs` | Changelogs filtered by version range, category, breaking flag |
 | `routeros_command_version_check` | Which RouterOS versions include a command path |
 | `routeros_command_diff` | Added/removed commands between two RouterOS versions |
 | `routeros_device_lookup` | Hardware specs — filter by architecture, RAM, PoE, wireless, etc. |
 | `routeros_search_tests` | Cross-device ethernet and IPSec benchmarks |
-| `routeros_search_videos` | YouTube transcript search with chapter timestamps |
 | `routeros_dude_search` | FTS across archived Dude wiki docs (separate from RouterOS search) |
 | `routeros_dude_get_page` | Full Dude wiki page by ID or title, with screenshot metadata |
 | `routeros_stats` | Database health and coverage stats |

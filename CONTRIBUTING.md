@@ -117,7 +117,7 @@ make release VERSION=v0.1.0 FORCE=1 # Update existing: force-move tag → upload
 
 ```text
 src/
-├── mcp.ts                  # MCP server (16 tools, stdio + HTTP) + CLI dispatch
+├── mcp.ts                  # MCP server (13 tools, stdio + HTTP) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config
 ├── browse.ts               # Interactive terminal browser (REPL)
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking

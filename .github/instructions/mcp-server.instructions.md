@@ -8,7 +8,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse
 
 The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. Both the MCP tool layer and the TUI are thin adapters over query functions in `src/query.ts`. When adding a feature, default to putting the logic in core (`query.ts`) so both surfaces inherit it. PRs that grow TUI-only or MCP-only heuristics are a smell — flag and move the logic to core. See `BACKLOG.md` "Guiding Principles" and "North Star — unified `routeros_search`".
 
-**Consolidation direction:** the current 15 tools are being compressed toward ~8–10 via a smarter `routeros_search` that classifies the input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. See the North Star in `BACKLOG.md` before adding a new tool — the right answer is usually "make `routeros_search` smarter, not more tools."
+**Consolidation direction:** tool count reduced from 15 → 13 via a unified `routeros_search` that classifies input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. `routeros_search_callouts`, `routeros_search_videos`, and `routeros_search_properties` were folded in; the underlying query functions remain as internal helpers for the TUI. Before adding a new tool, ask: can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
 
 ## MCP Tool Conventions
 - Server name: `"rosetta"` — never change
@@ -18,16 +18,14 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 - **Before adding a new tool, ask:** can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
 
-## 15 Tools
+## 13 Tools
 | Tool | Purpose |
 |------|---------|  
-| `routeros_search` | FTS5 across pages, BM25 ranked |
+| `routeros_search` | Unified search — classifier + FTS5 across pages, BM25 ranked, with `related` block (callouts, videos, properties, changelogs, devices, skills) |
 | `routeros_get_page` | Full page by ID or title, includes callouts |
 | `routeros_lookup_property` | Exact property name, optional command path filter |
 | `routeros_command_tree` | Browse command hierarchy, optional version param |
-| `routeros_search_callouts` | FTS across callout notes/warnings/info, optional type filter |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
-| `routeros_search_videos` | FTS across YouTube video transcript segments — chapter-level results with timestamps and excerpts |
 | `routeros_command_version_check` | Which RouterOS versions include a command path |
 | `routeros_command_diff` | Diff two RouterOS versions — added/removed command paths, optional path_prefix to scope |
 | `routeros_device_lookup` | Hardware specs by name/code, FTS + structured filters, auto-attaches test results |
@@ -52,7 +50,7 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 - **Knowledge boundaries**: every tool description includes doc export date, version range, and v6 caveats
 - `get_page` defaults `max_length` to 16000 — when exceeded and page has sections, returns a table of contents (heading, level, char_count, deep-link URL) instead of truncating. TOC responses replace full callouts with a compact `callout_summary` (count + type breakdown) to reduce response size. Agent re-calls with `section` param to get specific sections.
 - `get_page` supports `section` param — pass heading text or anchor_id to get a specific section's content. Section content is also subject to `max_length`: if exceeded and sub-sections exist, returns sub-section TOC; otherwise truncates using the 80% text / 20% code budget. For pages without sections, `max_length` truncation still uses that same budget.
-- `search_callouts` supports type-only browse (no query, just type filter)
+- `search_callouts` supported type-only browse (no query, just type filter) — now TUI-only; MCP surfaces callouts via `routeros_search` related block
 - `command_version_check` returns boundary notes when command exists at earliest tracked version
 
 ## Version Sorting
@@ -133,9 +131,9 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 | `cmd` | `routeros_command_tree` | `cmd edit` resolves relative to current commands context |
 | `device` / `dev` | `routeros_device_lookup` | — |
 | `tests` | `routeros_search_tests` | Default `packet_size=512` when no filters given |
-| `callouts` / `cal` | `routeros_search_callouts` | `cal` with no args shows callouts for current page |
+| `callouts` / `cal` | *(folded into `routeros_search` related block)* | TUI-only: `cal` with no args shows callouts for current page; `cal <query>` calls `searchCallouts()` directly |
 | `changelog` / `cl` | `routeros_search_changelogs` | — |
-| `videos` / `vid` /  `video` | `routeros_search_videos` | `video` is an alias |
+| `videos` / `vid` /  `video` | *(folded into `routeros_search` related block)* | TUI-only: `vid <query>` calls `searchVideos()` directly |
 | `dude` | `routeros_dude_search` | Number selection → `routeros_dude_get_page` |
 | `diff` | `routeros_command_diff` | — |
 | `vcheck` / `vc` | `routeros_command_version_check` | — |
