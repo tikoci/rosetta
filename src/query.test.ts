@@ -51,6 +51,29 @@ const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
 beforeAll(() => {
   initDb();
 
+  // Keep this test deterministic even if another test file initialized db.ts first
+  // against a non-empty DB (e.g., workflow-generated ros-help.db).
+  db.run("PRAGMA foreign_keys=OFF;");
+  db.run("DELETE FROM skill_references");
+  db.run("DELETE FROM skills");
+  db.run("DELETE FROM dude_images");
+  db.run("DELETE FROM dude_pages");
+  db.run("DELETE FROM video_segments");
+  db.run("DELETE FROM videos");
+  db.run("DELETE FROM changelogs");
+  db.run("DELETE FROM device_test_results");
+  db.run("DELETE FROM devices");
+  db.run("DELETE FROM schema_node_presence");
+  db.run("DELETE FROM schema_nodes");
+  db.run("DELETE FROM command_versions");
+  db.run("DELETE FROM commands");
+  db.run("DELETE FROM ros_versions");
+  db.run("DELETE FROM sections");
+  db.run("DELETE FROM callouts");
+  db.run("DELETE FROM properties");
+  db.run("DELETE FROM pages");
+  db.run("PRAGMA foreign_keys=ON;");
+
   db.run(`INSERT INTO pages
     (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
      author, last_updated, word_count, code_lines, html_file)
