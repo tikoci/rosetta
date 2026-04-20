@@ -656,6 +656,105 @@ export function initDb() {
   );`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_skill_refs_skill ON skill_references(skill_id);`);
+
+  // -- Glossary (domain jargon resolution for RouterOS terms) --
+
+  db.run(`CREATE TABLE IF NOT EXISTS glossary (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    term        TEXT NOT NULL UNIQUE,
+    definition  TEXT NOT NULL,
+    aliases     TEXT,
+    category    TEXT,
+    search_hint TEXT
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_glossary_term ON glossary(term);`);
+
+  seedGlossary();
+}
+
+/**
+ * Seed the glossary table with RouterOS domain jargon. Idempotent — uses
+ * INSERT OR IGNORE so existing rows are preserved across schema reinits.
+ *
+ * Fields:
+ *   term        — canonical lookup key (lowercase)
+ *   definition  — brief one-line explanation
+ *   aliases     — comma-separated alternate spellings/abbreviations
+ *   category    — grouping: 'product', 'protocol', 'subsystem', 'concept'
+ *   search_hint — query expansion term(s) for FTS — what to actually search for
+ */
+function seedGlossary() {
+  const entries: Array<[string, string, string | null, string, string]> = [
+    // Products & platforms
+    ["chr", "Cloud Hosted Router — RouterOS VM image for hypervisors", "cloud hosted router", "product", "CHR cloud hosted router"],
+    ["routerboard", "MikroTik hardware product line running RouterOS", "rb,routerboard", "product", "RouterBOARD hardware"],
+    ["swos", "SwOS — switch operating system for CRS1xx/2xx and CSS series", "switchos,switch os", "product", "SwOS switch operating system"],
+    ["winbox", "WinBox — native Windows/macOS GUI management tool for RouterOS", null, "product", "WinBox GUI management"],
+    ["webfig", "WebFig — web-based management interface for RouterOS", null, "product", "WebFig web interface"],
+    ["the dude", "The Dude — MikroTik network monitor (GUI retired, server remains in RouterOS)", "dude", "product", "Dude network monitor"],
+    ["netinstall", "Tool for reinstalling RouterOS on MikroTik hardware via network boot", null, "product", "netinstall network boot"],
+
+    // Wireless
+    ["capsman", "Controlled Access Point Manager — centralized wireless management", "caps man,caps,csman", "subsystem", "CAPsMAN wireless controller"],
+    ["wifiwave2", "WiFi Wave2 driver — successor to legacy wireless, for newer hardware", "wave2,wifi-qcom", "subsystem", "WiFi Wave2 wireless"],
+    ["w60g", "Wireless 60GHz — 802.11ad wireless bridge interface", "60ghz,wireless wire", "subsystem", "60GHz wireless bridge"],
+
+    // Firewall & filtering
+    ["mangle", "Firewall mangle table — packet marking and header modification", null, "subsystem", "firewall mangle packet marking"],
+    ["raw", "Firewall raw table — pre-connection-tracking filtering", null, "subsystem", "firewall raw pre-conntrack"],
+    ["conntrack", "Connection tracking — stateful firewall session table", "connection tracking", "subsystem", "conntrack connection tracking"],
+    ["fasttrack", "FastTrack — kernel-level connection fast path bypassing firewall rules", "fast track,fast-track", "concept", "fasttrack fast path"],
+
+    // Routing
+    ["ospf", "OSPF — Open Shortest Path First routing protocol", null, "protocol", "OSPF routing"],
+    ["bgp", "BGP — Border Gateway Protocol for inter-AS routing", null, "protocol", "BGP routing"],
+    ["rpki", "RPKI — Resource Public Key Infrastructure for BGP route origin validation", null, "protocol", "RPKI route origin validation"],
+    ["mpls", "MPLS — Multi-Protocol Label Switching", "ldp,vpls,rsvp-te", "protocol", "MPLS label switching"],
+    ["vrf", "VRF — Virtual Routing and Forwarding (multiple routing tables)", null, "concept", "VRF virtual routing"],
+
+    // VPN & tunnels
+    ["ipsec", "IPsec — IP Security protocol suite for encrypted tunnels", "ike,ike1,ike2", "protocol", "IPsec IKE tunnel encryption"],
+    ["wireguard", "WireGuard — modern VPN tunnel protocol", "wg", "protocol", "WireGuard VPN tunnel"],
+    ["sstp", "SSTP — Secure Socket Tunneling Protocol (Microsoft VPN)", null, "protocol", "SSTP tunnel"],
+    ["l2tp", "L2TP — Layer 2 Tunneling Protocol, often paired with IPsec", null, "protocol", "L2TP tunnel"],
+    ["ovpn", "OpenVPN — SSL/TLS VPN tunnel implementation in RouterOS", "openvpn", "protocol", "OpenVPN tunnel"],
+    ["vxlan", "VXLAN — Virtual Extensible LAN overlay network", null, "protocol", "VXLAN overlay"],
+    ["gre", "GRE — Generic Routing Encapsulation tunnel", null, "protocol", "GRE tunnel"],
+    ["eoip", "EoIP — Ethernet over IP tunnel (MikroTik proprietary)", null, "protocol", "EoIP Ethernet tunnel"],
+
+    // Bridging & switching
+    ["l3hw", "L3 Hardware Offloading — hardware-accelerated IP routing on supported switches", "l3 hardware,hw offload", "concept", "L3 hardware offloading"],
+    ["vlan", "VLAN — Virtual LAN (802.1Q tagging)", "802.1q", "concept", "VLAN tagging"],
+    ["dot1x", "802.1X — port-based network access control", "802.1x,port authentication", "protocol", "dot1x port authentication"],
+    ["mlag", "MLAG — Multi-Chassis Link Aggregation", null, "protocol", "MLAG multi-chassis"],
+    ["macsec", "MACsec — 802.1AE Media Access Control Security", "802.1ae", "protocol", "MACsec layer2 encryption"],
+
+    // Services
+    ["user-manager", "User Manager — RADIUS server and hotspot user management built into RouterOS", "userman", "subsystem", "User Manager RADIUS"],
+    ["hotspot", "Hotspot — captive portal with authentication and walled garden", "captive portal", "subsystem", "Hotspot captive portal"],
+    ["mqtt", "MQTT — IoT messaging protocol client in RouterOS", null, "protocol", "MQTT IoT messaging"],
+    ["tr069", "TR-069 — CPE WAN Management Protocol for remote device management", "cwmp,acs", "protocol", "TR-069 remote management"],
+    ["snmp", "SNMP — Simple Network Management Protocol for monitoring", null, "protocol", "SNMP monitoring"],
+    ["romon", "RoMON — Router Management Overlay Network for out-of-band management", null, "subsystem", "RoMON management overlay"],
+    ["zerotier", "ZeroTier — peer-to-peer VPN overlay (extra package)", null, "protocol", "ZeroTier peer VPN"],
+
+    // System concepts
+    ["npk", "NPK — RouterOS package file format (.npk)", "package", "concept", "NPK package file"],
+    ["supout", "Support output file — diagnostic bundle generated by /system/sup-output", "support output,sup-output", "concept", "supout support output diagnostics"],
+    ["defconf", "Default configuration — factory-reset configuration script", "default config", "concept", "default configuration"],
+    ["container", "OCI container support in RouterOS (extra package, 7.4+)", "docker", "subsystem", "container Docker OCI"],
+    ["lora", "LoRa — Long Range IoT radio support (extra package)", "lorawan", "subsystem", "LoRa IoT radio"],
+    ["poe", "PoE — Power over Ethernet (in/out)", "power over ethernet", "concept", "PoE power ethernet"],
+    ["etherboot", "Etherboot — network boot mode for RouterOS reinstallation via netinstall", "net boot", "concept", "etherboot network boot netinstall"],
+  ];
+
+  const stmt = db.prepare(
+    "INSERT OR IGNORE INTO glossary (term, definition, aliases, category, search_hint) VALUES (?, ?, ?, ?, ?)",
+  );
+  for (const [term, definition, aliases, category, search_hint] of entries) {
+    stmt.run(term, definition, aliases, category, search_hint);
+  }
 }
 
 /**
@@ -707,6 +806,7 @@ export function getDbStats() {
     dude_images: count("SELECT COUNT(*) AS c FROM dude_images"),
     skills: count("SELECT COUNT(*) AS c FROM skills"),
     skill_references: count("SELECT COUNT(*) AS c FROM skill_references"),
+    glossary: count("SELECT COUNT(*) AS c FROM glossary"),
     schema_nodes: count("SELECT COUNT(*) AS c FROM schema_nodes"),
     schema_node_presence: count("SELECT COUNT(*) AS c FROM schema_node_presence"),
     ...(() => {

@@ -192,7 +192,6 @@ const {
   searchDeviceTests,
   getTestResultMeta,
   searchPages,
-  searchProperties,
   searchVideos,
   searchDude,
   getDudePage,
@@ -532,7 +531,7 @@ Capabilities:
 
 Workflow — what to do next:
 → routeros_get_page: retrieve full content for a result (use page ID from results)
-→ routeros_search_properties: find specific properties mentioned in results
+→ routeros_lookup_property: look up a specific property by exact name
 → routeros_search_callouts: find warnings/notes about topics in results
 → routeros_command_tree: browse the command hierarchy for a feature
 → routeros_search_videos: search MikroTik YouTube video transcripts for tutorials and demos
@@ -592,7 +591,6 @@ Recommended workflow for large pages:
 3. Call again with section="Section Name" to get that section's content
 
 Workflow — what to do with this content:
-→ routeros_search_properties: look up specific properties mentioned in text
 → routeros_lookup_property: get exact details for a named property
 → routeros_search_callouts: find related warnings across other pages
 → routeros_command_tree: browse the command path for features on this page`,
@@ -637,8 +635,8 @@ Returns type, default value, description, and documentation page.
 Optionally filter by command path to disambiguate (e.g., "disabled" appears everywhere).
 
 This requires the **exact property name**. If you don't know the name:
-→ routeros_search_properties: full-text search across property descriptions
-→ routeros_search: find the documentation page, then read it with routeros_get_page
+→ routeros_search: find the documentation page, then routeros_get_page to read properties in context
+→ routeros_command_tree: browse args at the command path to discover property names
 
 Examples:
 - name: "add-default-route" → DHCP client property
@@ -660,54 +658,9 @@ Examples:
         content: [
           {
             type: "text",
-            text: `No property found: "${name}"${command_path ? ` under ${command_path}` : ""}\n\nTry instead:\n- routeros_search_properties with a keyword from the property description\n- routeros_search to find the documentation page, then routeros_get_page to read it\n- routeros_command_tree at the command path to see available args`,
+            text: `No property found: "${name}"${command_path ? ` under ${command_path}` : ""}\n\nTry instead:\n- routeros_search to find the documentation page, then routeros_get_page to read properties in context\n- routeros_command_tree at the command path to see available args`,
           },
         ],
-      };
-    }
-    return {
-      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
-    };
-  },
-);
-
-// ---- routeros_search_properties ----
-
-server.registerTool(
-  "routeros_search_properties",
-  {
-    description: `Search RouterOS properties by name or description text.
-
-Full-text search across 4,860 property names and descriptions from 145 pages.
-Use when you don't know the exact property name but know what it does.
-If AND returns nothing, the engine automatically retries with OR.
-
-If this returns empty:
-→ routeros_search: find the documentation page containing the feature
-→ routeros_get_page: read the page — properties are embedded in page text
-→ routeros_command_tree: browse args at a command path for property names
-
-Examples:
-- "gateway reachability check" → finds check-gateway properties
-- "snooping" → finds dhcp-snooping, igmp-snooping properties
-- "trusted" → finds bridge port trusted property`,
-    inputSchema: {
-      query: z.string().describe("Search query for property descriptions"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(50)
-        .optional()
-        .default(10)
-        .describe("Max results (default 10)"),
-    },
-  },
-  async ({ query, limit }) => {
-    const results = searchProperties(query, limit);
-    if (results.length === 0) {
-      return {
-        content: [{ type: "text", text: `No properties matched: "${query}"\n\nTry instead:\n- routeros_search to find the documentation page containing this feature\n- routeros_get_page to read properties directly from page text\n- routeros_command_tree to browse args at the command path\n- Shorter/different keywords (property descriptions are brief)` }],
       };
     }
     return {
@@ -735,7 +688,6 @@ Workflow — combine with other tools:
 → routeros_get_page: read the linked documentation page for a command
 → routeros_lookup_property: look up arg names as properties for details
 → routeros_command_version_check: check when a command was added
-→ routeros_search_properties: search for properties under this path
 
 Examples:
 - path: "/ip" → address, arp, dhcp-client, dhcp-server, firewall, route, etc.

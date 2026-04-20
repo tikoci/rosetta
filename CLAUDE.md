@@ -22,7 +22,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Three outputs (three surfaces, one core):
 
-1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — currently 16 tools plus 2 CSV resources for LLM agents. Consolidation target: ~8–10 tools via a smarter `routeros_search`. See `BACKLOG.md` "North Star".
+1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — currently 15 tools plus 2 CSV resources for LLM agents. Consolidation target: ~8–10 tools via a smarter `routeros_search`. See `BACKLOG.md` "North Star".
 2. **Browse TUI** (`src/browse.ts`) — interactive terminal browser with keyword-driven NL-like input. **First-class path into the data, not a test harness that happens to be usable.** Every MCP tool has a TUI command that mirrors its shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.).
 3. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration.
 
@@ -48,7 +48,7 @@ This is a deliberate design, not a happy accident. The TUI's dual use (human too
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **8 agent skills** from tikoci/routeros-skills (community-created, human-reviewed guides with provenance attribution)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs, skills) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 16 tools and 8+ resources: search, get_page, lookup_property, search_properties, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
+- **MCP server** with 15 tools and 8+ resources: search, get_page, lookup_property, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
 
 ## Schema
 
@@ -304,6 +304,17 @@ skills_fts USING fts5(name, description, content,
     content=skills, content_rowid=id,
     tokenize='porter unicode61'
 )
+
+-- Glossary of RouterOS terms and abbreviations (seeded at DB init)
+glossary (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    term TEXT NOT NULL UNIQUE,   -- canonical lowercase term
+    definition TEXT NOT NULL,
+    category TEXT NOT NULL,      -- 'product' | 'protocol' | 'subsystem' | 'concept'
+    aliases TEXT,                -- comma-separated alternate names
+    search_hint TEXT,            -- suggested search query for routeros_search
+    UNIQUE(term)
+)
 ```
 
 ## Usage
@@ -336,7 +347,6 @@ Register in MCP client config (bunx example — no paths needed):
 | `routeros_search` | FTS5 search across pages. BM25 ranked, AND→OR fallback |
 | `routeros_get_page` | Full page text by ID or title. Section-aware: `max_length` defaults to 16000; large pages return TOC (with callout summary instead of full callouts); `section` param retrieves specific sections (also subject to `max_length`) |
 | `routeros_lookup_property` | Property by exact name, optionally filtered by command path |
-| `routeros_search_properties` | FTS across property names + descriptions, AND→OR fallback |
 | `routeros_command_tree` | Browse command hierarchy at a given path |
 | `routeros_search_callouts` | FTS across callouts, type-only browse, AND→OR fallback |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
@@ -489,7 +499,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 16 tools + 2 CSV resources, stdio + Streamable HTTP transport |
+| `src/mcp.ts` | MCP server — 15 tools + 2 CSV resources, stdio + Streamable HTTP transport |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |

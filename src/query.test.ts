@@ -37,6 +37,9 @@ const {
   listSkills,
   getSkill,
   getSkillReference,
+  lookupGlossary,
+  listGlossary,
+  KNOWN_TOPICS,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
@@ -1933,5 +1936,106 @@ describe("getDudePage", () => {
   test("returns null for non-existent page", () => {
     expect(getDudePage(999)).toBeNull();
     expect(getDudePage("NonExistent")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// KNOWN_TOPICS
+// ---------------------------------------------------------------------------
+
+describe("KNOWN_TOPICS", () => {
+  test("contains core RouterOS subsystems", () => {
+    expect(KNOWN_TOPICS.has("firewall")).toBe(true);
+    expect(KNOWN_TOPICS.has("bridge")).toBe(true);
+    expect(KNOWN_TOPICS.has("bgp")).toBe(true);
+    expect(KNOWN_TOPICS.has("ospf")).toBe(true);
+    expect(KNOWN_TOPICS.has("container")).toBe(true);
+    expect(KNOWN_TOPICS.has("wifi")).toBe(true);
+    expect(KNOWN_TOPICS.has("ipsec")).toBe(true);
+    expect(KNOWN_TOPICS.has("dns")).toBe(true);
+  });
+
+  test("contains changelog-derived categories", () => {
+    expect(KNOWN_TOPICS.has("winbox")).toBe(true);
+    expect(KNOWN_TOPICS.has("hotspot")).toBe(true);
+    expect(KNOWN_TOPICS.has("lte")).toBe(true);
+    expect(KNOWN_TOPICS.has("wireguard")).toBe(true);
+    expect(KNOWN_TOPICS.has("zerotier")).toBe(true);
+  });
+
+  test("contains top-level command paths", () => {
+    expect(KNOWN_TOPICS.has("ip")).toBe(true);
+    expect(KNOWN_TOPICS.has("system")).toBe(true);
+    expect(KNOWN_TOPICS.has("interface")).toBe(true);
+    expect(KNOWN_TOPICS.has("app")).toBe(true);
+  });
+
+  test("does not contain stop words", () => {
+    expect(KNOWN_TOPICS.has("the")).toBe(false);
+    expect(KNOWN_TOPICS.has("how")).toBe(false);
+    expect(KNOWN_TOPICS.has("configure")).toBe(false);
+  });
+
+  test("has reasonable size (80-200 entries)", () => {
+    expect(KNOWN_TOPICS.size).toBeGreaterThanOrEqual(80);
+    expect(KNOWN_TOPICS.size).toBeLessThanOrEqual(200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Glossary
+// ---------------------------------------------------------------------------
+
+describe("lookupGlossary", () => {
+  test("finds exact term match", () => {
+    const result = lookupGlossary("chr");
+    expect(result).not.toBeNull();
+    expect(result!.term).toBe("chr");
+    expect(result!.definition).toContain("Cloud Hosted Router");
+    expect(result!.category).toBe("product");
+  });
+
+  test("case-insensitive lookup", () => {
+    const result = lookupGlossary("CHR");
+    expect(result).not.toBeNull();
+    expect(result!.term).toBe("chr");
+  });
+
+  test("finds term by alias", () => {
+    const result = lookupGlossary("openvpn");
+    expect(result).not.toBeNull();
+    expect(result!.term).toBe("ovpn");
+  });
+
+  test("returns null for unknown term", () => {
+    expect(lookupGlossary("nonexistentterm")).toBeNull();
+  });
+
+  test("returns null for empty input", () => {
+    expect(lookupGlossary("")).toBeNull();
+  });
+
+  test("search_hint field is populated", () => {
+    const result = lookupGlossary("capsman");
+    expect(result).not.toBeNull();
+    expect(result!.search_hint).toBeTruthy();
+    expect(result!.search_hint).toContain("CAPsMAN");
+  });
+});
+
+describe("listGlossary", () => {
+  test("returns all entries when no category", () => {
+    const entries = listGlossary();
+    expect(entries.length).toBeGreaterThanOrEqual(40);
+  });
+
+  test("filters by category", () => {
+    const products = listGlossary("product");
+    expect(products.length).toBeGreaterThan(0);
+    expect(products.every(e => e.category === "product")).toBe(true);
+  });
+
+  test("returns empty for non-existent category", () => {
+    expect(listGlossary("nonexistent")).toEqual([]);
   });
 });

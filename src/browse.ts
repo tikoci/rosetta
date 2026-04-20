@@ -20,6 +20,7 @@ import type {
   DeviceResult,
   DeviceTestRow,
   DudeSearchResult,
+  GlossaryEntry,
   SearchResponse,
   SearchResult,
   SectionTocEntry,
@@ -37,6 +38,8 @@ import {
   getTestResultMeta,
   listSkills,
   lookupProperty,
+  lookupGlossary,
+  listGlossary,
   searchCallouts,
   searchChangelogs,
   searchDevices,
@@ -890,6 +893,7 @@ function renderHelp(): string {
   cmd("page <id|title>", "", "View full page", "routeros_get_page");
   cmd("prop <name>", "p", "Look up property (scoped to current page)", "routeros_lookup_property");
   cmd("props <query>", "sp", "Search properties by FTS", "routeros_search_properties");
+  cmd("glossary [term]", "g", "Look up RouterOS jargon / list glossary");
   cmd("cmd [path]", "tree", "Browse command tree", "routeros_command_tree");
   cmd("device <query>", "dev", "Look up device specs", "routeros_device_lookup");
   cmd("tests [device] [type]", "", "Cross-device benchmarks", "routeros_search_tests");
@@ -998,6 +1002,12 @@ async function dispatch(input: string): Promise<void> {
     case "props": {
       if (!rest) { console.log(dim("  Usage: props <query>")); return; }
       await doSearchProperties(rest);
+      return;
+    }
+
+    case "g":
+    case "glossary": {
+      await doGlossary(rest);
       return;
     }
 
@@ -1263,6 +1273,44 @@ async function doSearchProperties(query: string): Promise<void> {
   }
   await paged(`  ${bold(String(results.length))} properties matching ${cyan(`"${query}"`)}\n\n${renderProperties(results)}`);
   pushCtx({ type: "properties", query, results: results.map(p => ({ name: p.name, page_id: p.page_id, page_title: p.page_title })) });
+}
+
+async function doGlossary(rest: string): Promise<void> {
+  if (!rest) {
+    // List all glossary entries grouped by category
+    const entries = listGlossary();
+    if (entries.length === 0) {
+      console.log(dim("  Glossary is empty."));
+      return;
+    }
+    const grouped = new Map<string, GlossaryEntry[]>();
+    for (const e of entries) {
+      const list = grouped.get(e.category) || [];
+      list.push(e);
+      grouped.set(e.category, list);
+    }
+    const lines: string[] = [`  ${bold("Glossary")} ${dim(`(${entries.length} terms)`)}\n`];
+    for (const [cat, items] of grouped) {
+      lines.push(`  ${yellow(cat.toUpperCase())}`);
+      for (const e of items) {
+        const aliases = e.aliases ? ` ${dim(`(${e.aliases})`)}` : "";
+        lines.push(`    ${cyan(e.term)}${aliases} — ${e.definition}`);
+      }
+      lines.push("");
+    }
+    await paged(lines.join("\n"));
+    return;
+  }
+  // Look up a specific term
+  const entry = lookupGlossary(rest);
+  if (!entry) {
+    console.log(dim(`  Term "${rest}" not in glossary.`));
+    console.log(`  Try: ${cyan("glossary")} ${dim("(no args)")} to see all terms, or ${cyan("s")} ${rest}`);
+    return;
+  }
+  const aliases = entry.aliases ? `\n  ${dim("Aliases:")} ${entry.aliases}` : "";
+  const hint = entry.search_hint ? `\n  ${dim("Search:")} ${cyan(entry.search_hint)}` : "";
+  console.log(`\n  ${bold(entry.term)} ${dim(`[${entry.category}]`)}\n  ${entry.definition}${aliases}${hint}\n`);
 }
 
 async function doCommandTree(path: string): Promise<void> {

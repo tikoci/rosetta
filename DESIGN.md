@@ -276,7 +276,7 @@ Agents in real sessions typically use `routeros_search` and `routeros_get_page`;
 
 The shape of `deep-inspect.json` drives the schema on this side. Structural work, per-arch presence, and completion data are all landed in `schema_nodes`. The `_attrs.completion` catch-all holds completion objects; promotion to structured columns is the next step once shape is confirmed stable across versions.
 
-RouterOS commands have four parts: **Path** (`/ip/`), **Dir** (`/ip/address`), **Command** (`set|print|remove|add`), **Parameters** (named or positional). `routeros_search_properties` addresses only part 4 without context — it's marked for deprecation as an MCP tool. The property data matters for other reasons (feeding restraml's enrichment pipeline).
+RouterOS commands have four parts: **Path** (`/ip/`), **Dir** (`/ip/address`), **Command** (`set|print|remove|add`), **Parameters** (named or positional). The `searchProperties()` query function exists for internal use (TUI, restraml enrichment), but was removed as an MCP tool — it was useless without command-tree context. Property data matters for other reasons (feeding restraml's enrichment pipeline).
 
 ## North Star Architecture — Unified `routeros_search`
 
@@ -322,7 +322,7 @@ Never return bare empty results. Run OR fallback → re-run classifier side quer
 Baker's dozen ceiling, targeting ~8–10 tools after North Star ships.
 
 **Fold into `routeros_search` side queries (drop as standalone MCP tools):**
-- `routeros_search_properties` — useless without command-tree context
+- `routeros_search_properties` — removed: useless without command-tree context (function kept internally for TUI)
 - `routeros_search_callouts` — fold into `related.callouts`
 - `routeros_search_videos` — fold into `related.videos`
 

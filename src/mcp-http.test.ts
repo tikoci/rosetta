@@ -317,7 +317,7 @@ describe("HTTP transport: session lifecycle", () => {
     expect(serverInfo.name).toBe("rosetta");
   });
 
-  test("tools/list returns all 16 tools after initialization", async () => {
+  test("tools/list returns all 15 tools after initialization", async () => {
     const { sessionId } = await mcpInitialize(server.url);
 
     // Send initialized notification first (required by protocol)
@@ -328,13 +328,12 @@ describe("HTTP transport: session lifecycle", () => {
 
     const result = (messages[0] as Record<string, unknown>).result as Record<string, unknown>;
     const tools = result.tools as Array<{ name: string }>;
-    expect(tools.length).toBe(16);
+    expect(tools.length).toBe(15);
 
     const toolNames = tools.map((t) => t.name).sort();
     expect(toolNames).toContain("routeros_search");
     expect(toolNames).toContain("routeros_get_page");
     expect(toolNames).toContain("routeros_lookup_property");
-    expect(toolNames).toContain("routeros_search_properties");
     expect(toolNames).toContain("routeros_command_tree");
     expect(toolNames).toContain("routeros_search_callouts");
     expect(toolNames).toContain("routeros_search_changelogs");
@@ -549,8 +548,8 @@ describe("HTTP transport: multi-session", () => {
     const tools1 = ((msgs1[0] as Record<string, unknown>).result as Record<string, unknown>).tools as unknown[];
     const tools2 = ((msgs2[0] as Record<string, unknown>).result as Record<string, unknown>).tools as unknown[];
 
-    expect(tools1.length).toBe(16);
-    expect(tools2.length).toBe(16);
+    expect(tools1.length).toBe(15);
+    expect(tools2.length).toBe(15);
   });
 
   test("deleting one session does not affect another", async () => {
@@ -572,7 +571,7 @@ describe("HTTP transport: multi-session", () => {
     // Client2 still works
     const msgs = await mcpRequest(server.url, client2.sessionId, "tools/list", 2);
     const tools = ((msgs[0] as Record<string, unknown>).result as Record<string, unknown>).tools as unknown[];
-    expect(tools.length).toBe(16);
+    expect(tools.length).toBe(15);
 
     // Client1 is gone
     const resp = await fetch(server.url, {

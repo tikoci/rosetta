@@ -8,7 +8,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse
 
 The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. Both the MCP tool layer and the TUI are thin adapters over query functions in `src/query.ts`. When adding a feature, default to putting the logic in core (`query.ts`) so both surfaces inherit it. PRs that grow TUI-only or MCP-only heuristics are a smell — flag and move the logic to core. See `BACKLOG.md` "Guiding Principles" and "North Star — unified `routeros_search`".
 
-**Consolidation direction:** the current 16 tools are being compressed toward ~8–10 via a smarter `routeros_search` that classifies the input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. See the North Star in `BACKLOG.md` before adding a new tool — the right answer is usually "make `routeros_search` smarter, not more tools."
+**Consolidation direction:** the current 15 tools are being compressed toward ~8–10 via a smarter `routeros_search` that classifies the input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. See the North Star in `BACKLOG.md` before adding a new tool — the right answer is usually "make `routeros_search` smarter, not more tools."
 
 ## MCP Tool Conventions
 - Server name: `"rosetta"` — never change
@@ -18,13 +18,12 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 - **Before adding a new tool, ask:** can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
 
-## 16 Tools
+## 15 Tools
 | Tool | Purpose |
 |------|---------|  
 | `routeros_search` | FTS5 across pages, BM25 ranked |
 | `routeros_get_page` | Full page by ID or title, includes callouts |
 | `routeros_lookup_property` | Exact property name, optional command path filter |
-| `routeros_search_properties` | FTS across property names + descriptions |
 | `routeros_command_tree` | Browse command hierarchy, optional version param |
 | `routeros_search_callouts` | FTS across callout notes/warnings/info, optional type filter |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
@@ -130,7 +129,7 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 |-------------|----------|-------|
 | `search` / bare text | `routeros_search` | — |
 | `page` | `routeros_get_page` | — |
-| `prop` / `props` | `routeros_lookup_property` / `routeros_search_properties` | `prop` is context-scoped to current page |
+| `prop` / `props` | `routeros_lookup_property` | `prop` is context-scoped to current page; `props` uses `searchProperties()` (internal, no MCP tool) |
 | `cmd` | `routeros_command_tree` | `cmd edit` resolves relative to current commands context |
 | `device` / `dev` | `routeros_device_lookup` | — |
 | `tests` | `routeros_search_tests` | Default `packet_size=512` when no filters given |

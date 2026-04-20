@@ -6,7 +6,7 @@
 >
 > **Design principles and the North Star architecture are in `DESIGN.md`.** This file is the *action list* — what to build, what needs a decision, what's waiting on a trigger.
 >
-> **Last holistic review:** 2026-04-19. Restructured from 784→~300 lines. Design content moved to `DESIGN.md`. Completed items removed. See git history for prior detail.
+> **Last holistic review:** 2026-04-20. Known-topics, glossary, and drop-search-properties shipped. Three "Needs Input" items resolved.
 
 ---
 
@@ -24,10 +24,6 @@
 
 Clear scope, no blockers, ready to act.
 
-### 🔴 Known topics extraction
-
-Build a seed list of topic tokens from: (1) `SELECT DISTINCT category FROM changelogs`, (2) top-level command tree names, (3) optionally second-level doc path tokens. Emit as a TS constant or seed table. Used by the classifier. **Quick win — shippable now, enables everything below.**
-
 ### 🔴 Input classifier for `routeros_search` (North Star step 2)
 
 `classifyQuery(input: string): QueryClassification` in `src/query.ts` or `src/classify.ts`. Regex detectors for command path, version, device model, property name, and known-topic tokens. Ship with table-driven unit tests against a corpus of ~30 real RouterOS questions. Not yet wired into `searchPages`. See `DESIGN.md` "North Star Architecture" for detector table and response shape.
@@ -40,15 +36,9 @@ Wrap `searchPages` in a `searchAll(query)` that runs classifier side queries in 
 
 When `max_length` is small, rank-include semantically valuable content first: (1) properties, (2) callouts, (3) script examples, (4) headings, (5) ordinary prose (currently first — that's backwards). Secondary: synthetic `related_videos` section via FTS5 match. This is the "hidden consolidation" lever — fewer follow-up tool calls needed. Core change in `query.ts::getPage()`.
 
-### 🔴 Drop `routeros_search_properties` as MCP tool
+### 🔴 Smart `get_page()` — budget-aware prioritization
 
-Remove tool registration in `mcp.ts`. Keep `searchProperties()` in `query.ts` (TUI `props` still works). Keep `routeros_lookup_property` (exact-name lookup is different). Data stays — feeds restraml enrichment. Document that property info surfaces via `routeros_get_page`.
-
-### 🔴 Glossary table — domain jargon resolution
-
-`glossary (term, definition, aliases, category, search_hint)` — ~30-50 RouterOS terms (CHR, CAPsMAN, mangle, The Dude, etc.) with `search_hint` for query expansion. Cheapest classifier detector — O(1) lookup, fires before FTS. Can both expand queries and annotate responses. TUI: `g <term>`. MCP: fold into `routeros_search` as `glossary_match` field (Principle 3). Seed from callouts that define terms inline.
-
-### 🟡 Schema version retention (GC)
+When `max_length` is small, rank-include semantically valuable content first: (1) properties, (2) callouts, (3) script examples, (4) headings, (5) ordinary prose (currently first — that's backwards). Secondary: synthetic `related_videos` section via FTS5 match. This is the "hidden consolidation" lever — fewer follow-up tool calls needed. Core change in `query.ts::getPage()`.
 
 Keep ~4 active channel heads (long-term, stable, testing, development). Drop `schema_node_presence` rows for versions older than previous long-term on each extraction run. Keeps junction at ~160K rows instead of growing unboundedly. GC is a release-pipeline step (`make gc-versions`). Changelogs exempt (full v7 record, tiny data).
 
@@ -101,17 +91,17 @@ Compiled binaries are primarily internal (OCI images). Update README/MANUAL to d
 
 Items where the design isn't obvious. Flagging for user review.
 
-### 🟡 "Looks like a command, but syntax might be wrong"
+### 🟡 "Looks like a command, but args not found"
 
-Classifier needs wording for partial matches: "path exists; `chain` argument couldn't be confirmed for this command in 7.22 — may still be correct in older versions." Never say "this is wrong" — say "this is not obviously correct." Needs careful wording before the classifier ships.
+**Decided:** When classifier detects a command path that exists but has unrecognized arguments, respond with: "path is right but args were not found" — never say "this is wrong." Wording: "The path `/ip/firewall/filter` exists, but the argument `chain` could not be confirmed in the current data. It may be valid." Ship with the classifier.
 
-### 🟢 Direct SQL access — read-only `run_sql` tool?
+### 🟢 Direct SQL access — DECIDED: no
 
-Schema-as-resource (option 1) is done. Option 2 (read-only `rosetta_query_sql(sql)` tool) revisit only if usage data shows `sqlite3` shell-out is common AND `searchAll` proves insufficient. Adds a tool to a catalog we're trying to shrink.
+Schema-as-resource is sufficient. No `run_sql` tool planned. Revisit only if `searchAll` proves insufficient and `sqlite3` shell-out is common.
 
-### 🟢 TUI session log as classifier corpus
+### 🟢 TUI session log — DECIDED: defer
 
-Browse session transcripts as an evaluation corpus for the classifier. Build before or after North Star? Before = evaluation data; after = less churn. Opt-in, local-only.
+Build after North Star classifier ships. Opt-in, local-only.
 
 ### 🟢 Property name fuzzy matching
 
