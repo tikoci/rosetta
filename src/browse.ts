@@ -21,7 +21,7 @@ import type {
   DeviceTestRow,
   DudeSearchResult,
   GlossaryEntry,
-  SearchResponse,
+  SearchAllResponse,
   SearchResult,
   SectionTocEntry,
   VideoSearchResult,
@@ -40,12 +40,12 @@ import {
   lookupProperty,
   lookupGlossary,
   listGlossary,
+  searchAll,
   searchCallouts,
   searchChangelogs,
   searchDevices,
   searchDeviceTests,
   searchDude,
-  searchPages,
   searchProperties,
   searchVideos,
 } from "./query.ts";
@@ -195,7 +195,7 @@ function waitForKey(): Promise<string> {
 
 type Context =
   | { type: "home" }
-  | { type: "search"; response: SearchResponse; results: SearchResult[] }
+  | { type: "search"; response: SearchAllResponse; results: SearchResult[] }
   | { type: "page"; pageId: number; title: string; commandPath?: string }
   | { type: "sections"; pageId: number; title: string; sections: SectionTocEntry[] }
   | { type: "commands"; path: string }
@@ -274,18 +274,22 @@ function renderWelcome(): string {
   return box(lines, "rosetta");
 }
 
-function renderSearchResults(resp: SearchResponse): string {
+function renderSearchResults(resp: SearchAllResponse): string {
   const out: string[] = [];
-  const modeNote = resp.fallbackMode === "or" ? dim(" (OR fallback)") : "";
-  out.push(`  ${bold(String(resp.results.length))} of ${resp.total} results for ${cyan(`"${resp.query}"`)}${modeNote}`);
+  const modeNote = resp.fallback_mode === "or" ? dim(" (OR fallback)") : "";
+  out.push(`  ${bold(String(resp.pages.length))} of ${resp.total_pages} page results for ${cyan(`"${resp.query}"`)}${modeNote}`);
+
+  // Classifier signals — compact one-line summary when anything fired
+  const classLine = renderClassified(resp.classified);
+  if (classLine) out.push(`  ${dim("classified:")} ${classLine}`);
   if (resp.note) {
     out.push(`  ${yellow("Hint:")} ${resp.note}`);
   }
   out.push("");
 
   const w = termWidth();
-  for (let i = 0; i < resp.results.length; i++) {
-    const r = resp.results[i];
+  for (let i = 0; i < resp.pages.length; i++) {
+    const r = resp.pages[i];
     const num = dim(`${String(i + 1).padStart(3)}  `);
     const title = bold(truncate(r.title, 30));
     const path = dim(truncate(r.path, Math.max(20, w - 55)));
@@ -304,6 +308,23 @@ function renderSearchResults(resp: SearchResponse): string {
     out.push("");
   }
 
+  // Related block — compact summary of side-query hits
+  const related = renderRelated(resp.related, w);
+  if (related.length > 0) {
+    out.push(`  ${bold("related")}`);
+    out.push(...related);
+    out.push("");
+  }
+
+  // Next-steps block — always render the top 3 suggestions
+  if (resp.next_steps.length > 0) {
+    out.push(`  ${bold("next")}`);
+    for (const step of resp.next_steps.slice(0, 3)) {
+      out.push(`       ${dim("→")} ${step}`);
+    }
+    out.push("");
+  }
+
   // Navigation hints
   const hints = [
     `${cyan("[N]")} view page`,
@@ -313,6 +334,62 @@ function renderSearchResults(resp: SearchResponse): string {
   ];
   out.push(`  ${hints.join("  ")}`);
   return out.join("\n");
+}
+
+/** One-line summary of classifier output — empty string if nothing fired. */
+function renderClassified(c: SearchAllResponse["classified"]): string {
+  const parts: string[] = [];
+  if (c.command_path) parts.push(`path=${cyan(c.command_path)}`);
+  if (c.version) parts.push(`version=${magenta(c.version)}`);
+  if (c.device) parts.push(`device=${yellow(c.device)}`);
+  if (c.property) parts.push(`property=${green(c.property)}`);
+  if (c.topics.length > 0) parts.push(`topics=[${c.topics.join(",")}]`);
+  if (c.command_fragment) {
+    if (c.command_fragment.verbs.length > 0) parts.push(`verbs=[${c.command_fragment.verbs.join(",")}]`);
+    if (c.command_fragment.pairs.length > 0) {
+      const pairs = c.command_fragment.pairs.map((p) => `${p.key}=${p.value}`).join(" ");
+      parts.push(`args={${pairs}}`);
+    }
+  }
+  return parts.join("  ");
+}
+
+/** Render related sections as one line each. */
+function renderRelated(related: SearchAllResponse["related"], w: number): string[] {
+  const out: string[] = [];
+  if (related.command_node) {
+    const n = related.command_node;
+    const link = n.linked_page ? ` → page #${n.linked_page.id} "${n.linked_page.title}"` : "";
+    out.push(`       ${dim("cmd")}  ${cyan(n.path)} (${n.type})${link}`);
+  }
+  if (related.commands?.length) {
+    const names = related.commands.map((c) => c.name).join(", ");
+    out.push(`       ${dim("children")}  ${truncate(names, w - 16)}`);
+  }
+  if (related.properties?.length) {
+    const props = related.properties.map((p) => p.name).join(", ");
+    out.push(`       ${dim("props")}  ${truncate(props, w - 14)}`);
+  }
+  if (related.devices?.length) {
+    const devs = related.devices.map((d) => d.product_name).join(", ");
+    out.push(`       ${dim("devices")}  ${truncate(devs, w - 16)}`);
+  }
+  if (related.changelogs?.length) {
+    const first = related.changelogs[0];
+    out.push(`       ${dim("changelog")}  ${first.version} ${first.category}: ${truncate(first.description, w - 40)}`);
+  }
+  if (related.videos?.length) {
+    const v = related.videos[0];
+    out.push(`       ${dim("video")}  ${truncate(v.title, w - 14)}`);
+  }
+  if (related.callouts?.length) {
+    const c = related.callouts[0];
+    out.push(`       ${dim("callout")}  ${c.type}: ${truncate(c.excerpt, w - 20)}`);
+  }
+  if (related.skills?.length) {
+    out.push(`       ${dim("skill")}  ${related.skills[0].name}`);
+  }
+  return out;
 }
 
 function renderPage(page: NonNullable<ReturnType<typeof getPage>>): string {
@@ -1203,14 +1280,9 @@ async function handleNumberSelect(idx: number): Promise<void> {
 // ── Action functions ──
 
 async function doSearch(query: string): Promise<void> {
-  const resp = searchPages(query);
-  if (resp.results.length === 0) {
-    const extra = resp.note ? ` ${yellow("Hint:")} ${resp.note}` : "";
-    console.log(`  ${dim("No results.")} Try: ${cyan("props")} ${query}, ${cyan("cal")} ${query}, ${cyan("vid")} ${query}${extra}`);
-    return;
-  }
+  const resp = searchAll(query);
   await paged(renderSearchResults(resp));
-  pushCtx({ type: "search", response: resp, results: resp.results });
+  pushCtx({ type: "search", response: resp, results: resp.pages });
 }
 
 async function doPage(idOrTitle: string, sectionName?: string): Promise<void> {

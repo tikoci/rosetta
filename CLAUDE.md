@@ -22,7 +22,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Three outputs (three surfaces, one core):
 
-1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — currently 15 tools plus 2 CSV resources for LLM agents. Consolidation target: ~8–10 tools via a smarter `routeros_search`. See `BACKLOG.md` "North Star".
+1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — 13 tools plus 2 CSV resources for LLM agents. Unified `routeros_search` runs a regex classifier (`src/classify.ts`), executes side queries in parallel, and returns pages + a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills) + `next_steps` hints. Consolidation from 15 tools achieved by folding `routeros_search_callouts` and `routeros_search_videos` into that `related` block; see `DESIGN.md` "North Star".
 2. **Browse TUI** (`src/browse.ts`) — interactive terminal browser with keyword-driven NL-like input. **First-class path into the data, not a test harness that happens to be usable.** Every MCP tool has a TUI command that mirrors its shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.).
 3. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration.
 
@@ -48,7 +48,7 @@ This is a deliberate design, not a happy accident. The TUI's dual use (human too
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **8 agent skills** from tikoci/routeros-skills (community-created, human-reviewed guides with provenance attribution)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs, skills) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 15 tools and 8+ resources: search, get_page, lookup_property, command_tree, search_callouts, search_changelogs, search_videos, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
+- **MCP server** with 13 tools and 8+ resources: search, get_page, lookup_property, command_tree, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; callouts and videos surface inside `routeros_search`'s `related` block (no longer standalone tools). Resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
 
 ## Schema
 
@@ -344,22 +344,21 @@ Register in MCP client config (bunx example — no paths needed):
 
 | Tool | Purpose |
 |------|---------|
-| `routeros_search` | FTS5 search across pages. BM25 ranked, AND→OR fallback |
-| `routeros_get_page` | Full page text by ID or title. Section-aware: `max_length` defaults to 16000; large pages return TOC (with callout summary instead of full callouts); `section` param retrieves specific sections (also subject to `max_length`) |
+| `routeros_search` | Unified RouterOS search — regex classifier (command path, version, device, topics) + BM25 FTS + parallel side queries. Returns `{query, classified, pages, related: {command_node, properties, devices, callouts, videos, changelogs, skills}, next_steps}` |
+| `routeros_get_page` | Full page text by ID or title. Section-aware: `max_length` defaults to 16000; large pages return TOC with **top properties + related videos + callout summary** surfaced up front; `section` param retrieves specific sections |
 | `routeros_lookup_property` | Property by exact name, optionally filtered by command path |
 | `routeros_command_tree` | Browse command hierarchy at a given path |
-| `routeros_search_callouts` | FTS across callouts, type-only browse, AND→OR fallback |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
-| `routeros_search_videos` | FTS across YouTube video transcript segments — chapter-level results with timestamps and excerpts |
 | `routeros_command_version_check` | Version range for a command path, boundary notes |
 | `routeros_command_diff` | Structural diff between two RouterOS versions — added/removed commands at a path prefix |
 | `routeros_device_lookup` | Hardware specs by product name/code, FTS search with structured filters (architecture, RAM, license, PoE, wireless) |
 | `routeros_search_tests` | Cross-device performance benchmarks — filter by test_type, mode, configuration, packet_size; one call replaces 125+ individual lookups |
-| `routeros_search_videos` | FTS across YouTube video transcript segments — chapter-level results with timestamps and excerpts |
 | `routeros_dude_search` | FTS across archived Dude wiki docs — separate from main RouterOS search |
 | `routeros_dude_get_page` | Full Dude wiki page by ID or title, with screenshot metadata |
 | `routeros_stats` | DB health: page/property/command/device counts, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions per channel |
+
+**Folded into `routeros_search.related`** (no longer standalone tools): callouts (FTS match surfaced in `related.callouts`), videos (FTS match surfaced in `related.videos`). `searchCallouts` and `searchVideos` remain in `query.ts` as internal helpers used by `searchAll()`.
 
 Tool descriptions include workflow arrows (→ next tool) and empty-result hints to guide LLM agents between tools.
 
@@ -499,7 +498,8 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 15 tools + 2 CSV resources, stdio + Streamable HTTP transport |
+| `src/mcp.ts` | MCP server — 13 tools + 2 CSV resources, stdio + Streamable HTTP transport |
+| `src/classify.ts` | Pre-search regex classifier — detects command path, version, topics, device model, command fragment, property-name candidate. Pure module, no DB |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
@@ -520,6 +520,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/search.ts` | CLI search tool |
 | `src/browse.ts` | Interactive terminal browser — REPL with paging, OSC 8 links, context-scoped navigation |
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
+| `src/classify.test.ts` | Bun tests — 42 table-driven cases covering every detector + overlap cases from DESIGN.md |
 | `src/canonicalize.test.ts` | Bun tests — CLI path canonicalization: 61 tests for path forms, subshells, blocks, navigation |
 | `src/extract-videos.test.ts` | yt-dlp mock tests + cache function tests (saveCache/importCache/loadKnownBad/findLatestCache) |
 | `src/schema-roundtrip.test.ts` | Bun tests — schema importer round-trip: fixture walk/merge, arch diffs, desc parsing, completion, legacy compat |

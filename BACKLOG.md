@@ -7,6 +7,8 @@
 > **Design principles and the North Star architecture are in `DESIGN.md`.** This file is the *action list* — what to build, what needs a decision, what's waiting on a trigger.
 >
 > **Last holistic review:** 2026-04-20. Known-topics, glossary, and drop-search-properties shipped. Three "Needs Input" items resolved.
+>
+> **Shipped since last review:** North Star steps 2–4 — `classifyQuery` (src/classify.ts, 42 table-driven tests), `searchAll()` wrapper (src/query.ts) wired into both MCP `routeros_search` and TUI, dropped folded standalone tools `routeros_search_callouts` and `routeros_search_videos` (tool count 15→13; content surfaces in `related` block instead), and budget-aware `getPage()` that includes `properties` + `related_videos` on TOC-mode responses.
 
 ---
 
@@ -24,21 +26,7 @@
 
 Clear scope, no blockers, ready to act.
 
-### 🔴 Input classifier for `routeros_search` (North Star step 2)
-
-`classifyQuery(input: string): QueryClassification` in `src/query.ts` or `src/classify.ts`. Regex detectors for command path, version, device model, property name, and known-topic tokens. Ship with table-driven unit tests against a corpus of ~30 real RouterOS questions. Not yet wired into `searchPages`. See `DESIGN.md` "North Star Architecture" for detector table and response shape.
-
-### 🔴 `searchAll()` — multi-table search wrapper (North Star step 3)
-
-Wrap `searchPages` in a `searchAll(query)` that runs classifier side queries in parallel. Returns the enriched response shape (pages + related callouts/changelogs/videos/commands/devices + next_steps). Wire into both `routeros_search` (MCP) and TUI `s` command. Per Principle 1, neither adapter duplicates logic.
-
-### 🔴 Smart `get_page()` — budget-aware prioritization
-
-When `max_length` is small, rank-include semantically valuable content first: (1) properties, (2) callouts, (3) script examples, (4) headings, (5) ordinary prose (currently first — that's backwards). Secondary: synthetic `related_videos` section via FTS5 match. This is the "hidden consolidation" lever — fewer follow-up tool calls needed. Core change in `query.ts::getPage()`.
-
-### 🔴 Smart `get_page()` — budget-aware prioritization
-
-When `max_length` is small, rank-include semantically valuable content first: (1) properties, (2) callouts, (3) script examples, (4) headings, (5) ordinary prose (currently first — that's backwards). Secondary: synthetic `related_videos` section via FTS5 match. This is the "hidden consolidation" lever — fewer follow-up tool calls needed. Core change in `query.ts::getPage()`.
+### 🔴 Version GC — bound `schema_node_presence` growth
 
 Keep ~4 active channel heads (long-term, stable, testing, development). Drop `schema_node_presence` rows for versions older than previous long-term on each extraction run. Keeps junction at ~160K rows instead of growing unboundedly. GC is a release-pipeline step (`make gc-versions`). Changelogs exempt (full v7 record, tiny data).
 

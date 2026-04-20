@@ -280,6 +280,8 @@ RouterOS commands have four parts: **Path** (`/ip/`), **Dir** (`/ip/address`), *
 
 ## North Star Architecture — Unified `routeros_search`
 
+**Status (2026-04-20):** Shipped. `classifyQuery` lives in `src/classify.ts` (pure module, 42 table-driven tests in `classify.test.ts`). `searchAll()` in `src/query.ts` wraps `searchPages` and runs classifier side queries. Both `routeros_search` (MCP) and the TUI `s` command are thin adapters over `searchAll()` per Principle 1. Folded standalone tools `routeros_search_callouts` and `routeros_search_videos` are gone — content surfaces in `related.callouts` / `related.videos`. Tool count dropped 15 → 13.
+
 A single `routeros_search(query)` call that does enough preprocessing, cross-table lookup, and response synthesis that a typical RouterOS question gets a useful, multi-source answer in one roundtrip. Both MCP and TUI route through the same core function.
 
 ### Input classifier
@@ -319,12 +321,12 @@ Never return bare empty results. Run OR fallback → re-run classifier side quer
 
 ### Tool consolidation target
 
-Baker's dozen ceiling, targeting ~8–10 tools after North Star ships.
+Baker's dozen ceiling reached at 13 tools (from 15). Lower targets (~8–10) would require merging structural drill-downs like `routeros_command_tree`, `routeros_lookup_property`, or `routeros_command_diff` into `routeros_search`, which trades clarity for compression. Not pursuing.
 
-**Fold into `routeros_search` side queries (drop as standalone MCP tools):**
+**Folded into `routeros_search` side queries (shipped — no longer standalone MCP tools):**
 - `routeros_search_properties` — removed: useless without command-tree context (function kept internally for TUI)
-- `routeros_search_callouts` — fold into `related.callouts`
-- `routeros_search_videos` — fold into `related.videos`
+- `routeros_search_callouts` — surfaces in `related.callouts`. `searchCallouts()` kept as internal helper.
+- `routeros_search_videos` — surfaces in `related.videos`. `searchVideos()` kept as internal helper and also used by `routeros_get_page` TOC-mode `related_videos`.
 
 **Keep as standalone drill-downs:**
 - `routeros_search_changelogs` — version range + category filters are too specific
@@ -347,3 +349,5 @@ What was built, in rough order (March 2026):
 8. **CI release workflow** — `release.yml` workflow_dispatch: download HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.
 9. **HTTP transport** — Streamable HTTP via `--http` flag for remote/LAN MCP clients (ChatGPT Apps, OpenAI platform). Uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport`. Optional TLS.
 10. **MCP Registry metadata** — `server.json` manifest + CI validation for official registry publication.
+11. **North Star (April 2026)** — Regex classifier (`classify.ts`) + `searchAll()` wrapper. Unified `routeros_search` now returns pages + `related` (command_node, properties, devices, callouts, videos, changelogs, skills) + classifier-informed `next_steps`. Folded `routeros_search_callouts` / `routeros_search_videos` into `related`. MCP tool count 15 → 13.
+12. **Smart `get_page()` (April 2026)** — Budget-aware TOC mode. When `max_length` is exceeded, the TOC response now surfaces top properties + related videos + callout summary inline, so small-budget callers rarely need a second tool call.

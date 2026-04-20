@@ -186,13 +186,11 @@ const {
   getSkill,
   listSkills,
   lookupProperty,
-  searchCallouts,
   searchChangelogs,
   searchDevices,
   searchDeviceTests,
   getTestResultMeta,
-  searchPages,
-  searchVideos,
+  searchAll,
   searchDude,
   getDudePage,
 } = await import("./query.ts");
@@ -207,7 +205,7 @@ const server = new McpServer({
   name: "rosetta",
   version: RESOLVED_VERSION,
 }, {
-  instructions: "RouterOS documentation search. Start with routeros_search for any RouterOS question — it searches across pages, callouts, and properties with BM25 ranking. Drill into specific pages with routeros_get_page (by ID or title). For device hardware specs use routeros_device_lookup; for version-specific command changes use routeros_command_diff. Only v7 data exists (7.9+) — v6 is out of scope and answers will be unreliable.",
+  instructions: "RouterOS documentation search. Start with routeros_search for any RouterOS question — it runs a classifier (detects command paths, versions, devices, topics) + BM25 FTS, and returns pages plus a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills) + next-step hints. One call usually answers the question. Drill into specific pages with routeros_get_page; for hardware specs use routeros_device_lookup; for version-specific command changes use routeros_command_diff. Only v7 data exists (7.9+) — v6 is out of scope.",
 });
 
 server.registerResource(
@@ -518,33 +516,43 @@ server.registerResource(
 server.registerTool(
   "routeros_search",
   {
-    description: `Search RouterOS documentation using natural language.
+    description: `Unified RouterOS search — start here for any question.
 
-This is the **primary discovery tool**. Start here, then drill down with other tools.
+One call runs an input classifier (command-path, version, device, topic, property)
+and FTS in parallel, returning pages plus classifier-informed side queries in a
+single response. Consolidates what used to require 3–5 separate tool calls.
+
+Response shape:
+- classified: { version, topics, command_path, device, property } — what the
+  classifier detected from your input
+- pages: top FTS matches (title, path, URL, excerpt, best_section)
+- related: callouts, properties, changelogs, videos, commands, devices, skills —
+  each capped at 2–3 entries, empty sections omitted
+- next_steps: concrete follow-up tool calls informed by the classification
 
 Capabilities:
-- Full-text search with BM25 ranking and Porter stemming
-  ("configuring" matches "configuration", "configured", etc.)
+- BM25 ranking with Porter stemming ("configuring" matches "configuration")
 - Proximity matching for compound terms ("firewall filter", "bridge vlan")
-- Results include page title, breadcrumb path, help.mikrotik.com URL, and excerpt
-- If AND returns nothing, the engine automatically retries with OR
+- Automatic AND → OR fallback on empty page results
+- Version/device/topic detection steers related lookups
 
-Workflow — what to do next:
-→ routeros_get_page: retrieve full content for a result (use page ID from results)
-→ routeros_lookup_property: look up a specific property by exact name
-→ routeros_search_callouts: find warnings/notes about topics in results
-→ routeros_command_tree: browse the command hierarchy for a feature
-→ routeros_search_videos: search MikroTik YouTube video transcripts for tutorials and demos
+Drill-down tools (still standalone for specific needs):
+→ routeros_get_page: full page content (or section) for any result
+→ routeros_lookup_property: exact property lookup, optionally filtered by command path
+→ routeros_command_tree: browse command hierarchy
+→ routeros_search_changelogs: version range + category + breaking-only filters
+→ routeros_device_lookup: detailed device specs and test results
+→ routeros_command_diff / routeros_command_version_check: version-specific command tracking
 
 Tips:
 - Use specific technical terms: "DHCP relay agent" not "how to set up DHCP"
-- For retired Dude GUI or wiki topics, prefer routeros_dude_search; routeros_search covers current RouterOS v7 docs
-- Documentation: 317 pages from March 2026 Confluence export (~515K words)
-- Docs reflect the then-current long-term release (~7.22), not version-pinned
-- Command data: RouterOS 7.9–7.23beta2. No v6 data available.
-- v6 had different syntax and subsystems — answers for v6 are unreliable.`,
+- Pass a command path directly ("/ip/firewall/filter") and related.commands +
+  related.command_node surface children and linked docs without a second call
+- For retired Dude GUI topics, use routeros_dude_search instead
+- Documentation: 317 pages from March 2026 Confluence export, ~7.22 long-term
+- Command data: RouterOS 7.9–7.23beta2. No v6 data.`,
     inputSchema: {
-      query: z.string().describe("Natural language search query"),
+      query: z.string().describe("Natural language search query, command path, or identifier"),
       limit: z
         .number()
         .int()
@@ -552,11 +560,11 @@ Tips:
         .max(50)
         .optional()
         .default(8)
-        .describe("Max results (default 8)"),
+        .describe("Max page results (default 8). Related sections are always capped at 2–3."),
     },
   },
   async ({ query, limit }) => {
-    const result = searchPages(query, limit);
+    const result = searchAll(query, limit);
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
@@ -578,22 +586,25 @@ Callouts contain crucial caveats and edge-case details — always review them.
 
 **Large page handling:** max_length defaults to 16000. When page content exceeds it,
 pages with sections return a **table of contents** instead of truncated text.
-The TOC lists each section's heading, hierarchy level, character count, and
-deep-link URL. Re-call with the section parameter to retrieve specific sections.
+The TOC response surfaces high-signal content up front so you rarely need a
+second call: top **properties** (name + type + description), **related_videos**
+(FTS match on page title), callout_summary (count by type), and the section list
+(heading, level, char_count, deep-link URL). Re-call with the section parameter
+for full section text.
 
 **Section parameter:** Pass a section heading or anchor_id (from the TOC)
 to get that section's content. If a section is still too large, its sub-section
 TOC is returned instead — request a more specific sub-section.
 
 Recommended workflow for large pages:
-1. First call → get TOC if page is large (automatic with default max_length)
-2. Review section headings to find the relevant section
-3. Call again with section="Section Name" to get that section's content
+1. First call → get TOC (+ properties, related_videos, callout_summary)
+2. Answer directly if the surfaced signal is enough
+3. Otherwise call again with section="Section Name" for specific content
 
 Workflow — what to do with this content:
 → routeros_lookup_property: get exact details for a named property
-→ routeros_search_callouts: find related warnings across other pages
-→ routeros_command_tree: browse the command path for features on this page`,
+→ routeros_command_tree: browse the command path for features on this page
+→ routeros_search: related warnings, video segments, and device specs now surface via search's related block`,
     inputSchema: {
       page: z
         .string()
@@ -766,54 +777,6 @@ Knowledge boundaries:
   },
 );
 
-// ---- routeros_search_callouts ----
-
-server.registerTool(
-  "routeros_search_callouts",
-  {
-    description: `Search note, warning, tip, and info callout blocks across all RouterOS documentation.
-
-1,034 callouts containing important caveats, edge cases, and non-obvious behavior.
-Useful for finding warnings about hardware offloading, compatibility notes,
-or unexpected feature interactions that aren't obvious from main page text.
-
-Query tips:
-- Use SHORT keyword queries (1-2 terms). Callouts are brief — multi-word NL phrases often miss.
-- "bridge" finds more than "bridge VLAN spanning tree conflict"
-- Pass type only (no query) to browse callouts of that type
-- If AND finds nothing, the engine automatically retries with OR
-
-Optionally filter by callout type: "note" (426), "info" (357), "warning" (213), or "tip" (38).
-
-Examples:
-- query: "hardware offload" → warnings about bridge HW offloading limitations
-- query: "VLAN", type: "warning" → only VLAN-related warnings
-- query: "bridge", type: "warning" → bridge-related warnings
-- type: "warning", limit: 20 → browse 20 warnings (no search term needed)`,
-    inputSchema: {
-      query: z.string().optional().default("").describe("Search keywords for callout content (keep short — 1-2 terms work best)"),
-      type: z
-        .enum(["note", "warning", "info", "tip"])
-        .optional()
-        .describe("Filter by callout type"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(50)
-        .optional()
-        .default(10)
-        .describe("Max results (default 10)"),
-    },
-  },
-  async ({ query, type, limit }) => {
-    const results = searchCallouts(query, type, limit);
-    return {
-      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
-    };
-  },
-);
-
 // ---- routeros_search_changelogs ----
 
 /** Group flat changelog results by version for compact output. */
@@ -851,8 +814,7 @@ Entries marked !) are breaking changes that may require config adjustments after
 1. Search changelogs with from_version=A, to_version=B, and the subsystem as query
 2. Look for !) breaking changes that explain the behavior change
 3. → routeros_get_page for the subsystem's documentation
-4. → routeros_search_callouts for version-specific warnings
-5. → routeros_command_version_check to see if commands were added/removed
+4. → routeros_command_version_check to see if commands were added/removed
 
 Supports: FTS keyword search, version range filtering, category filtering, breaking-only mode.
 Categories are subsystem names: bgp, bridge, dhcpv4-server, wifi, ipsec, console, container, etc.
@@ -912,7 +874,7 @@ Coverage depends on which versions were extracted — typically matches ros_vers
         from_version || to_version ? "Try widening the version range" : null,
         category ? `Try without category filter, or check spelling (categories are lowercase: bgp, bridge, wifi, etc.)` : null,
         breaking_only ? "Try without breaking_only — the change may not be marked as breaking" : null,
-        "Use routeros_search or routeros_search_callouts for documentation-based answers",
+        "Use routeros_search for documentation-based answers — callouts and videos surface in its related block",
       ].filter(Boolean);
       return {
         content: [
@@ -927,56 +889,6 @@ Coverage depends on which versions were extracted — typically matches ros_vers
     const grouped = groupChangelogsByVersion(results);
     return {
       content: [{ type: "text", text: JSON.stringify(grouped, null, 2) }],
-    };
-  },
-);
-
-// ---- routeros_search_videos ----
-
-server.registerTool(
-  "routeros_search_videos",
-  {
-    description: `Search MikroTik YouTube video transcripts for RouterOS topics.
-
-Searches chapter-level transcript segments from official MikroTik YouTube videos.
-Returns matching segments with video title, URL, chapter name, and an excerpt.
-Auto-caption quality varies — short config snippets may not appear verbatim.
-
-MUM conference talks are excluded (those are long, off-topic lectures).
-Results include the video URL and start timestamp for direct chapter linking.
-
-Useful for: finding tutorial walkthroughs, feature announcements, demo configs,
-and explanations that complement the text documentation.
-
-→ routeros_search: search official text documentation (more precise for property names)
-→ routeros_get_page: read full documentation page for a topic
-→ routeros_search_callouts: find Warnings/Notes embedded in documentation`,
-    inputSchema: {
-      query: z.string().describe("Topic to search for in video transcripts (e.g., 'VLAN trunking', 'BGP route reflection')"),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(20)
-        .default(5)
-        .optional()
-        .describe("Max results (1–20, default 5)"),
-    },
-  },
-  async ({ query, limit }) => {
-    const results = searchVideos(query, limit ?? 5);
-    if (results.length === 0) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `No video transcript results for: "${query}"\n\nTry:\n- Broader or simpler search terms\n- routeros_search for official documentation\n- routeros_search_callouts for Notes and Warnings in docs`,
-          },
-        ],
-      };
-    }
-    return {
-      content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
     };
   },
 );
@@ -1089,8 +1001,8 @@ Useful for answering "is /container supported in 7.12?" or "when was /ip/firewal
 
 Command data covers versions 7.9–7.23beta2. No v6 data.
 For versions below 7.9, no command tree data exists — the command may still exist there.
-Cross-reference with routeros_get_page or routeros_search_callouts for version mentions
-in documentation text. → routeros_search_changelogs to see what changed between versions.
+Cross-reference with routeros_get_page for version mentions in documentation text (callouts
+surface in routeros_search's related block). → routeros_search_changelogs to see what changed between versions.
 
 Examples:
 - command_path: "/container" → shows versions where container support exists

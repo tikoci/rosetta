@@ -6,6 +6,7 @@
  */
 
 import { db } from "./db.ts";
+import { classifyQuery, type QueryClassification } from "./classify.ts";
 
 export type SearchResult = {
   id: number;
@@ -214,6 +215,287 @@ export function searchPages(question: string, limit = DEFAULT_LIMIT): SearchResp
   return { query: question, ftsQuery, fallbackMode, results, total: results.length, ...(note ? { note } : {}) };
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// searchAll — unified entry point for MCP `routeros_search` and TUI `s`.
+// Runs the classifier first, then the main pages FTS, then classifier-informed
+// side queries in parallel (all sync under bun:sqlite). Returns a single
+// enriched response so a typical question gets a multi-source answer in one
+// roundtrip. See DESIGN.md "North Star Architecture".
+// ───────────────────────────────────────────────────────────────────────────
+
+type RelatedCommand = {
+  path: string;
+  name: string;
+  type: string;
+  description: string | null;
+  page_title: string | null;
+  page_url: string | null;
+};
+
+type RelatedProperty = {
+  name: string;
+  type: string | null;
+  default_val: string | null;
+  description: string;
+  page_title: string;
+  page_url: string;
+  page_id: number;
+};
+
+type RelatedDevice = {
+  product_name: string;
+  product_code: string | null;
+  architecture: string | null;
+  cpu: string | null;
+  license_level: number | null;
+  product_url: string | null;
+};
+
+type RelatedCallout = {
+  type: string;
+  content: string;
+  page_title: string;
+  page_url: string;
+  excerpt: string;
+};
+
+type CommandNodeMatch = {
+  path: string;
+  type: string;
+  description: string | null;
+  linked_page?: { id: number; title: string; url: string };
+};
+
+export type SearchAllRelated = {
+  callouts?: RelatedCallout[];
+  properties?: RelatedProperty[];
+  changelogs?: ChangelogResult[];
+  videos?: VideoSearchResult[];
+  commands?: RelatedCommand[];
+  devices?: RelatedDevice[];
+  skills?: SkillSummary[];
+  command_node?: CommandNodeMatch;
+};
+
+export type SearchAllResponse = {
+  query: string;
+  classified: QueryClassification;
+  pages: SearchResult[];
+  total_pages: number;
+  fallback_mode: "or" | null;
+  related: SearchAllRelated;
+  next_steps: string[];
+  note?: string;
+};
+
+const RELATED_CAP = 3;
+const RELATED_VIDEO_CAP = 2;
+
+export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllResponse {
+  const classified = classifyQuery(query);
+  const pagesResp = searchPages(query, limit);
+
+  const related: SearchAllRelated = {};
+
+  // ── Command-path side query ─────────────────────────────────────────────
+  if (classified.command_path) {
+    const node = db
+      .prepare(
+        `SELECT c.path, c.type, c.description,
+                p.id as page_id, p.title as page_title, p.url as page_url
+         FROM commands c
+         LEFT JOIN pages p ON p.id = c.page_id
+         WHERE c.path = ? LIMIT 1`,
+      )
+      .get(classified.command_path) as
+      | { path: string; type: string; description: string | null; page_id: number | null; page_title: string | null; page_url: string | null }
+      | null;
+
+    if (node) {
+      related.command_node = {
+        path: node.path,
+        type: node.type,
+        description: node.description,
+        ...(node.page_id
+          ? { linked_page: { id: node.page_id, title: node.page_title!, url: node.page_url! } }
+          : {}),
+      };
+    }
+
+    const children = db
+      .prepare(
+        `SELECT c.path, c.name, c.type, c.description,
+                p.title as page_title, p.url as page_url
+         FROM commands c
+         LEFT JOIN pages p ON p.id = c.page_id
+         WHERE c.parent_path = ?
+         ORDER BY c.type DESC, c.name
+         LIMIT ?`,
+      )
+      .all(classified.command_path, RELATED_CAP) as RelatedCommand[];
+    if (children.length > 0) related.commands = children;
+  }
+
+  // ── Property side query ─────────────────────────────────────────────────
+  if (classified.property) {
+    const props = lookupProperty(classified.property).slice(0, RELATED_CAP);
+    if (props.length > 0) {
+      related.properties = props.map((p) => ({
+        name: p.name,
+        type: p.type,
+        default_val: p.default_val,
+        description: p.description,
+        page_title: p.page_title,
+        page_url: p.page_url,
+        page_id: p.page_id,
+      }));
+    }
+  }
+
+  // ── Device side query ───────────────────────────────────────────────────
+  if (classified.device) {
+    const devResp = searchDevices(classified.device, {}, RELATED_CAP);
+    if (devResp.results.length > 0) {
+      related.devices = devResp.results.slice(0, RELATED_CAP).map((d) => ({
+        product_name: d.product_name,
+        product_code: d.product_code,
+        architecture: d.architecture,
+        cpu: d.cpu,
+        license_level: d.license_level,
+        product_url: d.product_url,
+      }));
+    }
+  }
+
+  // ── Changelog side query ────────────────────────────────────────────────
+  // Prefer classifier signals: version narrows, primary topic filters by category.
+  if (classified.version || classified.topics.length > 0) {
+    const opts: Parameters<typeof searchChangelogs>[1] = { limit: RELATED_CAP };
+    if (classified.version) opts.version = classified.version;
+    if (classified.topics[0]) {
+      // Category filter — only fire if the topic is actually a known changelog category.
+      const exists = db
+        .prepare("SELECT 1 FROM changelogs WHERE category = ? LIMIT 1")
+        .get(classified.topics[0]);
+      if (exists) opts.category = classified.topics[0];
+    }
+    // Only run if we actually have a narrowing signal (don't flood with recent generic entries).
+    if (opts.version || opts.category) {
+      const logs = searchChangelogs(query, opts);
+      if (logs.length > 0) related.changelogs = logs.slice(0, RELATED_CAP);
+    }
+  }
+
+  // ── Video side query ────────────────────────────────────────────────────
+  const videos = searchVideos(query, RELATED_VIDEO_CAP);
+  if (videos.length > 0) related.videos = videos;
+
+  // ── Callout side query ──────────────────────────────────────────────────
+  const calloutsRaw = searchCallouts(query, undefined, RELATED_CAP);
+  if (calloutsRaw.length > 0) {
+    related.callouts = calloutsRaw.slice(0, RELATED_CAP).map((c) => ({
+      type: c.type,
+      content: c.content,
+      page_title: c.page_title,
+      page_url: c.page_url,
+      excerpt: c.excerpt,
+    }));
+  }
+
+  // ── Skills side query ───────────────────────────────────────────────────
+  // Only include when a classifier topic overlaps a skill name (cheap string match).
+  if (classified.topics.length > 0) {
+    const allSkills = listSkills();
+    const matched = allSkills.filter((s) =>
+      classified.topics.some((t) => s.name.toLowerCase().includes(t)),
+    );
+    if (matched.length > 0) related.skills = matched.slice(0, 1);
+  }
+
+  const next_steps = buildNextSteps(classified, pagesResp.results, related);
+
+  const note = buildSearchAllNote(classified, pagesResp, related);
+
+  return {
+    query,
+    classified,
+    pages: pagesResp.results,
+    total_pages: pagesResp.total,
+    fallback_mode: pagesResp.fallbackMode,
+    related,
+    next_steps,
+    ...(note ? { note } : {}),
+  };
+}
+
+function buildNextSteps(
+  classified: QueryClassification,
+  pages: SearchResult[],
+  related: SearchAllRelated,
+): string[] {
+  const steps: string[] = [];
+
+  if (related.command_node) {
+    const p = related.command_node.path;
+    steps.push(`routeros_command_tree path="${p}" — browse children of ${p}`);
+    if (classified.version) {
+      steps.push(`routeros_command_version_check path="${p}" — confirm availability in ${classified.version}`);
+    }
+    if (related.command_node.linked_page) {
+      steps.push(`routeros_get_page id=${related.command_node.linked_page.id} — full docs for "${related.command_node.linked_page.title}"`);
+    }
+  }
+
+  if (classified.device) {
+    steps.push(`routeros_device_lookup query="${classified.device}" — hardware specs and test results`);
+  }
+
+  if (classified.property && !related.properties?.length) {
+    steps.push(`routeros_lookup_property name="${classified.property}" — direct property lookup (with optional command_path filter)`);
+  }
+
+  if (classified.version && !related.changelogs?.length) {
+    steps.push(`routeros_search_changelogs version="${classified.version}" — version-specific changes`);
+  }
+
+  // Zero-result fallback — steer the agent toward alternate tools.
+  if (pages.length === 0 && Object.keys(related).length === 0) {
+    steps.push(`routeros_search_changelogs query="${classified.input}" — check if the term appears in changelog history`);
+    if (!classified.device && /[A-Z]{2,}\d/.test(classified.input)) {
+      steps.push(`routeros_device_lookup query="${classified.input}" — could be a device model`);
+    }
+    steps.push(`routeros_stats — verify DB coverage and version range`);
+  }
+
+  if (pages.length > 0) {
+    const top = pages[0];
+    steps.push(`routeros_get_page id=${top.id} — open "${top.title}"`);
+  }
+
+  return steps;
+}
+
+function buildSearchAllNote(
+  classified: QueryClassification,
+  pagesResp: SearchResponse,
+  related: SearchAllRelated,
+): string | undefined {
+  const notes: string[] = [];
+  if (pagesResp.note) notes.push(pagesResp.note);
+  if (pagesResp.fallbackMode === "or") {
+    notes.push("No pages matched all terms — used OR fallback.");
+  }
+  if (pagesResp.results.length === 0 && Object.keys(related).length === 0) {
+    const hints: string[] = [];
+    if (classified.device) hints.push(`device "${classified.device}"`);
+    if (classified.version) hints.push(`version ${classified.version}`);
+    if (classified.topics.length > 0) hints.push(`topics: ${classified.topics.join(", ")}`);
+    const hintStr = hints.length > 0 ? ` Classifier detected: ${hints.join("; ")}.` : "";
+    notes.push(`Nothing matched for "${classified.input}".${hintStr} See next_steps for alternatives.`);
+  }
+  return notes.length > 0 ? notes.join(" ") : undefined;
+}
+
 function runFtsQuery(ftsQuery: string, limit: number): SearchResult[] {
   if (!ftsQuery) return [];
   try {
@@ -279,9 +561,41 @@ export type SectionTocEntry = {
   url: string;
 };
 
+/** Compact property summary included in TOC-mode responses to surface high-signal content early. */
+type PagePropertySummary = { name: string; type: string | null; description: string };
+
+/** Compact related-video segment included in TOC-mode responses. */
+type RelatedVideo = { title: string; url: string; chapter_title: string | null; start_s: number; excerpt: string };
+
+/** Top-N properties for a page (by sort_order). Description trimmed for compactness. */
+function getPagePropertiesSummary(pageId: number, limit = 10): PagePropertySummary[] {
+  const rows = db
+    .prepare(
+      `SELECT name, type, description FROM properties WHERE page_id = ? ORDER BY sort_order LIMIT ?`,
+    )
+    .all(pageId, limit) as Array<{ name: string; type: string | null; description: string }>;
+  return rows.map((r) => ({
+    name: r.name,
+    type: r.type,
+    description: r.description.length > 200 ? `${r.description.slice(0, 200).trim()}...` : r.description,
+  }));
+}
+
+/** Related video segments via FTS5 match on page title. Compact — one line per segment. */
+function getRelatedVideos(pageTitle: string, limit = 3): RelatedVideo[] {
+  try {
+    const results = searchVideos(pageTitle, limit);
+    return results.map((r) => ({ title: r.title, url: r.url, chapter_title: r.chapter_title, start_s: r.start_s, excerpt: r.excerpt }));
+  } catch {
+    return [];
+  }
+}
+
 /** Get full page content by ID or title. Optional max_length truncates text+code.
  *  If `section` is provided, returns only that section's content.
- *  If content would be truncated and the page has sections, returns a TOC instead. */
+ *  If content would be truncated and the page has sections, returns a TOC instead —
+ *  TOC responses include prioritized high-signal fields (`properties`, `related_videos`)
+ *  so the caller sees valuable content without a second tool call. */
 export function getPage(idOrTitle: string | number, maxLength?: number, section?: string): {
   id: number;
   title: string;
@@ -296,6 +610,8 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
   truncated?: { text_total: number; code_total: number };
   sections?: SectionTocEntry[];
   section?: { heading: string; level: number; anchor_id: string };
+  properties?: PagePropertySummary[];
+  related_videos?: RelatedVideo[];
   note?: string;
 } | null {
   const row =
@@ -353,6 +669,8 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
           ...descendants.map((d) => ({ heading: d.heading, level: d.level, anchor_id: d.anchor_id, char_count: d.text.length + d.code.length, url: `${page.url}#${d.anchor_id}` })),
         ];
         const totalChars = fullText.length + fullCode.length;
+        const props = getPagePropertiesSummary(page.id);
+        const videos = getRelatedVideos(page.title);
         return {
           id: page.id, title: page.title, path: page.path, url: `${page.url}#${sec.anchor_id}`,
           text: "", code: "",
@@ -360,6 +678,8 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
           callouts: [], callout_summary: calloutSummary(callouts),
           sections: subToc,
           section: { heading: sec.heading, level: sec.level, anchor_id: sec.anchor_id },
+          ...(props.length > 0 ? { properties: props } : {}),
+          ...(videos.length > 0 ? { related_videos: videos } : {}),
           note: `Section "${sec.heading}" content (${totalChars} chars) exceeds max_length (${maxLength}). Showing ${subToc.length} sub-sections. Re-call with a more specific section heading or anchor_id.`,
         };
       }
@@ -418,18 +738,24 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
     const toc = getPageToc(page.id, page.url);
     if (toc.length > 0) {
       const totalChars = text.length + code.length;
+      const props = getPagePropertiesSummary(page.id);
+      const videos = getRelatedVideos(page.title);
       return {
         id: page.id, title: page.title, path: page.path, url: page.url,
         text: "", code: "",
         word_count: page.word_count, code_lines: page.code_lines,
         callouts: [], callout_summary: calloutSummary(callouts),
         sections: toc,
+        ...(props.length > 0 ? { properties: props } : {}),
+        ...(videos.length > 0 ? { related_videos: videos } : {}),
         truncated: { text_total: text.length, code_total: code.length },
-        note: `Page content (${totalChars} chars) exceeds max_length (${maxLength}). Showing table of contents with ${toc.length} sections. Re-call with section parameter to retrieve specific sections.`,
+        note: `Page content (${totalChars} chars) exceeds max_length (${maxLength}). Showing table of contents with ${toc.length} sections${props.length > 0 ? ` + ${props.length} top properties` : ""}${videos.length > 0 ? ` + ${videos.length} related videos` : ""}. Re-call with section parameter to retrieve specific sections, or routeros_lookup_property for full property details.`,
       };
     }
 
-    // No sections — fall back to truncation
+    // No sections — fall back to truncation. Callouts are already returned in full
+    // (they carry high-signal Warnings/Notes). Also surface properties so the caller
+    // doesn't need a follow-up routeros_lookup_property call to see them.
     const textTotal = text.length;
     const codeTotal = code.length;
     const codeBudget = Math.min(code.length, Math.floor(maxLength * 0.2));
@@ -437,9 +763,17 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
     text = `${text.slice(0, textBudget)}\n\n[... truncated — ${textTotal} chars total, showing first ${textBudget}]`;
     code = codeTotal > codeBudget ? `${code.slice(0, codeBudget)}\n# [... truncated — ${codeTotal} chars total]` : code;
     truncated = { text_total: textTotal, code_total: codeTotal };
+    const props = getPagePropertiesSummary(page.id);
+    return {
+      id: page.id, title: page.title, path: page.path, url: page.url,
+      text, code, word_count: page.word_count, code_lines: page.code_lines,
+      callouts,
+      ...(props.length > 0 ? { properties: props } : {}),
+      truncated,
+    };
   }
 
-  return { id: page.id, title: page.title, path: page.path, url: page.url, text, code, word_count: page.word_count, code_lines: page.code_lines, callouts, ...(truncated ? { truncated } : {}) };
+  return { id: page.id, title: page.title, path: page.path, url: page.url, text, code, word_count: page.word_count, code_lines: page.code_lines, callouts };
 }
 
 /** Build compact callout summary (count + type breakdown) for TOC-mode responses. */
