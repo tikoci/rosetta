@@ -254,6 +254,85 @@ Three invocation modes with different DB default locations:
 
 This logic is shared via `src/paths.ts` (used by `db.ts`, `mcp.ts`, `setup.ts`) to avoid divergence between the three path resolution copies. `paths.ts` also exports `resolveVersion()` — reads `package.json` at runtime when the compile-time `VERSION` constant isn't defined, so `bunx @tikoci/rosetta --version` shows a real version number instead of "dev".
 
+## Guiding Principles
+
+These shape all development decisions. If a backlog item or PR conflicts with them, the item is wrong and should be reframed.
+
+### Principle 1 — TUI and MCP are a pair, not a tool and its test harness
+
+The `browse` TUI is a first-class path into the rosetta data, as legitimate as the MCP server. Both surfaces take short, NL-like input and lead the user through the same discovery chain: search → drill-down → related content. The TUI deliberately mimics the MCP tool shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.) so improvements on one side reinforce the other.
+
+**Implication:** logic lives in core functions in `query.ts`. `mcp.ts` and `browse.ts` are thin adapters. If a backlog item says "add X to the TUI" or "add X to MCP," first check whether it belongs in core — usually it does.
+
+### Principle 2 — Dual-use is the feature, not a compromise
+
+The TUI's dual role (user tool + test harness for MCP behavior) is deliberate. Gaps visible in `browse` almost always point to gaps in the MCP tool surface. Resist shoving more logic into `browse.ts` or `mcp.ts` — heuristics that could help both audiences belong in `query.ts`.
+
+### Principle 3 — Fewer tools, smarter `routeros_search`
+
+Agents in real sessions typically use `routeros_search` and `routeros_get_page`; anything beyond that is rare. The response is not more tool-description steering — it's making `routeros_search` answer more of the question before the agent asks again. See "North Star Architecture" below.
+
+### Principle 4 — Command/schema work tracks restraml's output shape
+
+The shape of `deep-inspect.json` drives the schema on this side. Structural work, per-arch presence, and completion data are all landed in `schema_nodes`. The `_attrs.completion` catch-all holds completion objects; promotion to structured columns is the next step once shape is confirmed stable across versions.
+
+RouterOS commands have four parts: **Path** (`/ip/`), **Dir** (`/ip/address`), **Command** (`set|print|remove|add`), **Parameters** (named or positional). `routeros_search_properties` addresses only part 4 without context — it's marked for deprecation as an MCP tool. The property data matters for other reasons (feeding restraml's enrichment pipeline).
+
+## North Star Architecture — Unified `routeros_search`
+
+A single `routeros_search(query)` call that does enough preprocessing, cross-table lookup, and response synthesis that a typical RouterOS question gets a useful, multi-source answer in one roundtrip. Both MCP and TUI route through the same core function.
+
+### Input classifier
+
+Before any FTS query, pre-parse the input with cheap regex-based detectors. Each fires independently:
+
+| Detector | Pattern | Side effect |
+|---|---|---|
+| **Command path** | `^/[\w-]+(/[\w-]+)*` | Look up in `commands`; return node + children + linked page |
+| **Command fragment** | `foo=bar`, `add chain=forward` | Match tokens against `commands.name` and `properties.name` |
+| **Version** | `\b7\.\d+(?:\.\d+)?(?:beta\d+\|rc\d+)?\b` | Check `ros_versions`, narrow results |
+| **Changelog topic** | Matches a known category | Side query `changelogs` filtered by category |
+| **Device model** | `RB\d+`, `CCR\d+`, `hEX`, `hAP`, `CRS\d+`, `CHR` | Side query `devices_fts` |
+| **Property name** | Single short lowercase token in `properties.name` | Return property directly (only if no page/command match) |
+| **Known topic** | Union of changelog categories + path segments | Soft signal for topic routing |
+
+Detectors are non-exclusive. `bgp 7.22 route reflection` fires **topic**, **version**, and general FTS.
+
+### Enriched response shape
+
+```text
+{
+  query, classified: { version, topics, command_path, device, property },
+  pages: [ ... ],
+  related: {
+    callouts, properties, changelogs, videos, skills, commands, devices
+  },
+  next_steps: [ ... concrete follow-up calls ... ]
+}
+```
+
+All `related` sections cap at 2–3 entries. Empty sections omitted.
+
+### Zero-result handling
+
+Never return bare empty results. Run OR fallback → re-run classifier side queries → return "nothing matched — you might try" block with concrete next queries informed by the classifier.
+
+### Tool consolidation target
+
+Baker's dozen ceiling, targeting ~8–10 tools after North Star ships.
+
+**Fold into `routeros_search` side queries (drop as standalone MCP tools):**
+- `routeros_search_properties` — useless without command-tree context
+- `routeros_search_callouts` — fold into `related.callouts`
+- `routeros_search_videos` — fold into `related.videos`
+
+**Keep as standalone drill-downs:**
+- `routeros_search_changelogs` — version range + category filters are too specific
+- `routeros_search_tests` — packet-size + config combinatorics
+- `routeros_get_page`, `routeros_device_lookup`, `routeros_command_tree`, `routeros_command_version_check`, `routeros_command_diff`, `routeros_lookup_property`, `routeros_stats`, `routeros_current_versions`
+
+**Name:** keep `routeros_search`. Semantic drift is cheaper than a rename.
+
 ## History
 
 What was built, in rough order (March 2026):
