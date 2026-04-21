@@ -14,7 +14,49 @@
  */
 
 import { canonicalize } from "./canonicalize.ts";
-import { KNOWN_TOPICS } from "./query.ts";
+
+/**
+ * Known RouterOS topics — extracted from changelog categories, top-level
+ * command tree names, and common subsystem tokens. Used by the classifier
+ * to recognize domain-specific terms before FTS search.
+ *
+ * Source: `SELECT DISTINCT category FROM changelogs` (153 values) plus
+ * top-level commands (app, interface, ip, system) and common synonyms.
+ *
+ * Defined here (not in query.ts) so classify.ts stays pure (no DB imports)
+ * and classify.test.ts cannot transitively load db.ts before test setup.
+ */
+export const KNOWN_TOPICS = new Set([
+  // --- From changelog categories (high-frequency subsystems) ---
+  "api", "backup", "bgp", "bluetooth", "bonding", "bridge", "capsman",
+  "certificate", "chr", "cloud", "conntrack", "console", "container",
+  "defconf", "discovery", "disk", "dns", "dot1x", "dude",
+  "ethernet", "export", "fetch", "filesystem", "firewall",
+  "gps", "graphing", "hardware", "health", "hotspot",
+  "ike1", "ike2", "interface", "ipsec", "ipv6",
+  "l2tp", "l3hw", "ldp", "led", "log", "lora", "lte",
+  "macsec", "mlag", "modem", "mpls", "mqtt",
+  "netinstall", "netwatch", "ntp",
+  "ospf", "ovpn",
+  "poe", "ppp", "pppoe", "pptp", "ptp",
+  "queue", "quickset",
+  "radius", "resource", "rip", "romon", "route", "routing",
+  "serial", "sfp", "smb", "sms", "sniffer", "snmp", "socks", "ssh", "ssl", "sstp",
+  "switch", "system",
+  "traceroute", "tunnels", "upgrade", "upnp", "ups", "usb", "user",
+  "vlan", "vpls", "vrf", "vrrp", "vxlan",
+  "webfig", "wifi", "wifiwave2", "winbox", "wireguard", "wireless",
+  "zerotier",
+  // --- From changelog (DHCP variants, routing sub-protocols) ---
+  "dhcp", "dhcpv4", "dhcpv6", "rpki", "pimsm",
+  // --- Top-level command paths ---
+  "app", "ip",
+  // --- Common subsystem shorthand / synonyms ---
+  "nat", "mangle", "raw", "filter",
+  "bgp-vpn", "user-manager", "traffic-flow", "traffic-generator",
+  "route-filter", "routing-filter", "mac-telnet",
+  "w60g", "tr069",
+]);
 
 export type CommandFragment = {
   /** `key=value` pairs extracted from the input (e.g. `chain=forward`). */
