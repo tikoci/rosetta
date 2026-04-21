@@ -21,7 +21,7 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 ## 13 Tools
 | Tool | Purpose |
 |------|---------|  
-| `routeros_search` | Unified search — classifier + FTS5 across pages, BM25 ranked, with `related` block (callouts, videos, properties, changelogs, devices, skills) |
+| `routeros_search` | Unified search — classifier + FTS5 across pages, BM25 ranked, with `related` block (callouts, videos, properties, changelogs, devices, skills, glossary). Caps in `related` scale with `limit` — higher `limit` = more callouts/videos surfaced (the "hunger knob"). |
 | `routeros_get_page` | Full page by ID or title, includes callouts |
 | `routeros_lookup_property` | Exact property name, optional command path filter |
 | `routeros_command_tree` | Browse command hierarchy, optional version param |
@@ -139,6 +139,8 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 | `vcheck` / `vc` | `routeros_command_version_check` | — |
 | `versions` / `ver` | `routeros_current_versions` | — |
 | `stats` | `routeros_stats` | — |
+| `glossary` / `g` | *(folded into `routeros_search.related.glossary`)* | TUI-only: `g <term>` calls `lookupGlossary()` directly; agents reach it via `routeros_search` when input matches a glossary term/alias |
+| `.<tool_name> ...` | every MCP tool, 1:1 | **MCP probe** — bypasses TUI rendering, calls the same query function as the MCP tool, dumps raw JSON. `.help` lists all 13 dot-commands. Format: `.routeros_search firewall filter limit=20`, `.routeros_get_page 28282`, `.routeros_lookup_property name=disabled command_path=/ip/firewall/filter`. This is the contract for "human can always see what the agent sees." |
 
 ### Browse TUI conventions
 
@@ -147,4 +149,6 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 - Context-aware commands (`p`, `cal`, `cmd`) use the current context (page/sections/commands) automatically when no args are given
 - `cmd edit` resolves as `/current/path/edit` when in a commands context
 - `page` with no args navigates to the linked page when in a commands context
-- Pager: Q to quit, SPACE for next page, ENTER for next line — keys don't leak to the readline prompt
+- Pager: `q`/`Q` quit, `SPACE` next page, `ENTER` next line, `b`/`<` previous page, `g` top, `G` bottom, status line shows `[page X/Y line N/M]`
+- Markdown→ANSI: page text and skill content are rendered through `mdToAnsi()` (handles `**bold**`, `*italic*`, `` `code` ``, headings, list bullets, `[text](url)`)
+- **Dot-commands (`.<tool_name>`)** are the canonical way to verify MCP behavior from the TUI. Every MCP tool MUST be reachable as a dot-command — when adding a new MCP tool, also add it to the `dotTools` registry in `browse.ts`.

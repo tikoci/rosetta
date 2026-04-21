@@ -266,6 +266,13 @@ type CommandNodeMatch = {
   linked_page?: { id: number; title: string; url: string };
 };
 
+type RelatedGlossary = {
+  term: string;
+  definition: string;
+  category: string;
+  search_hint: string;
+};
+
 export type SearchAllRelated = {
   callouts?: RelatedCallout[];
   properties?: RelatedProperty[];
@@ -275,6 +282,7 @@ export type SearchAllRelated = {
   devices?: RelatedDevice[];
   skills?: SkillSummary[];
   command_node?: CommandNodeMatch;
+  glossary?: RelatedGlossary;
 };
 
 export type SearchAllResponse = {
@@ -288,12 +296,23 @@ export type SearchAllResponse = {
   note?: string;
 };
 
-const RELATED_CAP = 3;
-const RELATED_VIDEO_CAP = 2;
+// Related-block caps scale with `limit` so an agent (or human) can express
+// "hunger" through one knob — small limit = focused, large limit = wider net.
+// See DESIGN.md "limit as hunger signal" (Parra-aligned: one knob, not many tools).
+const BASE_RELATED_CAP = 3;
+const BASE_RELATED_VIDEO_CAP = 2;
+
+function relatedCaps(limit: number): { cap: number; videoCap: number } {
+  return {
+    cap: Math.max(BASE_RELATED_CAP, Math.floor(limit / 3)),
+    videoCap: Math.max(BASE_RELATED_VIDEO_CAP, Math.floor(limit / 4)),
+  };
+}
 
 export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllResponse {
   const classified = classifyQuery(query);
   const pagesResp = searchPages(query, limit);
+  const { cap: RELATED_CAP, videoCap: RELATED_VIDEO_CAP } = relatedCaps(limit);
 
   const related: SearchAllRelated = {};
 
@@ -410,6 +429,28 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
       classified.topics.some((t) => s.name.toLowerCase().includes(t)),
     );
     if (matched.length > 0) related.skills = matched.slice(0, 1);
+  }
+
+  // ── Glossary side query ─────────────────────────────────────────────────
+  // For short single-term queries, attach a glossary entry if one matches the
+  // raw input (or a topic) by exact term or alias. Surfaces domain jargon to
+  // agents without adding a separate tool.
+  {
+    const candidates: string[] = [];
+    if (classified.input.split(/\s+/).length <= 2) candidates.push(classified.input);
+    candidates.push(...classified.topics);
+    for (const c of candidates) {
+      const g = lookupGlossary(c);
+      if (g) {
+        related.glossary = {
+          term: g.term,
+          definition: g.definition,
+          category: g.category,
+          search_hint: g.search_hint,
+        };
+        break;
+      }
+    }
   }
 
   const next_steps = buildNextSteps(classified, pagesResp.results, related);

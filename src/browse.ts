@@ -70,6 +70,53 @@ function link(url: string, display?: string): string {
   return `${ESC}]8;;${url}\x07${display ?? url}${ESC}]8;;\x07`;
 }
 
+/**
+ * Lightweight Markdown → ANSI renderer for text we render in the TUI.
+ * Handles **bold**, *italic*, `code`, headings (#/##/###), [text](url), and
+ * bullet lists. Skips fenced code blocks (``` ... ```) — they're left as
+ * indented dim text so RouterOS CLI snippets stay readable.
+ *
+ * Not a full Markdown parser. Designed to clean up content stored as Markdown
+ * (skill files, callout text) so the source markup tokens don't leak into
+ * the rendered output. See BACKLOG "TUI usability improvements".
+ */
+function mdToAnsi(s: string): string {
+  if (!s) return s;
+  const lines = s.split("\n");
+  const out: string[] = [];
+  let inFence = false;
+  for (let raw of lines) {
+    if (/^\s*```/.test(raw)) {
+      inFence = !inFence;
+      out.push(dim(raw.replace(/```\w*/, "```")));
+      continue;
+    }
+    if (inFence) {
+      out.push(dim(`  ${raw}`));
+      continue;
+    }
+    // Headings
+    const h = raw.match(/^(#{1,3})\s+(.*)$/);
+    if (h) {
+      const level = h[1].length;
+      const text = h[2];
+      if (level === 1) out.push(bold(`══ ${text}`));
+      else if (level === 2) out.push(bold(`── ${text}`));
+      else out.push(bold(text));
+      continue;
+    }
+    // Bullets
+    raw = raw.replace(/^(\s*)[-*]\s+/, (_m, sp) => `${sp}${cyan("•")} `);
+    // Inline: links, code, bold, italic — order matters.
+    raw = raw.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, txt, url) => link(url, cyan(txt)));
+    raw = raw.replace(/`([^`]+)`/g, (_m, code) => `${ESC}[48;5;236m ${code} ${ESC}[0m`);
+    raw = raw.replace(/\*\*([^*]+)\*\*/g, (_m, t) => bold(t));
+    raw = raw.replace(/(^|[^*])\*([^*\n]+)\*/g, (_m, pre, t) => `${pre}${ESC}[3m${t}${ESC}[0m`);
+    out.push(raw);
+  }
+  return out.join("\n");
+}
+
 /** Terminal width, with fallback */
 function termWidth(): number {
   return process.stdout.columns || 80;
@@ -147,9 +194,23 @@ function formatTime(seconds: number): string {
 // ── Pager ──
 
 /** Output lines with paging. Returns true if user quit early. */
+/**
+ * Interactive pager.
+ *
+ * Keys:
+ *   SPACE / f   advance one page
+ *   ENTER / j   advance one line
+ *   b / <       previous page
+ *   g           jump to top
+ *   G           jump to bottom
+ *   q           quit pager (returns true)
+ *
+ * Shows a status line with page X/Y and line N/M. Returns true if user quit
+ * before EOF, false otherwise.
+ */
 async function paged(output: string): Promise<boolean> {
   const lines = output.split("\n");
-  const pageSize = termHeight() - 2;
+  const pageSize = Math.max(5, termHeight() - 2);
   if (lines.length <= pageSize || !process.stdout.isTTY) {
     process.stdout.write(`${output}\n`);
     return false;
@@ -158,19 +219,29 @@ async function paged(output: string): Promise<boolean> {
   while (offset < lines.length) {
     const chunk = lines.slice(offset, offset + pageSize);
     process.stdout.write(`${chunk.join("\n")}\n`);
-    offset += pageSize;
-    if (offset < lines.length) {
-      const remaining = lines.length - offset;
-      process.stdout.write(dim(`-- ${remaining} more lines [Q quit | SPACE next page | ENTER next line]`));
-      const key = await waitForKey();
-      // Clear the "more" line
-      process.stdout.write(`\r${" ".repeat(termWidth())}\r`);
-      if (key === "q" || key === "Q") return true;
-      // ENTER or arrow-down → advance one line; SPACE → advance one page
-      if (key === "\r" || key === "\n" || key === "\x1b[B") {
-        offset -= pageSize - 1; // back up so only 1 line advances
-      }
+    const newOffset = offset + pageSize;
+    if (newOffset >= lines.length) return false;
+    const totalPages = Math.ceil(lines.length / pageSize);
+    const curPage = Math.floor(newOffset / pageSize);
+    const prompt = dim(
+      `── page ${curPage}/${totalPages}  line ${newOffset}/${lines.length}  [SPACE next | ENTER line | b back | g/G top/end | q quit]`,
+    );
+    process.stdout.write(prompt);
+    const key = await waitForKey();
+    process.stdout.write(`\r${" ".repeat(Math.min(termWidth(), stripAnsi(prompt).length))}\r`);
+    if (key === "q" || key === "Q") return true;
+    if (key === "g") { offset = 0; continue; }
+    if (key === "G") { offset = Math.max(0, lines.length - pageSize); continue; }
+    if (key === "b" || key === "<" || key === "\x1b[D") {
+      offset = Math.max(0, offset - pageSize);
+      continue;
     }
+    if (key === "\r" || key === "\n" || key === "j" || key === "\x1b[B") {
+      offset += 1;
+      continue;
+    }
+    // SPACE / f / anything else → next page
+    offset = newOffset;
   }
   return false;
 }
@@ -447,7 +518,7 @@ function renderPage(page: NonNullable<ReturnType<typeof getPage>>): string {
   // Text content (if present and not a TOC-only view)
   if (page.text && !page.sections) {
     out.push(hr());
-    out.push(page.text);
+    out.push(mdToAnsi(page.text));
     if (page.code) {
       out.push("");
       out.push(dim("── code ──"));
@@ -465,7 +536,7 @@ function renderPage(page: NonNullable<ReturnType<typeof getPage>>): string {
     out.push(hr());
     out.push(`  ${bold(`§ ${page.section.heading}`)}  ${dim(`(level ${page.section.level})`)}`);
     out.push("");
-    if (page.text) out.push(page.text);
+    if (page.text) out.push(mdToAnsi(page.text));
     if (page.code) {
       out.push("");
       out.push(dim("── code ──"));
@@ -989,6 +1060,12 @@ function renderHelp(): string {
   cmd("quit", "q", "Exit");
 
   out.push("");
+  out.push(`  ${bold("MCP probe (dot-commands)")}  ${dim("— see what an agent sees")}`);
+  out.push(`  ${cyan(pad(".routeros_search <q> [limit=N]", 38))} ${dim("Same query path as MCP, raw JSON output")}`);
+  out.push(`  ${cyan(pad(".routeros_get_page <id> [section=]", 38))} ${dim("Probe page response with JSON")}`);
+  out.push(`  ${cyan(pad(".routeros_lookup_property name= ...", 38))} ${dim("Direct property lookup")}`);
+  out.push(`  ${cyan(pad(".help", 38))} ${dim("Full list of dot-commands")}`);
+  out.push("");
   out.push(`  ${dim("Navigation: type a number to select from results.")}`);
   out.push(`  ${dim("After viewing a page, [p] = properties for that page.")}`);
   out.push(`  ${dim("URLs are clickable in supported terminals (iTerm2, etc.).")}`);
@@ -1001,11 +1078,212 @@ function renderHelp(): string {
   return out.join("\n");
 }
 
+// ── MCP probe (dot-commands) ──────────────────────────────────────────────
+//
+// `.<tool_name> [positional...] [key=value ...]` invokes the same query
+// function the MCP server uses and dumps the raw JSON response. Lets a human
+// in the TUI see exactly what an agent would see — useful for debugging tool
+// descriptions, classifier output, and `related` block contents at any limit.
+//
+// Format mirrors the MCP tool name (e.g. `.routeros_search dhcp limit=12`).
+// Positional tokens are joined into the tool's "primary" argument (query,
+// path, name, etc.). `key=value` pairs override or add fields.
+
+type DotArgs = Record<string, string | number | boolean>;
+
+function parseDotArgs(rest: string, primary?: string): DotArgs {
+  const args: DotArgs = {};
+  const positional: string[] = [];
+  // Split on whitespace but allow key="quoted value"
+  const tokens = rest.match(/(?:[^\s"]+|"[^"]*")+/g) ?? [];
+  for (const t of tokens) {
+    const m = t.match(/^([a-z_]\w*)=(.*)$/);
+    if (m) {
+      let v: string | number | boolean = m[2].replace(/^"|"$/g, "");
+      if (v === "true") v = true;
+      else if (v === "false") v = false;
+      else if (/^-?\d+$/.test(v)) v = Number.parseInt(v, 10);
+      args[m[1]] = v;
+    } else {
+      positional.push(t.replace(/^"|"$/g, ""));
+    }
+  }
+  if (primary && positional.length > 0 && args[primary] === undefined) {
+    args[primary] = positional.join(" ");
+  }
+  return args;
+}
+
+type DotTool = {
+  /** Field name that bare positional tokens are joined into. */
+  primary?: string;
+  /** Short one-line description shown by `.help`. */
+  desc: string;
+  /** Run the tool — return any JSON-serializable object. */
+  run: (args: DotArgs) => unknown;
+};
+
+const dotTools: Record<string, DotTool> = {
+  routeros_search: {
+    primary: "query",
+    desc: "Unified search — same as `s <query>` but with raw JSON response",
+    run: (a) => searchAll(String(a.query ?? ""), a.limit ? Number(a.limit) : undefined),
+  },
+  routeros_get_page: {
+    primary: "page",
+    desc: "Full page by id or title (args: page=, max_length=, section=)",
+    run: (a) => {
+      const p = a.page;
+      const id = typeof p === "number" ? p : /^\d+$/.test(String(p)) ? Number.parseInt(String(p), 10) : String(p);
+      return getPage(
+        id,
+        a.max_length !== undefined ? Number(a.max_length) : undefined,
+        a.section !== undefined ? String(a.section) : undefined,
+      );
+    },
+  },
+  routeros_lookup_property: {
+    primary: "name",
+    desc: "Property by exact name (args: name=, command_path=)",
+    run: (a) => lookupProperty(String(a.name ?? ""), a.command_path ? String(a.command_path) : undefined),
+  },
+  routeros_command_tree: {
+    primary: "path",
+    desc: "Browse command tree (args: path=, version=, arch=)",
+    run: (a) => {
+      const path = String(a.path ?? "");
+      if (a.version) return browseCommandsAtVersion(path, String(a.version), a.arch ? String(a.arch) : undefined);
+      return browseCommands(path, a.arch ? String(a.arch) : undefined);
+    },
+  },
+  routeros_search_changelogs: {
+    primary: "query",
+    desc: "Search changelogs (args: query=, version=, from_version=, to_version=, category=, breaking_only=, limit=)",
+    run: (a) => searchChangelogs(String(a.query ?? ""), {
+      version: a.version ? String(a.version) : undefined,
+      fromVersion: a.from_version ? String(a.from_version) : undefined,
+      toVersion: a.to_version ? String(a.to_version) : undefined,
+      category: a.category ? String(a.category) : undefined,
+      breakingOnly: a.breaking_only === true || a.breaking_only === "true",
+      limit: a.limit ? Number(a.limit) : undefined,
+    }),
+  },
+  routeros_command_version_check: {
+    primary: "command_path",
+    desc: "Version range for a command path (args: command_path=)",
+    run: (a) => {
+      const p = String(a.command_path ?? "");
+      return checkCommandVersions(p.startsWith("/") ? p : `/${p}`);
+    },
+  },
+  routeros_command_diff: {
+    desc: "Diff command tree between versions (args: from_version=, to_version=, path_prefix=, arch=)",
+    run: (a) => diffCommandVersions(
+      String(a.from_version ?? ""),
+      String(a.to_version ?? ""),
+      a.path_prefix ? String(a.path_prefix) : undefined,
+      a.arch ? String(a.arch) : undefined,
+    ),
+  },
+  routeros_device_lookup: {
+    primary: "query",
+    desc: "Device lookup with FTS+filters (args: query=, architecture=, license_level=, has_wireless=, ...)",
+    run: (a) => searchDevices(String(a.query ?? ""), {
+      architecture: a.architecture ? String(a.architecture) : undefined,
+      license_level: a.license_level ? Number(a.license_level) : undefined,
+      has_wireless: a.has_wireless === true || a.has_wireless === "true" ? true : undefined,
+      has_poe: a.has_poe === true || a.has_poe === "true" ? true : undefined,
+      has_lte: a.has_lte === true || a.has_lte === "true" ? true : undefined,
+      min_ram_mb: a.min_ram_mb ? Number(a.min_ram_mb) : undefined,
+      min_storage_mb: a.min_storage_mb ? Number(a.min_storage_mb) : undefined,
+    }, a.limit ? Number(a.limit) : undefined),
+  },
+  routeros_search_tests: {
+    desc: "Cross-device benchmarks (args: device=, test_type=, mode=, configuration=, packet_size=, sort_by=, limit=)",
+    run: (a) => searchDeviceTests({
+      device: a.device ? String(a.device) : undefined,
+      test_type: a.test_type ? String(a.test_type) : undefined,
+      mode: a.mode ? String(a.mode) : undefined,
+      configuration: a.configuration ? String(a.configuration) : undefined,
+      packet_size: a.packet_size ? Number(a.packet_size) : undefined,
+      sort_by: (a.sort_by as "mbps" | "kpps") ?? undefined,
+    }, a.limit ? Number(a.limit) : undefined),
+  },
+  routeros_dude_search: {
+    primary: "query",
+    desc: "Search archived Dude wiki (args: query=, limit=)",
+    run: (a) => searchDude(String(a.query ?? ""), a.limit ? Number(a.limit) : undefined),
+  },
+  routeros_dude_get_page: {
+    primary: "id",
+    desc: "Full Dude wiki page (args: id=, max_length=)",
+    run: (a) => {
+      const id = typeof a.id === "number" ? a.id : /^\d+$/.test(String(a.id)) ? Number.parseInt(String(a.id), 10) : String(a.id);
+      return getDudePage(id, a.max_length ? Number(a.max_length) : undefined);
+    },
+  },
+  routeros_stats: {
+    desc: "DB health / counts",
+    run: () => getDbStats(),
+  },
+  routeros_current_versions: {
+    desc: "Live-fetch RouterOS versions per channel",
+    run: async () => await fetchCurrentVersions(),
+  },
+};
+
+async function dispatchDotCommand(input: string): Promise<void> {
+  // .help / .tools — list available probes
+  if (input === ".help" || input === ".?" || input === ".tools") {
+    const out: string[] = [];
+    out.push(`  ${bold("MCP probe — direct tool invocation")}`);
+    out.push(`  ${dim("Format: .<tool_name> [positional...] [key=value ...]")}`);
+    out.push(`  ${dim("Output: raw JSON, exactly what an MCP client would receive.")}`);
+    out.push("");
+    for (const [name, t] of Object.entries(dotTools)) {
+      out.push(`  ${cyan(`.${name}`)}`);
+      out.push(`     ${dim(t.desc)}`);
+    }
+    out.push("");
+    out.push(`  ${dim("Example: .routeros_search firewall filter limit=20")}`);
+    out.push(`  ${dim("Example: .routeros_get_page 28282 max_length=4000")}`);
+    out.push(`  ${dim("Example: .routeros_lookup_property name=disabled command_path=/ip/firewall/filter")}`);
+    await paged(out.join("\n"));
+    return;
+  }
+  const m = input.match(/^\.([a-z_]\w*)\s*(.*)$/i);
+  if (!m) {
+    console.log(dim(`  Bad dot-command syntax. Try '.help' for the list.`));
+    return;
+  }
+  const name = m[1];
+  const tool = dotTools[name];
+  if (!tool) {
+    console.log(dim(`  Unknown MCP tool: .${name}. Try '.help' for the list.`));
+    return;
+  }
+  try {
+    const args = parseDotArgs(m[2] ?? "", tool.primary);
+    const result = await tool.run(args);
+    const json = JSON.stringify(result, null, 2);
+    const banner = dim(`── .${name}  args=${JSON.stringify(args)}`);
+    await paged(`${banner}\n${json}`);
+  } catch (e) {
+    console.log(red(`  Error invoking .${name}: ${(e as Error).message}`));
+  }
+}
+
 // ── Command dispatcher ──
 
 async function dispatch(input: string): Promise<void> {
   const trimmed = input.trim();
   if (!trimmed) return;
+
+  // ── MCP probe (dot-command) ──
+  if (trimmed.startsWith(".")) {
+    await dispatchDotCommand(trimmed);
+    return;
+  }
 
   // Parse command + args
   const parts = trimmed.split(/\s+/);
@@ -1609,7 +1887,7 @@ async function doViewSkill(name: string): Promise<void> {
   out.push(`  ${bold(skill.name)}  ${dim(`${skill.word_count} words`)}`);
   out.push(`  ${skill.description}`);
   out.push("");
-  out.push(skill.content);
+  out.push(mdToAnsi(skill.content));
   if (skill.references.length > 0) {
     out.push("");
     out.push(`  ${bold("Reference Files")}  ${dim(`(${skill.references.length} files)`)}`);

@@ -569,8 +569,10 @@ Response shape:
 - classified: { version, topics, command_path, device, property } — what the
   classifier detected from your input
 - pages: top FTS matches (title, path, URL, excerpt, best_section)
-- related: callouts, properties, changelogs, videos, commands, devices, skills —
-  each capped at 2–3 entries, empty sections omitted
+- related: callouts, properties, changelogs, videos, commands, devices, skills,
+  glossary — empty sections are omitted. Cap scales with \`limit\`: small limit
+  (default 8) keeps related tight (~3 callouts, ~2 videos); larger limit widens
+  the net proportionally so a single "hungry" call can pull deeper context.
 - next_steps: concrete follow-up tool calls informed by the classification
 
 Capabilities:
@@ -603,7 +605,7 @@ Tips:
         .max(50)
         .optional()
         .default(8)
-        .describe("Max page results (default 8). Related sections are always capped at 2–3."),
+        .describe("Max page results (default 8). Related-section caps scale with this — set higher (e.g. 20) to pull more callouts/videos/properties in a single call."),
     },
   },
   async ({ query, limit }) => {

@@ -32,6 +32,8 @@ Both the MCP tool layer and the TUI are thin adapters over query functions in `s
 
 This is a deliberate design, not a happy accident. The TUI's dual use (human tool + MCP behavior test harness) is the feature. Gaps visible in `browse` almost always point to gaps in the MCP tool surface. Any PR that grows TUI-only or MCP-only heuristics is a smell — the heuristic probably belongs in `query.ts` so both surfaces inherit it.
 
+The TUI is a **superset** of MCP — paged ANSI rendering, Markdown→ANSI for skill/page content, context-aware drill-down — but every MCP tool is also reachable verbatim through a **dot-command** (`.routeros_search query=foo limit=12`, `.routeros_get_page 28282`, `.routeros_stats`, …). Dot-commands invoke the same query function the MCP server uses and dump raw JSON, so a human can always see exactly what an agent would receive. `.help` lists the 13 dot-commands. This is the contract: TUI may be richer, but the agent-facing surface stays directly observable.
+
 ## Current State
 
 - **317 pages** from Confluence HTML export (March 2026), with breadcrumb paths, page IDs, help.mikrotik.com URLs
@@ -367,7 +369,9 @@ Register in MCP client config (bunx example — no paths needed):
 | `routeros_stats` | DB health: page/property/command/device counts, link coverage |
 | `routeros_current_versions` | Live-fetch current RouterOS versions per channel |
 
-**Folded into `routeros_search.related`** (no longer standalone tools): callouts (FTS match surfaced in `related.callouts`), videos (FTS match surfaced in `related.videos`). `searchCallouts` and `searchVideos` remain in `query.ts` as internal helpers used by `searchAll()`.
+**Folded into `routeros_search.related`** (no longer standalone tools): callouts (FTS match surfaced in `related.callouts`), videos (FTS match surfaced in `related.videos`), glossary (term/alias match in `related.glossary`). `searchCallouts`, `searchVideos`, and `lookupGlossary` remain in `query.ts` as internal helpers used by `searchAll()`.
+
+**`limit` as a hunger knob.** `routeros_search`'s `limit` parameter scales caps in the `related` block proportionally via `relatedCaps(limit)` — higher `limit` = more callouts/videos surfaced. Lets agents express how much context they want through one knob instead of forcing many narrow tool calls. (Inspired by David Parra's MCP talk: <https://youtu.be/v3Fr2JR47KA>.)
 
 Tool descriptions include workflow arrows (→ next tool) and empty-result hints to guide LLM agents between tools.
 

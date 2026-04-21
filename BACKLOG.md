@@ -201,16 +201,31 @@ Different idempotency semantics, local/CI path divergence for videos, no `--chec
 
 **Trigger:** Forum archive stable + North Star classifier in place as plug-in point.
 
-### 🟡 TUI<>MCP parity gaps (post North Star)
+### ✅ TUI<>MCP parity gaps (post North Star) — resolved
 
-The North Star folded callouts, videos, and properties into `routeros_search`'s `related` block. The TUI still has standalone commands with richer output than what `related` provides:
+The North Star folded callouts, videos, and properties into `routeros_search`'s `related` block. The TUI used to have standalone commands with richer output than what `related` provided. Resolved as follows (see `src/query.ts`, `src/browse.ts`, `src/mcp.ts`):
 
-- **Callouts** — TUI `cal <query>` runs full `searchCallouts()` with type filtering and returns all matches. MCP `related.callouts` surfaces only 3 per search. Intentional for budget reasons, but agents lose the ability to do a targeted callout-only search.
-- **Videos** — TUI `vid <query>` runs full `searchVideos()` and returns 10 results with chapters. MCP `related.videos` surfaces only 2. Same budget tradeoff.
-- **Properties** — TUI `sp`/`props <query>` runs full `searchProperties()` FTS with multiple results. MCP `related.properties` only surfaces exact-name matches from classified property candidates. Most significant gap — an agent can't do a broad FTS property search.
-- **Glossary** — TUI `glossary`/`g <term>` queries the `glossary` table. No MCP tool exposes this at all. The glossary is seeded in `db.ts` but invisible to agents.
+- **Callouts / Videos** — `searchAll()` now scales `RELATED_CAP`/`RELATED_VIDEO_CAP` proportionally to the `limit` argument via `relatedCaps(limit)`. Higher `limit` = more callouts/videos surfaced. The `limit` parameter doubles as a "hunger knob" — agents express how much context they want, and the related block expands accordingly. Aligned with David Parra's MCP talk (https://youtu.be/v3Fr2JR47KA): one knob > many narrow tools.
+- **Glossary** — added to `searchAll().related.glossary`. Triggered when input ≤2 words matches a glossary term/alias, or when a classified topic matches. Closes the most clear-cut gap without adding an MCP tool.
+- **Properties** — deferred. Better solution is to extend `routeros_lookup_property` with a `query=` mode (FTS over name+description). Tracked separately under the next backlog item.
+- **MCP probe in TUI (dot-commands)** — `.<tool_name> [positional...] [key=value ...]` in the TUI invokes the same code path as the MCP server tool and dumps raw JSON. 13 dot-commands cover every MCP tool 1:1. `.help` lists them. This is the contract for "human can always see what the agent sees."
 
-**Decision needed:** Are these acceptable asymmetries (TUI as power-user surface, MCP as guided experience), or should some become MCP tools again? The glossary gap is the most clear-cut — it's data that exists but is completely inaccessible to agents.
+### 🟢 routeros_lookup_property — add `query=` FTS mode
+
+**Trigger:** Confirmed agent need for broad property FTS (currently only TUI `props` does this).
+Extend the existing tool with an optional `query` parameter that runs `searchProperties(query, command_path?, limit)` — returns ranked rows when `query` is set, exact match when `name` is set. Keeps tool count at 13.
+
+### 🟢 Programmatic tool calling / "code mode" exploration
+
+**Trigger:** Anthropic Apps SDK or comparable spec stabilizes; or a user explicitly requests it.
+
+David Parra's Anthropic Code Conf talk (https://youtu.be/v3Fr2JR47KA) argues that letting the model write small programs that orchestrate MCP tool calls (rather than one tool call per turn through inference) is materially better for cost, latency, and composability. Worth investigating whether rosetta should expose:
+
+- A "tool of tools" that takes a small JS/TS snippet calling our query functions and returns the result
+- An MCP `applications` or `skills` surface for guided multi-step tasks (e.g., "diagnose why X broke after upgrading from A to B")
+- More compact tool responses to fit better in code-mode inner loops
+
+Not urgent — the current 13-tool surface is clean and small enough — but capture as a research item.
 
 ---
 

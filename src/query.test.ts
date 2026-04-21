@@ -40,6 +40,7 @@ const {
   lookupGlossary,
   listGlossary,
   KNOWN_TOPICS,
+  searchAll,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
@@ -2081,5 +2082,35 @@ describe("listGlossary", () => {
 
   test("returns empty for non-existent category", () => {
     expect(listGlossary("nonexistent")).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// searchAll — unified entrypoint behavior
+// ---------------------------------------------------------------------------
+
+describe("searchAll related block", () => {
+  test("includes glossary when input matches a glossary term", () => {
+    const res = searchAll("chr");
+    expect(res.related).toBeDefined();
+    expect(res.related?.glossary).toBeDefined();
+    expect(res.related?.glossary?.term).toBe("chr");
+  });
+
+  test("does not include glossary for unknown terms", () => {
+    const res = searchAll("nonexistentwidgetxyz");
+    expect(res.related?.glossary).toBeUndefined();
+  });
+
+  test("scales callout cap with limit (hunger knob)", () => {
+    // Compare cap behaviour at limit=8 (default) vs limit=30.
+    // We don't assert exact counts — fixture data may not have many callouts —
+    // but we assert that the higher-limit response doesn't artificially cap
+    // BELOW what the lower-limit one returns.
+    const small = searchAll("dhcp", 8);
+    const big = searchAll("dhcp", 30);
+    const smallCallouts = small.related?.callouts?.length ?? 0;
+    const bigCallouts = big.related?.callouts?.length ?? 0;
+    expect(bigCallouts).toBeGreaterThanOrEqual(smallCallouts);
   });
 });
