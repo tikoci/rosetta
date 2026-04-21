@@ -14,6 +14,7 @@ import { db, initDb } from "./db.ts";
 
 const CHANGELOG_BASE = "https://download.mikrotik.com/routeros";
 const FETCH_DELAY_MS = 200; // polite delay between requests
+const VERSION_CHANNELS = ["stable", "long-term", "testing", "development"] as const;
 
 // Oldest RouterOS v7 versions that use the current changelog header/entry format.
 // Keep these in default extraction even though command tree retention starts later.
@@ -149,18 +150,39 @@ function getKnownVersions(): string[] {
   return rows.map((r) => r.version);
 }
 
-export function buildChangelogVersionSet(knownVersions: string[]): string[] {
-  const all = new Set([...knownVersions, ...LEGACY_FORMATTED_V7_BASE_VERSIONS]);
+export function buildChangelogVersionSet(knownVersions: string[], channelHeadVersions: string[] = []): string[] {
+  const all = new Set([...knownVersions, ...channelHeadVersions, ...LEGACY_FORMATTED_V7_BASE_VERSIONS]);
   return [...all];
 }
 
-function getDefaultVersions(): string[] {
-  return buildChangelogVersionSet(getKnownVersions());
+async function fetchCurrentChannelVersions(): Promise<string[]> {
+  const versions = new Set<string>();
+  for (const channel of VERSION_CHANNELS) {
+    try {
+      const resp = await fetch(`https://upgrade.mikrotik.com/routeros/NEWESTa7.${channel}`);
+      if (!resp.ok) {
+        console.warn(`  channel ${channel}: HTTP ${resp.status}`);
+        continue;
+      }
+      const version = (await resp.text()).trim();
+      if (version) {
+        versions.add(version);
+      }
+    } catch (err) {
+      console.warn(`  channel ${channel}: fetch error — ${err}`);
+    }
+  }
+  return [...versions];
+}
+
+async function getDefaultVersions(): Promise<string[]> {
+  const channelHeads = await fetchCurrentChannelVersions();
+  return buildChangelogVersionSet(getKnownVersions(), channelHeads);
 }
 
 /** Probe patch versions: for each minor (7.X), try 7.X.1, 7.X.2, ... up to first 404. */
 async function probePatchVersions(): Promise<string[]> {
-  const known = new Set(getDefaultVersions());
+  const known = new Set(await getDefaultVersions());
   const patches: string[] = [];
 
   // Find all minor versions: extract unique 7.X prefixes
@@ -211,15 +233,15 @@ if (versionsArg) {
   console.log(`Changelog extraction: ${versions.length} explicit versions`);
 } else if (probePatches) {
   console.log("Changelog extraction: probing patch versions...");
-  const known = getDefaultVersions();
+  const known = await getDefaultVersions();
   const patches = await probePatchVersions();
   // Merge: known + discovered patches (deduplicated)
   const all = new Set([...known, ...patches]);
   versions = [...all];
   console.log(`  ${versions.length} versions (${patches.length} from patch probing)`);
 } else {
-  versions = getDefaultVersions();
-  console.log(`Changelog extraction: ${versions.length} versions from ros_versions + legacy v7 baseline`);
+  versions = await getDefaultVersions();
+  console.log(`Changelog extraction: ${versions.length} versions from ros_versions + channel heads + legacy v7 baseline`);
 }
 
 if (versions.length === 0) {
