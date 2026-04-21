@@ -167,7 +167,65 @@ describe("setup.ts", () => {
   test("downloads from GitHub Releases URL", () => {
     const src = readText("src/setup.ts");
     expect(src).toContain("github.com/");
+    // Now uses both a version-pinned URL and a /latest/ fallback (see dbDownloadUrls).
+    expect(src).toContain("/releases/download/");
     expect(src).toContain("/releases/latest/download/ros-help.db.gz");
+  });
+
+  test("validates SQLite magic bytes before writing the canonical DB path", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain("SQLite format 3");
+  });
+
+  test("writes to a .tmp file and renames atomically", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain(".tmp.");
+    expect(src).toContain("renameSync");
+  });
+
+  test("clears stale WAL/SHM siblings on download", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain("-wal");
+    expect(src).toContain("-shm");
+  });
+
+  test("exports a quiet refreshDb path used by --refresh", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain("export async function refreshDb");
+    const mcp = readText("src/mcp.ts");
+    expect(mcp).toContain("refreshDb");
+  });
+
+  test("mcp.ts fails hard on persistent schema mismatch (no silent fall-through)", () => {
+    const src = readText("src/mcp.ts");
+    // Must call process.exit on the unrecoverable schema-mismatch path
+    expect(src).toContain("Still incompatible after re-download");
+    expect(src).toMatch(/Still incompatible[\s\S]{0,400}process\.exit\(1\)/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// db_meta provenance + stamp script
+// ---------------------------------------------------------------------------
+
+describe("db_meta provenance", () => {
+  test("stamp-db-meta.ts script exists and accepts --release-tag", () => {
+    const src = readText("scripts/stamp-db-meta.ts");
+    expect(src).toContain("--release-tag");
+    expect(src).toContain("CREATE TABLE IF NOT EXISTS db_meta");
+  });
+
+  test("release.yml stamps db_meta after extraction", () => {
+    const yml = readText(".github/workflows/release.yml");
+    expect(yml).toContain("scripts/stamp-db-meta.ts");
+    expect(yml).toContain("--release-tag");
+    expect(yml).toContain("--source-commit");
+  });
+
+  test("db.ts exposes setDbMeta / getDbMeta helpers", () => {
+    const src = readText("src/db.ts");
+    expect(src).toContain("export function setDbMeta");
+    expect(src).toContain("export function getDbMeta");
   });
 });
 

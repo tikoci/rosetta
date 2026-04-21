@@ -167,6 +167,12 @@ jobs:
 
       # ── Build and release ──
 
+      - name: Stamp DB provenance (db_meta)
+        run: |
+          bun run scripts/stamp-db-meta.ts \
+            --release-tag "${{ steps.release_version.outputs.version }}" \
+            --source-commit "${{ github.sha }}"
+
       - name: Collect DB stats
         id: stats
         run: |

@@ -1643,6 +1643,25 @@ describe("schema", () => {
     expect(result.actual).toBe(SCHEMA_VERSION);
     expect(result.expected).toBe(SCHEMA_VERSION);
   });
+
+  test("db_meta table exists with key/value shape and read/write helpers work", async () => {
+    const cols = db.prepare("PRAGMA table_info(db_meta)").all() as Array<{ name: string; type: string }>;
+    const colNames = cols.map((c) => c.name);
+    expect(colNames).toContain("key");
+    expect(colNames).toContain("value");
+
+    const { setDbMeta, getDbMeta, getAllDbMeta } = await import("./db.ts");
+    setDbMeta("release_tag", "v0.0.0-test");
+    setDbMeta("built_at", "2026-04-21T00:00:00Z");
+    expect(getDbMeta("release_tag")).toBe("v0.0.0-test");
+    expect(getDbMeta("missing_key")).toBeNull();
+    // Upsert
+    setDbMeta("release_tag", "v0.0.1-test");
+    expect(getDbMeta("release_tag")).toBe("v0.0.1-test");
+    const all = getAllDbMeta();
+    expect(all.release_tag).toBe("v0.0.1-test");
+    expect(all.built_at).toBe("2026-04-21T00:00:00Z");
+  });
 });
 
 // ---------------------------------------------------------------------------

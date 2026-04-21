@@ -85,8 +85,12 @@ export function detectMode(srcDir: string): InvocationMode {
  * Increment when making destructive schema changes (DROP/RENAME table or column).
  * Stamped into the DB via `PRAGMA user_version` by initDb() and checked at MCP
  * startup to detect stale DBs for bunx users who auto-update the package.
+ *
+ * Bump history:
+ *   v5 — added `db_meta` key/value table for release-tag provenance and
+ *        atomic-download / version-pinned-URL update flow (2026-04-21).
  */
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 /**
  * Resolve the version string.

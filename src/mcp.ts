@@ -50,56 +50,97 @@ function link(url: string, display?: string): string {
  * Ensure the DB exists, has page data, and matches the current schema version.
  * This must run before importing db.ts/query.ts to avoid creating an empty DB file
  * on fresh installs.
+ *
+ * Failure modes are explicit:
+ *   - Missing or empty DB → download once. If download fails, return — server
+ *     will start but tool calls will surface the underlying SQL error.
+ *   - Schema mismatch → re-download once, then re-probe. If still mismatched,
+ *     fail hard with an actionable message rather than silently using a DB
+ *     that the running code can't query correctly.
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
-  const { resolveDbPath, SCHEMA_VERSION } = await import("./paths.ts");
+  const { resolveDbPath, SCHEMA_VERSION, resolveVersion } = await import("./paths.ts");
   const { downloadDb } = await import("./setup.ts");
+  const { default: sqlite } = await import("bun:sqlite");
 
   const dbPath = resolveDbPath(import.meta.dirname);
+  const runningVersion = resolveVersion(import.meta.dirname);
 
-  const pageCount = (() => {
+  /** Probe an existing DB. Returns null if the file is missing or unreadable. */
+  function probe(): { pages: number; schemaVersion: number; releaseTag: string | null } | null {
     try {
-      const check = new (require("bun:sqlite").default)(dbPath, { readonly: true });
-      const row = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
+      const check = new sqlite(dbPath, { readonly: true });
+      const pages = (check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number }).c;
+      const ver = (check.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
+      let releaseTag: string | null = null;
+      try {
+        const meta = check.prepare("SELECT value FROM db_meta WHERE key = 'release_tag'").get() as { value: string } | null;
+        releaseTag = meta?.value ?? null;
+      } catch {
+        // db_meta missing on pre-v5 DBs — leave null
+      }
       check.close();
-      return row.c;
+      return { pages, schemaVersion: ver, releaseTag };
     } catch {
-      return 0;
+      return null;
     }
-  })();
+  }
 
-  if (pageCount === 0) {
+  let p = probe();
+
+  // Case 1: DB missing or empty → first-time download.
+  if (!p || p.pages === 0) {
+    log(`No usable database at ${dbPath} — downloading...`);
     try {
       await downloadDb(dbPath, log);
       log("Database downloaded successfully.");
+      p = probe();
     } catch (e) {
-      log(`Auto-download failed: ${e}`);
-      log(`Run: ${process.argv[0]} --setup`);
+      log(`Auto-download failed: ${e instanceof Error ? e.message : e}`);
+      log(`Run: bunx @tikoci/rosetta --refresh`);
       return;
     }
   }
 
-  const dbSchemaVersion = (() => {
-    try {
-      const check = new (require("bun:sqlite").default)(dbPath, { readonly: true });
-      const row = check.prepare("PRAGMA user_version").get() as { user_version: number };
-      check.close();
-      return row.user_version;
-    } catch {
-      return SCHEMA_VERSION;
-    }
-  })();
+  if (!p) {
+    log(`Database probe failed after download.`);
+    return;
+  }
 
-  if (dbSchemaVersion !== SCHEMA_VERSION) {
-    log(`DB schema version mismatch (DB=${dbSchemaVersion}, expected=${SCHEMA_VERSION}) - re-downloading updated database...`);
+  // Case 2: Schema mismatch → re-download, then re-probe and fail hard if
+  // still wrong (don't silently boot with an incompatible schema).
+  if (p.schemaVersion !== SCHEMA_VERSION) {
+    log(
+      `DB schema mismatch: DB=${p.schemaVersion}, expected=${SCHEMA_VERSION}. ` +
+        `Re-downloading database...`,
+    );
     try {
       await downloadDb(dbPath, log);
-      log("Database updated successfully.");
     } catch (e) {
-      log(`Auto-download failed: ${e}`);
-      log(`Run: ${process.argv[0]} --refresh`);
+      log(`✗ Auto-recovery download failed: ${e instanceof Error ? e.message : e}`);
+      log(
+        `  This rosetta build (v${runningVersion}) cannot use the existing DB. ` +
+          `Run \`bun pm cache rm\` to clear the bunx cache and relaunch.`,
+      );
+      process.exit(1);
     }
+    const p2 = probe();
+    if (!p2 || p2.schemaVersion !== SCHEMA_VERSION) {
+      log(
+        `✗ Still incompatible after re-download (DB=${p2?.schemaVersion ?? "unreadable"}, expected=${SCHEMA_VERSION}).`,
+      );
+      log(
+        `  The published database does not match this rosetta build (v${runningVersion}). ` +
+          `Run \`bun pm cache rm && bunx @tikoci/rosetta --refresh\` to update both the package and the DB.`,
+      );
+      process.exit(1);
+    }
+    p = p2;
   }
+
+  // Quietly emit a one-line provenance banner so MCP-client logs show what's loaded.
+  const tagInfo = p.releaseTag ? `, release ${p.releaseTag}` : "";
+  log(`rosetta v${runningVersion} ready (DB schema v${p.schemaVersion}, ${p.pages} pages${tagInfo}).`);
 }
 
 if (args.includes("--version") || args.includes("-v")) {
@@ -155,9 +196,11 @@ if (args.includes("--setup")) {
 }
 
 if (args.includes("--refresh")) {
-  const { runSetup } = await import("./setup.ts");
-  await runSetup(true);
-  process.exit(0);
+  // Quiet refresh: just download + validate. Skips the MCP-config printing
+  // that --setup does — users running --refresh already have a configured client.
+  const { refreshDb } = await import("./setup.ts");
+  const ok = await refreshDb();
+  process.exit(ok ? 0 : 1);
 }
 
 // ── MCP Server ──

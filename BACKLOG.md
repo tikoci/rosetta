@@ -26,6 +26,43 @@
 
 Clear scope, no blockers, ready to act.
 
+### 🔴 bunx auto-update story — code/DB version drift, non-atomic write, silent broken state
+
+**Problem.** Today the bunx flow has several ways to silently leave a user with bad data, and no automatic recovery once configured in an MCP client. Concrete defects identified 2026-04-21 review:
+
+1. **Schema-mismatch fall-through (`src/mcp.ts` `ensureDbReady`).** When `PRAGMA user_version` doesn't match `SCHEMA_VERSION`, code logs a warning and re-downloads — but does not re-check the new DB's version, and unconditionally proceeds to open it. If the bunx-cached package is older than the published DB (or vice versa), the server keeps booting with an incompatible schema instead of failing loudly.
+2. **DB pinned to "latest" Release, not running package version.** `https://github.com/tikoci/rosetta/releases/latest/download/ros-help.db.gz` is hardcoded in `setup.ts`. `bunx`-cached package and DB schema are independent variables, so any release that bumps `SCHEMA_VERSION` breaks every cached older install until the user runs `bun pm cache rm`.
+3. **Non-atomic write.** `writeFileSync(dbPath, decompressed)` overwrites in place. Ctrl+C / OOM / disk-full mid-write leaves a truncated file. Stale `.db-wal` / `.db-shm` from the previously open DB are not removed when the file is replaced (user's `~/.rosetta/` currently has both).
+4. **No download validation.** No size check, no `SQLite format 3` magic-byte check, no `pages > 0` / `commands > 0` post-write probe. A redirect-to-login HTML page or partial transfer would be written verbatim and only caught when SQL queries start failing.
+5. **No freshness check after first install.** Once `pages > 0` and schema matches, the DB is never re-downloaded for the lifetime of that bunx cache entry. A DB-only release (same package version, refreshed docs) cannot reach an existing user automatically.
+6. **`--refresh` is noisy.** Re-runs `runSetup` which prints ~80 lines of MCP client config snippets every time. A "just refresh my data" path should be quiet.
+7. **Incompatible-version error messaging.** `process.argv[0]` (used in retry hint) is the bun binary, not `bunx @tikoci/rosetta`. Users see a confusing path.
+
+**Background — how bunx caching actually works (verified locally).** bun resolves the `latest` dist-tag from npm on each invocation and caches per exact version under `~/.bun/install/cache/@tikoci/rosetta@<ver>@@@1/`. New npm releases are picked up automatically (no manual `bun pm cache rm` needed in practice). Old version directories linger but are not used. So the npm-side update story works — the gap is everything **after** bunx hands off to our code.
+
+**Comparable projects.** Most reference MCP servers ship no bundled data, so they sidestep this entirely. The closest analogues are bundled-data tools (`tldr-pages` clients, language-server grammars, `ripgrep-all` adapters) — all of them pin the data version to the running code version and atomic-swap on update. That's the pattern we should adopt.
+
+**Plan — ship as one focused PR.**
+
+- **A. Pin DB URL to running version.** Change `releases/latest/download/...` → `releases/download/v${VERSION}/ros-help.db.gz` in `setup.ts`. Fall back to `latest` when the version-pinned asset 404s (covers code-only releases that didn't rebuild the DB). Eliminates schema drift by construction.
+- **B. Atomic download + validate.** Always download to `<dbPath>.tmp.<pid>`, fsync, validate (SQLite magic bytes, `PRAGMA user_version`, `pages > 100`, `commands > 1000`), then `rename(.tmp, .db)`. Delete sibling `.db-wal` / `.db-shm` in the same step. On any validation failure, keep the existing DB and surface a clear error.
+- **C. Fix schema-mismatch fall-through.** After re-download, re-check `PRAGMA user_version`. If still mismatched, fail with an actionable message that names the package vs DB versions and tells the user to clear bunx cache (`bun pm cache rm`). Never proceed with a broken DB.
+- **D. Embed release tag in the DB.** Add `db_meta` table written at extract time: `release_tag TEXT, built_at TEXT, schema_version INTEGER, source_commit TEXT`. Lets `--version` and startup banner print "DB v0.7.3 from 2026-04-19" and lets the freshness check (item E) compare without an external file.
+- **E. Opt-out background freshness check.** On startup, after DB load, fire-and-forget HEAD to `https://api.github.com/repos/tikoci/rosetta/releases/latest`. If the latest tag is newer than `db_meta.release_tag`, log a one-line stderr hint ("a newer DB is available — restart with `--refresh` to update"). Cache the check timestamp in `db_meta.last_check_at`; check at most once per 24h. Disabled when `ROSETTA_OFFLINE=1` or `--no-update-check`.
+- **F. Quiet `--refresh`.** Strip the config-printing path from `--refresh`; only download + validate + print 1-line stats. `--setup` keeps printing config (that's its job).
+- **G. MCP tool `routeros_refresh_database`.** Optional follow-up — agent-triggered refresh without leaving the chat. Returns new stats. Defer to phase 2 if A–F are too big a single PR.
+- **H. Docs.** README/MANUAL get a short "How updates work" section: bunx auto-resolves latest npm version, DB is pinned to that version, first launch after package update atomic-swaps the DB.
+
+**Tests required (per project hard rule).**
+
+- `src/setup.test.ts` (new): mock fetch + temp dir; assert `.tmp` → rename flow, validation rejects 0-byte / wrong-magic / wrong-schema downloads without touching the existing file, schema-mismatch loop fails hard instead of fall-through.
+- `src/release.test.ts`: assert version-pinned URL pattern in `setup.ts`, assert `db_meta` row written by extractors, assert release.yml uploads `ros-help.db.gz` under tagged release (already true).
+- `src/query.test.ts` schema-health section: assert `db_meta` table exists with expected columns.
+
+**Migration / risk.** SCHEMA_VERSION must bump (4 → 5) because of the new `db_meta` table. That's exactly the kind of bump this fix is designed to handle gracefully. Old bunx caches will see schema mismatch, attempt re-download against a version-pinned URL that won't exist for their old package version, fall back to `latest`, get the new schema, and succeed. Verify this path explicitly in tests.
+
+**Out of scope for this PR.** Telemetry, signed DB downloads, mirror CDN. Note the security posture: download URL stays under `github.com/tikoci/rosetta/`, `redirect: follow` only follows to `objects.githubusercontent.com`. Document in `SECURITY.md`.
+
 ### 🔴 Version GC — bound `schema_node_presence` growth
 
 Keep ~4 active channel heads (long-term, stable, testing, development). Drop `schema_node_presence` rows for versions older than previous long-term on each extraction run. Keeps junction at ~160K rows instead of growing unboundedly. GC is a release-pipeline step (`make gc-versions`). Changelogs exempt (full v7 record, tiny data).

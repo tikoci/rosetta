@@ -53,6 +53,14 @@ export function initDb() {
     applied_at TEXT NOT NULL
   );`);
 
+  // -- DB metadata (release tag, build date, source commit) --
+  // Key/value to avoid schema churn. Written by extractors / release.yml;
+  // read by MCP startup banner and the freshness-check path.
+  db.run(`CREATE TABLE IF NOT EXISTS db_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );`);
+
   // -- Pages (from Confluence HTML export) --
 
   db.run(`CREATE TABLE IF NOT EXISTS pages (
@@ -765,6 +773,31 @@ function seedGlossary() {
 export function checkSchemaVersion(): { ok: boolean; actual: number; expected: number } {
   const row = db.prepare("PRAGMA user_version").get() as { user_version: number };
   return { ok: row.user_version === SCHEMA_VERSION, actual: row.user_version, expected: SCHEMA_VERSION };
+}
+
+/** Read a single row from db_meta. Returns null when the key is missing. */
+export function getDbMeta(key: string): string | null {
+  try {
+    const row = db.prepare("SELECT value FROM db_meta WHERE key = ?").get(key) as { value: string } | null;
+    return row?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Upsert a single row into db_meta. */
+export function setDbMeta(key: string, value: string): void {
+  db.run("INSERT INTO db_meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value;", [key, value]);
+}
+
+/** Read all db_meta rows as a flat object. */
+export function getAllDbMeta(): Record<string, string> {
+  try {
+    const rows = db.prepare("SELECT key, value FROM db_meta").all() as Array<{ key: string; value: string }>;
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  } catch {
+    return {};
+  }
 }
 
 export function getDbStats() {

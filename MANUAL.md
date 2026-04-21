@@ -115,6 +115,14 @@ The SQLite database is downloadable on its own from [GitHub Releases](https://gi
 https://github.com/tikoci/rosetta/releases/latest/download/ros-help.db.gz
 ```
 
+Each tagged release also publishes the same asset under its own version, so you can pin a specific snapshot:
+
+```text
+https://github.com/tikoci/rosetta/releases/download/v0.7.3/ros-help.db.gz
+```
+
+The version-pinned URL is what `bunx @tikoci/rosetta` uses internally — see [How Updates Work](#how-updates-work) below.
+
 Use it with any SQLite client:
 
 ```sh
@@ -140,6 +148,24 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `properties_fts`, `devices_fts`, `video_segments_fts`).
 
+## How Updates Work
+
+Once configured as an MCP server, rosetta should keep itself up to date without manual intervention. Here's the model:
+
+1. **Package updates (`bunx`).** `bunx @tikoci/rosetta` re-resolves the npm `latest` dist-tag on each MCP-client launch and downloads the new package version automatically. No `bun pm cache rm` needed in normal operation. (If you see consistently stale behavior, run `bun pm cache rm` and relaunch your MCP client.)
+
+2. **Database updates (auto on first launch after a package update).** The DB download URL is **pinned to the running package version** — `releases/download/v<VERSION>/ros-help.db.gz` — with `releases/latest/` as a fallback. When a new package version arrives that ships a new schema, the auto-download fetches the matching DB on first launch.
+
+3. **Atomic, validated download.** Downloads go to `<dbPath>.tmp.<pid>` first. The file is checked for SQLite magic bytes, minimum size (~50 MB), expected `PRAGMA user_version`, and minimum row counts before being atomically renamed into place. Stale `.db-wal` / `.db-shm` siblings are removed in the same step. A Ctrl+C, network failure, or schema mismatch will not corrupt your installed DB — the existing one is left untouched and an error is printed.
+
+4. **Provenance.** Every released DB carries a `db_meta` table (`release_tag`, `built_at`, `source_commit`, `schema_version`). Rosetta logs a one-line provenance banner at startup: `rosetta v0.7.3 ready (DB schema v5, 317 pages, release v0.7.3).`
+
+5. **Schema mismatch is a hard error, not a warning.** If a download still doesn't match the expected schema after the auto-recovery attempt, the server exits with an actionable message instead of silently booting on incompatible data. The fix is `bun pm cache rm` (clear the cached package) and relaunch.
+
+6. **Manual refresh.** `bunx @tikoci/rosetta --refresh` triggers a fresh download + validation with no other side effects (no MCP-config printing). Use it after a known DB-only release or to recover from a previously failed download.
+
+7. **`~/.rosetta/` is the canonical DB location** for `bunx` / global installs. Compiled binaries store the DB next to the executable; dev checkouts use `<repo>/ros-help.db`.
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -151,4 +177,6 @@ Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `propertie
 | **Claude Desktop can't find `bunx`** | Claude Desktop on macOS may not inherit shell PATH. Use the full path to bunx (run `which bunx` to find it, typically `~/.bun/bin/bunx`). `bunx @tikoci/rosetta --setup` prints the full-path config. |
 | **macOS Gatekeeper blocks binary** | Use `bunx` install (no Gatekeeper issues), or: `xattr -d com.apple.quarantine ./rosetta` |
 | **Windows SmartScreen warning** | Use `bunx` install (no SmartScreen issues), or click **More info → Run anyway** |
-| **How to update** | `bunx` always uses the latest published version. For binaries, re-download from [Releases](https://github.com/tikoci/rosetta/releases/latest). MikroTik /app with `auto-update: true` pulls the latest image on each boot. |
+| **How to update** | `bunx` always uses the latest published version. The DB is version-pinned to the package and auto-downloads on first launch after a package update — see [How Updates Work](#how-updates-work). For binaries, re-download from [Releases](https://github.com/tikoci/rosetta/releases/latest). MikroTik /app with `auto-update: true` pulls the latest image on each boot. |
+| **`bunx` is using a stale package** | `bun pm cache rm` then relaunch your MCP client. |
+| **"DB schema mismatch" or "Still incompatible after re-download"** | Your cached `bunx` package is older than the published DB. Run `bun pm cache rm && bunx @tikoci/rosetta --refresh`. |

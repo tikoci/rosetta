@@ -315,6 +315,15 @@ glossary (
     search_hint TEXT,            -- suggested search query for routeros_search
     UNIQUE(term)
 )
+
+-- DB provenance and update metadata (key/value to avoid schema churn).
+-- Stamped by scripts/stamp-db-meta.ts in CI; read by mcp.ts startup banner
+-- and the bunx auto-update flow. Standard keys: release_tag, built_at,
+-- source_commit, schema_version. Added in SCHEMA_VERSION 5.
+db_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+)
 ```
 
 ## Usage

@@ -8,7 +8,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { gunzipSync } from "bun";
 import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
@@ -17,6 +17,14 @@ declare const REPO_URL: string;
 const GITHUB_REPO =
   typeof REPO_URL !== "undefined" ? REPO_URL : "tikoci/rosetta";
 const RELEASE_VERSION = resolveVersion(import.meta.dirname);
+
+/** Minimum byte counts for a healthy DB. Validation thresholds — keep loose so
+ *  shrinking the dataset doesn't break startup, but tight enough to catch a
+ *  redirect-to-login HTML page or a partial transfer. */
+const MIN_PAGES = 100;
+const MIN_COMMANDS = 1000;
+const MIN_DECOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB
+const SQLITE_MAGIC = "SQLite format 3\0";
 
 /** Check if a DB file exists and has actual page data */
 function dbHasData(dbPath: string): boolean {
@@ -32,32 +40,215 @@ function dbHasData(dbPath: string): boolean {
   }
 }
 
-/** Download ros-help.db.gz from GitHub Releases, decompress, and write to dbPath */
+/** Open a DB read-only and return its key health metrics. Returns null on error.
+ *  Exported so tests can validate fixture DBs without depending on network. */
+export function probeDb(dbPath: string): {
+  schemaVersion: number;
+  pages: number;
+  commands: number;
+  releaseTag: string | null;
+} | null {
+  try {
+    const { default: sqlite } = require("bun:sqlite");
+    const check = new sqlite(dbPath, { readonly: true });
+    const ver = check.prepare("PRAGMA user_version").get() as { user_version: number };
+    const pages = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
+    const cmds = check.prepare("SELECT COUNT(*) AS c FROM commands").get() as { c: number };
+    let releaseTag: string | null = null;
+    try {
+      const meta = check.prepare("SELECT value FROM db_meta WHERE key = 'release_tag'").get() as { value: string } | null;
+      releaseTag = meta?.value ?? null;
+    } catch {
+      // db_meta missing — pre-v5 schema, leave releaseTag null
+    }
+    check.close();
+    return {
+      schemaVersion: ver.user_version,
+      pages: pages.c,
+      commands: cmds.c,
+      releaseTag,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Build the version-pinned download URL. Falls back to /latest/ when no version.
+ *  Exported for test coverage. */
+export function dbDownloadUrls(version: string): string[] {
+  const latest = `https://github.com/${GITHUB_REPO}/releases/latest/download/ros-help.db.gz`;
+  // version may be "0.7.3" (from package.json) or "v0.7.3" (compiled-in). Normalize.
+  const tag = version.startsWith("v") ? version : `v${version}`;
+  if (!version || version === "unknown" || version === "dev") {
+    return [latest];
+  }
+  const pinned = `https://github.com/${GITHUB_REPO}/releases/download/${tag}/ros-help.db.gz`;
+  return [pinned, latest];
+}
+
+/**
+ * Download ros-help.db.gz from GitHub Releases atomically:
+ *   1. Try version-pinned URL first, fall back to /latest/ on 404.
+ *   2. Decompress in memory, verify SQLite magic bytes + minimum size.
+ *   3. Write to <dbPath>.tmp.<pid>, open it read-only, verify schema_version
+ *      matches the running code and pages/commands counts look healthy.
+ *   4. Atomically rename .tmp → dbPath, then delete stale .db-wal / .db-shm.
+ *
+ * On any validation failure the existing DB is left untouched and we throw —
+ * the caller decides whether to fail hard or fall back. Never produces a
+ * half-written DB file at the canonical path.
+ */
 export async function downloadDb(
   dbPath: string,
   log: (msg: string) => void = console.log,
 ) {
-  const url = `https://github.com/${GITHUB_REPO}/releases/latest/download/ros-help.db.gz`;
-  log(`Downloading database from GitHub Releases...`);
-  log(`  ${url}`);
+  const urls = dbDownloadUrls(RELEASE_VERSION);
+  let lastError: Error | null = null;
 
-  const response = await fetch(url, { redirect: "follow" });
-  if (!response.ok) {
-    throw new Error(`Download failed: ${response.status} ${response.statusText}`);
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    const isLast = i === urls.length - 1;
+    log(`Downloading database from GitHub Releases...`);
+    log(`  ${url}`);
+
+    let response: Response;
+    try {
+      response = await fetch(url, { redirect: "follow" });
+    } catch (e) {
+      lastError = e as Error;
+      log(`  Network error: ${e}`);
+      if (isLast) throw lastError;
+      continue;
+    }
+
+    if (response.status === 404 && !isLast) {
+      log(`  Not found at this URL, trying fallback...`);
+      continue;
+    }
+    if (!response.ok) {
+      lastError = new Error(`Download failed: ${response.status} ${response.statusText}`);
+      if (isLast) throw lastError;
+      log(`  ${lastError.message} — trying fallback...`);
+      continue;
+    }
+
+    const contentLength = response.headers.get("content-length");
+    const totalMB = contentLength ? (Number(contentLength) / 1024 / 1024).toFixed(1) : "?";
+    log(`  Downloading ${totalMB} MB (compressed)...`);
+
+    const compressed = new Uint8Array(await response.arrayBuffer());
+    log(`  Decompressing...`);
+
+    let decompressed: Uint8Array;
+    try {
+      decompressed = gunzipSync(compressed);
+    } catch (e) {
+      lastError = new Error(`Gunzip failed (corrupt download or HTML error page): ${e}`);
+      if (isLast) throw lastError;
+      log(`  ${lastError.message}`);
+      continue;
+    }
+
+    // Validate magic bytes and minimum size before touching the filesystem.
+    if (decompressed.byteLength < MIN_DECOMPRESSED_BYTES) {
+      lastError = new Error(
+        `Decompressed DB too small: ${decompressed.byteLength} bytes (expected ≥ ${MIN_DECOMPRESSED_BYTES})`,
+      );
+      if (isLast) throw lastError;
+      log(`  ${lastError.message}`);
+      continue;
+    }
+    const header = new TextDecoder().decode(decompressed.subarray(0, SQLITE_MAGIC.length));
+    if (header !== SQLITE_MAGIC) {
+      lastError = new Error("Downloaded payload is not a SQLite database (magic bytes mismatch)");
+      if (isLast) throw lastError;
+      log(`  ${lastError.message}`);
+      continue;
+    }
+
+    // Write to a temp file next to the canonical DB path, validate, then rename.
+    const tmpPath = `${dbPath}.tmp.${process.pid}`;
+    try {
+      writeFileSync(tmpPath, decompressed);
+    } catch (e) {
+      lastError = new Error(`Write to ${tmpPath} failed: ${e}`);
+      throw lastError;
+    }
+
+    const probe = probeDb(tmpPath);
+    if (!probe) {
+      tryUnlink(tmpPath);
+      lastError = new Error("Downloaded DB failed to open with SQLite");
+      if (isLast) throw lastError;
+      log(`  ${lastError.message} — trying fallback...`);
+      continue;
+    }
+    if (probe.schemaVersion !== SCHEMA_VERSION) {
+      tryUnlink(tmpPath);
+      lastError = new Error(
+        `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
+          `This usually means the cached package version is older than the published DB. ` +
+          `Run \`bun pm cache rm\` and relaunch to pick up the latest package.`,
+      );
+      if (isLast) throw lastError;
+      log(`  ${lastError.message}`);
+      continue;
+    }
+    if (probe.pages < MIN_PAGES || probe.commands < MIN_COMMANDS) {
+      tryUnlink(tmpPath);
+      lastError = new Error(
+        `Downloaded DB content looks incomplete (pages=${probe.pages}, commands=${probe.commands})`,
+      );
+      if (isLast) throw lastError;
+      log(`  ${lastError.message} — trying fallback...`);
+      continue;
+    }
+
+    // Validation passed — drop stale WAL/SHM and atomically swap.
+    tryUnlink(`${dbPath}-wal`);
+    tryUnlink(`${dbPath}-shm`);
+    renameSync(tmpPath, dbPath);
+
+    const sizeMB = (decompressed.byteLength / 1024 / 1024).toFixed(1);
+    const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
+    log(`  Wrote ${sizeMB} MB to ${dbPath}${tagInfo}`);
+    log(`  Validated: schema v${probe.schemaVersion}, ${probe.pages} pages, ${probe.commands} commands.`);
+    return;
   }
 
-  const contentLength = response.headers.get("content-length");
-  const totalMB = contentLength ? (Number(contentLength) / 1024 / 1024).toFixed(1) : "?";
-  log(`  Downloading ${totalMB} MB (compressed)...`);
+  throw lastError ?? new Error("Database download failed for unknown reasons");
+}
 
-  const compressed = new Uint8Array(await response.arrayBuffer());
-  log(`  Decompressing...`);
+/** Remove a file if it exists, swallowing all errors. */
+function tryUnlink(p: string): void {
+  try {
+    if (existsSync(p)) unlinkSync(p);
+  } catch {
+    // best-effort cleanup
+  }
+}
 
-  const decompressed = gunzipSync(compressed);
-  writeFileSync(dbPath, decompressed);
-
-  const sizeMB = (decompressed.byteLength / 1024 / 1024).toFixed(1);
-  log(`  Wrote ${sizeMB} MB to ${dbPath}`);
+/**
+ * Quiet refresh — download + validate + report stats. No MCP-config printing.
+ * Used by `--refresh` (and indirectly by mcp.ts when auto-recovering from a
+ * stale DB at startup). Returns true on success, false on failure.
+ */
+export async function refreshDb(log: (msg: string) => void = console.log): Promise<boolean> {
+  const dbPath = resolveDbPath(import.meta.dirname);
+  try {
+    await downloadDb(dbPath, log);
+  } catch (e) {
+    log(`✗ Refresh failed: ${e instanceof Error ? e.message : e}`);
+    return false;
+  }
+  const probe = probeDb(dbPath);
+  if (!probe) {
+    log(`✗ Post-download probe failed`);
+    return false;
+  }
+  const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
+  log(`✓ Database ready${tagInfo}: ${probe.pages} pages, ${probe.commands} commands, schema v${probe.schemaVersion}`);
+  return true;
 }
 
 export async function runSetup(force = false) {
@@ -74,31 +265,36 @@ export async function runSetup(force = false) {
     console.log(`Database already exists: ${dbPath}`);
     console.log(`  (use --refresh or --setup --force to re-download)`);
   } else {
-    await downloadDb(dbPath);
+    try {
+      await downloadDb(dbPath);
+    } catch (e) {
+      console.error(`✗ Database download failed: ${e instanceof Error ? e.message : e}`);
+      process.exit(1);
+    }
   }
 
   // ── Validate DB ──
   console.log();
-  try {
-    const { default: sqlite } = await import("bun:sqlite");
-    // Note: open in read-write mode (not readonly) to allow WAL checkpoint.
-    // WAL-mode databases can fail to initialize properly in readonly mode.
-    const db = new sqlite(dbPath);
-    const row = db.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
-    const cmdRow = db.prepare("SELECT COUNT(*) AS c FROM commands WHERE type='cmd'").get() as { c: number };
-    const versionRow = db.prepare("PRAGMA user_version").get() as { user_version: number };
-    db.close();
-    if (versionRow.user_version !== SCHEMA_VERSION) {
-      console.warn(`  Warning: DB schema version is ${versionRow.user_version}, expected ${SCHEMA_VERSION}.`);
-      console.warn(`  The downloaded DB may be incompatible with this version of rosetta.`);
-    }
-    console.log(`✓ Database ready (${row.c} pages, ${cmdRow.c} commands, schema v${versionRow.user_version})`);
-  } catch (e) {
-    console.error(`✗ Database validation failed: ${e}`);
+  const probe = probeDb(dbPath);
+  if (!probe) {
+    console.error(`✗ Database validation failed: cannot open ${dbPath}`);
     const retryCmd = mode === "compiled" ? "rosetta" : mode === "package" ? "bunx @tikoci/rosetta" : "bun run src/setup.ts";
     console.error(`  Try re-downloading with: ${retryCmd} --refresh`);
     process.exit(1);
   }
+  if (probe.schemaVersion !== SCHEMA_VERSION) {
+    console.error(
+      `✗ DB schema version is ${probe.schemaVersion}, expected ${SCHEMA_VERSION}.`,
+    );
+    console.error(
+      `  Cached package may be out of date. Run \`bun pm cache rm\` and relaunch.`,
+    );
+    process.exit(1);
+  }
+  const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
+  console.log(
+    `✓ Database ready${tagInfo}: ${probe.pages} pages, ${probe.commands} commands, schema v${probe.schemaVersion}`,
+  );
 
   // ── Print config snippets ──
   console.log();

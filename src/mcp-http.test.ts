@@ -19,6 +19,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Subprocess } from "bun";
+import { SCHEMA_VERSION } from "./paths.ts";
 
 // ── Helpers ──
 
@@ -108,8 +109,12 @@ function createFixtureDb(dbPath: string): void {
     1, '/system', 'system', 'dir', NULL, 1, 'fixture command', '7.22'
   );`);
 
-  // Stamp schema version so mcp.ts doesn't trigger a 50MB auto-download
-  fixture.run("PRAGMA user_version = 1;");
+  // Stamp the current schema version so mcp.ts doesn't try to auto-download
+  // a "real" DB. Importing SCHEMA_VERSION here keeps the fixture in sync with
+  // any future bumps. Also seed db_meta so the startup banner has a release tag.
+  fixture.run(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+  fixture.run("CREATE TABLE db_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+  fixture.run("INSERT INTO db_meta (key, value) VALUES ('release_tag', 'v0.0.0-test');");
   fixture.close();
 }
 
