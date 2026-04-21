@@ -26,6 +26,33 @@
 
 Clear scope, no blockers, ready to act.
 
+### 🟢 Test isolation — DB-leak guards (DONE in this PR)
+
+**Recorded for history; not a future task.** Release v0.7.6 shipped a 3-page DB
+because `extract-dude.test.ts` statically imported `extract-dude.ts` (which loads
+`db.ts`) before any `DB_PATH=:memory:` was set, then `query.test.ts:beforeAll`
+ran `DELETE FROM …` against the cached singleton — wiping the CI-built DB and
+replacing the contents with fixtures (3 pages, 11 devices, 2 properties). The
+`Collect DB stats` step had no minimum-pages assertion, so the broken DB sailed
+through to GitHub Releases, npm, and OCI.
+
+Fixed three ways:
+
+1. `extract-dude.test.ts` now sets `DB_PATH=:memory:` before dynamic-importing
+   `extract-dude.ts`.
+2. `query.test.ts` hard-fails (`throw new Error`) if the imported `DB_PATH` is
+   anything other than `:memory:` — so a future test-ordering change that
+   regresses the leak crashes loudly instead of silently wiping data.
+3. `extract-html.ts` now `process.exit(1)` if 0 pages were extracted.
+4. `release.yml` has a new "Validate DB has expected content" step gated on
+   `pages ≥ 200`, `commands ≥ 1000`, `devices ≥ 100`, `properties ≥ 1000`,
+   running BEFORE artifact build / OCI push / GitHub Release / npm publish.
+   `release.test.ts` enforces this structurally.
+
+**Follow-up to consider:** make `db.ts` lazy — only open `Database` on first
+real use, not at module-evaluation time. That would remove the entire class of
+"DB_PATH set too late" bugs. Out of scope for this fix.
+
 ### 🔴 bunx auto-update story — code/DB version drift, non-atomic write, silent broken state
 
 **Problem.** Today the bunx flow has several ways to silently leave a user with bad data, and no automatic recovery once configured in an MCP client. Concrete defects identified 2026-04-21 review:

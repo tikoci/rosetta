@@ -558,6 +558,16 @@ function main() {
   console.log(`  Total sections:  ${totalSections} (across ${pagesWithSections} pages)`);
   console.log(`  FTS index rows:  ${ftsCount}`);
 
+  // Hard fail if no pages were extracted — silent zero-page runs were the
+  // root cause of release v0.7.6 shipping a near-empty DB. CI must fail loud.
+  if (extracted === 0) {
+    console.error(
+      `\n::error::extract-html: 0 pages extracted from ${process.argv[2] ?? "(default dir)"}. ` +
+        `Check the HTML export download/unzip step.`,
+    );
+    process.exit(1);
+  }
+
 // Quick search test
   const testResults = db
     .prepare(

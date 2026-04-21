@@ -192,6 +192,38 @@ jobs:
           echo "segments=$SEGMENTS" >> "$GITHUB_OUTPUT"
           echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments)"
 
+      # ── Sanity gate: refuse to publish a degenerate DB ──
+      # Release v0.7.6 shipped with 3 pages because a test wiped the DB after
+      # extract-html. Hard-fail here so a regression of that bug can't ever
+      # reach downstream publishing or upload steps.
+      - name: Validate DB has expected content
+        env:
+          PAGES: ${{ steps.stats.outputs.pages }}
+          COMMANDS: ${{ steps.stats.outputs.commands }}
+          DEVICES: ${{ steps.stats.outputs.devices }}
+          PROPERTIES: ${{ steps.stats.outputs.properties }}
+        run: |
+          set -euo pipefail
+          fail=0
+          if [ "${PAGES:-0}" -lt 200 ]; then
+            echo "::error::DB has only ${PAGES} pages — expected ≥200 (latest export is 317). Aborting release."
+            fail=1
+          fi
+          if [ "${COMMANDS:-0}" -lt 1000 ]; then
+            echo "::error::DB has only ${COMMANDS} commands — expected ≥1000. Aborting release."
+            fail=1
+          fi
+          if [ "${DEVICES:-0}" -lt 100 ]; then
+            echo "::error::DB has only ${DEVICES} devices — expected ≥100 (current matrix is 144). Aborting release."
+            fail=1
+          fi
+          if [ "${PROPERTIES:-0}" -lt 1000 ]; then
+            echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (current export is ~4860). Aborting release."
+            fail=1
+          fi
+          if [ "$fail" = "1" ]; then exit 1; fi
+          echo "✓ DB content validation passed"
+
       - name: Build release artifacts
         run: bun run scripts/build-release.ts ${{ steps.release_version.outputs.version }}
 

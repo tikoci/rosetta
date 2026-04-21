@@ -13,7 +13,19 @@ import { beforeAll, describe, expect, test } from "bun:test";
 process.env.DB_PATH = ":memory:";
 
 // Dynamic imports so the env-var assignment above is visible to db.ts
-const { db, initDb, getDbStats, checkSchemaVersion, SCHEMA_VERSION } = await import("./db.ts");
+const { db, initDb, getDbStats, checkSchemaVersion, SCHEMA_VERSION, DB_PATH } = await import("./db.ts");
+
+// Hard guard: if some other test file imported db.ts before us with a real
+// path, the singleton will be pointing at the project's ros-help.db and the
+// DELETEs in beforeAll() below would wipe it. Fail fast with a clear message
+// so this can never silently ship an empty DB again (release v0.7.6 regression).
+if (DB_PATH !== ":memory:") {
+  throw new Error(
+    `query.test.ts: DB singleton is at "${DB_PATH}" — expected ":memory:". ` +
+      `Another test file imported db.ts before this one without setting DB_PATH=:memory:. ` +
+      `Refusing to run because beforeAll() would DELETE FROM real tables.`,
+  );
+}
 const {
   extractTerms,
   buildFtsQuery,

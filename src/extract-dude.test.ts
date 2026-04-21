@@ -1,7 +1,16 @@
+// Force in-memory DB BEFORE importing extract-dude.ts (which transitively imports
+// db.ts). Without this, db.ts evaluates against the project's real ros-help.db
+// and any later test file (e.g. query.test.ts) that calls DELETE in beforeAll
+// will wipe the CI-built database — exactly the bug that shipped 3-page DBs in
+// release v0.7.6. See BACKLOG.md "Test DB-leak guards".
+process.env.DB_PATH = ":memory:";
+
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { parseDudePage } from "./extract-dude.ts";
+
+// Dynamic import so the DB_PATH assignment above wins over module hoisting.
+const { parseDudePage } = await import("./extract-dude.ts");
 
 const probesHtml = readFileSync(join(import.meta.dirname, "..", "dude", "pages", "Probes.html"), "utf-8");
 

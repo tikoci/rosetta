@@ -387,6 +387,26 @@ describe("release.yml", () => {
     expect(src).toContain("npm publish");
     expect(src).toContain("NPM_TOKEN");
   });
+
+  test("validates DB content before publishing (regression: v0.7.6 shipped 3 pages)", () => {
+    const src = readText(".github/workflows/release.yml");
+    // Hard guard step that hard-fails the workflow if the built DB is degenerate.
+    expect(src).toContain("Validate DB has expected content");
+    // Must run BEFORE the artifact build, container push, GH Release, and npm publish.
+    const validateIdx = src.indexOf("Validate DB has expected content");
+    const buildIdx = src.indexOf("Build release artifacts");
+    const releaseIdx = src.indexOf("gh release create");
+    const npmIdx = src.indexOf("npm publish");
+    expect(validateIdx).toBeGreaterThan(0);
+    expect(validateIdx).toBeLessThan(buildIdx);
+    expect(validateIdx).toBeLessThan(releaseIdx);
+    expect(validateIdx).toBeLessThan(npmIdx);
+    // Must check minimum thresholds for the four critical tables.
+    expect(src).toMatch(/PAGES.*-lt 200/);
+    expect(src).toMatch(/COMMANDS.*-lt 1000/);
+    expect(src).toMatch(/DEVICES.*-lt 100/);
+    expect(src).toMatch(/PROPERTIES.*-lt 1000/);
+  });
 });
 
 // ---------------------------------------------------------------------------
