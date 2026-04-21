@@ -40,8 +40,12 @@ function dbHasData(dbPath: string): boolean {
   }
 }
 
-/** Open a DB read-only and return its key health metrics. Returns null on error.
- *  Exported so tests can validate fixture DBs without depending on network. */
+/** Open a DB and return its key health metrics. Returns null on error.
+ *  Exported so tests can validate fixture DBs without depending on network.
+ *  Note: do NOT pass { readonly: true } — freshly written SQLite WAL-mode files
+ *  fail to open readonly on macOS until a read-write connection initialises the
+ *  WAL shared-memory file.  probeDb always operates on a temp or new file so
+ *  read-write access is safe. */
 export function probeDb(dbPath: string): {
   schemaVersion: number;
   pages: number;
@@ -50,7 +54,7 @@ export function probeDb(dbPath: string): {
 } | null {
   try {
     const { default: sqlite } = require("bun:sqlite");
-    const check = new sqlite(dbPath, { readonly: true });
+    const check = new sqlite(dbPath);
     const ver = check.prepare("PRAGMA user_version").get() as { user_version: number };
     const pages = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
     const cmds = check.prepare("SELECT COUNT(*) AS c FROM commands").get() as { c: number };
