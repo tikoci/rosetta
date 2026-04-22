@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.8] — 2026-04-22
+
 ### Changed
 
 - **CI: `bump-version` now auto-promotes `[Unreleased]` → `[VERSION] — DATE`**
