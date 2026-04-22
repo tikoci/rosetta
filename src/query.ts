@@ -1106,6 +1106,27 @@ function runCalloutsFtsQuery(
   }
 }
 
+/**
+ * All callouts for a given page, sorted by source order. TUI-facing helper
+ * for `cal` invoked inside a page context — replaces the broken
+ * `searchCallouts("", undefined, …)` empty-FTS path which always returns [].
+ *
+ * Page metadata (`page_title`, `page_url`) is included so the rendering path
+ * can reuse `renderCallouts()` without a second join.
+ */
+export function getPageCallouts(pageId: number, limit = 100): CalloutResult[] {
+  return db
+    .prepare(
+      `SELECT c.type, c.content, pg.title as page_title, pg.url as page_url,
+              pg.id as page_id, substr(c.content, 1, 200) as excerpt
+       FROM callouts c
+       JOIN pages pg ON pg.id = c.page_id
+       WHERE c.page_id = ?
+       ORDER BY c.sort_order LIMIT ?`,
+    )
+    .all(pageId, limit) as CalloutResult[];
+}
+
 /** Diff two RouterOS versions — which command paths were added/removed between them. */
 export type CommandDiffResult = {
   from_version: string;

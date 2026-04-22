@@ -27,6 +27,7 @@
  */
 
 import { resolveVersion } from "./paths.ts";
+import { MCP_INSTRUCTIONS } from "./mcp-meta.ts";
 
 const RESOLVED_VERSION = resolveVersion(import.meta.dirname);
 
@@ -243,6 +244,11 @@ const {
 
 initDb();
 
+/** MCP `instructions` string sent to clients on init. Exported so the TUI's
+ *  `.instructions` dot-command can show the same text an agent sees. */
+// MCP_INSTRUCTIONS now lives in mcp-meta.ts (importing it from browse.ts
+// must not trigger this file's top-level CLI dispatch IIFE).
+
 /** Factory: create a new McpServer with all tools registered.
  *  Called once for stdio, or per-session for HTTP transport. */
 function createServer() {
@@ -251,7 +257,7 @@ const server = new McpServer({
   name: "rosetta",
   version: RESOLVED_VERSION,
 }, {
-  instructions: "RouterOS documentation search. Start with routeros_search for any RouterOS question — it runs a classifier (detects command paths, versions, devices, topics) + BM25 FTS, and returns pages plus a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills) + next-step hints. One call usually answers the question. Drill into specific pages with routeros_get_page; for hardware specs use routeros_device_lookup; for version-specific command changes use routeros_command_diff. Only v7 data exists (7.9+) — v6 is out of scope.",
+  instructions: MCP_INSTRUCTIONS,
 });
 
 server.registerResource(

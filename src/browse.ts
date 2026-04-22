@@ -34,6 +34,7 @@ import {
   fetchCurrentVersions,
   getDudePage,
   getPage,
+  getPageCallouts,
   getSkill,
   getTestResultMeta,
   listGlossary,
@@ -49,6 +50,7 @@ import {
   searchProperties,
   searchVideos,
 } from "./query.ts";
+import { MCP_INSTRUCTIONS, MCP_STATIC_RESOURCES } from "./mcp-meta.ts";
 
 // ── ANSI utilities (zero deps) ──
 
@@ -100,9 +102,13 @@ function mdToAnsi(s: string): string {
     if (h) {
       const level = h[1].length;
       const text = h[2];
+      // Insert a blank line before headings (unless one already precedes
+      // them) so `══ Summary` doesn't glue onto the previous paragraph.
+      if (out.length > 0 && out[out.length - 1].trim() !== "") out.push("");
       if (level === 1) out.push(bold(`══ ${text}`));
       else if (level === 2) out.push(bold(`── ${text}`));
       else out.push(bold(text));
+      out.push("");
       continue;
     }
     // Bullets
@@ -215,16 +221,16 @@ async function paged(output: string): Promise<boolean> {
     process.stdout.write(`${output}\n`);
     return false;
   }
+  const totalPages = Math.ceil(lines.length / pageSize);
   let offset = 0;
   while (offset < lines.length) {
     const chunk = lines.slice(offset, offset + pageSize);
     process.stdout.write(`${chunk.join("\n")}\n`);
     const newOffset = offset + pageSize;
     if (newOffset >= lines.length) return false;
-    const totalPages = Math.ceil(lines.length / pageSize);
     const curPage = Math.floor(newOffset / pageSize);
     const prompt = dim(
-      `── page ${curPage}/${totalPages}  line ${newOffset}/${lines.length}  [SPACE next | ENTER line | b back | g/G top/end | q quit]`,
+      `── page ${curPage}/${totalPages}  line ${newOffset}/${lines.length}  [SPACE next | ENTER line | b back | 1-${Math.min(9, totalPages)} jump | g/G top/end | q quit]`,
     );
     process.stdout.write(prompt);
     const key = await waitForKey();
@@ -238,6 +244,14 @@ async function paged(output: string): Promise<boolean> {
     }
     if (key === "\r" || key === "\n" || key === "j" || key === "\x1b[B") {
       offset += 1;
+      continue;
+    }
+    // Digit 1-9 jumps to that page (1-indexed). If the page is past EOF,
+    // clamp to the last page.
+    if (/^[1-9]$/.test(key)) {
+      const target = Number.parseInt(key, 10);
+      offset = Math.min(lines.length - pageSize, (target - 1) * pageSize);
+      if (offset < 0) offset = 0;
       continue;
     }
     // SPACE / f / anything else → next page
@@ -1040,14 +1054,14 @@ function renderHelp(): string {
   cmd("search <query>", "s", "Explicit page search", "routeros_search");
   cmd("page <id|title>", "", "View full page", "routeros_get_page");
   cmd("prop <name>", "p", "Look up property (scoped to current page)", "routeros_lookup_property");
-  cmd("props <query>", "sp", "Search properties by FTS", "routeros_search_properties");
+  cmd("props <query>", "sp", "Search properties by FTS");
   cmd("glossary [term]", "g", "Look up RouterOS jargon / list glossary");
   cmd("cmd [path]", "tree", "Browse command tree", "routeros_command_tree");
   cmd("device <query>", "dev", "Look up device specs", "routeros_device_lookup");
   cmd("tests [device] [type]", "", "Cross-device benchmarks", "routeros_search_tests");
-  cmd("callouts [query]", "cal", "Search callouts (type filter: cal warning)", "routeros_search_callouts");
+  cmd("callouts [query]", "cal", "Search callouts (cal warning, or `cal` on a page)");
   cmd("changelog [query]", "cl", "Search changelogs (cl 7.22, cl breaking)", "routeros_search_changelogs");
-  cmd("videos <query>", "vid", "Search video transcripts", "routeros_search_videos");
+  cmd("videos <query>", "vid", "Search video transcripts");
   cmd("dude <query>", "", "Search archived Dude wiki docs", "routeros_dude_search");
   cmd("skills", "", "List agent skill guides", "rosetta://skills");
   cmd("skill <name>", "", "View a skill guide", "rosetta://skills/{name}");
@@ -1055,19 +1069,19 @@ function renderHelp(): string {
   cmd("vcheck <path>", "vc", "Version range for a command path", "routeros_command_version_check");
   cmd("versions", "ver", "Live-fetch current RouterOS versions", "routeros_current_versions");
   cmd("stats", "", "Database health / counts", "routeros_stats");
-  cmd("back", "b", "Go to previous view");
+  cmd("back", "b", "Re-render previous view (not just print a breadcrumb)");
   cmd("help", "?", "This help");
   cmd("quit", "q", "Exit");
 
   out.push("");
-  out.push(`  ${bold("MCP probe (dot-commands)")}  ${dim("— see what an agent sees")}`);
-  out.push(`  ${cyan(pad(".routeros_search <q> [limit=N]", 38))} ${dim("Same query path as MCP, raw JSON output")}`);
-  out.push(`  ${cyan(pad(".routeros_get_page <id> [section=]", 38))} ${dim("Probe page response with JSON")}`);
-  out.push(`  ${cyan(pad(".routeros_lookup_property name= ...", 38))} ${dim("Direct property lookup")}`);
-  out.push(`  ${cyan(pad(".help", 38))} ${dim("Full list of dot-commands")}`);
+  out.push(`  ${bold("MCP probe (dot-commands)")}  ${dim("— see exactly what an agent sees")}`);
+  out.push(`  ${cyan(pad(".help", 38))} ${dim("Full list of all 13 tool dot-commands + meta")}`);
+  out.push(`  ${cyan(pad(".instructions", 38))} ${dim("MCP server instructions string (sent on init)")}`);
+  out.push(`  ${cyan(pad(".resources", 38))} ${dim("Registered MCP resources (rosetta:// URIs)")}`);
+  out.push(`  ${cyan(pad(".routeros_search <q> [limit=N]", 38))} ${dim("Raw JSON output, same query path as MCP")}`);
   out.push("");
-  out.push(`  ${dim("Navigation: type a number to select from results.")}`);
-  out.push(`  ${dim("After viewing a page, [p] = properties for that page.")}`);
+  out.push(`  ${dim("Navigation: type a number to select from results; in pager, 1–9 jumps to page N.")}`);
+  out.push(`  ${dim("After viewing a page, [p] = properties, [cal] = page callouts, [b] = re-render previous view.")}`);
   out.push(`  ${dim("URLs are clickable in supported terminals (iTerm2, etc.).")}`);
   out.push(`  ${dim("cmd supports @version suffix: cmd /ip/address @7.15")}`);
   out.push("");
@@ -1091,7 +1105,7 @@ function renderHelp(): string {
 
 type DotArgs = Record<string, string | number | boolean>;
 
-function parseDotArgs(rest: string, primary?: string): DotArgs {
+function parseDotArgs(rest: string, primary?: string, aliases?: Record<string, string>): DotArgs {
   const args: DotArgs = {};
   const positional: string[] = [];
   // Split on whitespace but allow key="quoted value"
@@ -1103,7 +1117,10 @@ function parseDotArgs(rest: string, primary?: string): DotArgs {
       if (v === "true") v = true;
       else if (v === "false") v = false;
       else if (/^-?\d+$/.test(v)) v = Number.parseInt(v, 10);
-      args[m[1]] = v;
+      // Normalize alias keys to canonical names so callers can paste the
+      // exact form printed in `next_steps` (e.g. `id=N` for get_page).
+      const key = aliases?.[m[1]] ?? m[1];
+      args[key] = v;
     } else {
       positional.push(t.replace(/^"|"$/g, ""));
     }
@@ -1119,6 +1136,11 @@ type DotTool = {
   primary?: string;
   /** Short one-line description shown by `.help`. */
   desc: string;
+  /** Optional alias→canonical key map (e.g. `{ id: "page" }` so the form
+   *  printed in `next_steps` works verbatim). */
+  aliases?: Record<string, string>;
+  /** TUI command this tool maps to, for cross-referencing in `.help`. */
+  tui?: string;
   /** Run the tool — return any JSON-serializable object. */
   run: (args: DotArgs) => unknown;
 };
@@ -1126,12 +1148,15 @@ type DotTool = {
 const dotTools: Record<string, DotTool> = {
   routeros_search: {
     primary: "query",
+    tui: "s <query>",
     desc: "Unified search — same as `s <query>` but with raw JSON response",
     run: (a) => searchAll(String(a.query ?? ""), a.limit ? Number(a.limit) : undefined),
   },
   routeros_get_page: {
     primary: "page",
-    desc: "Full page by id or title (args: page=, max_length=, section=)",
+    aliases: { id: "page" },
+    tui: "page <id|title>",
+    desc: "Full page by id or title (args: page= or id=, max_length=, section=)",
     run: (a) => {
       const p = a.page;
       const id = typeof p === "number" ? p : /^\d+$/.test(String(p)) ? Number.parseInt(String(p), 10) : String(p);
@@ -1144,11 +1169,13 @@ const dotTools: Record<string, DotTool> = {
   },
   routeros_lookup_property: {
     primary: "name",
+    tui: "p <name>",
     desc: "Property by exact name (args: name=, command_path=)",
     run: (a) => lookupProperty(String(a.name ?? ""), a.command_path ? String(a.command_path) : undefined),
   },
   routeros_command_tree: {
     primary: "path",
+    tui: "cmd [path]",
     desc: "Browse command tree (args: path=, version=, arch=)",
     run: (a) => {
       const path = String(a.path ?? "");
@@ -1158,6 +1185,7 @@ const dotTools: Record<string, DotTool> = {
   },
   routeros_search_changelogs: {
     primary: "query",
+    tui: "cl [query]",
     desc: "Search changelogs (args: query=, version=, from_version=, to_version=, category=, breaking_only=, limit=)",
     run: (a) => searchChangelogs(String(a.query ?? ""), {
       version: a.version ? String(a.version) : undefined,
@@ -1170,6 +1198,7 @@ const dotTools: Record<string, DotTool> = {
   },
   routeros_command_version_check: {
     primary: "command_path",
+    tui: "vc <command_path>",
     desc: "Version range for a command path (args: command_path=)",
     run: (a) => {
       const p = String(a.command_path ?? "");
@@ -1177,6 +1206,7 @@ const dotTools: Record<string, DotTool> = {
     },
   },
   routeros_command_diff: {
+    tui: "diff <from> <to> [path]",
     desc: "Diff command tree between versions (args: from_version=, to_version=, path_prefix=, arch=)",
     run: (a) => diffCommandVersions(
       String(a.from_version ?? ""),
@@ -1187,6 +1217,7 @@ const dotTools: Record<string, DotTool> = {
   },
   routeros_device_lookup: {
     primary: "query",
+    tui: "device <query>",
     desc: "Device lookup with FTS+filters (args: query=, architecture=, license_level=, has_wireless=, ...)",
     run: (a) => searchDevices(String(a.query ?? ""), {
       architecture: a.architecture ? String(a.architecture) : undefined,
@@ -1199,6 +1230,7 @@ const dotTools: Record<string, DotTool> = {
     }, a.limit ? Number(a.limit) : undefined),
   },
   routeros_search_tests: {
+    tui: "tests [device] [type]",
     desc: "Cross-device benchmarks (args: device=, test_type=, mode=, configuration=, packet_size=, sort_by=, limit=)",
     run: (a) => searchDeviceTests({
       device: a.device ? String(a.device) : undefined,
@@ -1211,6 +1243,7 @@ const dotTools: Record<string, DotTool> = {
   },
   routeros_dude_search: {
     primary: "query",
+    tui: "dude <query>",
     desc: "Search archived Dude wiki (args: query=, limit=)",
     run: (a) => searchDude(String(a.query ?? ""), a.limit ? Number(a.limit) : undefined),
   },
@@ -1223,31 +1256,87 @@ const dotTools: Record<string, DotTool> = {
     },
   },
   routeros_stats: {
+    tui: "stats",
     desc: "DB health / counts",
     run: () => getDbStats(),
   },
   routeros_current_versions: {
+    tui: "versions",
     desc: "Live-fetch RouterOS versions per channel",
     run: async () => await fetchCurrentVersions(),
   },
 };
 
+/** Convert FTS5 snippet markers `**word**` inside JSON string values to ANSI
+ *  bold so dot-command output highlights matched terms (matching what the
+ *  TUI search/changelog/video renderers do). Operates only on quoted JSON
+ *  string contents — keys and structure use their own quoting. */
+function highlightSnippetMarkers(json: string): string {
+  return json.replace(/"((?:\\.|[^"\\])*)"/g, (full, body) => {
+    if (!body.includes("**")) return full;
+    const replaced = body.replace(/\*\*([^*"]+)\*\*/g, (_m: string, t: string) => `${ESC}[1m${t}${ESC}[0m`);
+    return `"${replaced}"`;
+  });
+}
+
 async function dispatchDotCommand(input: string): Promise<void> {
-  // .help / .tools — list available probes
+  // .help / .tools — list all dot-commands
   if (input === ".help" || input === ".?" || input === ".tools") {
     const out: string[] = [];
     out.push(`  ${bold("MCP probe — direct tool invocation")}`);
     out.push(`  ${dim("Format: .<tool_name> [positional...] [key=value ...]")}`);
     out.push(`  ${dim("Output: raw JSON, exactly what an MCP client would receive.")}`);
     out.push("");
+    out.push(`  ${bold("Tool dot-commands")} ${dim(`(${Object.keys(dotTools).length} tools)`)}`);
     for (const [name, t] of Object.entries(dotTools)) {
-      out.push(`  ${cyan(`.${name}`)}`);
+      const tuiHint = t.tui ? `  ${dim(`= ${t.tui}`)}` : "";
+      out.push(`  ${cyan(`.${name}`)}${tuiHint}`);
       out.push(`     ${dim(t.desc)}`);
     }
     out.push("");
+    out.push(`  ${bold("Meta dot-commands")}`);
+    out.push(`  ${cyan(".instructions")}     ${dim("Show MCP server instructions string sent to clients on init")}`);
+    out.push(`  ${cyan(".resources")}        ${dim("List MCP resources (rosetta:// URIs)")}`);
+    out.push(`  ${cyan(".help")} / ${cyan(".tools")} / ${cyan(".?")}  ${dim("This list")}`);
+    out.push("");
     out.push(`  ${dim("Example: .routeros_search firewall filter limit=20")}`);
     out.push(`  ${dim("Example: .routeros_get_page 28282 max_length=4000")}`);
+    out.push(`  ${dim("Example: .routeros_get_page id=81362945       (paste from next_steps)")}`);
     out.push(`  ${dim("Example: .routeros_lookup_property name=disabled command_path=/ip/firewall/filter")}`);
+    await paged(out.join("\n"));
+    return;
+  }
+  // .instructions — print MCP server `instructions` string
+  if (input === ".instructions") {
+    const out: string[] = [];
+    out.push(`  ${bold("MCP server instructions")} ${dim("(sent to clients on initialize)")}`);
+    out.push("");
+    out.push(MCP_INSTRUCTIONS);
+    await paged(out.join("\n"));
+    return;
+  }
+  // .resources — list registered MCP resources
+  if (input === ".resources" || input === ".refs") {
+    const out: string[] = [];
+    out.push(`  ${bold("MCP resources")} ${dim("(static + per-skill)")}`);
+    out.push("");
+    for (const r of MCP_STATIC_RESOURCES) {
+      out.push(`  ${cyan(r.uri)}`);
+      out.push(`     ${bold(r.title)}  ${dim(`[${r.mimeType}]`)}`);
+      out.push(`     ${dim(r.description)}`);
+    }
+    try {
+      const skills = listSkills();
+      if (skills.length > 0) {
+        out.push("");
+        out.push(`  ${bold(`Skill resources`)} ${dim(`(${skills.length} from tikoci/routeros-skills — community content, NOT official MikroTik docs)`)}`);
+        for (const s of skills) {
+          out.push(`  ${cyan(`rosetta://skills/${s.name}`)}  ${dim(`${s.word_count}w`)}  ${dim(s.description)}`);
+        }
+      }
+    } catch {
+      // skills table may not exist
+    }
     await paged(out.join("\n"));
     return;
   }
@@ -1263,11 +1352,11 @@ async function dispatchDotCommand(input: string): Promise<void> {
     return;
   }
   try {
-    const args = parseDotArgs(m[2] ?? "", tool.primary);
+    const args = parseDotArgs(m[2] ?? "", tool.primary, tool.aliases);
     const result = await tool.run(args);
     const json = JSON.stringify(result, null, 2);
     const banner = dim(`── .${name}  args=${JSON.stringify(args)}`);
-    await paged(`${banner}\n${json}`);
+    await paged(`${banner}\n${highlightSnippetMarkers(json)}`);
   } catch (e) {
     console.log(red(`  Error invoking .${name}: ${(e as Error).message}`));
   }
@@ -1314,9 +1403,11 @@ async function dispatch(input: string): Promise<void> {
     case "back":
       if (!popCtx()) {
         console.log(dim("  Already at top."));
-      } else {
-        console.log(dim(`  ← back to ${ctx.type}`));
+        return;
       }
+      // Re-render the now-current context so the user lands back where
+      // they came from instead of dropping to a bare prompt.
+      await renderCurrentContext();
       return;
 
     case "stats":
@@ -1388,14 +1479,16 @@ async function dispatch(input: string): Promise<void> {
     case "cal":
     case "callouts": {
       if (!rest && ctx.type === "page") {
-        // Show callouts for current page
-        const results = searchCallouts("", undefined, 50);
-        const pageCallouts = results.filter((c) => c.page_id === (ctx as { pageId: number }).pageId);
+        // Page-scoped: query callouts directly by page_id (the
+        // FTS-with-empty-query path always returned [] before).
+        const pageCallouts = getPageCallouts((ctx as { pageId: number }).pageId);
         if (pageCallouts.length > 0) {
           await paged(renderCallouts(pageCallouts));
           pushCtx({ type: "callouts", query: "", results: pageCallouts });
-          return;
+        } else {
+          console.log(dim("  This page has no callouts."));
         }
+        return;
       }
       await doSearchCallouts(rest);
       return;
@@ -1557,6 +1650,68 @@ async function handleNumberSelect(idx: number): Promise<void> {
 
 // ── Action functions ──
 
+/**
+ * Re-render the current context, used by `b` / `back` so users land back on
+ * the parent view instead of dropping to a bare prompt. Pure rendering — no
+ * pushCtx (we just popped).
+ */
+async function renderCurrentContext(): Promise<void> {
+  switch (ctx.type) {
+    case "home":
+      console.log(dim("  ← back to home. Type 'help' for commands."));
+      return;
+    case "search":
+      await paged(renderSearchResults(ctx.response));
+      return;
+    case "page":
+    case "sections": {
+      const page = getPage(ctx.pageId);
+      if (page) await paged(renderPage(page));
+      return;
+    }
+    case "commands": {
+      const children = browseCommands(ctx.path);
+      await paged(renderCommandTree(ctx.path, children));
+      return;
+    }
+    case "devices":
+      await paged(renderDeviceResults(ctx.results, "search", ctx.results.length));
+      return;
+    case "device":
+      await paged(renderDeviceCard(ctx.device));
+      return;
+    case "callouts":
+      await paged(renderCallouts(ctx.results));
+      return;
+    case "changelogs":
+      await paged(renderChangelogs(ctx.results));
+      return;
+    case "videos":
+      await paged(renderVideos(ctx.results));
+      return;
+    case "dude":
+      await paged(renderDudeResults(ctx.results));
+      return;
+    case "skills":
+      await doListSkills();
+      return;
+    case "properties": {
+      const lines: string[] = [`  ${bold("Properties")}`, ""];
+      for (let i = 0; i < ctx.results.length; i++) {
+        const p = ctx.results[i];
+        lines.push(`  ${cyan(String(i + 1).padStart(2))}. ${bold(p.name)}  ${dim(`@ ${p.page_title}`)}`);
+      }
+      await paged(lines.join("\n"));
+      return;
+    }
+    case "tests":
+    case "diff":
+    case "vcheck":
+      console.log(dim(`  ← back to ${ctx.type}. Re-run the command to see the result again.`));
+      return;
+  }
+}
+
 async function doSearch(query: string): Promise<void> {
   const resp = searchAll(query);
   await paged(renderSearchResults(resp));
@@ -1660,7 +1815,7 @@ async function doGlossary(rest: string): Promise<void> {
   }
   const aliases = entry.aliases ? `\n  ${dim("Aliases:")} ${entry.aliases}` : "";
   const hint = entry.search_hint ? `\n  ${dim("Search:")} ${cyan(entry.search_hint)}` : "";
-  console.log(`\n  ${bold(entry.term)} ${dim(`[${entry.category}]`)}\n  ${entry.definition}${aliases}${hint}\n`);
+  console.log(`\n  ${bold(entry.term)} ${dim(`[${entry.category}]`)}\n  ${mdToAnsi(entry.definition)}${aliases}${hint}\n`);
 }
 
 async function doCommandTree(path: string): Promise<void> {

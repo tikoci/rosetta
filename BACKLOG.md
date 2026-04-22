@@ -109,6 +109,8 @@ TUI half shipped. Verify MCP tool + `searchDeviceTests()` also accepts `device` 
 
 `[XX more results...]` isn't actionable — bump default limits, let pager handle it. Add general flag parser (`--limit`, `--version`, `--breaking`) so TUI exercises same surface as MCP.
 
+**Partial (TUI polish round-2):** pager now accepts digit `1`–`9` to jump directly to that page (status line shows `[1-N jump]` hint). Pass-through param parser still TBD — currently only dot-commands accept `key=value` form.
+
 ### 🟢 TUI — search-in-results (vi-style `/`)
 
 `/pattern` filters/highlights within current result set. `n`/`N` for next/prev. Display concern in `browse.ts` but matcher reuses `extractTerms()` tokenization.
@@ -241,6 +243,13 @@ Not urgent — the current 13-tool surface is clean and small enough — but cap
 ---
 
 ## Improvements (smaller, not urgent)
+
+### 🟢 MCP considerations from TUI round-2
+
+Items the TUI cleanup surfaced that *also* apply to the agent-facing MCP surface (most TUI fixes are pure UX and don't need MCP equivalents — these two do):
+
+- **Structured highlights in search responses.** FTS5 `snippet()` returns `**…**` boundary markers. Agents currently see them as literal asterisks inside JSON string values. Consider returning a sibling `highlights: [{ start, end }]` array (offsets into the excerpt text) alongside the raw text, so clients can render bold/colour without parsing the markers themselves. The TUI now post-processes `**…**` → ANSI bold in dot-command output as a stopgap.
+- **`routeros_current_versions` enrichment (`additional_data=true`).** Today the tool returns RouterOS channel versions only. Consider an opt-in flag that also returns: WinBox 4 version (separate field, clearly labelled), download URLs (mikrotik.com/download for each channel), and tikoci-sourced refs (restraml inspect.json index, OpenAPI3, `/app` YAML schema). All tikoci refs MUST be flagged with provenance ("from tikoci/restraml — community, not official MikroTik"). Helps agents construct download links and locate machine-readable specs without a separate web search.
 
 ### 🟢 Stop words — post-classifier
 
