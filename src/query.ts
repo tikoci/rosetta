@@ -1852,6 +1852,7 @@ export type ChangelogResult = {
   is_breaking: number;
   description: string;
   excerpt: string;
+  sort_order: number;
 };
 
 /** Get all versions that have changelog data, sorted numerically. */
@@ -1891,6 +1892,7 @@ export function searchChangelogs(
     fromVersion?: string;
     toVersion?: string;
     inclusiveFrom?: boolean;
+    sortAscending?: boolean;
     category?: string;
     breakingOnly?: boolean;
     limit?: number;
@@ -1909,19 +1911,26 @@ export function searchChangelogs(
     if (versionList.length === 0) return [];
   }
 
+  let results: ChangelogResult[];
+
   // No FTS query — browse by filters only
   if (terms.length === 0) {
-    return browseChangelogs(versionList, options.category, options.breakingOnly, limit);
+    results = browseChangelogs(versionList, options.category, options.breakingOnly, limit);
+  } else {
+    // FTS search with AND, then fallback to OR
+    let ftsQuery = buildFtsQuery(terms, "AND");
+    if (!ftsQuery) return [];
+    results = runChangelogFtsQuery(ftsQuery, versionList, options.category, options.breakingOnly, limit);
+
+    if (results.length === 0 && terms.length > 1) {
+      ftsQuery = buildFtsQuery(terms, "OR");
+      results = runChangelogFtsQuery(ftsQuery, versionList, options.category, options.breakingOnly, limit);
+    }
   }
 
-  // FTS search with AND, then fallback to OR
-  let ftsQuery = buildFtsQuery(terms, "AND");
-  if (!ftsQuery) return [];
-  let results = runChangelogFtsQuery(ftsQuery, versionList, options.category, options.breakingOnly, limit);
-
-  if (results.length === 0 && terms.length > 1) {
-    ftsQuery = buildFtsQuery(terms, "OR");
-    results = runChangelogFtsQuery(ftsQuery, versionList, options.category, options.breakingOnly, limit);
+  // Re-sort by version when caller wants chronological order (oldest first)
+  if (options.sortAscending) {
+    results.sort((a, b) => compareVersions(a.version, b.version) || a.sort_order - b.sort_order);
   }
 
   return results;
@@ -1955,7 +1964,7 @@ function browseChangelogs(
   }
 
   const sql = `SELECT c.version, c.released, c.category, c.is_breaking,
-      c.description, substr(c.description, 1, 200) as excerpt
+      c.description, substr(c.description, 1, 200) as excerpt, c.sort_order
     FROM changelogs c
     WHERE ${where.join(" AND ")}
     ORDER BY c.sort_order
@@ -1991,7 +2000,7 @@ function runChangelogFtsQuery(
     }
 
     const sql = `SELECT c.version, c.released, c.category, c.is_breaking,
-        c.description,
+        c.description, c.sort_order,
         snippet(changelogs_fts, 1, '**', '**', '...', 25) as excerpt
       FROM changelogs_fts fts
       JOIN changelogs c ON c.id = fts.rowid

@@ -1986,6 +1986,7 @@ async function doSearchChangelogs(query: string): Promise<void> {
     fromVersion,
     toVersion,
     inclusiveFrom: fromVersion !== undefined, // X..Y range is [X, Y] inclusive on both ends
+    sortAscending: fromVersion !== undefined,  // range queries read chronologically (oldest first)
     category,
     breakingOnly,
     limit: 50,
