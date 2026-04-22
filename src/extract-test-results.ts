@@ -19,7 +19,6 @@
  */
 
 import { parseHTML } from "linkedom";
-import { db, initDb } from "./db.ts";
 
 // ── CLI flags ──
 
@@ -311,124 +310,131 @@ function sleep(ms: number): Promise<void> {
 }
 
 // ── Main ──
+async function main(): Promise<void> {
+  const { db, initDb } = await import("./db.ts");
 
-initDb();
+  initDb();
 
-// Get all devices from DB
-const devices = db.prepare("SELECT id, product_name, product_code FROM devices ORDER BY product_name").all() as Array<{
-  id: number;
-  product_name: string;
-  product_code: string | null;
-}>;
+  // Get all devices from DB
+  const devices = db.prepare("SELECT id, product_name, product_code FROM devices ORDER BY product_name").all() as Array<{
+    id: number;
+    product_name: string;
+    product_code: string | null;
+  }>;
 
-if (devices.length === 0) {
-  console.error("No devices in database. Run extract-devices.ts first.");
-  process.exit(1);
-}
+  if (devices.length === 0) {
+    console.error("No devices in database. Run extract-devices.ts first.");
+    process.exit(1);
+  }
 
-console.log(`Found ${devices.length} devices in database`);
+  console.log(`Found ${devices.length} devices in database`);
 
-// Fetch sitemap once to validate slugs and prioritize correct candidates
-console.log("Loading product sitemap...");
-const sitemapSlugs = await fetchSitemap();
+  // Fetch sitemap once to validate slugs and prioritize correct candidates
+  console.log("Loading product sitemap...");
+  const sitemapSlugs = await fetchSitemap();
 
-// Build device → candidate slugs mapping
-const deviceSlugs: Array<{ id: number; name: string; slugs: string[] }> = [];
-for (const dev of devices) {
-  const slugs = buildSlugCandidates(dev.product_name, dev.product_code, sitemapSlugs);
-  deviceSlugs.push({ id: dev.id, name: dev.product_name, slugs });
-}
+  // Build device -> candidate slugs mapping
+  const deviceSlugs: Array<{ id: number; name: string; slugs: string[] }> = [];
+  for (const dev of devices) {
+    const slugs = buildSlugCandidates(dev.product_name, dev.product_code, sitemapSlugs);
+    deviceSlugs.push({ id: dev.id, name: dev.product_name, slugs });
+  }
 
-// Idempotent: clear existing test results
-db.run("DELETE FROM device_test_results");
+  // Idempotent: clear existing test results
+  db.run("DELETE FROM device_test_results");
 
-// Prepare statements
-const insertTest = db.prepare(`INSERT OR IGNORE INTO device_test_results (
-  device_id, test_type, mode, configuration, packet_size,
-  throughput_kpps, throughput_mbps
-) VALUES (?, ?, ?, ?, ?, ?, ?)`);
+  // Prepare statements
+  const insertTest = db.prepare(`INSERT OR IGNORE INTO device_test_results (
+    device_id, test_type, mode, configuration, packet_size,
+    throughput_kpps, throughput_mbps
+  ) VALUES (?, ?, ?, ?, ?, ?, ?)`);
 
-const updateDevice = db.prepare(`UPDATE devices
-  SET product_url = ?, block_diagram_url = ?
-  WHERE id = ?`);
+  const updateDevice = db.prepare(`UPDATE devices
+    SET product_url = ?, block_diagram_url = ?
+    WHERE id = ?`);
 
-console.log(`Fetching ${deviceSlugs.length} product pages (concurrency=${CONCURRENCY}, delay=${DELAY_MS}ms)...`);
+  console.log(`Fetching ${deviceSlugs.length} product pages (concurrency=${CONCURRENCY}, delay=${DELAY_MS}ms)...`);
 
-let totalTests = 0;
-let devicesWithTests = 0;
-let devicesWithDiagrams = 0;
-let fetchErrors = 0;
+  let totalTests = 0;
+  let devicesWithTests = 0;
+  let devicesWithDiagrams = 0;
+  let fetchErrors = 0;
 
-const insertAll = db.transaction(
-  (results: Array<{ deviceId: number; data: ProductPageData | null }>) => {
-    for (const { deviceId, data } of results) {
-      if (!data) {
-        fetchErrors++;
-        continue;
-      }
+  const insertAll = db.transaction(
+    (results: Array<{ deviceId: number; data: ProductPageData | null }>) => {
+      for (const { deviceId, data } of results) {
+        if (!data) {
+          fetchErrors++;
+          continue;
+        }
 
-      // Update device with URL and block diagram
-      updateDevice.run(
-        `https://mikrotik.com/product/${data.slug}`,
-        data.block_diagram_url,
-        deviceId,
-      );
-
-      if (data.block_diagram_url) devicesWithDiagrams++;
-
-      // Insert test results
-      const allResults = [
-        ...data.ethernet_results.map((r) => ({ ...r, test_type: "ethernet" as const })),
-        ...data.ipsec_results.map((r) => ({ ...r, test_type: "ipsec" as const })),
-      ];
-
-      if (allResults.length > 0) devicesWithTests++;
-
-      for (const r of allResults) {
-        insertTest.run(
+        // Update device with URL and block diagram
+        updateDevice.run(
+          `https://mikrotik.com/product/${data.slug}`,
+          data.block_diagram_url,
           deviceId,
-          r.test_type,
-          r.mode,
-          r.configuration,
-          r.packet_size,
-          r.throughput_kpps,
-          r.throughput_mbps,
         );
-        totalTests++;
+
+        if (data.block_diagram_url) devicesWithDiagrams++;
+
+        // Insert test results
+        const allResults = [
+          ...data.ethernet_results.map((r) => ({ ...r, test_type: "ethernet" as const })),
+          ...data.ipsec_results.map((r) => ({ ...r, test_type: "ipsec" as const })),
+        ];
+
+        if (allResults.length > 0) devicesWithTests++;
+
+        for (const r of allResults) {
+          insertTest.run(
+            deviceId,
+            r.test_type,
+            r.mode,
+            r.configuration,
+            r.packet_size,
+            r.throughput_kpps,
+            r.throughput_mbps,
+          );
+          totalTests++;
+        }
       }
-    }
-  },
-);
-
-// Fetch all products with rate limiting
-const allResults: Array<{ deviceId: number; data: ProductPageData | null }> = [];
-let processed = 0;
-
-for (let i = 0; i < deviceSlugs.length; i += CONCURRENCY) {
-  const batch = deviceSlugs.slice(i, i + CONCURRENCY);
-  const batchResults = await Promise.all(
-    batch.map(async (dev) => {
-      const data = await fetchProductPage(dev.slugs);
-      return { deviceId: dev.id, data };
-    }),
+    },
   );
-  allResults.push(...batchResults);
-  processed += batch.length;
 
-  const pct = Math.round((processed / deviceSlugs.length) * 100);
-  process.stdout.write(`\r  ${processed}/${deviceSlugs.length} (${pct}%)`);
+  // Fetch all products with rate limiting
+  const allResults: Array<{ deviceId: number; data: ProductPageData | null }> = [];
+  let processed = 0;
 
-  if (i + CONCURRENCY < deviceSlugs.length) {
-    await sleep(DELAY_MS);
+  for (let i = 0; i < deviceSlugs.length; i += CONCURRENCY) {
+    const batch = deviceSlugs.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.all(
+      batch.map(async (dev) => {
+        const data = await fetchProductPage(dev.slugs);
+        return { deviceId: dev.id, data };
+      }),
+    );
+    allResults.push(...batchResults);
+    processed += batch.length;
+
+    const pct = Math.round((processed / deviceSlugs.length) * 100);
+    process.stdout.write(`\r  ${processed}/${deviceSlugs.length} (${pct}%)`);
+
+    if (i + CONCURRENCY < deviceSlugs.length) {
+      await sleep(DELAY_MS);
+    }
+  }
+  console.log(""); // newline after progress
+
+  // Insert all results in one transaction
+  insertAll(allResults);
+
+  console.log(`Test results: ${totalTests} rows for ${devicesWithTests} devices`);
+  console.log(`Block diagrams: ${devicesWithDiagrams} devices`);
+  if (fetchErrors > 0) {
+    console.warn(`Fetch errors: ${fetchErrors} products`);
   }
 }
-console.log(""); // newline after progress
 
-// Insert all results in one transaction
-insertAll(allResults);
-
-console.log(`Test results: ${totalTests} rows for ${devicesWithTests} devices`);
-console.log(`Block diagrams: ${devicesWithDiagrams} devices`);
-if (fetchErrors > 0) {
-  console.warn(`Fetch errors: ${fetchErrors} products`);
+if (import.meta.main) {
+  await main();
 }

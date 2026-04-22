@@ -141,6 +141,18 @@ Fixed three ways:
 real use, not at module-evaluation time. That would remove the entire class of
 "DB_PATH set too late" bugs. Out of scope for this fix.
 
+### 🟡 Extractor import side-effects (remaining)
+
+`extract-test-results.ts` is now safe to import in tests because extraction runs
+only under `import.meta.main` and DB import moved inside `main()`. Other
+extractors still import `db.ts` at module-evaluation time, so future pure-parser
+tests can reintroduce cross-file DB singleton contamination if they statically
+import those modules without `DB_PATH=:memory:`.
+
+Action: apply the same pattern to extractor entrypoints (`main()` +
+`if (import.meta.main) await main()` + dynamic `await import("./db.ts")` in
+`main`) so helpers can be imported without DB side effects.
+
 ### 🟢 bunx auto-update story — critical items resolved (v0.7.7–v0.7.8)
 
 **Original problem (2026-04-21):** bunx flow had several ways to silently leave a user with a bad DB. Items 1–4 have been fixed; items 5–7 remain as nice-to-haves.

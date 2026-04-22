@@ -1,6 +1,13 @@
+// Set BEFORE importing extract-test-results.ts (which transitively imports
+// db.ts). Prevents this test file from pinning the DB singleton to a real
+// ros-help.db path before query.test.ts can enforce its in-memory guard.
+process.env.DB_PATH = ":memory:";
+
 import { describe, expect, it } from "bun:test";
 import { parseHTML } from "linkedom";
-import { parsePerformanceTable } from "./extract-test-results.ts";
+
+// Dynamic import so the DB_PATH assignment above is visible before db.ts loads.
+const { parsePerformanceTable } = await import("./extract-test-results.ts");
 
 // ── Fixture helpers ──────────────────────────────────────────────────────────
 

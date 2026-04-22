@@ -57,6 +57,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Tests/CI: importing `extract-test-results.ts` no longer opens the DB or runs
+  extraction side effects at module-load time. The extractor now runs only
+  under `import.meta.main`, and `extract-test-results.test.ts` sets
+  `DB_PATH=:memory:` before dynamic import to prevent cross-file DB singleton
+  contamination that could make `query.test.ts` fail depending on test order.
 - **`extract-test-results`: throughput values with thousands separators now
   parse correctly.** Values like `7,112.3` Mbps were truncated to `7` because
   `parseFloat` stops at a comma. The extractor now strips commas before parsing,
