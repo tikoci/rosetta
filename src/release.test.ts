@@ -390,7 +390,18 @@ describe("release.yml", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("bun run typecheck");
     expect(src).toContain("bun test");
+    expect(src).toContain("bun test src/mcp-contract.test.ts");
     expect(src).toContain("bun run lint");
+  });
+
+  test("runs MCP contract tests against the real built DB before eval/release", () => {
+    const src = readText(".github/workflows/release.yml");
+    const contractIdx = src.indexOf("bun test src/mcp-contract.test.ts");
+    const evalIdx = src.indexOf("MCP retrieval eval (Phase 0, non-blocking)");
+    const buildIdx = src.indexOf("Build release artifacts");
+    expect(contractIdx).toBeGreaterThan(0);
+    expect(contractIdx).toBeLessThan(evalIdx);
+    expect(contractIdx).toBeLessThan(buildIdx);
   });
 
   test("creates GitHub Release", () => {

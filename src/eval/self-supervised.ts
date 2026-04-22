@@ -208,17 +208,18 @@ async function generateQueries(
         const rows = db
           .prepare(
             `SELECT page_id, path FROM commands
-             WHERE page_id IS NOT NULL AND type = 'dir'
-             ORDER BY RANDOM()
-             LIMIT 30`,
+              WHERE page_id IS NOT NULL AND type = 'dir'
+              ORDER BY path`,
           )
           .all() as { page_id: number; path: string }[];
 
-        cases = rows.map((r) => ({
-          query: r.path,
-          expected_page_id: r.page_id,
-          source: "cmd-path" as Strategy,
-        }));
+        cases = shuffle(rows, rng)
+          .slice(0, limit ? Math.floor(limit / 4) : 30)
+          .map((r) => ({
+            query: r.path,
+            expected_page_id: r.page_id,
+            source: "cmd-path" as Strategy,
+          }));
       }
     } else if (strategy === "title") {
       // Target ~30 queries from page titles (3-6 words)
@@ -467,23 +468,32 @@ function checkThresholds(report: Report, filter?: Strategy): string[] {
   return fails;
 }
 
-function checkRegression(curr: Report, base: Report, tolerance = 0.05): string[] {
+function checkRegression(
+  curr: Report,
+  base: Report,
+  filter?: Strategy,
+  tolerance = 0.05,
+): string[] {
   // Tolerance = 5pp; auto-gen queries are noisier than golden set.
   const fails: string[] = [];
 
   // Overall metrics
-  const keys: (keyof Report["overall"])[] = ["hit_at_1", "hit_at_5", "hit_at_10", "mrr"];
-  for (const k of keys) {
-    const d = curr.overall[k] - base.overall[k];
-    if (d < -tolerance) {
-      fails.push(
-        `overall ${k} regressed ${(d * 100).toFixed(1)}pp (was ${fmtPct(base.overall[k])}, now ${fmtPct(curr.overall[k])})`,
-      );
+  if (!filter) {
+    const keys: (keyof Report["overall"])[] = ["hit_at_1", "hit_at_5", "hit_at_10", "mrr"];
+    for (const k of keys) {
+      const d = curr.overall[k] - base.overall[k];
+      if (d < -tolerance) {
+        fails.push(
+          `overall ${k} regressed ${(d * 100).toFixed(1)}pp (was ${fmtPct(base.overall[k])}, now ${fmtPct(curr.overall[k])})`,
+        );
+      }
     }
   }
 
   // Per-strategy hit@10 (most lenient metric)
-  const strategies: Strategy[] = ["title", "section", "property", "cmd-path"];
+  const strategies: Strategy[] = filter
+    ? [filter]
+    : ["title", "section", "property", "cmd-path"];
   for (const strategy of strategies) {
     const currS = curr.per_strategy[strategy];
     const baseS = base.per_strategy[strategy];
@@ -554,9 +564,9 @@ if (import.meta.main) {
     }
 
     // Gate: thresholds + regression
-    const thresholdFails = filter ? [] : checkThresholds(report, filter);
+    const thresholdFails = checkThresholds(report, filter);
     const regressionFails =
-      baseline && !filter ? checkRegression(report, baseline) : [];
+      baseline ? checkRegression(report, baseline, filter) : [];
 
     if (thresholdFails.length > 0 || regressionFails.length > 0) {
       console.log("\n  ❌ FAIL");

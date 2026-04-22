@@ -29,10 +29,21 @@ const ROOT = path.resolve(import.meta.dirname, "..");
 const { searchAll } = await import("./query.ts");
 const { DB_PATH, getDbStats } = await import("./db.ts");
 
-const dbIsReal = DB_PATH !== ":memory:" && getDbStats().pages > 100;
+// getDbStats() throws if tables don't exist (clean checkout before any DB build).
+// Guard defensively: any failure → treat as "DB not usable" and skip B/C.
+function dbPagesOrZero(): number {
+  try {
+    return getDbStats().pages;
+  } catch {
+    return 0;
+  }
+}
+
+const dbPages = dbPagesOrZero();
+const dbIsReal = DB_PATH !== ":memory:" && dbPages > 100;
 const skipReason = dbIsReal
   ? ""
-  : `DB singleton is "${DB_PATH}" (pages=${getDbStats().pages}); run \`bun test src/mcp-contract.test.ts\` solo for Blocks B/C.`;
+  : `DB singleton is "${DB_PATH}" (pages=${dbPages}); run \`bun test src/mcp-contract.test.ts\` solo against a populated DB for Blocks B/C.`;
 
 // ---------------------------------------------------------------------------
 // Block A: Frozen tool registry

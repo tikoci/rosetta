@@ -28,6 +28,14 @@ uses [Semantic Versioning](https://semver.org/).
   freshly built full DB after extraction and writes the report to the job
   summary. Non-blocking while the baseline adapts to the real-DB corpus —
   flip to blocking after one green real-DB run refreshes the baseline.
+- **CI: Phase 2 contract checks run in a dedicated real-DB step on release.**
+  `release.yml` executes `bun test src/mcp-contract.test.ts` after the full
+  `bun test` suite so the token-budget and snapshot blocks run against the
+  freshly built full DB in a fresh process (the shared `bun test` run pins
+  the DB singleton to `:memory:` before this file loads, so Blocks B/C
+  would otherwise skip). `test.yml` intentionally does not get a dedicated
+  step: a clean CI checkout has no `ros-help.db`, so B/C would skip
+  regardless and the step would be redundant with Block A in the main run.
 
 ### Added
 
@@ -51,6 +59,13 @@ uses [Semantic Versioning](https://semver.org/).
   removing, or renaming an MCP tool requires updating both `src/mcp.ts`
   and the `EXPECTED_TOOLS` array in `src/mcp-contract.test.ts`, plus a
   `CHANGELOG.md` entry under `[Unreleased]`.
+
+### Fixed
+
+- **Phase 1 self-supervised sampling is now deterministic on full DBs.**
+  The cmd-path strategy no longer uses SQL randomness; it samples from a
+  stable ordered set using the same seeded shuffle as the other strategies,
+  so `self-supervised-baseline.json` stays reproducible across runs.
 
 - `CHANGELOG.md` (Keep a Changelog format, back-filled from v0.1.0) with an
   agentic "update `[Unreleased]` on every user-visible change" rule in

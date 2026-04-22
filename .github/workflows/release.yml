@@ -176,6 +176,9 @@ jobs:
       - name: Run tests (DB-wipe guard)
         run: bun test
 
+      - name: MCP contract tests (real DB)
+        run: bun test src/mcp-contract.test.ts
+
       # ── MCP retrieval eval (Phase 0, non-blocking) ──
       # Runs the 20-query golden set against the freshly built full DB.
       # Non-blocking on first landing: the committed baseline was captured
