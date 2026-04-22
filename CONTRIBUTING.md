@@ -105,8 +105,11 @@ Pure refactors, test churn, and CI auto-bumps with no external effect are
 omitted (git history is authoritative). Details and rationale go in
 `DESIGN.md`; future work goes in `BACKLOG.md`.
 
-The release workflow promotes `[Unreleased]` to a dated version header when
-a release is cut.
+The `bump-version` CI job (runs automatically after every release) promotes
+`[Unreleased]` to `[VERSION] — DATE` and prepends a fresh `## [Unreleased]`
+skeleton — no manual fixup needed. Agents and developers only ever write
+to the current `[Unreleased]` section; the version heading is filled in
+automatically at release time.
 
 ## Creating a Release
 

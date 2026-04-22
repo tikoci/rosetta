@@ -503,15 +503,21 @@ jobs:
         with:
           node-version: 22
 
-      - name: Bump patch version for next release
+      - name: Bump patch version and promote CHANGELOG for next release
+        env:
+          RELEASE_VERSION: ${{ needs.build-and-release.outputs.version }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          # Strip leading 'v' for CHANGELOG heading (e.g. "v0.8.5" → "0.8.5")
+          RELEASE_VER_NUM="${RELEASE_VERSION#v}"
+          RELEASE_DATE=$(date -u +%Y-%m-%d)
+
           # Rebase-retry loop: back-to-back release runs can race because each
-          # checkout pins the SHA at workflow start. The bump commit only touches
-          # package.json, so a rebase is always safe.
+          # checkout pins the SHA at workflow start. Both package.json and
+          # CHANGELOG.md are idempotent here, so a rebase is always safe.
           for attempt in 1 2 3; do
             git fetch origin main
             git rebase origin/main || { git rebase --abort; exit 1; }
@@ -522,14 +528,34 @@ jobs:
             node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$NEXT'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
             echo "✓ (attempt $attempt) Bumped version: $CURRENT → $NEXT"
 
-            git add package.json
+            # Promote [Unreleased] → [VERSION] — DATE and prepend a fresh
+            # [Unreleased] skeleton so agents can write the next batch of
+            # changes to the matching version heading without manual fixups.
+            node -e '
+              const fs = require("fs");
+              const v = process.env.RELEASE_VER_NUM;
+              const d = process.env.RELEASE_DATE;
+              let c = fs.readFileSync("CHANGELOG.md", "utf8");
+              const unreleased = "## [Unreleased]";
+              if (c.includes(unreleased)) {
+                const versioned = "## [" + v + "] \u2014 " + d;
+                c = c.replace(unreleased, versioned);
+                c = c.replace(versioned, unreleased + "\n\n" + versioned);
+                fs.writeFileSync("CHANGELOG.md", c);
+                console.log("\u2713 Promoted [Unreleased] \u2192 [" + v + "] \u2014 " + d);
+              } else {
+                console.log("! [Unreleased] not found \u2014 already promoted or CHANGELOG out of sync");
+              }
+            ' RELEASE_VER_NUM="$RELEASE_VER_NUM" RELEASE_DATE="$RELEASE_DATE"
+
+            git add package.json CHANGELOG.md
             # If another bump already landed at our target version, the working
             # tree is clean after rebase; skip the commit.
             if git diff --cached --quiet; then
               echo "✓ package.json already at expected version; nothing to commit"
               exit 0
             fi
-            git commit -m "chore: bump version to $NEXT for next release"
+            git commit -m "chore: bump to v$NEXT and promote CHANGELOG for next release [skip ci]"
 
             if git push origin HEAD:main; then
               echo "✓ (attempt $attempt) Version bump pushed"

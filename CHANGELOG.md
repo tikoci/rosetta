@@ -17,6 +17,13 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **CI: `bump-version` now auto-promotes `[Unreleased]` → `[VERSION] — DATE`**
+  and prepends a fresh `## [Unreleased]` skeleton after every release. No
+  manual CHANGELOG fixup is needed — agents and developers only write to
+  `[Unreleased]`; the version heading is filled in automatically.
+
 ### Added
 
 - `CHANGELOG.md` (Keep a Changelog format, back-filled from v0.1.0) with an
