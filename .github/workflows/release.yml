@@ -57,6 +57,17 @@ jobs:
 
       - run: bun install
 
+      # ── Fast-fail quality gate ──
+      # Run before the ~2-minute extraction pipeline so a typecheck/lint
+      # regression that slipped past test.yml fails in ~30s, not ~3min.
+      # DB-touching tests re-run after extraction (the test step below stays).
+
+      - name: Type check (fast-fail)
+        run: bun run typecheck
+
+      - name: Lint (fast-fail)
+        run: bun run lint
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -156,16 +167,14 @@ jobs:
       - name: Link commands to pages
         run: bun run src/link-commands.ts
 
-      # ── Quality gate ──
+      # ── Post-extraction DB-wipe guard ──
+      # query.test.ts hard-fails if the DB singleton isn't :memory:, so
+      # running tests after extraction detects any regression of the
+      # v0.7.6 "tests wiped the built DB" bug before publish.
+      # (Typecheck + lint already ran fast-fail above.)
 
-      - name: Type check
-        run: bun run typecheck
-
-      - name: Run tests
+      - name: Run tests (DB-wipe guard)
         run: bun test
-
-      - name: Lint
-        run: bun run lint
 
       # ── Build and release ──
 
@@ -496,14 +505,38 @@ jobs:
 
       - name: Bump patch version for next release
         run: |
-          CURRENT=$(node -p "require('./package.json').version")
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          NEXT="$MAJOR.$MINOR.$((PATCH + 1))"
-          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$NEXT'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
-          echo "✓ Bumped version: $CURRENT → $NEXT"
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json
-          git commit -m "chore: bump version to $NEXT for next release"
-          git push origin HEAD:main
-          echo "✓ Version bump committed and pushed"
+
+          # Rebase-retry loop: back-to-back release runs can race because each
+          # checkout pins the SHA at workflow start. The bump commit only touches
+          # package.json, so a rebase is always safe.
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main || { git rebase --abort; exit 1; }
+
+            CURRENT=$(node -p "require('./package.json').version")
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+            NEXT="$MAJOR.$MINOR.$((PATCH + 1))"
+            node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$NEXT'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+            echo "✓ (attempt $attempt) Bumped version: $CURRENT → $NEXT"
+
+            git add package.json
+            # If another bump already landed at our target version, the working
+            # tree is clean after rebase; skip the commit.
+            if git diff --cached --quiet; then
+              echo "✓ package.json already at expected version; nothing to commit"
+              exit 0
+            fi
+            git commit -m "chore: bump version to $NEXT for next release"
+
+            if git push origin HEAD:main; then
+              echo "✓ (attempt $attempt) Version bump pushed"
+              exit 0
+            fi
+            echo "Push rejected on attempt $attempt; rewinding commit and retrying"
+            git reset --hard HEAD~1
+          done
+          echo "::error::Failed to push version bump after 3 attempts"
+          exit 1

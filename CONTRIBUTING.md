@@ -92,6 +92,22 @@ Three ways to exercise MCP tools during development:
 
 Run `bun test` and `make lint` before any commit.
 
+## Changelog discipline
+
+Any change with a user-visible effect (CLI flag, MCP tool shape, DB schema,
+CI behaviour, install/update flow, documented invariant) gets a one-line
+bullet under `CHANGELOG.md` → `[Unreleased]` → one of
+`Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Security`, in the
+same commit.
+
+Don't list every internal commit — one bullet per behaviour change.
+Pure refactors, test churn, and CI auto-bumps with no external effect are
+omitted (git history is authoritative). Details and rationale go in
+`DESIGN.md`; future work goes in `BACKLOG.md`.
+
+The release workflow promotes `[Unreleased]` to a dated version header when
+a release is cut.
+
 ## Creating a Release
 
 The Makefile handles the full release flow — preflight checks, cross-compile, git tag, push, and GitHub Release upload:
@@ -103,7 +119,10 @@ make release VERSION=v0.1.0 FORCE=1  # Update existing release
 
 This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, compresses the database, tags the commit, and creates a GitHub Release with all artifacts.
 
-Release CI also publishes OCI images to Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) using crane (no Docker daemon required in CI).
+Release CI also publishes multi-arch OCI images (linux/amd64 + linux/arm64) to
+Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) via
+`docker buildx build --push` using `Dockerfile.release`. See DESIGN.md
+"OCI image build: Dockerfile + docker buildx" for why crane was rejected.
 
 ### Release Commands
 

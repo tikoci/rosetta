@@ -4,17 +4,20 @@ RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP.
 
 ## Project Documentation
 
-Five doc files, each with a clear role — agents should use these, not create new top-level `.md` files:
+Six doc files, each with a clear role — agents should use these, not create new top-level `.md` files:
 
 | File | What goes in it |
 |------|----------------|
 | `CLAUDE.md` | Architecture, schema, conventions — what the project **is** and how it works |
 | `DESIGN.md` | Decisions, data sources, constraints, cross-references — **why** things are the way they are |
 | `BACKLOG.md` | Ideas, considerations, future work — structured parking lot for anything not yet active |
+| `CHANGELOG.md` | User-visible changes per release (Keep a Changelog format) — **what** shipped, in which version |
 | `README.md` | User-facing quick start — `/app` install, bunx setup, browse TUI, tool overview |
 | `MANUAL.md` | Extended reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
-**Rule:** If it's a decision or rationale → `DESIGN.md`. If it's an idea, question, or future work → `BACKLOG.md`. If it's how the project works → `CLAUDE.md`. User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
+**Rule:** If it's a decision or rationale → `DESIGN.md`. If it's an idea, question, or future work → `BACKLOG.md`. If it's how the project works → `CLAUDE.md`. If it's a behaviour change that shipped → `CHANGELOG.md` (under `[Unreleased]` until a release tags it). User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
+
+**Changelog discipline (agentic rule).** When you make a change with a user-visible effect — CLI flag, MCP tool shape, DB schema, CI behaviour, install/update flow, documented invariant — add a one-line bullet under `CHANGELOG.md` → `[Unreleased]` → the appropriate section (`Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Security`) in the same commit. Do **not** list every internal commit; one bullet per behaviour change is enough. Pure refactors, test churn, and CI auto-bumps with no external effect are omitted — git history is authoritative for those.
 
 ## What This Is
 

@@ -6,7 +6,7 @@
 >
 > **Design principles and the North Star architecture are in `DESIGN.md`.** This file is the *action list* — what to build, what needs a decision, what's waiting on a trigger.
 >
-> **Last holistic review:** 2026-04-20. Known-topics, glossary, and drop-search-properties shipped. Three "Needs Input" items resolved.
+> **Last holistic review:** 2026-04-21. CI / release-workflow hygiene pass — captured FORCE semantics confusion, `bump-version` race, local-release deprecation, and changelog-discipline adoption. CHANGELOG.md back-filled from v0.1.0–v0.8.3. Doc drift fixes in CLAUDE.md (six-doc table, agentic changelog rule) and CONTRIBUTING.md (crane → docker buildx, changelog section).
 >
 > **Shipped since last review:** North Star steps 2–4 — `classifyQuery` (src/classify.ts, 42 table-driven tests), `searchAll()` wrapper (src/query.ts) wired into both MCP `routeros_search` and TUI, dropped folded standalone tools `routeros_search_callouts` and `routeros_search_videos` (tool count 15→13; content surfaces in `related` block instead), and budget-aware `getPage()` that includes `properties` + `related_videos` on TOC-mode responses.
 
@@ -25,6 +25,94 @@
 ## Ready to Build
 
 Clear scope, no blockers, ready to act.
+
+### 🔴 CI / release-workflow hygiene (2026-04-21)
+
+User flagged a bundle of related concerns after the v0.7.x–v0.8.x release
+storm. Capture verbatim; address in small, separate PRs so each one is easy
+to review.
+
+1. **`FORCE`/`force` semantics are confusing agents.** The flag is named like
+   a generic "re-do this step" but in practice npm publish is always skipped
+   (npm is immutable), so "force" only re-uploads GitHub Release assets +
+   re-tags OCI images + force-moves the git tag. Users / agents think they
+   should always try `force=true` when something fails; what they really
+   need is to bump the version and run again. Fix: **rename to something
+   honest** (`republish_assets` or `overwrite_gh_release`), and make the
+   workflow description say "does NOT re-publish npm — bump version first if
+   you need that." Also consider: if a given tag already exists on npm,
+   refuse a non-force run with a clear "version is already on npm; bump
+   first" error instead of the current fast-follow bump dance.
+
+2. **`bump-version` job races itself.** Back-to-back release runs produce
+   `! [rejected] HEAD -> main (fetch first)` because each checkout pins to
+   the SHA at workflow start. Fix: `git pull --rebase origin main` before the
+   push, or retry the push up to 3× with rebase between attempts. The bump
+   commit is trivially rebaseable (only touches `package.json`), so a rebase
+   is safe.
+
+3. **Drop the local `make release` path (or clearly label it internal).**
+   DESIGN.md still says "local release continues to work as an alternative
+   path" but this contradicts the user's stated goal: "ideally everything
+   should be in GitHub without any local deps." Options: (a) delete the
+   `release:` target from the Makefile and keep only `build-release` for
+   local smoke; (b) gate it behind `ALLOW_LOCAL_RELEASE=1` with a loud
+   warning. Either way, update DESIGN.md + CONTRIBUTING.md to make
+   `workflow_dispatch` the only supported path. This also lets us trim
+   preflight checks and the cross-compile step from the local flow.
+
+4. **Release workflow still uses deprecated Node 20 actions.** `actions/setup-node@v4`, `actions/upload-artifact@v4`, `docker/login-action@v3`, `docker/setup-buildx-action@v3` all emit the "Node 20 deprecated, forced to Node 24 June 2026" warning. Bump or pin `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` before June to avoid a forced breakage window.
+
+5. **Move lint + typecheck + tests earlier in `release.yml`.** Currently they
+   run AFTER the full extraction pipeline (~2 minutes). A lint error that
+   slipped past `test.yml` (see v0.8.2: `noNonNullAssertion` in
+   `canonicalize.test.ts`) wastes the entire extraction budget before
+   failing. Run them immediately after `bun install`, before `Download HTML
+   export`. Extraction-specific tests (anything touching `ros-help.db`) can
+   keep their current position.
+
+6. **`html_url` input defaults to a Seafile direct-link that rotates.** When
+   MikroTik publishes a new export, the hard-coded default becomes wrong and
+   agents get a "not a valid ZIP archive" failure (happened on runs
+   24748092748, 24750588839). Options: (a) fetch the latest export link from
+   a known index URL; (b) make the input required with no default so the
+   dispatcher has to look it up intentionally.
+
+7. **Changelog discipline.** Adopted 2026-04-21 — CHANGELOG.md back-filled
+   from git history and per-release notes. See rule in CLAUDE.md + CONTRIBUTING.md.
+   Release workflow should promote `[Unreleased]` → dated `[vX.Y.Z]` as part
+   of `build-and-release`: read `CHANGELOG.md`, extract the `[Unreleased]`
+   section, use it as the body of the GitHub Release (instead of or
+   alongside the current auto-generated "Database Stats" block), and commit
+   the version-bumped `CHANGELOG.md` in the same step as `bump-version`.
+   Skipped for force mode (no new version).
+
+8. **`.npm-publish-checklist.md` in repo root is stale.** Predates the CI
+   release workflow. Either delete it or move the still-relevant parts into
+   CONTRIBUTING.md.
+
+9. **Shrink the Makefile to its ETL role.** User flagged 2026-04-21 that it
+   feels duplicative. Inventory:
+   - **Real value (keep):** `preflight`, `extract`, `extract-full`, the
+     `extract-*` individual steps, `extract-*-from-cache` variants, `link`,
+     `clean`. These are the multi-step data pipeline and aggregated check —
+     exactly where `make` earns its keep.
+   - **Pure delegation to bun (drop):** `install`, `serve`, `search`,
+     `browse`, `assess`, `typecheck`, `test`, `lint`, `setup`. Every one is
+     `bun run …` with no chaining. Agents must consult Makefile + package.json
+     + bun CLI to know the right invocation — strictly additive confusion.
+   - **Duplicates CI, and item #3 says to drop the local path anyway
+     (drop):** `build-release`, `release`, `bump-version`.
+
+   Proposed one-line Makefile header after the shrink: "Makefile is the data
+   ETL pipeline. For dev tasks use `bun test`, `bun run typecheck`,
+   `bun run lint`, `bun run src/mcp.ts`. For release use the `Release`
+   workflow_dispatch in GitHub Actions."
+
+   Follow-through: update CLAUDE.md examples that currently invoke
+   `make test` / `make lint` / `make release` etc.; remove `make` mentions
+   from CONTRIBUTING.md dev commands; tighten CLAUDE.md's "Re-extraction"
+   section (those still use `make`, correctly).
 
 ### 🟢 Test isolation — DB-leak guards (DONE in this PR)
 

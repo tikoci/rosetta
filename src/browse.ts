@@ -31,6 +31,7 @@ import {
   browseCommands,
   browseCommandsAtVersion,
   checkCommandVersions,
+  compareVersions,
   diffCommandVersions,
   fetchCurrentVersions,
   getDudePage,
