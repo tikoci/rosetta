@@ -1966,7 +1966,13 @@ async function doSearchChangelogs(query: string): Promise<void> {
     if (part.toLowerCase() === "breaking") { breakingOnly = true; continue; }
     // Version range: "7.20..7.22"
     const rangeMatch = part.match(/^(\d+\.\d+[.\w]*)\.\.(\d+\.\d+[.\w]*)$/);
-    if (rangeMatch) { fromVersion = rangeMatch[1]; toVersion = rangeMatch[2]; continue; }
+    if (rangeMatch) {
+      const [a, b] = [rangeMatch[1], rangeMatch[2]];
+      // Normalise: always put the lower version first
+      if (compareVersions(a, b) <= 0) { fromVersion = a; toVersion = b; }
+      else { fromVersion = b; toVersion = a; }
+      continue;
+    }
     // Single version: "7.22"
     if (/^\d+\.\d+/.test(part)) { version = part; continue; }
     searchTerms.push(part);
