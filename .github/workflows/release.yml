@@ -364,22 +364,30 @@ jobs:
             echo "✓ Release $VERSION created"
           fi
 
+      # npm is immutable — you cannot republish the same version with different
+      # contents. `force: true` re-clobbers GH release assets and OCI tags, but
+      # trying to re-push npm would always 403. Skip the npm step when forcing.
       - name: Publish to npm
+        if: inputs.force != true
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Skip npm publish (force mode)
+        if: inputs.force == true
+        run: echo "force=true → skipping npm publish (npm versions are immutable)"
+
   # End-to-end bunx smoke — replicates exactly what users hit:
   # fresh runner → bunx pulls the just-published @tikoci/rosetta → --refresh
-  # downloads the DB and opens it. Must pass on macOS AND Linux before we
-  # bump the version for the next release; a failure here pins package.json
-  # at the broken version so the next `make release` re-publishes a fix.
+  # downloads the DB and opens it. Matrix covers macOS + Linux because the
+  # v0.8.0 "DB=unreadable" bug only fires on macOS (WAL-mode SQLite + readonly
+  # open with no .shm). Linux-only CI greenlit that release.
   #
-  # macOS coverage is load-bearing: the v0.8.0 "DB=unreadable" bug only fires
-  # on macOS (WAL-mode SQLite + readonly open with no .shm). Linux-only CI
-  # greenlit that release.
+  # Failure here fails the overall workflow (red X, notifications) but does
+  # NOT gate bump-version — see comment on bump-version for the reasoning.
   bunx-smoke:
     needs: build-and-release
+    if: inputs.force != true  # force mode skips npm publish, so nothing to smoke
     strategy:
       fail-fast: false
       matrix:
@@ -465,8 +473,19 @@ jobs:
           echo "── server log (first 40 lines) ──"
           head -40 "$LOG"
 
+  # Always bump after a successful npm publish, even if bunx-smoke fails.
+  #
+  # Rationale: npm versions are immutable. If bunx-smoke exposes a bug in the
+  # just-published version, the fix ships as the NEXT version — we can't
+  # republish the broken one. Auto-bumping here means the fix-up release
+  # starts from a clean version number with no manual intervention needed.
+  #
+  # If npm publish itself fails (e.g. network, auth), build-and-release fails
+  # and this job is skipped via `needs:`. If force=true was used, npm wasn't
+  # touched at all, so keep the existing version.
   bump-version:
-    needs: [build-and-release, bunx-smoke]
+    needs: build-and-release
+    if: inputs.force != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
