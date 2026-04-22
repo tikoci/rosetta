@@ -23,6 +23,11 @@ uses [Semantic Versioning](https://semver.org/).
   and prepends a fresh `## [Unreleased]` skeleton after every release. No
   manual CHANGELOG fixup is needed — agents and developers only write to
   `[Unreleased]`; the version heading is filled in automatically.
+- **CI: Phase 0 retrieval eval runs on release builds (non-blocking).**
+  `release.yml` now executes `bun run src/eval/retrieval.ts` against the
+  freshly built full DB after extraction and writes the report to the job
+  summary. Non-blocking while the baseline adapts to the real-DB corpus —
+  flip to blocking after one green real-DB run refreshes the baseline.
 
 ### Added
 

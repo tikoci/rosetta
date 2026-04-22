@@ -176,6 +176,22 @@ jobs:
       - name: Run tests (DB-wipe guard)
         run: bun test
 
+      # ── MCP retrieval eval (Phase 0, non-blocking) ──
+      # Runs the 20-query golden set against the freshly built full DB.
+      # Non-blocking on first landing: the committed baseline was captured
+      # against a local dev DB, so the first real-DB run will drift. After
+      # one successful rebuild, flip `continue-on-error` to false and
+      # refresh the baseline as part of that commit. See BACKLOG:
+      # "MCP Behavioral Testing — Review findings + follow-ups".
+
+      - name: MCP retrieval eval (Phase 0, non-blocking)
+        continue-on-error: true
+        run: |
+          echo "## Phase 0 retrieval eval" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          bun run src/eval/retrieval.ts | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
       # ── Build and release ──
 
       - name: Stamp DB provenance (db_meta)
