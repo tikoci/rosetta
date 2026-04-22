@@ -123,7 +123,7 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 
 **Run `bun test` and `bun run lint` before any commit when feasible.** CI runs both, but catching failures locally is faster. Do not ask the user to run local `make` checks unless they explicitly want a manual local verification.
 
-**Hard rule for agents:** if lint fails, do not commit or stop at partial work. Fix the lint errors in the files touched by the change before handing work back.
+**Hard rule for agents:** `bun run lint` must exit with **zero errors** before any commit — this means the entire repo, not just touched files. CI has no "pre-existing" exception; any error anywhere fails the build. If lint reports errors in files you did not touch, fix them anyway (or note why they cannot be fixed and keep the item in BACKLOG). Lint **warnings** are acceptable and do not block commits.
 
 ## Version Accuracy
 
