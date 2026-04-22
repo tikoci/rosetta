@@ -1,6 +1,6 @@
 {
   "name": "@tikoci/rosetta",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "description": "RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP",
   "type": "module",
   "license": "MIT",
