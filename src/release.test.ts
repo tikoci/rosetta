@@ -455,6 +455,34 @@ describe("CLI flags", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Browse TUI structural checks — catch pager/navigation regressions at build time
+// ---------------------------------------------------------------------------
+
+describe("browse TUI structure", () => {
+  const src = readText("src/browse.ts");
+  const changelogPrefix = 'await selectFromPager(`  ' + "$" + '{bold("Changelogs")}';
+
+  test("defines helper to route pager digit selections back into current context", () => {
+    expect(src).toContain("async function selectFromPager");
+    expect(src).toContain("handleNumberSelect(result.selected - 1)");
+  });
+
+  test("re-rendered result views preserve pager selection", () => {
+    expect(src).toContain('await selectFromPager(renderSearchResults(ctx.response), ctx.results.length)');
+    expect(src).toContain('await selectFromPager(renderCommandTree(ctx.path, children), children.length)');
+    expect(src).toContain('await selectFromPager(renderCallouts(ctx.results), ctx.results.length)');
+    expect(src).toContain('await selectFromPager(renderChangelogs(ctx.results), ctx.results.length)');
+  });
+
+  test("initial changelog and page-callout views push context before pager selection", () => {
+    expect(src).toContain('pushCtx({ type: "changelogs", results });');
+    expect(src).toContain(changelogPrefix);
+    expect(src).toContain('pushCtx({ type: "callouts", query: "", results: pageCallouts });');
+    expect(src).toContain('await selectFromPager(renderCallouts(pageCallouts), pageCallouts.length);');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // HTTP transport structural checks — catch per-session breakage at build time
 // ---------------------------------------------------------------------------
 

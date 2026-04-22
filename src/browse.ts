@@ -200,7 +200,6 @@ function formatTime(seconds: number): string {
 
 // ── Pager ──
 
-/** Output lines with paging. Returns true if user quit early. */
 /**
  * Interactive pager.
  *
@@ -210,17 +209,26 @@ function formatTime(seconds: number): string {
  *   b / <       previous page
  *   g           jump to top
  *   G           jump to bottom
- *   q           quit pager (returns true)
+ *   q           quit pager
+ *   1-9         If `selectCount` is set and digit ≤ selectCount, **select**
+ *               that result (returns { selected: N }). Otherwise, jump to
+ *               page N within the pager.
  *
- * Shows a status line with page X/Y and line N/M. Returns true if user quit
- * before EOF, false otherwise.
+ * Shows a status line with page X/Y and line N/M. Returns:
+ *   - { quit: true }              user pressed q before EOF
+ *   - { quit: false }             reached EOF naturally
+ *   - { quit: true, selected: N } user picked result N from the displayed list
  */
-async function paged(output: string): Promise<boolean> {
+type PagerResult = { quit: boolean; selected?: number };
+
+async function paged(output: string, opts?: { selectCount?: number }): Promise<PagerResult> {
+  const selectCount = opts?.selectCount ?? 0;
   const lines = output.split("\n");
   const pageSize = Math.max(5, termHeight() - 2);
   if (lines.length <= pageSize || !process.stdout.isTTY) {
     process.stdout.write(`${output}\n`);
-    return false;
+    // Non-TTY (or single screen) — no interactive selection possible.
+    return { quit: false };
   }
   const totalPages = Math.ceil(lines.length / pageSize);
   let offset = 0;
@@ -228,15 +236,25 @@ async function paged(output: string): Promise<boolean> {
     const chunk = lines.slice(offset, offset + pageSize);
     process.stdout.write(`${chunk.join("\n")}\n`);
     const newOffset = offset + pageSize;
-    if (newOffset >= lines.length) return false;
+    if (newOffset >= lines.length) return { quit: false };
     const curPage = Math.floor(newOffset / pageSize);
+    // Cap selectable digits at 9 (single keystroke).
+    const maxSel = Math.min(9, selectCount);
+    const selectHint = maxSel > 0
+      ? ` | 1-${maxSel} open #N`
+      : "";
+    const jumpHint = totalPages > 1 && maxSel < 9
+      ? ` | ${maxSel + 1}-${Math.min(9, totalPages)} jump page`
+      : totalPages > 1 && maxSel === 0
+        ? ` | 1-${Math.min(9, totalPages)} jump page`
+        : "";
     const prompt = dim(
-      `── page ${curPage}/${totalPages}  line ${newOffset}/${lines.length}  [SPACE next | ENTER line | b back | 1-${Math.min(9, totalPages)} jump | g/G top/end | q quit]`,
+      `── page ${curPage}/${totalPages}  line ${newOffset}/${lines.length}  [SPACE next | ENTER line | b back${selectHint}${jumpHint} | g/G top/end | q quit]`,
     );
     process.stdout.write(prompt);
     const key = await waitForKey();
     process.stdout.write(`\r${" ".repeat(Math.min(termWidth(), stripAnsi(prompt).length))}\r`);
-    if (key === "q" || key === "Q") return true;
+    if (key === "q" || key === "Q") return { quit: true };
     if (key === "g") { offset = 0; continue; }
     if (key === "G") { offset = Math.max(0, lines.length - pageSize); continue; }
     if (key === "b" || key === "<" || key === "\x1b[D") {
@@ -247,18 +265,26 @@ async function paged(output: string): Promise<boolean> {
       offset += 1;
       continue;
     }
-    // Digit 1-9 jumps to that page (1-indexed). If the page is past EOF,
-    // clamp to the last page.
     if (/^[1-9]$/.test(key)) {
-      const target = Number.parseInt(key, 10);
-      offset = Math.min(lines.length - pageSize, (target - 1) * pageSize);
+      const n = Number.parseInt(key, 10);
+      // Digits 1..selectCount → SELECT the displayed result and end paging.
+      if (selectCount > 0 && n <= selectCount) {
+        return { quit: true, selected: n };
+      }
+      // Digits beyond selectCount → page jump (1-indexed). Clamp to last page.
+      offset = Math.min(lines.length - pageSize, (n - 1) * pageSize);
       if (offset < 0) offset = 0;
       continue;
     }
     // SPACE / f / anything else → next page
     offset = newOffset;
   }
-  return false;
+  return { quit: false };
+}
+
+async function selectFromPager(output: string, selectCount: number): Promise<void> {
+  const result = await paged(output, { selectCount });
+  if (result.selected !== undefined) await handleNumberSelect(result.selected - 1);
 }
 
 function waitForKey(): Promise<string> {
@@ -1053,7 +1079,8 @@ function renderHelp(): string {
 
   cmd("<query>", "", "Search pages (default action)", "routeros_search");
   cmd("search <query>", "s", "Explicit page search", "routeros_search");
-  cmd("page <id|title>", "", "View full page", "routeros_get_page");
+  cmd("page <id|title>", "", "View full page (no args = re-render current)", "routeros_get_page");
+  cmd("view", "v", "Re-render current view (without popping the stack like `b`)");
   cmd("prop <name>", "p", "Look up property (scoped to current page)", "routeros_lookup_property");
   cmd("props <query>", "sp", "Search properties by FTS");
   cmd("glossary [term]", "g", "Look up RouterOS jargon / list glossary");
@@ -1081,8 +1108,8 @@ function renderHelp(): string {
   out.push(`  ${cyan(pad(".resources", 38))} ${dim("Registered MCP resources (rosetta:// URIs)")}`);
   out.push(`  ${cyan(pad(".routeros_search <q> [limit=N]", 38))} ${dim("Raw JSON output, same query path as MCP")}`);
   out.push("");
-  out.push(`  ${dim("Navigation: type a number to select from results; in pager, 1–9 jumps to page N.")}`);
-  out.push(`  ${dim("After viewing a page, [p] = properties, [cal] = page callouts, [b] = re-render previous view.")}`);
+  out.push(`  ${dim("Navigation: type a number to select from results; in pager, 1–N opens result #N (1-indexed).")}`);
+  out.push(`  ${dim("After viewing a page, [v] = re-render, [p] = properties, [cal] = page callouts, [b] = back.")}`);
   out.push(`  ${dim("URLs are clickable in supported terminals (iTerm2, etc.).")}`);
   out.push(`  ${dim("cmd supports @version suffix: cmd /ip/address @7.15")}`);
   out.push("");
@@ -1358,6 +1385,27 @@ async function dispatchDotCommand(input: string): Promise<void> {
   }
   try {
     const args = parseDotArgs(m[2] ?? "", tool.primary, tool.aliases);
+    // If the tool has a primary arg and the user supplied no value for it
+    // (and no key=value args at all), show a usage hint instead of running
+    // the tool against an empty/null query — calling with no args usually
+    // returns null or an empty object, which is confusing for users probing
+    // the MCP surface for the first time.
+    if (
+      tool.primary &&
+      (args[tool.primary] === undefined || args[tool.primary] === "") &&
+      Object.keys(args).length === 0
+    ) {
+      const aliasStr = tool.aliases
+        ? Object.keys(tool.aliases).map((a) => `${a}=`).join(" | ")
+        : "";
+      const primaryHint = aliasStr
+        ? `${tool.primary}=  (or ${aliasStr})`
+        : `${tool.primary}=`;
+      console.log(`  ${dim("Usage:")} ${cyan(`.${name}`)} ${dim(`<${tool.primary}>  |  ${primaryHint}<value>  [key=value ...]`)}`);
+      console.log(`  ${dim(tool.desc)}`);
+      if (tool.tui) console.log(`  ${dim("TUI equivalent:")} ${cyan(tool.tui)}`);
+      return;
+    }
     const result = await tool.run(args);
     const json = JSON.stringify(result, null, 2);
     const banner = dim(`── .${name}  args=${JSON.stringify(args)}`);
@@ -1426,8 +1474,29 @@ async function dispatch(input: string): Promise<void> {
       return;
 
     case "page": {
-      if (!rest) { console.log(dim("  Usage: page <id|title>")); return; }
+      if (!rest) {
+        // No args: re-render current page if we're already viewing one.
+        if (ctx.type === "page" || ctx.type === "sections") {
+          await renderCurrentContext();
+          return;
+        }
+        console.log(dim("  Usage: page <id|title>"));
+        return;
+      }
       await doPage(rest);
+      return;
+    }
+
+    case "v":
+    case "view": {
+      // Re-render the current view — useful after exiting the pager (q) and
+      // wanting to see the results/page again without losing breadcrumb state
+      // (which `b` would do by popping one level).
+      if (ctx.type === "home") {
+        console.log(dim("  Nothing to view yet. Try: help"));
+        return;
+      }
+      await renderCurrentContext();
       return;
     }
 
@@ -1488,8 +1557,8 @@ async function dispatch(input: string): Promise<void> {
         // FTS-with-empty-query path always returned [] before).
         const pageCallouts = getPageCallouts((ctx as { pageId: number }).pageId);
         if (pageCallouts.length > 0) {
-          await paged(renderCallouts(pageCallouts));
           pushCtx({ type: "callouts", query: "", results: pageCallouts });
+          await selectFromPager(renderCallouts(pageCallouts), pageCallouts.length);
         } else {
           console.log(dim("  This page has no callouts."));
         }
@@ -1666,36 +1735,36 @@ async function renderCurrentContext(): Promise<void> {
       console.log(dim("  ← back to home. Type 'help' for commands."));
       return;
     case "search":
-      await paged(renderSearchResults(ctx.response));
+      await selectFromPager(renderSearchResults(ctx.response), ctx.results.length);
       return;
     case "page":
     case "sections": {
       const page = getPage(ctx.pageId);
-      if (page) await paged(renderPage(page));
+      if (page) await selectFromPager(renderPage(page), page.sections?.length ?? 0);
       return;
     }
     case "commands": {
       const children = browseCommands(ctx.path);
-      await paged(renderCommandTree(ctx.path, children));
+      await selectFromPager(renderCommandTree(ctx.path, children), children.length);
       return;
     }
     case "devices":
-      await paged(renderDeviceResults(ctx.results, "search", ctx.results.length));
+      await selectFromPager(renderDeviceResults(ctx.results, "search", ctx.results.length), ctx.results.length);
       return;
     case "device":
       await paged(renderDeviceCard(ctx.device));
       return;
     case "callouts":
-      await paged(renderCallouts(ctx.results));
+      await selectFromPager(renderCallouts(ctx.results), ctx.results.length);
       return;
     case "changelogs":
-      await paged(renderChangelogs(ctx.results));
+      await selectFromPager(renderChangelogs(ctx.results), ctx.results.length);
       return;
     case "videos":
-      await paged(renderVideos(ctx.results));
+      await selectFromPager(renderVideos(ctx.results), ctx.results.length);
       return;
     case "dude":
-      await paged(renderDudeResults(ctx.results));
+      await selectFromPager(renderDudeResults(ctx.results), ctx.results.length);
       return;
     case "skills":
       await doListSkills();
@@ -1706,7 +1775,7 @@ async function renderCurrentContext(): Promise<void> {
         const p = ctx.results[i];
         lines.push(`  ${cyan(String(i + 1).padStart(2))}. ${bold(p.name)}  ${dim(`@ ${p.page_title}`)}`);
       }
-      await paged(lines.join("\n"));
+      await selectFromPager(lines.join("\n"), ctx.results.length);
       return;
     }
     case "tests":
@@ -1719,8 +1788,10 @@ async function renderCurrentContext(): Promise<void> {
 
 async function doSearch(query: string): Promise<void> {
   const resp = searchAll(query);
-  await paged(renderSearchResults(resp));
+  // Push context BEFORE paging so digit-selection in the pager (and the
+  // post-pager handleNumberSelect call) both see the right ctx.
   pushCtx({ type: "search", response: resp, results: resp.pages });
+  await selectFromPager(renderSearchResults(resp), resp.pages.length);
 }
 
 async function doPage(idOrTitle: string, sectionName?: string): Promise<void> {
@@ -1733,7 +1804,6 @@ async function doPage(idOrTitle: string, sectionName?: string): Promise<void> {
     console.log(dim(`  Page not found: ${idOrTitle}`));
     return;
   }
-  await paged(renderPage(page));
 
   // Determine linked command path (if any)
   let commandPath: string | undefined;
@@ -1749,6 +1819,7 @@ async function doPage(idOrTitle: string, sectionName?: string): Promise<void> {
   } else {
     pushCtx({ type: "page", pageId: page.id, title: page.title, commandPath });
   }
+  await selectFromPager(renderPage(page), page.sections?.length ?? 0);
 }
 
 async function doPropsForPage(pageId: number, title: string): Promise<void> {
@@ -1759,8 +1830,8 @@ async function doPropsForPage(pageId: number, title: string): Promise<void> {
     console.log(dim(`  No properties found for "${title}".`));
     return;
   }
-  await paged(`  ${bold("Properties for")} ${bold(title)}\n\n${renderProperties(pageProps)}`);
   pushCtx({ type: "properties", query: title, pageId, results: pageProps.map(p => ({ name: p.name, page_id: p.page_id ?? pageId, page_title: p.page_title })) });
+  await selectFromPager(`  ${bold("Properties for")} ${bold(title)}\n\n${renderProperties(pageProps)}`, pageProps.length);
 }
 
 async function doLookupProperty(name: string): Promise<void> {
@@ -1771,8 +1842,8 @@ async function doLookupProperty(name: string): Promise<void> {
     console.log(`  Try: ${cyan("props")} ${name}`);
     return;
   }
-  await paged(renderProperties(results));
   pushCtx({ type: "properties", query: name, results: results.map(p => ({ name: p.name, page_id: p.page_id, page_title: p.page_title })) });
+  await selectFromPager(renderProperties(results), results.length);
 }
 
 async function doSearchProperties(query: string): Promise<void> {
@@ -1781,8 +1852,8 @@ async function doSearchProperties(query: string): Promise<void> {
     console.log(dim(`  No properties found for "${query}".`));
     return;
   }
-  await paged(`  ${bold(String(results.length))} properties matching ${cyan(`"${query}"`)}\n\n${renderProperties(results)}`);
   pushCtx({ type: "properties", query, results: results.map(p => ({ name: p.name, page_id: p.page_id, page_title: p.page_title })) });
+  await selectFromPager(`  ${bold(String(results.length))} properties matching ${cyan(`"${query}"`)}\n\n${renderProperties(results)}`, results.length);
 }
 
 async function doGlossary(rest: string): Promise<void> {
@@ -1875,8 +1946,8 @@ async function doCommandTree(path: string): Promise<void> {
     return;
   }
   const label = version ? `${cmdPath} @${version}` : cmdPath;
-  await paged(renderCommandTree(label, children));
   pushCtx({ type: "commands", path: cmdPath });
+  await selectFromPager(renderCommandTree(label, children), children.length);
 }
 
 async function doDeviceLookup(query: string): Promise<void> {
@@ -1885,12 +1956,15 @@ async function doDeviceLookup(query: string): Promise<void> {
     console.log(dim(`  No devices found for "${query}".`));
     return;
   }
-  await paged(renderDeviceResults(result.results, result.mode, result.total));
   if (result.results.length === 1) {
     pushCtx({ type: "device", device: result.results[0] });
   } else {
     pushCtx({ type: "devices", query, results: result.results });
   }
+  await selectFromPager(
+    renderDeviceResults(result.results, result.mode, result.total),
+    result.results.length > 1 ? result.results.length : 0,
+  );
 }
 
 async function doTests(argsStr: string): Promise<void> {
@@ -1948,8 +2022,11 @@ async function doSearchCallouts(query: string): Promise<void> {
     console.log(dim(`  No callouts found.`));
     return;
   }
-  await paged(`  ${bold(String(results.length))} callouts${type ? ` (${type})` : ""}\n\n${renderCallouts(results)}`);
   pushCtx({ type: "callouts", query, results });
+  await selectFromPager(
+    `  ${bold(String(results.length))} callouts${type ? ` (${type})` : ""}\n\n${renderCallouts(results)}`,
+    results.length,
+  );
 }
 
 async function doSearchChangelogs(query: string): Promise<void> {
@@ -1997,8 +2074,8 @@ async function doSearchChangelogs(query: string): Promise<void> {
     console.log(dim("  No changelog entries found."));
     return;
   }
-  await paged(`  ${bold("Changelogs")}${version ? ` for ${bold(version)}` : ""}${breakingOnly ? ` ${red("(breaking only)")}` : ""}\n\n${renderChangelogs(results)}`);
   pushCtx({ type: "changelogs", results });
+  await selectFromPager(`  ${bold("Changelogs")}${version ? ` for ${bold(version)}` : ""}${breakingOnly ? ` ${red("(breaking only)")}` : ""}\n\n${renderChangelogs(results)}`, results.length);
 }
 
 async function doSearchVideos(query: string): Promise<void> {
@@ -2007,8 +2084,11 @@ async function doSearchVideos(query: string): Promise<void> {
     console.log(dim(`  No video results for "${query}".`));
     return;
   }
-  await paged(`  ${bold(String(results.length))} video results for ${cyan(`"${query}"`)}\n\n${renderVideos(results)}`);
   pushCtx({ type: "videos", query, results });
+  await selectFromPager(
+    `  ${bold(String(results.length))} video results for ${cyan(`"${query}"`)}\n\n${renderVideos(results)}`,
+    results.length,
+  );
 }
 
 async function doSearchDude(query: string): Promise<void> {
@@ -2017,8 +2097,11 @@ async function doSearchDude(query: string): Promise<void> {
     console.log(dim(`  No Dude wiki results for "${query}".`));
     return;
   }
-  await paged(`  ${bold(String(results.length))} Dude wiki results for ${cyan(`"${query}"`)}\n\n${renderDudeResults(results)}`);
   pushCtx({ type: "dude", query, results });
+  await selectFromPager(
+    `  ${bold(String(results.length))} Dude wiki results for ${cyan(`"${query}"`)}\n\n${renderDudeResults(results)}`,
+    results.length,
+  );
 }
 
 async function doListSkills(): Promise<void> {
@@ -2037,8 +2120,8 @@ async function doListSkills(): Promise<void> {
   });
   out.push("");
   out.push(`  ${dim("Type a number to view, or: skill <name>")}`);
-  await paged(out.join("\n"));
   pushCtx({ type: "skills" });
+  await selectFromPager(out.join("\n"), skills.length);
 }
 
 async function doViewSkill(name: string): Promise<void> {

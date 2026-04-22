@@ -1375,6 +1375,30 @@ describe("searchDeviceTests", () => {
     expect(res.results).toHaveLength(1);
     expect(res.total).toBe(4);
   });
+
+  test("prioritizes 512-byte rows when packet_size is unspecified", () => {
+    // Fixtures: two 512B ethernet rows + one 1518B ethernet row (higher mbps) + one 1400B ipsec row.
+    // Without 512B priority, the 1518B/19577 mbps row would lead. With priority, 512B rows lead.
+    const res = searchDeviceTests({ test_type: "ethernet" });
+    expect(res.results.length).toBeGreaterThanOrEqual(3);
+    // All 512B rows must precede any non-512B row
+    let sawNon512 = false;
+    for (const row of res.results) {
+      if (row.packet_size !== 512) sawNon512 = true;
+      else if (sawNon512) {
+        throw new Error(`512B row appeared after a non-512B row at packet_size=${row.packet_size}`);
+      }
+    }
+    // Within the 512B bucket, mbps descending
+    expect(res.results[0].packet_size).toBe(512);
+    expect(res.results[0].throughput_mbps).toBe(9551.9);
+  });
+
+  test("explicit packet_size filter overrides 512B priority", () => {
+    const res = searchDeviceTests({ packet_size: 1518 });
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].packet_size).toBe(1518);
+  });
 });
 
 describe("dataset CSV exports", () => {

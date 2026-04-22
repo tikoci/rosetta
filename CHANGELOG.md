@@ -22,6 +22,13 @@ uses [Semantic Versioning](https://semver.org/).
 - `CHANGELOG.md` (Keep a Changelog format, back-filled from v0.1.0) with an
   agentic "update `[Unreleased]` on every user-visible change" rule in
   `CLAUDE.md` + `CONTRIBUTING.md`.
+- **TUI: `view` / `v` command.** Re-renders the current context (page,
+  results, sections, etc.) without popping the navigation stack the way
+  `b` does. Useful after exiting the pager to re-read what you were
+  looking at.
+- **TUI: bare `page` re-renders current page.** When already in a page or
+  sections context, `page` with no args re-renders the current page
+  instead of erroring.
 
 ### Changed
 
@@ -32,9 +39,25 @@ uses [Semantic Versioning](https://semver.org/).
   fail with `! [rejected] HEAD -> main (fetch first)`. The job fetches +
   rebases onto `origin/main` and retries the push up to 3× (safe because
   the commit only touches `package.json`).
+- **`routeros_search_tests`: 512-byte rows surface first when no
+  `packet_size` filter is set.** 512B is the conventional mid-size
+  benchmark RouterOS admins compare on, so within the LIMIT they now
+  precede 1518B "best case" rows that previously crowded them out.
+  Pin `packet_size` to override.
+- **TUI dot-commands print usage on missing required args.** Calling
+  e.g. `.routeros_get_page` with no args now prints the args, brief
+  description, and TUI equivalent instead of silently returning `null`.
 
 ### Fixed
 
+- **TUI pager: digits open the listed result.** In a results pager
+  (search, devices, callouts, videos, properties, changelogs, sections,
+  command tree, dude), pressing `1`..`N` (where N is the number of
+  visible results) now opens that result and exits the pager. Previously
+  digits were always interpreted as page jumps, so users had to quit the
+  pager (`q`) and then type the number — wasted keystrokes on the most
+  common path. Page-jump still works for digits beyond the visible
+  result count.
 - `routeros_search_changelogs` `X..Y` version range is now inclusive on both
   ends, normalises reversed ranges (`7.21..7.20` → `7.20..7.21`), and returns
   entries chronologically (oldest first).

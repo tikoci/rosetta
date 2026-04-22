@@ -1701,13 +1701,23 @@ export function searchDeviceTests(
     JOIN devices d ON d.id = t.device_id ${whereClause}`;
   const total = Number((db.prepare(totalSql).get(...params) as { c: number }).c);
 
+  // When the caller did NOT pin a packet size, prioritise 512-byte results.
+  // 512B is the conventional "mid-size" benchmark RouterOS admins compare on
+  // — it best represents real-world traffic mixes. Without this, the default
+  // throughput-DESC sort surfaces 1518B "best case" rows first, crowding out
+  // the comparison values within the LIMIT. Within each priority bucket we
+  // still sort by throughput DESC so the fastest devices float to the top.
+  const orderBy = filters.packet_size === undefined
+    ? `(CASE WHEN t.packet_size = 512 THEN 0 ELSE 1 END), ${orderCol} DESC NULLS LAST`
+    : `${orderCol} DESC NULLS LAST`;
+
   const sql = `SELECT d.product_name, d.product_code, d.architecture,
       t.test_type, t.mode, t.configuration, t.packet_size,
       t.throughput_kpps, t.throughput_mbps
     FROM device_test_results t
     JOIN devices d ON d.id = t.device_id
     ${whereClause}
-    ORDER BY ${orderCol} DESC NULLS LAST
+    ORDER BY ${orderBy}
     LIMIT ?`;
 
   const results = db.prepare(sql).all(...params, limit) as DeviceTestRow[];

@@ -1288,6 +1288,11 @@ what would otherwise require 125+ individual device lookups.
 **Configuration matching:** Uses LIKE (substring) — "25 ip filter" matches "25 ip filter rules".
 Note: some devices use slightly different names (e.g., "25 bridge filter" vs "25 bridge filter rules").
 
+**Default ordering:** Results are sorted by throughput DESC. When \`packet_size\` is NOT specified,
+512-byte rows are surfaced first (within the LIMIT) before other sizes — 512B is the conventional
+mid-size benchmark RouterOS admins compare on, so this keeps comparable values from being crowded
+out by 1518B "best case" rows. Pin \`packet_size\` to override.
+
 **Tip:** Call with no filters first to see available test_types, modes, configurations, and packet_sizes via the metadata field.
 
 Results include product_name, product_code, architecture — use routeros_device_lookup for full specs (CPU, RAM, ports, etc.).
