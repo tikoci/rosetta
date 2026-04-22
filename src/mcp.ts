@@ -66,10 +66,13 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   const dbPath = resolveDbPath(import.meta.dirname);
   const runningVersion = resolveVersion(import.meta.dirname);
 
-  /** Probe an existing DB. Returns null if the file is missing or unreadable. */
+  /** Probe an existing DB. Returns null if the file is missing or unreadable.
+   *  Do NOT pass { readonly: true } — freshly written SQLite WAL-mode files fail
+   *  to open readonly on macOS until a read-write connection initialises the WAL
+   *  shared-memory file. Same gotcha as setup.ts::probeDb. */
   function probe(): { pages: number; schemaVersion: number; releaseTag: string | null } | null {
     try {
-      const check = new sqlite(dbPath, { readonly: true });
+      const check = new sqlite(dbPath);
       const pages = (check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number }).c;
       const ver = (check.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
       let releaseTag: string | null = null;

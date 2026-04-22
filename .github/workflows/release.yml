@@ -18,7 +18,7 @@ on:
         description: 'Export date or presumed RouterOS version for traceability (e.g. 2026-03-25)'
         required: false
         type: string
-        default: ''
+        default: '2026-03-25'
       full_versions:
         description: 'Extract all RouterOS versions (true) or single primary only (false)'
         required: false
@@ -41,6 +41,8 @@ permissions:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release_version.outputs.version }}
     steps:
       - uses: actions/checkout@v5
 
@@ -366,6 +368,112 @@ jobs:
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # End-to-end bunx smoke — replicates exactly what users hit:
+  # fresh runner → bunx pulls the just-published @tikoci/rosetta → --refresh
+  # downloads the DB and opens it. Must pass on macOS AND Linux before we
+  # bump the version for the next release; a failure here pins package.json
+  # at the broken version so the next `make release` re-publishes a fix.
+  #
+  # macOS coverage is load-bearing: the v0.8.0 "DB=unreadable" bug only fires
+  # on macOS (WAL-mode SQLite + readonly open with no .shm). Linux-only CI
+  # greenlit that release.
+  bunx-smoke:
+    needs: build-and-release
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Wait for npm registry to propagate @tikoci/rosetta@${{ needs.build-and-release.outputs.version }}
+        env:
+          VERSION: ${{ needs.build-and-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Strip leading v — npm versions are unprefixed.
+          NPM_VER="${VERSION#v}"
+          echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
+          for i in $(seq 1 30); do
+            if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
+              echo "✓ npm registry has ${NPM_VER} (attempt $i)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::npm registry did not surface @tikoci/rosetta@${NPM_VER} within 150s"
+          exit 1
+
+      - name: bunx --refresh exits 0 (DB downloads + opens cleanly)
+        env:
+          VERSION: ${{ needs.build-and-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          NPM_VER="${VERSION#v}"
+          # Pin to the exact version so a stale `latest` tag can't mask a broken build.
+          echo "── bunx @tikoci/rosetta@${NPM_VER} --refresh ──"
+          bunx "@tikoci/rosetta@${NPM_VER}" --refresh
+          # DB should now exist and be readable from a second invocation
+          # (this is where the v0.8.0 readonly-probe bug would reappear).
+          echo "── bunx @tikoci/rosetta@${NPM_VER} --version ──"
+          OUT=$(bunx "@tikoci/rosetta@${NPM_VER}" --version)
+          echo "$OUT"
+          echo "$OUT" | grep -F "${NPM_VER}" > /dev/null
+
+      - name: MCP server starts and DB probe succeeds
+        env:
+          VERSION: ${{ needs.build-and-release.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          NPM_VER="${VERSION#v}"
+          # Spawn the HTTP server, wait for /mcp to answer, shut down.
+          # If ensureDbReady's probe regresses (e.g. readonly-on-WAL), the
+          # server exits with "Still incompatible after re-download" and /mcp
+          # never responds.
+          PORT=18765
+          LOG=$(mktemp)
+          bunx "@tikoci/rosetta@${NPM_VER}" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+
+          ok=0
+          for i in $(seq 1 30); do
+            if ! kill -0 "$PID" 2>/dev/null; then
+              echo "::error::Server exited early"
+              cat "$LOG"
+              exit 1
+            fi
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/mcp" || true)
+            if [ "$code" != 000 ] && [ "$code" != 404 ]; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::MCP server never answered on /mcp"
+            cat "$LOG"
+            exit 1
+          fi
+          echo "✓ MCP server answered (HTTP $code)"
+          echo "── server log (first 40 lines) ──"
+          head -40 "$LOG"
+
+  bump-version:
+    needs: [build-and-release, bunx-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Bump patch version for next release
         run: |

@@ -202,6 +202,22 @@ describe("setup.ts", () => {
     expect(src).toContain("Still incompatible after re-download");
     expect(src).toMatch(/Still incompatible[\s\S]{0,400}process\.exit\(1\)/);
   });
+
+  test("no DB open uses { readonly: true } (WAL-shm init trap on macOS)", () => {
+    // Freshly-renamed WAL-mode DBs fail to open readonly on macOS until a
+    // read-write connection initialises the .shm file. downloadDb explicitly
+    // deletes .wal/.shm before the rename, so every subsequent open must be
+    // read-write. Regressing this ships a bunx path that can't open its own
+    // validated download (see v0.8.0 "DB=unreadable" bug).
+    for (const file of ["src/mcp.ts", "src/setup.ts", "src/db.ts"]) {
+      // Strip line + block comments before scanning, so the "do NOT pass
+      // { readonly: true }" warnings themselves don't trip the check.
+      const src = readText(file)
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/\/\/.*$/gm, "");
+      expect(src).not.toMatch(/readonly\s*:\s*true/);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

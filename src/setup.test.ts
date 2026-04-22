@@ -8,7 +8,7 @@
 
 import sqlite from "bun:sqlite";
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -89,6 +89,36 @@ describe("probeDb", () => {
     expect(probe?.pages).toBe(7);
     expect(probe?.commands).toBe(13);
     expect(probe?.releaseTag).toBe("v0.0.0-test");
+  });
+
+  test("opens a freshly-renamed WAL-mode DB with no .shm sibling", () => {
+    // Reproduces the exact state downloadDb leaves the DB in: journal_mode=WAL
+    // on disk, but the .wal/.shm siblings are deleted just before the rename.
+    // On macOS, opening such a file with { readonly: true } fails with
+    // "unable to open database file" because SQLite cannot create the shm
+    // from a read-only handle. probeDb intentionally opens read-write.
+    const dbFile = path.join(tmp, "wal-no-shm.db");
+    const seed = new sqlite(dbFile);
+    seed.exec("PRAGMA journal_mode = WAL");
+    seed.run(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+    seed.run("CREATE TABLE pages (id INTEGER PRIMARY KEY);");
+    seed.run("CREATE TABLE commands (id INTEGER PRIMARY KEY);");
+    seed.run("INSERT INTO pages (id) VALUES (1), (2), (3);");
+    seed.run("INSERT INTO commands (id) VALUES (1), (2);");
+    seed.close();
+
+    // Simulate downloadDb's post-rename cleanup — WAL file on disk marks WAL
+    // mode in the header, but the transient .wal/.shm are gone.
+    for (const suffix of ["-wal", "-shm"]) {
+      const p = dbFile + suffix;
+      if (existsSync(p)) unlinkSync(p);
+    }
+
+    const probe = probeDb(dbFile);
+    expect(probe).not.toBeNull();
+    expect(probe?.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(probe?.pages).toBe(3);
+    expect(probe?.commands).toBe(2);
   });
 
   test("releaseTag is null when db_meta is absent (pre-v5 schema)", () => {

@@ -26,12 +26,14 @@ const MIN_COMMANDS = 1000;
 const MIN_DECOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB
 const SQLITE_MAGIC = "SQLite format 3\0";
 
-/** Check if a DB file exists and has actual page data */
+/** Check if a DB file exists and has actual page data.
+ *  Opens read-write — see probeDb's note: freshly written WAL-mode files can
+ *  fail to open readonly on macOS when the .shm file is missing. */
 function dbHasData(dbPath: string): boolean {
   if (!existsSync(dbPath)) return false;
   try {
     const { default: sqlite } = require("bun:sqlite");
-    const check = new sqlite(dbPath, { readonly: true });
+    const check = new sqlite(dbPath);
     const row = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
     check.close();
     return row.c > 0;
