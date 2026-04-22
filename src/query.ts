@@ -1862,14 +1862,22 @@ function getChangelogVersions(): string[] {
   return rows.map((r) => r.version).sort(compareVersions);
 }
 
-/** Filter versions to those within (fromVersion, toVersion] range (fromVersion exclusive, toVersion inclusive). */
+/**
+ * Filter versions to those within a range.
+ * Default: (fromVersion, toVersion] — fromVersion exclusive, toVersion inclusive.
+ * Pass inclusiveFrom=true for [fromVersion, toVersion] (both ends inclusive).
+ */
 function filterVersionRange(
   versions: string[],
   fromVersion?: string,
   toVersion?: string,
+  inclusiveFrom = false,
 ): string[] {
   return versions.filter((v) => {
-    if (fromVersion && compareVersions(v, fromVersion) <= 0) return false;
+    if (fromVersion) {
+      const cmp = compareVersions(v, fromVersion);
+      if (inclusiveFrom ? cmp < 0 : cmp <= 0) return false;
+    }
     if (toVersion && compareVersions(v, toVersion) > 0) return false;
     return true;
   });
@@ -1882,6 +1890,7 @@ export function searchChangelogs(
     version?: string;
     fromVersion?: string;
     toVersion?: string;
+    inclusiveFrom?: boolean;
     category?: string;
     breakingOnly?: boolean;
     limit?: number;
@@ -1896,7 +1905,7 @@ export function searchChangelogs(
     versionList = [options.version];
   } else if (options.fromVersion || options.toVersion) {
     const all = getChangelogVersions();
-    versionList = filterVersionRange(all, options.fromVersion, options.toVersion);
+    versionList = filterVersionRange(all, options.fromVersion, options.toVersion, options.inclusiveFrom);
     if (versionList.length === 0) return [];
   }
 
