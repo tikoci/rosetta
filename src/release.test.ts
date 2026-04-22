@@ -480,6 +480,15 @@ describe("browse TUI structure", () => {
     expect(src).toContain('pushCtx({ type: "callouts", query: "", results: pageCallouts });');
     expect(src).toContain('await selectFromPager(renderCallouts(pageCallouts), pageCallouts.length);');
   });
+
+  test("page-scoped [p] and [cal] work on both page and sections contexts", () => {
+    // Pages with headings push type:"sections" not type:"page", so both handlers
+    // must check for sections context to make the hints visible on the page work.
+    expect(src).toContain('ctx.type === "page" || ctx.type === "sections"');
+    // Both handlers must appear at least twice (one per fix)
+    const matches = src.split('ctx.type === "page" || ctx.type === "sections"').length - 1;
+    expect(matches).toBeGreaterThanOrEqual(2);
+  });
 });
 
 // ---------------------------------------------------------------------------

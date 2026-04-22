@@ -1109,7 +1109,7 @@ function renderHelp(): string {
   out.push(`  ${cyan(pad(".routeros_search <q> [limit=N]", 38))} ${dim("Raw JSON output, same query path as MCP")}`);
   out.push("");
   out.push(`  ${dim("Navigation: type a number to select from results; in pager, 1–N opens result #N (1-indexed).")}`);
-  out.push(`  ${dim("After viewing a page, [v] = re-render, [p] = properties, [cal] = page callouts, [b] = back.")}`);
+  out.push(`  ${dim("After viewing a page, [v] = re-render, [N] = go to section N, [p] = properties, [cal] = callouts, [b] = back.")}`);
   out.push(`  ${dim("URLs are clickable in supported terminals (iTerm2, etc.).")}`);
   out.push(`  ${dim("cmd supports @version suffix: cmd /ip/address @7.15")}`);
   out.push("");
@@ -1504,7 +1504,8 @@ async function dispatch(input: string): Promise<void> {
     case "prop": {
       if (!rest) {
         // Context-scoped: show properties for current page
-        if (ctx.type === "page") {
+        // "sections" context is also a page view (pages with headings push sections, not page)
+        if (ctx.type === "page" || ctx.type === "sections") {
           const page = getPage(ctx.pageId, 0); // just get metadata
           if (page) {
             await doPropsForPage(ctx.pageId, ctx.title);
@@ -1552,10 +1553,11 @@ async function dispatch(input: string): Promise<void> {
 
     case "cal":
     case "callouts": {
-      if (!rest && ctx.type === "page") {
+      // "sections" context is also a page view (pages with headings push sections, not page)
+      if (!rest && (ctx.type === "page" || ctx.type === "sections")) {
         // Page-scoped: query callouts directly by page_id (the
         // FTS-with-empty-query path always returned [] before).
-        const pageCallouts = getPageCallouts((ctx as { pageId: number }).pageId);
+        const pageCallouts = getPageCallouts(ctx.pageId);
         if (pageCallouts.length > 0) {
           pushCtx({ type: "callouts", query: "", results: pageCallouts });
           await selectFromPager(renderCallouts(pageCallouts), pageCallouts.length);

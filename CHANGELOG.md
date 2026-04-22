@@ -50,6 +50,15 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **TUI: `[p]` and `[cal]` page hints now work on pages with sections.**
+  Pages with headings push `ctx.type = "sections"` (not `"page"`), so the
+  `p`/`prop` and `cal`/`callouts` context-scoped handlers were silently
+  falling back to "no page, show usage" even while a page was showing.
+  Both handlers now check for `sections` context too, so all five footer
+  hints (`[N]`, `[p]`, `[cmd]`, `[cal]`, `[b]`) work correctly regardless
+  of whether the page has headings.
+- **TUI help text mentions `[N]` section navigation.** The post-pager hint
+  line now reads `[N] = go to section N` alongside `[p]` / `[cal]` / `[b]`.
 - **TUI pager: digits open the listed result.** In a results pager
   (search, devices, callouts, videos, properties, changelogs, sections,
   command tree, dude), pressing `1`..`N` (where N is the number of
