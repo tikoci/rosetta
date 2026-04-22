@@ -19,6 +19,16 @@ Six doc files, each with a clear role — agents should use these, not create ne
 
 **Changelog discipline (agentic rule).** When you make a change with a user-visible effect — CLI flag, MCP tool shape, DB schema, CI behaviour, install/update flow, documented invariant — add a one-line bullet under `CHANGELOG.md` → `[Unreleased]` → the appropriate section (`Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Security`) in the same commit. Do **not** list every internal commit; one bullet per behaviour change is enough. Pure refactors, test churn, and CI auto-bumps with no external effect are omitted — git history is authoritative for those. The `bump-version` CI job automatically promotes `[Unreleased]` → `[VERSION] — DATE` and prepends a fresh `[Unreleased]` skeleton after every release — no manual version-heading fixup is needed.
 
+**Tool-surface change ritual.** The MCP tool registry is frozen in two places:
+`src/mcp.ts` (`server.registerTool` calls) and the `EXPECTED_TOOLS` array in
+`src/mcp-contract.test.ts`. Adding, removing, or renaming a tool requires
+updating **both** + a `CHANGELOG.md` entry under `[Unreleased]`. The Phase 2
+contract test is designed to fail loudly on drift between them, so the PR must
+reflect an explicit decision. Description edits (text changes that keep the
+tool name, input schema keys, and workflow-arrow convention intact) don't
+trigger the test and don't need a changelog bullet unless the behaviour
+itself changed.
+
 ## What This Is
 
 MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML archive of all RouterOS documentation (~317 pages). This project extracts the **HTML export** into a searchable SQLite database and exposes it as an MCP server using the **SQL-as-RAG** pattern: SQLite FTS5 as the retrieval layer for retrieval-augmented generation, exposed over MCP so any LLM client can use it.
@@ -543,6 +553,11 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/schema-roundtrip.test.ts` | Bun tests — schema importer round-trip: fixture walk/merge, arch diffs, desc parsing, completion, legacy compat |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |
 | `src/mcp-http.test.ts` | HTTP transport integration — session lifecycle, multi-client, errors (live server process) |
+| `src/mcp-contract.test.ts` | MCP contract: frozen 13-tool registry, workflow-arrow convention, token-budget guardrails (10 canonical queries), shape snapshots (5 stable queries). Phase 2 of MCP Behavioral Testing |
+| `src/eval/retrieval.ts` | Phase 0 hand-curated golden-query retrieval eval — recall@k / MRR / classifier accuracy, baseline regression gating. Run with `make eval` |
+| `src/eval/self-supervised.ts` | Phase 1 auto-generated retrieval eval (~170 queries from sections/properties/titles, deterministic seeded sampling). Run with `make eval-self` |
+| `fixtures/eval/queries.json` | 20 hand-curated golden queries across 6 shapes (nl-question, command-path, version, device, topic-multi, ambiguous) with `_thresholds` block |
+| `fixtures/eval/baseline.json`, `fixtures/eval/self-supervised-baseline.json` | Captured metrics — regressions > 2pp (Phase 0) / 5pp (Phase 1) fail the eval |
 | `src/setup.ts` | DB download from GitHub Releases + MCP client config printing |
 | `src/paths.ts` | Shared DB path + version resolution — three modes: compiled / dev / package (`~/.rosetta/`) |
 | `server.json` | Official MCP Registry metadata manifest for `io.github.tikoci/rosetta` publication |

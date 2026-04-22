@@ -1,0 +1,102 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`Snapshot tests snapshot: "dhcp server" 1`] = `
+{
+  "classified": {
+    "input": "dhcp server",
+    "topics": [
+      "dhcp",
+    ],
+  },
+  "fallback_mode": null,
+  "next_steps_count": 1,
+  "pages_count": 8,
+  "query": "dhcp server",
+  "related_buckets": {
+    "callouts": 3,
+  },
+  "total_pages": 8,
+}
+`;
+
+exports[`Snapshot tests snapshot: "bridge vlan" 1`] = `
+{
+  "classified": {
+    "command_path": "/bridge/vlan",
+    "input": "bridge vlan",
+    "topics": [
+      "bridge",
+      "vlan",
+    ],
+  },
+  "fallback_mode": null,
+  "next_steps_count": 1,
+  "pages_count": 8,
+  "query": "bridge vlan",
+  "related_buckets": {
+    "callouts": 3,
+    "glossary": 1,
+  },
+  "total_pages": 8,
+}
+`;
+
+exports[`Snapshot tests snapshot: "hAP ax3" 1`] = `
+{
+  "classified": {
+    "device": "hAP",
+    "input": "hAP ax3",
+    "topics": [],
+  },
+  "fallback_mode": "or",
+  "next_steps_count": 2,
+  "pages_count": 8,
+  "query": "hAP ax3",
+  "related_buckets": {
+    "callouts": 1,
+    "devices": 1,
+  },
+  "total_pages": 8,
+}
+`;
+
+exports[`Snapshot tests snapshot: "what changed in 7.22.1" 1`] = `
+{
+  "classified": {
+    "input": "what changed in 7.22.1",
+    "topics": [],
+    "version": "7.22.1",
+  },
+  "fallback_mode": null,
+  "next_steps_count": 1,
+  "pages_count": 8,
+  "query": "what changed in 7.22.1",
+  "related_buckets": {
+    "callouts": 1,
+    "changelogs": 3,
+  },
+  "total_pages": 8,
+}
+`;
+
+exports[`Snapshot tests snapshot: "/ip/firewall/filter" 1`] = `
+{
+  "classified": {
+    "command_path": "/ip/firewall/filter",
+    "input": "/ip/firewall/filter",
+    "topics": [
+      "ip",
+      "firewall",
+      "filter",
+    ],
+  },
+  "fallback_mode": null,
+  "next_steps_count": 1,
+  "pages_count": 8,
+  "query": "/ip/firewall/filter",
+  "related_buckets": {
+    "callouts": 1,
+  },
+  "total_pages": 8,
+}
+`;

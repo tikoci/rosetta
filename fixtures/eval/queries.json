@@ -1,0 +1,158 @@
+{
+  "$schema": "./queries.schema.json",
+  "_doc": "Curated golden-query set for the rosetta MCP `routeros_search` surface. See src/eval/retrieval.ts for the runner. Each entry asserts what an agent SHOULD see when it asks this question. `expected_pages` lists page IDs that are acceptable as a 'correct' top-N hit (any match counts). `expected_classified` asserts the regex classifier's detection. Keep this set small and high-signal — quality over quantity. Add new entries when you fix a real bug, not speculatively.",
+  "_thresholds": {
+    "recall_at_5": 0.85,
+    "recall_at_3": 0.70,
+    "mrr": 0.65,
+    "classifier_accuracy": 0.85
+  },
+  "queries": [
+    {
+      "id": "nl-dhcp-server",
+      "query": "how do I set up a DHCP server",
+      "shape": "nl-question",
+      "expected_pages": [24805500],
+      "notes": "Bread-and-butter NL question. Page id 24805500 = DHCP."
+    },
+    {
+      "id": "nl-firewall-filter",
+      "query": "block traffic from a specific IP address",
+      "shape": "nl-question",
+      "expected_pages": [48660574, 328513, 328151, 47579229, 56459266, 259031065, 16351619],
+      "match_mode": "any",
+      "notes": "Any firewall-related page in top-5 is acceptable. Topic 'ip' is detected before 'firewall' — that's fine, both are present in the query."
+    },
+    {
+      "id": "nl-bridge-vlan",
+      "query": "bridge vlan filtering on a switch",
+      "shape": "nl-question",
+      "expected_pages": [28606465, 103841826, 19136718, 30474317, 328068, 122388482],
+      "match_mode": "any",
+      "notes": "Any bridging/VLAN case-study page satisfies."
+    },
+    {
+      "id": "nl-wireguard",
+      "query": "configure wireguard peer with preshared key",
+      "shape": "nl-question",
+      "expected_pages": [69664792]
+    },
+    {
+      "id": "nl-container",
+      "query": "run a docker container on RouterOS",
+      "shape": "nl-question",
+      "expected_pages": [84901929],
+      "expected_topics_any": ["container"]
+    },
+    {
+      "id": "nl-bgp",
+      "query": "establish a BGP peer with my upstream",
+      "shape": "nl-question",
+      "expected_pages": [328220, 331612228, 28606515],
+      "match_mode": "any",
+      "notes": "BGP page (328220), /routing/bgp ref (331612228), or Routing Protocol Overview (28606515)."
+    },
+    {
+      "id": "nl-ospf",
+      "query": "ospf area type stub",
+      "shape": "nl-question",
+      "expected_pages": [9863229, 331612216]
+    },
+    {
+      "id": "nl-scheduler",
+      "query": "run a script every hour",
+      "shape": "nl-question",
+      "expected_pages": [40992881]
+    },
+    {
+      "id": "nl-routerboot",
+      "query": "reset device to factory defaults from routerboot",
+      "shape": "nl-question",
+      "expected_pages": [136839241]
+    },
+    {
+      "id": "nl-capsman",
+      "query": "centrally manage wifi access points",
+      "shape": "nl-question",
+      "expected_pages": [1409149, 7962638, 137986075, 224559120],
+      "match_mode": "any",
+      "notes": "CAPsMAN page, the family page, a CAPsMAN case study, or the WiFi parent page all reasonably answer."
+    },
+    {
+      "id": "nl-ipsec",
+      "query": "site-to-site IPsec tunnel between two routers",
+      "shape": "nl-question",
+      "expected_pages": [11993097]
+    },
+    {
+      "id": "nl-vlan",
+      "query": "tag vlan on an ethernet interface",
+      "shape": "nl-question",
+      "expected_pages": [88014957, 28606465, 103841826, 103841836, 15302988],
+      "match_mode": "any",
+      "notes": "Any switch/VLAN/bridge page satisfies."
+    },
+    {
+      "id": "cmd-path-firewall-filter",
+      "query": "/ip/firewall/filter",
+      "shape": "command-path",
+      "expected_classified": { "command_path": "/ip/firewall/filter" },
+      "expected_related": ["command_node"],
+      "requires_commands_min": 1000,
+      "notes": "Classifier MUST detect the path; command_node check skipped on slim DBs."
+    },
+    {
+      "id": "cmd-path-routing-bgp",
+      "query": "/routing/bgp",
+      "shape": "command-path",
+      "expected_classified": { "command_path": "/routing/bgp" },
+      "expected_related": ["command_node"],
+      "requires_commands_min": 1000
+    },
+    {
+      "id": "cmd-path-container",
+      "query": "/container",
+      "shape": "command-path",
+      "expected_classified": { "command_path": "/container" },
+      "expected_related": ["command_node"],
+      "requires_commands_min": 1000
+    },
+    {
+      "id": "version-7-22-1",
+      "query": "what changed in 7.22.1",
+      "shape": "version-question",
+      "expected_classified": { "version": "7.22.1" },
+      "expected_related": ["changelogs"],
+      "notes": "Classifier captures the patch version when present. NOTE: a related real-bug — querying just '7.22' classifies as version='7.22' but the DB has changelogs only for '7.22.1' so related.changelogs is silently empty. See BACKLOG: 'Changelog version-rollup'."
+    },
+    {
+      "id": "device-ccr2216",
+      "query": "CCR2216 specs",
+      "shape": "device",
+      "expected_classified": { "device": "CCR2216" },
+      "expected_related": ["devices"]
+    },
+    {
+      "id": "device-hap-ax3",
+      "query": "hAP ax3 wifi performance",
+      "shape": "device",
+      "expected_classified": { "device": "hAP" },
+      "expected_related": ["devices"],
+      "notes": "Classifier currently detects 'hAP' (the family) not 'hAP ax3' (the specific model). Tightening to 'hAP ax3' is a known classifier improvement — see Device AKA backlog item."
+    },
+    {
+      "id": "topic-firewall-classify",
+      "query": "firewall mangle action mark-connection",
+      "shape": "topic-multi",
+      "expected_topics_any": ["firewall"],
+      "notes": "Multi-word firewall query. Top-3 should be firewall-related (any of mangle/filter/raw/nat pages)."
+    },
+    {
+      "id": "ambiguous-disabled",
+      "query": "what does the disabled property do",
+      "shape": "ambiguous",
+      "expected_topics_any": [],
+      "notes": "Ambiguous — 'disabled' exists on dozens of pages. Classifier doesn't currently detect 'disabled' as a property name (no strong signal). Tracked as classifier improvement opportunity. This entry currently passes as a no-op; tighten when classifier learns common property names."
+    }
+  ]
+}

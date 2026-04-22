@@ -26,6 +26,27 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **MCP behavioural eval framework (Phases 0–2)** — three new surfaces for
+  validating that the MCP tool layer keeps doing what we expect, with no LLM
+  cost in the default flow:
+  - **Phase 0** (`make eval`) — 20 hand-curated golden queries in
+    `fixtures/eval/queries.json`, scored on recall@k / MRR / classifier
+    accuracy with baseline regression gating (2pp tolerance).
+  - **Phase 1** (`make eval-self`) — ~170 auto-generated queries from
+    section headings, property names, and page titles using deterministic
+    seeded sampling. Per-strategy thresholds + 5pp baseline tolerance.
+  - **Phase 2** (`bun test src/mcp-contract.test.ts`) — frozen 13-tool
+    registry test, workflow-arrow (→) convention check, token-budget
+    guardrails on 10 canonical queries, and shape snapshots for 5 stable
+    queries (contract-only fingerprint — no page IDs, so DB refreshes
+    don't churn them). Runs inside `bun test`.
+  - See `BACKLOG.md` "MCP Behavioral Testing — research + roadmap" for the
+    full 5-phase plan.
+- **Tool-surface change ritual** documented in `CLAUDE.md`: adding,
+  removing, or renaming an MCP tool requires updating both `src/mcp.ts`
+  and the `EXPECTED_TOOLS` array in `src/mcp-contract.test.ts`, plus a
+  `CHANGELOG.md` entry under `[Unreleased]`.
+
 - `CHANGELOG.md` (Keep a Changelog format, back-filled from v0.1.0) with an
   agentic "update `[Unreleased]` on every user-visible change" rule in
   `CLAUDE.md` + `CONTRIBUTING.md`.

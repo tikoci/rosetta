@@ -388,32 +388,36 @@ Tab completion, history persistence (`~/.rosetta/browse_history`), raw SQL mode,
 - Prefer deterministic, in-repo checks over network calls. Reserve LLM judging for things that genuinely need semantic interpretation.
 - Tests must justify their cost (CI minutes, maintenance, credits).
 
-### 🔴 Phase 0 — Golden-query retrieval set (no LLM, deterministic)
+### ✅ Phase 0 — Golden-query retrieval set (no LLM, deterministic) — **DONE 2026-04-22**
 
-The single biggest gap and the cheapest fix. Borrowed from classical IR evaluation (BM25 era — recall@k, MRR, precision@k) — these metrics predate LLMs and are *exactly* the right tool for evaluating a SQL-as-RAG system.
+Implemented in `src/eval/retrieval.ts` + `fixtures/eval/queries.json` + `fixtures/eval/baseline.json`. Run with `make eval`. 20 golden queries across 6 shapes; per-shape thresholds; baseline regression gating with 2pp tolerance; `--filter`, `--json`, `--update-baseline` flags; `requires_commands_min` skip mechanism for slim dev DBs (cmd-path shape needs full extract). Fixture format ended up as JSON (not yaml — Bun has built-in JSON, no extra dep). All metrics green on local dev DB at landing time: recall@5 100%, MRR 96%, classifier accuracy 100%.
 
-- **Format:** `fixtures/eval/queries.yaml` — list of `{ query, expected_page_ids: [...], expected_topics?: [...], expected_command_node?: "/ip/...", notes? }`. Hand-curated, ~30–60 entries covering the common ask shapes (NL question, command path, property name, device model, version-specific question, ambiguous query).
-- **Runner:** `bun run src/eval/retrieval.ts` — calls `searchAll()` for each query, computes recall@5, MRR, classifier-detection rate. Plain-text report + JSON output. Exit non-zero if recall@5 drops below a baseline file (`fixtures/eval/baseline.json`).
-- **Baseline workflow:** `bun run src/eval/retrieval.ts --update-baseline` after intentional improvements; PRs that regress show a clear delta in CI. No LLM call anywhere.
-- **CI hook:** runs against the in-repo committed `ros-help.db` (or rebuilds DB in `release.yml`). Cost: zero credits, ~seconds.
-- **Why this first:** catches 80% of "did we accidentally break search?" regressions for $0. Every other phase builds on having a curated query set.
+**Real bugs surfaced during golden-set tightening (worth filing):**
 
-### 🟡 Phase 1 — Self-supervised query generation (auto-grow the golden set)
+- 🟡 **Changelog version-rollup gap.** Classifier extracts `version="7.22"` from "what changed in 7.22", but DB only has changelogs for the patch versions (`7.22.1`, `7.22.2`, …). `searchAll().related.changelogs` is silently empty. Either (a) classify rolls up a major version to "match any 7.22.*", or (b) the changelog query does a `LIKE '7.22%'` fallback when the exact version is missing. Either fix should preserve exact-match precedence. Caught only because the eval expected the related block to populate.
+- 🟡 **Bridge VLAN ranking.** "Bridge VLAN Table" (the dedicated case-study page) ranks #6 for `bridge vlan filtering on a switch` — outside the default top-5. Other bridging/VLAN pages do rank, so this isn't a wrong-answer bug, but it suggests the title-weighted BM25 isn't pulling the most-on-topic page to the top. Worth a one-shot look at compound terms for "bridge vlan" / "VLAN table" before treating as a real regression.
 
-Autogenerate eval queries from the corpus itself so we don't bottleneck on hand-curation.
+### ✅ Phase 1 — Self-supervised query generation (auto-grow the golden set) — **DONE 2026-04-22**
 
-- For each page with a callout/heading, treat the heading or first callout sentence as a query and assert the page lands in top-k. ~2,984 sections + ~1,034 callouts = thousands of free golden pairs.
-- For each command path with a doc page link (~92% coverage), assert that querying the path returns that page first.
-- For each property with a unique name, assert `lookupProperty(name)` returns it without disambiguation.
-- Treat as "loose" eval (lower recall threshold, e.g. recall@10 > 0.85) — these are *suggestive* not authoritative. Catches extraction or linking regressions instantly.
+Implemented in `src/eval/self-supervised.ts` + `fixtures/eval/self-supervised-baseline.json`. Run with `make eval-self`. Auto-generates ~170 deterministic queries from sections, properties, and page titles using a seeded RNG (splitmix32 with constant `0xC0FFEE`) — no `Math.random()`, baselines diff cleanly across runs. Per-strategy thresholds: title hit@5 ≥ 90%, section hit@10 ≥ 65%, property hit@10 ≥ 55%, overall MRR ≥ 45%. Cmd-path strategy auto-skips when `commands` table has < 1000 rows (slim dev DB). 5pp regression tolerance (vs Phase 0's 2pp) accounts for auto-gen noise. Final metrics on dev DB: title hit@5 100%, section hit@10 85%, property hit@10 88%, MRR 65%.
 
-### 🟡 Phase 2 — Tool-shape contract + token-budget tests
+### ✅ Phase 2 — Tool-shape contract + token-budget tests — **DONE 2026-04-22**
 
-Cheap structural assertions that catch agent-experience regressions without ever calling an LLM.
+Implemented in `src/mcp-contract.test.ts` + `src/__snapshots__/mcp-contract.test.ts.snap`. Runs inside `bun test`. 17 assertions across three blocks: (A) frozen 13-tool registry + workflow-arrow (→) convention, (B) token-budget guardrails on 10 canonical queries (`tokens(x) = ceil(JSON.stringify(x).length / 4)` — guardrail not precision; all queries currently use 20–32% of budget), (C) shape snapshots for 5 stable queries — redacted to `{query, classified, pages_count, related_buckets, next_steps_count, total_pages, fallback_mode}` (intentionally *no* page IDs/titles — snapshots fingerprint the contract, not the corpus, so DB refreshes don't churn them; page-specific expectations belong in Phase 0). No new deps (no `tiktoken`).
 
-- **Contract test** (`src/mcp-contract.test.ts`): enumerate the 13 registered tools, assert names + input schema keys + output keys against a frozen list. Adding a tool requires updating the frozen list — forces an explicit decision and a `CHANGELOG.md` entry.
-- **Token-budget test:** for representative queries, serialize the response, count tokens with `tiktoken`/`gpt-tokenizer` (or rough char/4 estimate), assert under a budget (e.g. 8K tokens for default `limit`, 20K for `limit=20`). Protects against "bloat regressions" that quietly burn agent context.
-- **Snapshot tests:** `expect(searchAll("dhcp server")).toMatchSnapshot()` for ~10 canonical queries. Bun supports `toMatchSnapshot`. Diff review on PR makes intentional changes obvious.
+Tool-surface change ritual documented in `CLAUDE.md` (under "Changelog discipline"): updating the registry requires touching both `src/mcp.ts` and `EXPECTED_TOOLS` in the test, plus a `CHANGELOG.md` entry. Description-only edits don't trigger the test.
+
+**Real findings (Phase 2):**
+
+- 🟢 **Two tools lack the `→ next_tool` workflow-arrow convention:** `routeros_stats` and `routeros_current_versions`. Both are terminal/informational, but the convention says every tool should suggest a follow-up. The Phase 2 contract test currently allows these two as documented exceptions. Suggested next steps: `stats → routeros_search`, `current_versions → routeros_search_changelogs`. Small `mcp.ts` edit when convenient.
+
+**Review findings + follow-ups (2026-04-22 post-land):**
+
+- ✅ **Snapshot corpus-coupling.** Initial redaction kept `{id, title}` for each page → every Confluence re-export would have churned 5 snapshots without signalling a real regression. Loosened to fingerprint the contract only (counts + classifier output). Corpus-linked expectations belong in Phase 0's golden set, which is the correct surface for "this page should rank for this query."
+- 🟡 **Block B/C skipped in full-suite `bun test`.** `extract-videos.test.ts` runs earlier in the suite and pins the `db.ts` singleton to `:memory:`, so the token-budget and snapshot tests use `describe.skipIf(!dbIsReal)` and only fire when the contract test is run solo (`bun test src/mcp-contract.test.ts`) or in CI's release flow after a real DB build. Block A (static tool-registry parse) runs unconditionally. Proper fix lives in the "Test isolation — DB-leak guards" backlog item: ideally `query.ts` takes a DB handle instead of reading the singleton, which would let the contract test open its own real-DB connection regardless of suite order. Small-lift alternative: a setup hook that reopens the singleton at the real DB path when `ros-help.db` exists. Either way, the current guard keeps CI green and lets the solo run do the real check.
+- 🟡 **CI wiring — not yet done.** `bun test` picks up `mcp-contract.test.ts` automatically (Phase 2 is in CI). `make eval` / `make eval-self` are NOT. Phase 0 (`make eval`) is the high-value addition: run it as a **non-blocking** post-extract step in `release.yml`, log the report, flip to blocking after one successful real-DB rebuild proves the baseline stable. Phase 1 stays local-only for now (noisier, auto-gen). The slim committed dev DB in `test.yml` already honours `requires_commands_min` skips, so cmd-path queries won't false-fail there.
+- 🟡 **Baseline rebuild cadence.** `fixtures/eval/baseline.json` and `self-supervised-baseline.json` are committed metrics on the *current local* DB. Each real DB refresh will drift. 2pp (Phase 0) / 5pp (Phase 1) tolerance absorbs small moves; larger moves need `--update-baseline` in the DB-refresh commit. Document this as part of the HTML-export refresh ritual when we next re-extract.
+- 🟢 **Two real bugs Phase 0 surfaced are ready to fix** — changelog version-rollup (already tracked above) and the two missing workflow arrows. Both are small, both prove the framework's value. Do before Phase 3.
 
 ### 🟡 Phase 3 — Local-LLM judge (free, opt-in, never CI-default)
 

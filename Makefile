@@ -11,7 +11,7 @@ FORCE      ?=
         extract-skills extract-skills-from-cache \
         link assess search browse serve \
 	typecheck lint test preflight build-release release bump-version \
-        install setup clean
+        install setup clean eval eval-update eval-self eval-self-update
 
 # ── Development ──
 
@@ -174,3 +174,19 @@ setup:
 clean:
 	rm -f $(DB) $(DB)-shm $(DB)-wal
 	rm -rf dist/
+
+# ── MCP eval (see BACKLOG: "MCP Behavioral Testing") ──
+
+# Phase 0: hand-curated golden-query retrieval eval
+eval:
+	bun run src/eval/retrieval.ts
+
+eval-update:
+	bun run src/eval/retrieval.ts --update-baseline
+
+# Phase 1: self-supervised retrieval eval (auto-generated from DB)
+eval-self:
+	bun run src/eval/self-supervised.ts
+
+eval-self-update:
+	bun run src/eval/self-supervised.ts --update-baseline

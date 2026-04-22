@@ -1,0 +1,737 @@
+{
+  "generated_at": "2026-04-22T14:55:14.175Z",
+  "total_queries": 20,
+  "metrics": {
+    "recall_at_5": 1,
+    "recall_at_3": 1,
+    "mrr": 0.9607843137254903,
+    "classifier_accuracy": 1,
+    "related_block_accuracy": 1,
+    "topics_accuracy": 1
+  },
+  "per_shape": {
+    "nl-question": {
+      "count": 12,
+      "recall_at_5": 1,
+      "mrr": 0.9444444444444445
+    },
+    "version-question": {
+      "count": 1,
+      "recall_at_5": 1,
+      "mrr": 1
+    },
+    "device": {
+      "count": 2,
+      "recall_at_5": 1,
+      "mrr": 1
+    },
+    "topic-multi": {
+      "count": 1,
+      "recall_at_5": 1,
+      "mrr": 1
+    },
+    "ambiguous": {
+      "count": 1,
+      "recall_at_5": 1,
+      "mrr": 1
+    }
+  },
+  "results": [
+    {
+      "id": "nl-dhcp-server",
+      "query": "how do I set up a DHCP server",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 24805500,
+          "title": "DHCP"
+        },
+        {
+          "id": 132350040,
+          "title": "IPv6 PD over PPP"
+        },
+        {
+          "id": 313262119,
+          "title": "Configuring outdoor CPE to AP links"
+        },
+        {
+          "id": 137986075,
+          "title": "CAPsMAN with VLANs"
+        },
+        {
+          "id": 328151,
+          "title": "First Time Configuration"
+        }
+      ],
+      "classified_actual": {
+        "input": "how do I set up a DHCP server",
+        "topics": [
+          "dhcp"
+        ],
+        "command_fragment": {
+          "pairs": [],
+          "verbs": [
+            "set"
+          ]
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-firewall-filter",
+      "query": "block traffic from a specific IP address",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 259031065,
+          "title": "ROSE-storage"
+        },
+        {
+          "id": 16351619,
+          "title": "General Properties"
+        },
+        {
+          "id": 328151,
+          "title": "First Time Configuration"
+        },
+        {
+          "id": 47579229,
+          "title": "Scripting"
+        },
+        {
+          "id": 56459266,
+          "title": "HotSpot - Captive portal"
+        }
+      ],
+      "classified_actual": {
+        "input": "block traffic from a specific IP address",
+        "topics": [
+          "ip"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-bridge-vlan",
+      "query": "bridge vlan filtering on a switch",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 103841826,
+          "title": "Basic VLAN switching"
+        },
+        {
+          "id": 30474317,
+          "title": "Marvell Prestera switch chip features"
+        },
+        {
+          "id": 19136718,
+          "title": "Layer2 misconfiguration"
+        },
+        {
+          "id": 122388482,
+          "title": "Wireless VLAN Trunk"
+        },
+        {
+          "id": 328068,
+          "title": "Bridging and Switching"
+        }
+      ],
+      "classified_actual": {
+        "input": "bridge vlan filtering on a switch",
+        "topics": [
+          "bridge",
+          "vlan",
+          "switch"
+        ],
+        "command_path": "/bridge/vlan/filtering/on/a/switch"
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-wireguard",
+      "query": "configure wireguard peer with preshared key",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 69664792,
+          "title": "WireGuard"
+        }
+      ],
+      "classified_actual": {
+        "input": "configure wireguard peer with preshared key",
+        "topics": [
+          "wireguard"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-container",
+      "query": "run a docker container on RouterOS",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 84901929,
+          "title": "Container"
+        },
+        {
+          "id": 343244823,
+          "title": "Containerized App management"
+        },
+        {
+          "id": 204341276,
+          "title": "Container - HomeAssistant"
+        },
+        {
+          "id": 169246787,
+          "title": "Container - mosquitto MQTT server"
+        },
+        {
+          "id": 166920348,
+          "title": "Container - ThingsBoard MQTT/HTTP server"
+        }
+      ],
+      "classified_actual": {
+        "input": "run a docker container on RouterOS",
+        "topics": [
+          "container"
+        ],
+        "command_fragment": {
+          "pairs": [],
+          "verbs": [
+            "run"
+          ]
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-bgp",
+      "query": "establish a BGP peer with my upstream",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 28606515,
+          "title": "Routing Protocol Overview"
+        },
+        {
+          "id": 328206,
+          "title": "Virtual Routing and Forwarding - VRF"
+        },
+        {
+          "id": 24805500,
+          "title": "DHCP"
+        }
+      ],
+      "classified_actual": {
+        "input": "establish a BGP peer with my upstream",
+        "topics": [
+          "bgp"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-ospf",
+      "query": "ospf area type stub",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 9863229,
+          "title": "OSPF"
+        },
+        {
+          "id": 331612216,
+          "title": "/routing/ospf"
+        }
+      ],
+      "classified_actual": {
+        "input": "ospf area type stub",
+        "topics": [
+          "ospf"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-scheduler",
+      "query": "run a script every hour",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 40992881,
+          "title": "Scheduler"
+        },
+        {
+          "id": 9863195,
+          "title": "TR-069"
+        },
+        {
+          "id": 176914435,
+          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard"
+        },
+        {
+          "id": 18350234,
+          "title": "Cloud Hosted Router, CHR"
+        },
+        {
+          "id": 3211299,
+          "title": "NAT"
+        }
+      ],
+      "classified_actual": {
+        "input": "run a script every hour",
+        "topics": [],
+        "command_fragment": {
+          "pairs": [],
+          "verbs": [
+            "run"
+          ]
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-routerboot",
+      "query": "reset device to factory defaults from routerboot",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 0.3333333333333333,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 40992878,
+          "title": "RouterBOARD"
+        },
+        {
+          "id": 139526145,
+          "title": "FlashFig"
+        },
+        {
+          "id": 136839241,
+          "title": "RouterBOOT"
+        },
+        {
+          "id": 24805498,
+          "title": "RouterOS configuration reset"
+        },
+        {
+          "id": 24805390,
+          "title": "Netinstall"
+        }
+      ],
+      "classified_actual": {
+        "input": "reset device to factory defaults from routerboot",
+        "topics": [],
+        "command_fragment": {
+          "pairs": [],
+          "verbs": [
+            "reset"
+          ]
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-capsman",
+      "query": "centrally manage wifi access points",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 137986075,
+          "title": "CAPsMAN with VLANs"
+        },
+        {
+          "id": 328060,
+          "title": "Quick Set"
+        },
+        {
+          "id": 224559120,
+          "title": "WiFi"
+        }
+      ],
+      "classified_actual": {
+        "input": "centrally manage wifi access points",
+        "topics": [
+          "wifi"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-ipsec",
+      "query": "site-to-site IPsec tunnel between two routers",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 11993097,
+          "title": "IPsec"
+        },
+        {
+          "id": 69664792,
+          "title": "WireGuard"
+        }
+      ],
+      "classified_actual": {
+        "input": "site-to-site IPsec tunnel between two routers",
+        "topics": [
+          "ipsec"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-vlan",
+      "query": "tag vlan on an ethernet interface",
+      "shape": "nl-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 103841836,
+          "title": "CRS1xx/2xx series switches examples"
+        },
+        {
+          "id": 103841826,
+          "title": "Basic VLAN switching"
+        },
+        {
+          "id": 15302988,
+          "title": "Switch Chip Features"
+        },
+        {
+          "id": 30474317,
+          "title": "Marvell Prestera switch chip features"
+        },
+        {
+          "id": 19136718,
+          "title": "Layer2 misconfiguration"
+        }
+      ],
+      "classified_actual": {
+        "input": "tag vlan on an ethernet interface",
+        "topics": [
+          "vlan",
+          "ethernet",
+          "interface"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "cmd-path-firewall-filter",
+      "query": "/ip/firewall/filter",
+      "shape": "command-path",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": true,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": [],
+      "skip_reason": "requires commands ≥ 1000, DB has 36"
+    },
+    {
+      "id": "cmd-path-routing-bgp",
+      "query": "/routing/bgp",
+      "shape": "command-path",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": true,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": [],
+      "skip_reason": "requires commands ≥ 1000, DB has 36"
+    },
+    {
+      "id": "cmd-path-container",
+      "query": "/container",
+      "shape": "command-path",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": true,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": [],
+      "skip_reason": "requires commands ≥ 1000, DB has 36"
+    },
+    {
+      "id": "version-7-22-1",
+      "query": "what changed in 7.22.1",
+      "shape": "version-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 47579173,
+          "title": "IPIP"
+        },
+        {
+          "id": 119144661,
+          "title": "IPv4 and IPv6 Fundamentals"
+        },
+        {
+          "id": 78086201,
+          "title": "Bluetooth"
+        },
+        {
+          "id": 88014957,
+          "title": "VLAN"
+        },
+        {
+          "id": 176914435,
+          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard"
+        }
+      ],
+      "classified_actual": {
+        "input": "what changed in 7.22.1",
+        "topics": [],
+        "version": "7.22.1"
+      },
+      "notes": []
+    },
+    {
+      "id": "device-ccr2216",
+      "query": "CCR2216 specs",
+      "shape": "device",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 28606515,
+          "title": "Routing Protocol Overview"
+        }
+      ],
+      "classified_actual": {
+        "input": "CCR2216 specs",
+        "topics": [],
+        "device": "CCR2216"
+      },
+      "notes": []
+    },
+    {
+      "id": "device-hap-ax3",
+      "query": "hAP ax3 wifi performance",
+      "shape": "device",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 1409138,
+          "title": "Wireless"
+        },
+        {
+          "id": 224559120,
+          "title": "WiFi"
+        },
+        {
+          "id": 40992878,
+          "title": "RouterBOARD"
+        },
+        {
+          "id": 334168086,
+          "title": "Interworking for WiFi6"
+        },
+        {
+          "id": 40992872,
+          "title": "Packages"
+        }
+      ],
+      "classified_actual": {
+        "input": "hAP ax3 wifi performance",
+        "topics": [
+          "wifi"
+        ],
+        "device": "hAP"
+      },
+      "notes": []
+    },
+    {
+      "id": "topic-firewall-classify",
+      "query": "firewall mangle action mark-connection",
+      "shape": "topic-multi",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 152600617,
+          "title": "Per connection classifier"
+        },
+        {
+          "id": 131366985,
+          "title": "Connection rate"
+        },
+        {
+          "id": 48660587,
+          "title": "Mangle"
+        },
+        {
+          "id": 125992982,
+          "title": "IKEv2 EAP between NordVPN and RouterOS"
+        },
+        {
+          "id": 137986076,
+          "title": "HTB (Hierarchical Token Bucket)"
+        }
+      ],
+      "classified_actual": {
+        "input": "firewall mangle action mark-connection",
+        "topics": [
+          "firewall",
+          "mangle"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "ambiguous-disabled",
+      "query": "what does the disabled property do",
+      "shape": "ambiguous",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 331612234,
+          "title": "/routing/filter"
+        },
+        {
+          "id": 103841835,
+          "title": "CRS1xx and 2xx series switches"
+        },
+        {
+          "id": 40992798,
+          "title": "VPLS"
+        },
+        {
+          "id": 2031625,
+          "title": "PPPoE"
+        },
+        {
+          "id": 2031631,
+          "title": "L2TP"
+        }
+      ],
+      "classified_actual": {
+        "input": "what does the disabled property do",
+        "topics": []
+      },
+      "notes": []
+    }
+  ]
+}
