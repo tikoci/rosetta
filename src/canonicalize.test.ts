@@ -215,11 +215,11 @@ describe('subshells [...]', () => {
     const findCmd = result.commands.find(c => c.verb === 'find');
     const setCmd = result.commands.find(c => c.verb === 'set');
     expect(findCmd).toBeDefined();
-    expect(findCmd!.subshell).toBe(true);
-    expect(findCmd!.path).toBe('/ip/address');
+    expect(findCmd?.subshell).toBe(true);
+    expect(findCmd?.path).toBe('/ip/address');
     expect(setCmd).toBeDefined();
-    expect(setCmd!.path).toBe('/ip/address');
-    expect(setCmd!.verb).toBe('set');
+    expect(setCmd?.path).toBe('/ip/address');
+    expect(setCmd?.verb).toBe('set');
   });
 
   test('nested subshells: /ip route get [find gateway=1.1.1.1]', () => {
@@ -228,18 +228,18 @@ describe('subshells [...]', () => {
     const findCmd = result.commands.find(c => c.verb === 'find');
     const getCmd = result.commands.find(c => c.verb === 'get');
     expect(findCmd).toBeDefined();
-    expect(findCmd!.path).toBe('/ip/route');
-    expect(findCmd!.subshell).toBe(true);
+    expect(findCmd?.path).toBe('/ip/route');
+    expect(findCmd?.subshell).toBe(true);
     expect(getCmd).toBeDefined();
-    expect(getCmd!.path).toBe('/ip/route');
+    expect(getCmd?.path).toBe('/ip/route');
   });
 
   test('subshell with absolute path inside', () => {
     const result = canonicalize('/interface set [/ip address find] name=test', '/system');
     const findCmd = result.commands.find(c => c.verb === 'find');
     expect(findCmd).toBeDefined();
-    expect(findCmd!.path).toBe('/ip/address');
-    expect(findCmd!.subshell).toBe(true);
+    expect(findCmd?.path).toBe('/ip/address');
+    expect(findCmd?.subshell).toBe(true);
   });
 
   test('complex bridge example with nested subshells', () => {
@@ -249,12 +249,12 @@ describe('subshells [...]', () => {
     );
     const setCmd = result.commands.find(c => c.verb === 'set' && !c.subshell);
     expect(setCmd).toBeDefined();
-    expect(setCmd!.path).toBe('/interface/bridge');
+    expect(setCmd?.path).toBe('/interface/bridge');
 
     // The subshell commands should inherit /interface/bridge context
     const findCmd = result.commands.find(c => c.verb === 'find');
     expect(findCmd).toBeDefined();
-    expect(findCmd!.subshell).toBe(true);
+    expect(findCmd?.subshell).toBe(true);
   });
 });
 
@@ -266,7 +266,7 @@ describe('{ } blocks', () => {
     const result = canonicalize('/ip/address { print }');
     const printCmd = result.commands.find(c => c.verb === 'print');
     expect(printCmd).toBeDefined();
-    expect(printCmd!.path).toBe('/ip/address');
+    expect(printCmd?.path).toBe('/ip/address');
   });
 
   test('path persists after block exit', () => {
@@ -281,7 +281,7 @@ describe('{ } blocks', () => {
     const result = canonicalize('{\n  :local a 3;\n  /ip/address/print\n}');
     const printCmd = result.commands.find(c => c.verb === 'print');
     expect(printCmd).toBeDefined();
-    expect(printCmd!.path).toBe('/ip/address');
+    expect(printCmd?.path).toBe('/ip/address');
   });
 });
 
@@ -314,14 +314,14 @@ describe('ICE commands', () => {
     const result = canonicalize(':put [/system/resource/get version]');
     const getCmd = result.commands.find(c => c.verb === 'get');
     expect(getCmd).toBeDefined();
-    expect(getCmd!.path).toBe('/system/resource');
+    expect(getCmd?.path).toBe('/system/resource');
   });
 
   test(':local and :global are skipped', () => {
     const result = canonicalize(':local myVar "test"\n/ip/address/print');
     const printCmd = result.commands.find(c => c.verb === 'print');
     expect(printCmd).toBeDefined();
-    expect(printCmd!.path).toBe('/ip/address');
+    expect(printCmd?.path).toBe('/ip/address');
   });
 });
 
@@ -393,12 +393,12 @@ describe('real-world examples', () => {
     );
     const addCmd = result.commands.find(c => c.verb === 'add' && !c.subshell);
     expect(addCmd).toBeDefined();
-    expect(addCmd!.path).toBe('/ip/firewall/filter');
-    expect(addCmd!.args.some(a => a.startsWith('chain='))).toBe(true);
+    expect(addCmd?.path).toBe('/ip/firewall/filter');
+    expect(addCmd?.args.some(a => a.startsWith('chain='))).toBe(true);
 
     const findCmd = result.commands.find(c => c.verb === 'find');
     expect(findCmd).toBeDefined();
-    expect(findCmd!.subshell).toBe(true);
+    expect(findCmd?.subshell).toBe(true);
   });
 
   test('from Console page: /ip/firewall/filter/add chain=forward', () => {
@@ -413,7 +413,7 @@ describe('real-world examples', () => {
     const result = canonicalize('/ip dhcp-server set myServer lease-script=myLeaseScript');
     const setCmd = result.commands.find(c => c.verb === 'set');
     expect(setCmd).toBeDefined();
-    expect(setCmd!.path).toBe('/ip/dhcp-server');
+    expect(setCmd?.path).toBe('/ip/dhcp-server');
   });
 
   test('scripting: :put with nested subshells', () => {
@@ -422,8 +422,8 @@ describe('real-world examples', () => {
     const getCmd = result.commands.find(c => c.verb === 'get');
     expect(findCmd).toBeDefined();
     expect(getCmd).toBeDefined();
-    expect(findCmd!.path).toBe('/ip/route');
-    expect(getCmd!.path).toBe('/ip/route');
+    expect(findCmd?.path).toBe('/ip/route');
+    expect(getCmd?.path).toBe('/ip/route');
   });
 
   test('firewall rule with find subshell', () => {
@@ -433,10 +433,10 @@ describe('real-world examples', () => {
     const setCmd = result.commands.find(c => c.verb === 'set' && !c.subshell);
     const findCmd = result.commands.find(c => c.verb === 'find');
     expect(setCmd).toBeDefined();
-    expect(setCmd!.path).toBe('/ip/address');
+    expect(setCmd?.path).toBe('/ip/address');
     expect(findCmd).toBeDefined();
-    expect(findCmd!.path).toBe('/ip/address');
-    expect(findCmd!.subshell).toBe(true);
+    expect(findCmd?.path).toBe('/ip/address');
+    expect(findCmd?.subshell).toBe(true);
   });
 
   test('interface set with name', () => {
@@ -456,9 +456,9 @@ describe('real-world examples', () => {
     const printCmd = result.commands.find(c => c.verb === 'print');
     const addCmd = result.commands.find(c => c.verb === 'add');
     expect(printCmd).toBeDefined();
-    expect(printCmd!.path).toBe('/ip/address');
+    expect(printCmd?.path).toBe('/ip/address');
     expect(addCmd).toBeDefined();
-    expect(addCmd!.path).toBe('/ip/route');
+    expect(addCmd?.path).toBe('/ip/route');
   });
 
   test('user example: bridge pvid subshell', () => {
@@ -471,7 +471,7 @@ describe('real-world examples', () => {
     );
     const setCmd = result.commands.find(c => c.verb === 'set' && !c.subshell);
     expect(setCmd).toBeDefined();
-    expect(setCmd!.path).toBe('/interface/bridge');
+    expect(setCmd?.path).toBe('/interface/bridge');
   });
 });
 
@@ -515,6 +515,6 @@ describe('edge cases', () => {
     const result = canonicalize('/interface/print where name~"ether"');
     const printCmd = result.commands.find(c => c.verb === 'print');
     expect(printCmd).toBeDefined();
-    expect(printCmd!.path).toBe('/interface');
+    expect(printCmd?.path).toBe('/interface');
   });
 });

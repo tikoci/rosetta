@@ -26,8 +26,8 @@
  *   TLS_KEY_PATH  — TLS private key path (lower precedence than --tls-key)
  */
 
-import { resolveVersion } from "./paths.ts";
 import { MCP_INSTRUCTIONS } from "./mcp-meta.ts";
+import { resolveVersion } from "./paths.ts";
 
 const RESOLVED_VERSION = resolveVersion(import.meta.dirname);
 

@@ -13,6 +13,7 @@
 
 import * as readline from "node:readline";
 import { db, getDbStats, initDb } from "./db.ts";
+import { MCP_INSTRUCTIONS, MCP_STATIC_RESOURCES } from "./mcp-meta.ts";
 import { resolveVersion } from "./paths.ts";
 import type {
   CalloutResult,
@@ -50,7 +51,6 @@ import {
   searchProperties,
   searchVideos,
 } from "./query.ts";
-import { MCP_INSTRUCTIONS, MCP_STATIC_RESOURCES } from "./mcp-meta.ts";
 
 // ── ANSI utilities (zero deps) ──
 

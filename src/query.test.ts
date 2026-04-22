@@ -2047,21 +2047,21 @@ describe("lookupGlossary", () => {
   test("finds exact term match", () => {
     const result = lookupGlossary("chr");
     expect(result).not.toBeNull();
-    expect(result!.term).toBe("chr");
-    expect(result!.definition).toContain("Cloud Hosted Router");
-    expect(result!.category).toBe("product");
+    expect(result?.term).toBe("chr");
+    expect(result?.definition).toContain("Cloud Hosted Router");
+    expect(result?.category).toBe("product");
   });
 
   test("case-insensitive lookup", () => {
     const result = lookupGlossary("CHR");
     expect(result).not.toBeNull();
-    expect(result!.term).toBe("chr");
+    expect(result?.term).toBe("chr");
   });
 
   test("finds term by alias", () => {
     const result = lookupGlossary("openvpn");
     expect(result).not.toBeNull();
-    expect(result!.term).toBe("ovpn");
+    expect(result?.term).toBe("ovpn");
   });
 
   test("returns null for unknown term", () => {
@@ -2075,8 +2075,8 @@ describe("lookupGlossary", () => {
   test("search_hint field is populated", () => {
     const result = lookupGlossary("capsman");
     expect(result).not.toBeNull();
-    expect(result!.search_hint).toBeTruthy();
-    expect(result!.search_hint).toContain("CAPsMAN");
+    expect(result?.search_hint).toBeTruthy();
+    expect(result?.search_hint).toContain("CAPsMAN");
   });
 });
 
