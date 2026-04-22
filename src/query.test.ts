@@ -43,6 +43,7 @@ const {
   searchDeviceTests,
   getTestResultMeta,
   normalizeDeviceQuery,
+  truncateDeviceTestResultsPrefer512,
   searchVideos,
   searchDude,
   getDudePage,
@@ -1423,6 +1424,48 @@ describe("dataset CSV exports", () => {
     expect(csv).toContain("CCR2216-1G-12XS-2XQ");
     expect(csv).toContain("https://cdn.mikrotik.com/web-assets/product_files/hap_ax3_123.png");
     expect(lines[0].startsWith("id,")).toBe(false);
+  });
+});
+
+describe("truncateDeviceTestResultsPrefer512", () => {
+  test("keeps all 512B rows when truncating", () => {
+    const rows = [
+      { packet_size: 1518, id: "a" },
+      { packet_size: 512, id: "b" },
+      { packet_size: 64, id: "c" },
+      { packet_size: 512, id: "d" },
+    ];
+    const res = truncateDeviceTestResultsPrefer512(rows, 2);
+
+    expect(res.rows.map((r) => r.id)).toEqual(["b", "d"]);
+    expect(res.omitted).toBe(2);
+  });
+
+  test("fills remaining slots with non-512 rows", () => {
+    const rows = [
+      { packet_size: 1518, id: "a" },
+      { packet_size: 512, id: "b" },
+      { packet_size: 64, id: "c" },
+      { packet_size: 512, id: "d" },
+    ];
+    const res = truncateDeviceTestResultsPrefer512(rows, 3);
+
+    expect(res.rows.map((r) => r.id)).toEqual(["b", "d", "a"]);
+    expect(res.omitted).toBe(1);
+  });
+
+  test("returns all 512B rows even if they exceed maxRows", () => {
+    const rows = [
+      { packet_size: 512, id: "a" },
+      { packet_size: 512, id: "b" },
+      { packet_size: 1518, id: "c" },
+      { packet_size: 512, id: "d" },
+      { packet_size: 64, id: "e" },
+    ];
+    const res = truncateDeviceTestResultsPrefer512(rows, 2);
+
+    expect(res.rows.map((r) => r.id)).toEqual(["a", "b", "d"]);
+    expect(res.omitted).toBe(2);
   });
 });
 

@@ -39,8 +39,6 @@ uses [Semantic Versioning](https://semver.org/).
   sections context, `page` with no args re-renders the current page
   instead of erroring.
 
-### Changed
-
 - **CI: fast-fail quality gate.** `release.yml` now runs `typecheck` + `lint`
   immediately after `bun install`, before the ~2-minute extraction pipeline.
   Tests continue to run post-extraction as the DB-wipe guard.
@@ -59,6 +57,9 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **TUI device detail benchmark truncation now always keeps all 512B rows.**
+  When compacting long per-device test lists, the renderer now preserves every
+  512-byte result (the common comparison size) and only truncates non-512 rows.
 - Tests/CI: importing `extract-test-results.ts` no longer opens the DB or runs
   extraction side effects at module-load time. The extractor now runs only
   under `import.meta.main`, and `extract-test-results.test.ts` sets

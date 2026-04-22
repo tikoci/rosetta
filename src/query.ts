@@ -298,8 +298,8 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
         path: node.path,
         type: node.type,
         description: node.description,
-        ...(node.page_id
-          ? { linked_page: { id: node.page_id, title: node.page_title!, url: node.page_url! } }
+        ...(node.page_id && node.page_title && node.page_url
+          ? { linked_page: { id: node.page_id, title: node.page_title, url: node.page_url } }
           : {}),
       };
     }
@@ -1329,6 +1329,43 @@ export type DeviceTestResult = {
   throughput_kpps: number | null;
   throughput_mbps: number | null;
 };
+
+/**
+ * Truncate benchmark rows for display while always keeping all 512-byte rows.
+ *
+ * Used by both TUI and MCP-facing adapters when they need a compact view.
+ * If the 512B bucket itself exceeds maxRows, return all 512B rows anyway.
+ */
+export function truncateDeviceTestResultsPrefer512<T extends { packet_size: number }>(
+  rows: T[],
+  maxRows: number,
+): { rows: T[]; omitted: number } {
+  if (rows.length === 0) return { rows: [], omitted: 0 };
+
+  const safeMax = Math.max(0, Math.floor(maxRows));
+  const rows512 = rows.filter((r) => r.packet_size === 512);
+  const non512 = rows.filter((r) => r.packet_size !== 512);
+
+  if (safeMax === 0) {
+    return { rows: rows512, omitted: rows.length - rows512.length };
+  }
+
+  if (rows.length <= safeMax) {
+    return { rows, omitted: 0 };
+  }
+
+  if (rows512.length === 0) {
+    return { rows: rows.slice(0, safeMax), omitted: rows.length - safeMax };
+  }
+
+  if (rows512.length >= safeMax) {
+    return { rows: rows512, omitted: rows.length - rows512.length };
+  }
+
+  const takeNon512 = safeMax - rows512.length;
+  const selected = [...rows512, ...non512.slice(0, takeNon512)];
+  return { rows: selected, omitted: rows.length - selected.length };
+}
 
 /** Map Unicode superscript digits to ASCII equivalents for product name matching.
  *  MikroTik uses ² and ³ in product names (hAP ax³, hAP ac²), but users type ASCII. */

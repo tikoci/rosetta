@@ -51,6 +51,7 @@ import {
   searchDude,
   searchProperties,
   searchVideos,
+  truncateDeviceTestResultsPrefer512,
 } from "./query.ts";
 
 // ── ANSI utilities (zero deps) ──
@@ -785,15 +786,16 @@ function renderDeviceCard(d: DeviceResult): string {
 
   // Test results (attached for exact matches)
   if (d.test_results && d.test_results.length > 0) {
+    const truncated = truncateDeviceTestResultsPrefer512(d.test_results, 12);
     out.push("");
     out.push(`  ${bold("Benchmarks:")}  ${dim(`(${d.test_results.length} tests)`)}`);
-    for (const t of d.test_results.slice(0, 12)) {
+    for (const t of truncated.rows) {
       const mbps = t.throughput_mbps ? `${fmt(t.throughput_mbps)} Mbps` : "";
       const kpps = t.throughput_kpps ? `${fmt(t.throughput_kpps)} Kpps` : "";
       out.push(`    ${dim(pad(t.test_type, 9))} ${pad(t.mode, 16)} ${dim(pad(t.configuration, 28))} ${pad(`${t.packet_size}B`, 6)} ${bold(mbps)} ${dim(kpps)}`);
     }
-    if (d.test_results.length > 12) {
-      out.push(`    ${dim(`... and ${d.test_results.length - 12} more (use`)} ${cyan("tests")} ${dim("for full listing)")}`);
+    if (truncated.omitted > 0) {
+      out.push(`    ${dim(`... and ${truncated.omitted} more (use`)} ${cyan("tests")} ${dim("for full listing)")}`);
     }
   }
 
