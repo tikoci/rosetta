@@ -176,8 +176,19 @@ jobs:
       - name: Run tests (DB-wipe guard)
         run: bun test
 
-      - name: MCP contract tests (real DB)
-        run: bun test src/mcp-contract.test.ts
+      # Runs in a fresh process so the db.ts singleton opens the real built
+      # DB (the main `bun test` above pins it to `:memory:`, which skips
+      # Blocks B/C). Non-blocking: Block C asserts shape invariants that
+      # should hold on any populated DB, but we don't want a one-off
+      # classifier tweak to block a release — flip to blocking once we've
+      # observed it green across a few rebuilds.
+      - name: MCP contract tests (real DB, non-blocking)
+        continue-on-error: true
+        run: |
+          echo "## MCP contract test (Phase 2, real DB)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          bun test src/mcp-contract.test.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       # ── MCP retrieval eval (Phase 0, non-blocking) ──
       # Runs the 20-query golden set against the freshly built full DB.

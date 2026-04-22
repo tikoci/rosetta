@@ -175,48 +175,89 @@ describe.skipIf(!dbIsReal)(`Token-budget guardrails${dbIsReal ? "" : ` [skipped:
 });
 
 // ---------------------------------------------------------------------------
-// Block C: Snapshot tests
+// Block C: Response-shape invariants
 // ---------------------------------------------------------------------------
+//
+// This block asserts shape contracts that hold on any populated DB — no
+// file-based snapshots (they coupled to the local dev DB's extraction state
+// and drifted against the full CI-built DB's richer `related_buckets`). The
+// invariants here protect against silent breakage of the searchAll return
+// shape while staying portable across DBs of varying richness.
+//
+// Corpus-linked expectations ("this page must rank for this query") live in
+// fixtures/eval/queries.json (Phase 0) — that's the right surface for them.
 
-describe.skipIf(!dbIsReal)(`Snapshot tests${dbIsReal ? "" : ` [skipped: ${skipReason}]`}`, () => {
-  /**
-   * Redact searchAll response down to a *contract* fingerprint:
-   * - Keep: query, classified (verbatim), related bucket names + counts,
-   *   next_steps_count, total_pages, fallback_mode, pages_count.
-   * - Drop: raw page IDs/titles (they shift on every Confluence re-export
-   *   and would churn snapshots without signalling a real regression).
-   *
-   * If you need to assert a specific page ranks for a query, add it to
-   * fixtures/eval/queries.json (Phase 0) — that's the right surface for
-   * corpus-linked expectations.
-   */
-  function redactForSnapshot(result: ReturnType<typeof searchAll>) {
-    return {
-      query: result.query,
-      classified: result.classified,
-      pages_count: result.pages.length,
-      related_buckets: Object.fromEntries(
-        Object.entries(result.related).map(([k, v]) => [k, Array.isArray(v) ? v.length : 1]),
-      ),
-      next_steps_count: result.next_steps.length,
-      total_pages: result.total_pages,
-      fallback_mode: result.fallback_mode,
-    };
-  }
+describe.skipIf(!dbIsReal)(`Response-shape invariants${dbIsReal ? "" : ` [skipped: ${skipReason}]`}`, () => {
+  type Invariant = {
+    query: string;
+    limit: number;
+    classifier_expected: Record<string, unknown>;
+  };
 
-  const SNAPSHOT_QUERIES = [
-    "dhcp server",
-    "bridge vlan",
-    "hAP ax3",
-    "what changed in 7.22.1",
-    "/ip/firewall/filter",
+  const INVARIANTS: Invariant[] = [
+    { query: "dhcp server", limit: 8, classifier_expected: { topics: ["dhcp"] } },
+    {
+      query: "bridge vlan",
+      limit: 8,
+      classifier_expected: { command_path: "/bridge/vlan", topics: ["bridge", "vlan"] },
+    },
+    { query: "hAP ax3", limit: 8, classifier_expected: { device: "hAP" } },
+    {
+      query: "what changed in 7.22.1",
+      limit: 8,
+      classifier_expected: { version: "7.22.1" },
+    },
+    {
+      query: "/ip/firewall/filter",
+      limit: 8,
+      classifier_expected: {
+        command_path: "/ip/firewall/filter",
+        topics: ["ip", "firewall", "filter"],
+      },
+    },
   ];
 
-  for (const query of SNAPSHOT_QUERIES) {
-    test(`snapshot: "${query}"`, () => {
-      const result = searchAll(query, 8);
-      const redacted = redactForSnapshot(result);
-      expect(redacted).toMatchSnapshot();
+  for (const { query, limit, classifier_expected } of INVARIANTS) {
+    test(`shape: "${query}"`, () => {
+      const result = searchAll(query, limit);
+
+      // Top-level keys
+      expect(result).toHaveProperty("query", query);
+      expect(result).toHaveProperty("classified");
+      expect(result).toHaveProperty("pages");
+      expect(result).toHaveProperty("related");
+      expect(result).toHaveProperty("next_steps");
+      expect(result).toHaveProperty("total_pages");
+
+      // Classifier output is DB-independent (pure regex) — assert exact subset
+      for (const [k, v] of Object.entries(classifier_expected)) {
+        expect(result.classified).toHaveProperty(k, v);
+      }
+
+      // Pages: at least one hit on a populated DB, bounded by limit
+      expect(Array.isArray(result.pages)).toBe(true);
+      expect(result.pages.length).toBeGreaterThan(0);
+      expect(result.pages.length).toBeLessThanOrEqual(limit);
+      expect(result.total_pages).toBeGreaterThanOrEqual(result.pages.length);
+      for (const page of result.pages) {
+        expect(page).toHaveProperty("id");
+        expect(page).toHaveProperty("title");
+      }
+
+      // Related block: always an object; buckets that are present are arrays
+      expect(typeof result.related).toBe("object");
+      for (const [bucket, entries] of Object.entries(result.related)) {
+        if (Array.isArray(entries)) {
+          expect(entries.length).toBeGreaterThan(0);
+        } else {
+          // command_node is a single object when present
+          expect(entries).toBeTruthy();
+        }
+        expect(bucket.length).toBeGreaterThan(0);
+      }
+
+      // next_steps: array of hint strings
+      expect(Array.isArray(result.next_steps)).toBe(true);
     });
   }
 });

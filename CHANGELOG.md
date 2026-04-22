@@ -28,14 +28,17 @@ uses [Semantic Versioning](https://semver.org/).
   freshly built full DB after extraction and writes the report to the job
   summary. Non-blocking while the baseline adapts to the real-DB corpus —
   flip to blocking after one green real-DB run refreshes the baseline.
-- **CI: Phase 2 contract checks run in a dedicated real-DB step on release.**
-  `release.yml` executes `bun test src/mcp-contract.test.ts` after the full
-  `bun test` suite so the token-budget and snapshot blocks run against the
-  freshly built full DB in a fresh process (the shared `bun test` run pins
-  the DB singleton to `:memory:` before this file loads, so Blocks B/C
-  would otherwise skip). `test.yml` intentionally does not get a dedicated
-  step: a clean CI checkout has no `ros-help.db`, so B/C would skip
-  regardless and the step would be redundant with Block A in the main run.
+- **CI: Phase 2 contract checks run in a dedicated real-DB step on release
+  (non-blocking).** `release.yml` executes `bun test src/mcp-contract.test.ts`
+  after the full `bun test` suite so the token-budget and shape-invariant
+  blocks run against the freshly built full DB in a fresh process (the
+  shared `bun test` run pins the DB singleton to `:memory:` before this
+  file loads, so Blocks B/C would otherwise skip). Non-blocking:
+  `continue-on-error: true` while we observe the step green across a few
+  rebuilds; test output is written to the job summary. `test.yml`
+  intentionally does not get a dedicated step: a clean CI checkout has no
+  `ros-help.db`, so B/C would skip regardless and the step would be
+  redundant with Block A in the main run.
 
 ### Added
 
@@ -50,9 +53,9 @@ uses [Semantic Versioning](https://semver.org/).
     seeded sampling. Per-strategy thresholds + 5pp baseline tolerance.
   - **Phase 2** (`bun test src/mcp-contract.test.ts`) — frozen 13-tool
     registry test, workflow-arrow (→) convention check, token-budget
-    guardrails on 10 canonical queries, and shape snapshots for 5 stable
-    queries (contract-only fingerprint — no page IDs, so DB refreshes
-    don't churn them). Runs inside `bun test`.
+    guardrails on 10 canonical queries, and response-shape invariants for
+    5 representative queries (portable across DBs of varying richness).
+    Runs inside `bun test`.
   - See `BACKLOG.md` "MCP Behavioral Testing — research + roadmap" for the
     full 5-phase plan.
 - **Tool-surface change ritual** documented in `CLAUDE.md`: adding,
