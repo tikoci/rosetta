@@ -489,6 +489,14 @@ describe("browse TUI structure", () => {
     const matches = src.split('ctx.type === "page" || ctx.type === "sections"').length - 1;
     expect(matches).toBeGreaterThanOrEqual(2);
   });
+
+  test("pager keystrokes cleared from readline buffer before re-prompt", () => {
+    // readline's data handler stays active while pager runs in raw mode, so
+    // pager keystrokes accumulate in rl.line and appear after the next prompt.
+    // The REPL line handler must clear rl.line/cursor before calling rl.prompt().
+    expect(src).toContain('rlBuf.line = ""');
+    expect(src).toContain("rlBuf.cursor = 0");
+  });
 });
 
 // ---------------------------------------------------------------------------

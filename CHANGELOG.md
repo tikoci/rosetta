@@ -50,6 +50,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **TUI pager: navigation keystrokes no longer bleed into the REPL prompt.**
+  Pager ran in raw mode while readline's data handler was still active, so
+  each keystroke (`1`, `4`, `q`, etc.) accumulated in readline's internal
+  line buffer and reappeared echoed after the next prompt (e.g. `> 1432q`).
+  Fixed by clearing `rl.line`/`rl.cursor` before re-prompting after dispatch.
 - **TUI: `[p]` and `[cal]` page hints now work on pages with sections.**
   Pages with headings push `ctx.type = "sections"` (not `"page"`), so the
   `p`/`prop` and `cal`/`callouts` context-scoped handlers were silently

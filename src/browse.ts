@@ -2241,6 +2241,14 @@ async function main() {
     } catch (err) {
       console.error(red(`  Error: ${err instanceof Error ? err.message : String(err)}`));
     }
+    // Discard any keystrokes that leaked into readline's internal line buffer
+    // while the pager was running in raw mode.  readline's data handler stays
+    // active during paging, so each pager keystroke (digits, q, space, b…)
+    // accumulates in rl.line and reappears echoed after the next prompt via
+    // _refreshLine().  Clear before re-prompting to keep the prompt clean.
+    const rlBuf = rl as unknown as { line: string; cursor: number };
+    rlBuf.line = "";
+    rlBuf.cursor = 0;
     rl.setPrompt(buildPrompt());
     rl.prompt();
   });
