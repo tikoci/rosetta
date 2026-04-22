@@ -1,6 +1,6 @@
 ---
-description: "Use when writing or modifying extraction scripts, property parsing, command tree loading, or callout extraction. Covers idempotent patterns, HTML parsing with linkedom, table detection, and version-aware command extraction."
-applyTo: "src/extract-*.ts, src/link-commands.ts"
+description: "Use when writing or modifying extraction scripts, property parsing, command tree loading, or callout extraction. Covers idempotent patterns, HTML parsing with linkedom, table detection, version-aware command extraction, and test isolation for extractor modules."
+applyTo: "src/extract-*.ts, src/extract-*.test.ts, src/link-commands.ts"
 ---
 # Extraction Pipeline
 
@@ -65,3 +65,29 @@ Do not assume maintainers will run local `make` commands to compensate for missi
 - Filters non-RouterOS paths (e.g., `/bin/bash`, `/etc/config`)
 - Links dir + all children to matching page
 - Current coverage: ~92% of dirs
+
+## Test Isolation — Extractor Imports
+
+**Problem:** `db.ts` opens a SQLite connection at module-evaluation time. Bun's module cache means the first importer wins the singleton. If an extractor test statically imports a module that has a top-level `import { db } from "./db.ts"`, it will lock the singleton to the real `ros-help.db` path before `query.test.ts` can enforce its `:memory:` guard — causing a hard throw in CI.
+
+**Which extractors are still at risk (top-level `import { db }`)**:
+`extract-changelogs.ts`, `extract-commands.ts`, `extract-devices.ts`, `extract-properties.ts`, `extract-skills.ts`
+
+**Which are already safe (import inside `main()`)**: `extract-html.ts`, `extract-dude.ts`, `extract-schema.ts`, `extract-test-results.ts`, `extract-videos.ts`
+
+**Required pattern for any new extractor test file:**
+
+```ts
+// MUST be the first statement — before any import — so db.ts sees it
+process.env.DB_PATH = ":memory:";
+
+import { describe, expect, it } from "bun:test";
+// ... other safe imports (linkedom, node:fs, etc.) ...
+
+// Dynamic import ensures DB_PATH is set before db.ts module is evaluated
+const { myPureFunction } = await import("./extract-something.ts");
+```
+
+**Why dynamic import:** Bun hoists static `import` declarations before any statements in the file, so `process.env.DB_PATH = ":memory:"` must use a dynamic `await import(...)` for the extractor — otherwise the assignment runs after `db.ts` has already opened the real DB.
+
+**Only needed for extractors still in the "at risk" list above.** For safe extractors (those with `import.meta.main` guards), a static import is fine because importing them never touches the DB.
