@@ -59,6 +59,10 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`extract-test-results`: throughput values with thousands separators now
+  parse correctly.** Values like `7,112.3` Mbps were truncated to `7` because
+  `parseFloat` stops at a comma. The extractor now strips commas before parsing,
+  so the DB will contain correct figures after the next re-extraction.
 - **TUI pager: navigation keystrokes no longer bleed into the REPL prompt.**
   Pager ran in raw mode while readline's data handler was still active, so
   each keystroke (`1`, `4`, `q`, etc.) accumulated in readline's internal

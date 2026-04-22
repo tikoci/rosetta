@@ -58,7 +58,7 @@ const SLUG_OVERRIDES: Record<string, string> = {
 
 // ── Types ──
 
-interface TestResultRow {
+export interface TestResultRow {
   mode: string;
   configuration: string;
   packet_size: number;
@@ -76,7 +76,7 @@ interface ProductPageData {
 // ── HTML Parsing ──
 
 /** Parse a performance-table element into test result rows. */
-function parsePerformanceTable(table: Element): { testType: string; rows: TestResultRow[] } {
+export function parsePerformanceTable(table: Element): { testType: string; rows: TestResultRow[] } {
   const rows: TestResultRow[] = [];
 
   // Header row: first <tr> in <thead> has [product_code, test_description]
@@ -124,14 +124,16 @@ function parsePerformanceTable(table: Element): { testType: string; rows: TestRe
     const config = (cells[1].textContent || "").trim();
 
     // Each packet size has 2 columns: kpps, Mbps
+    // Strip thousands-separator commas before parsing (e.g. "7,112.3" → 7112.3)
+    const parseNum = (s: string) => Number.parseFloat(s.replace(/,/g, "").trim());
     for (let i = 0; i < packetSizes.length; i++) {
       const kppsIdx = 2 + i * 2;
       const mbpsIdx = 3 + i * 2;
       if (kppsIdx >= cells.length) break;
 
-      const kpps = Number.parseFloat((cells[kppsIdx].textContent || "").trim());
+      const kpps = parseNum((cells[kppsIdx].textContent || "").trim());
       const mbps = mbpsIdx < cells.length
-        ? Number.parseFloat((cells[mbpsIdx].textContent || "").trim())
+        ? parseNum((cells[mbpsIdx].textContent || "").trim())
         : null;
 
       rows.push({
