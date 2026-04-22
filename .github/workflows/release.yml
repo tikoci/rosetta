@@ -531,10 +531,11 @@ jobs:
             # Promote [Unreleased] → [VERSION] — DATE and prepend a fresh
             # [Unreleased] skeleton so agents can write the next batch of
             # changes to the matching version heading without manual fixups.
-            node -e '
+            RELEASE_VER_NUM="$RELEASE_VER_NUM" RELEASE_DATE="$RELEASE_DATE" node -e '
               const fs = require("fs");
               const v = process.env.RELEASE_VER_NUM;
               const d = process.env.RELEASE_DATE;
+              if (!v || !d) { console.error("RELEASE_VER_NUM or RELEASE_DATE not set"); process.exit(1); }
               let c = fs.readFileSync("CHANGELOG.md", "utf8");
               const unreleased = "## [Unreleased]";
               if (c.includes(unreleased)) {
@@ -546,7 +547,7 @@ jobs:
               } else {
                 console.log("! [Unreleased] not found \u2014 already promoted or CHANGELOG out of sync");
               }
-            ' RELEASE_VER_NUM="$RELEASE_VER_NUM" RELEASE_DATE="$RELEASE_DATE"
+            '
 
             git add package.json CHANGELOG.md
             # If another bump already landed at our target version, the working
