@@ -475,7 +475,8 @@ bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 
 | Flag | Purpose |
 |------|---------|| `browse` | Interactive terminal browser (REPL) |
-| `browse --once` | One-shot search for piping || `--setup` | Download DB + print MCP config |
+| `browse <cmd> [args]` | Run any TUI command, then enter REPL (e.g. `browse changelog 7.20..7.22`) |
+| `browse --once <cmd>` | Execute any TUI command and exit — no REPL (for piping) || `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--refresh` | Shortcut for `--setup --force` (refresh DB) |
 | `--version` | Print version |

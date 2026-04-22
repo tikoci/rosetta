@@ -354,7 +354,7 @@ function renderWelcome(): string {
     ...(stats.skills > 0 ? [`${fmt(stats.skills)} agent skills ${dim("(tikoci — community content)")}`] : []),
     "",
     ...(dbWarning ? [dbWarning, ""] : []),
-    `Type a search query, or ${bold("help")} for commands.`,
+    `Type a search query, command, or ${bold("help")} for full list.`,
   ];
   return box(lines, "rosetta");
 }
@@ -1087,7 +1087,11 @@ function renderHelp(): string {
   out.push("");
   out.push(`  ${bold("CLI flags")}`);
   out.push(`  ${cyan(pad("--db <path>", 26))} ${dim("")} Use a specific database file`);
-  out.push(`  ${cyan(pad("--once", 26))} ${dim("")} Search once and exit (for piping)`);
+  out.push(`  ${cyan(pad("--once", 26))} ${dim("")} Execute any command once and exit (for piping)`);
+  out.push(`  ${cyan(pad("browse <cmd> [args]", 26))} ${dim("")} Pass any TUI command directly from the shell:`)
+  out.push(`  ${cyan(pad("", 26))} ${dim("")}   ${dim("browse changelog 7.20..7.22")}`);
+  out.push(`  ${cyan(pad("", 26))} ${dim("")}   ${dim("browse cmd /ip/firewall")}`);
+  out.push(`  ${cyan(pad("", 26))} ${dim("")}   ${dim("browse .routeros_search vrrp")}`);
 
   return out.join("\n");
 }
@@ -2107,9 +2111,14 @@ async function main() {
     console.log("");
   }
 
-  // Initial query from CLI args
+  // Initial command from CLI args — run through the same dispatch as the REPL
+  // so any TUI command works, not just searches:
+  //   browse changelog 7.20..7.22     → shows changelog range
+  //   browse cmd /ip/firewall          → shows command tree
+  //   browse .routeros_search vrrp     → MCP probe output
+  //   browse dhcp server               → (bare text) search as before
   if (initialQuery) {
-    await doSearch(initialQuery);
+    await dispatch(initialQuery);
     if (onceMode) process.exit(0);
   }
 

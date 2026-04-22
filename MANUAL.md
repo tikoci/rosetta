@@ -25,7 +25,8 @@ Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/rel
 | Flag | Purpose |
 |------|---------|
 | `browse` | Interactive terminal browser (REPL) |
-| `browse --once` | One-shot search for piping |
+| `browse <cmd> [args]` | Run any TUI command once, then open REPL (e.g. `browse changelog 7.20..7.22`) |
+| `browse --once <cmd>` | Execute any TUI command and exit — no REPL (for piping) |
 | `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--refresh` | Shortcut for `--setup --force` (refresh DB) |
