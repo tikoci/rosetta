@@ -374,3 +374,81 @@ Tab completion, history persistence (`~/.rosetta/browse_history`), raw SQL mode,
 ### 🟢 Video extraction — periodic retry
 
 143 consistent-fail videos (likely rate-limited). Re-run after 48-72h gaps; add to `known-bad.json` after 4+ failures.
+
+---
+
+## MCP Behavioral Testing — research + roadmap (2026-04-22)
+
+**Problem.** Current tests cover unit-level query functions, transport mechanics, schema health, and file/release structure (12 test files, ~5,700 lines). What they do **not** cover is the actual *behavior agents experience*: "given this user-style query, does `routeros_search` return the right page in the top-3? Does the `related` block surface what we expect? Did a recent extraction or query-planner tweak silently regress retrieval quality?" The TUI catches broad shape problems; nothing today catches subtle quality regressions in the agent-facing path.
+
+**Constraints (Tikoci principles).**
+
+- Open-source, low-cost — no monthly LLM bill for re-checking the same prompts.
+- No telemetry baked into the shipping product. Anything user-visible must be opt-in and easy to disable.
+- Prefer deterministic, in-repo checks over network calls. Reserve LLM judging for things that genuinely need semantic interpretation.
+- Tests must justify their cost (CI minutes, maintenance, credits).
+
+### 🔴 Phase 0 — Golden-query retrieval set (no LLM, deterministic)
+
+The single biggest gap and the cheapest fix. Borrowed from classical IR evaluation (BM25 era — recall@k, MRR, precision@k) — these metrics predate LLMs and are *exactly* the right tool for evaluating a SQL-as-RAG system.
+
+- **Format:** `fixtures/eval/queries.yaml` — list of `{ query, expected_page_ids: [...], expected_topics?: [...], expected_command_node?: "/ip/...", notes? }`. Hand-curated, ~30–60 entries covering the common ask shapes (NL question, command path, property name, device model, version-specific question, ambiguous query).
+- **Runner:** `bun run src/eval/retrieval.ts` — calls `searchAll()` for each query, computes recall@5, MRR, classifier-detection rate. Plain-text report + JSON output. Exit non-zero if recall@5 drops below a baseline file (`fixtures/eval/baseline.json`).
+- **Baseline workflow:** `bun run src/eval/retrieval.ts --update-baseline` after intentional improvements; PRs that regress show a clear delta in CI. No LLM call anywhere.
+- **CI hook:** runs against the in-repo committed `ros-help.db` (or rebuilds DB in `release.yml`). Cost: zero credits, ~seconds.
+- **Why this first:** catches 80% of "did we accidentally break search?" regressions for $0. Every other phase builds on having a curated query set.
+
+### 🟡 Phase 1 — Self-supervised query generation (auto-grow the golden set)
+
+Autogenerate eval queries from the corpus itself so we don't bottleneck on hand-curation.
+
+- For each page with a callout/heading, treat the heading or first callout sentence as a query and assert the page lands in top-k. ~2,984 sections + ~1,034 callouts = thousands of free golden pairs.
+- For each command path with a doc page link (~92% coverage), assert that querying the path returns that page first.
+- For each property with a unique name, assert `lookupProperty(name)` returns it without disambiguation.
+- Treat as "loose" eval (lower recall threshold, e.g. recall@10 > 0.85) — these are *suggestive* not authoritative. Catches extraction or linking regressions instantly.
+
+### 🟡 Phase 2 — Tool-shape contract + token-budget tests
+
+Cheap structural assertions that catch agent-experience regressions without ever calling an LLM.
+
+- **Contract test** (`src/mcp-contract.test.ts`): enumerate the 13 registered tools, assert names + input schema keys + output keys against a frozen list. Adding a tool requires updating the frozen list — forces an explicit decision and a `CHANGELOG.md` entry.
+- **Token-budget test:** for representative queries, serialize the response, count tokens with `tiktoken`/`gpt-tokenizer` (or rough char/4 estimate), assert under a budget (e.g. 8K tokens for default `limit`, 20K for `limit=20`). Protects against "bloat regressions" that quietly burn agent context.
+- **Snapshot tests:** `expect(searchAll("dhcp server")).toMatchSnapshot()` for ~10 canonical queries. Bun supports `toMatchSnapshot`. Diff review on PR makes intentional changes obvious.
+
+### 🟡 Phase 3 — Local-LLM judge (free, opt-in, never CI-default)
+
+For the small set of queries where structural checks aren't enough — "is this excerpt actually relevant?" type questions.
+
+- **Tool:** `ollama` running Llama 3.2 3B, Qwen 2.5 3B, or Phi-3.5 mini. All quantized, all free, all run on a developer laptop.
+- **Use:** `bun run src/eval/judge.ts --model llama3.2:3b` — runs the golden set, asks the local model to score each top-1 result on a 3-point rubric ("relevant / partially / not"). Outputs a delta vs the previous run.
+- **Boundary:** never runs in CI by default. Documented as "opt-in deeper check, run before a release or after a query-planner change."
+- **Why local:** zero credit cost, fully reproducible (fixed model + temperature=0), no privacy concern, no dependency on a paid API key.
+
+### 🟢 Phase 4 — Cheap remote judge (gated, batched, cached)
+
+Only after Phases 0–2 are stable, and only for queries where local-LLM judgment proves insufficient.
+
+- **Models:** Gemini 2.0 Flash, GPT-4o-mini, or Claude Haiku — pennies per run for ~50 queries.
+- **Caching:** key on `(query, response_hash)` — only re-judge when retrieval output actually changed. A run where nothing regressed is effectively free after the first time.
+- **Trigger:** manual `bun run src/eval/judge-remote.ts` or weekly scheduled workflow with `workflow_dispatch`. Never on every PR.
+- **Budget guardrail:** print estimated cost before running; abort if over a configurable cap (default $0.50/run).
+- **Backpocket only:** capture the design now so we're ready if Tikoci picks up traction and someone wants to wire it in.
+
+### 🟢 Phase 5 — Differential testing across DB builds
+
+Pure-SQL, no-LLM way to catch extraction regressions without needing a curated query set.
+
+- Run the golden set against two DB builds: previous release artifact (downloaded from GHCR `sha-*` tag) vs HEAD's `ros-help.db`.
+- For each query, diff the top-3 page IDs. Flag any query whose top-3 changed; CI emits a markdown table to the PR.
+- Most changes will be benign (new pages from a fresher Confluence export). Worth manual review when extraction logic itself changed.
+- Free, deterministic, catches "this commit accidentally broke `extract-html.ts`" regressions before release.
+
+### 🟢 Out-of-the-box ideas worth keeping in mind
+
+- **Mutation testing for queries.** Build a small synonym/typo table once (e.g. "firewall" ↔ "fw", "filter" ↔ "filtering"), generate variants of each golden query, assert the expected page still ranks top-5. Catches over-fitting in `compound terms` and the classifier without an LLM in the loop.
+- **TUI session log → eval corpus.** The DEFERRED "TUI session log" item gets new value here: opt-in local-only logging captures *real* user query shapes, which become next month's golden set. Stays on the user's machine; never shipped. Pairs naturally with the existing `usage_log` idea (also opt-in, also deferred).
+- **Existing frameworks evaluated.** Promptfoo (YAML configs, MCP support, Ollama grader — best fit for Phase 3/4 if we don't roll our own), mcpvals (TS/Bun-friendly, Apache-licensed, golden + LLM-scored), DeepEval (Python — wrong stack), mcp-as-a-judge (middleware for AI coding gates — wrong use case). Recommendation: Phases 0–2 are small enough to write directly without a framework (~200 LOC total); revisit Promptfoo if/when we hit Phase 3.
+
+### Ordering rationale
+
+Phase 0 alone closes the biggest gap. Phases 1–2 are additive and stay free forever. Phase 3 is the first thing that needs *any* infrastructure (Ollama install) but still costs zero credits. Phase 4 is in the back pocket for when traction warrants it. Phase 5 is independent and can land any time after Phase 0 — it's the "did extraction regress?" guard that fits the `release.yml` flow naturally.
