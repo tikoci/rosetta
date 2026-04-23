@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.9] — 2026-04-23
+
 ## [0.8.8] — 2026-04-22
 
 ### Changed
