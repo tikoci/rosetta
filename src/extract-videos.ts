@@ -148,9 +148,25 @@ function checkYtDlp(ytdlp = YTDLP_DEFAULT): boolean {
 // ── VTT parsing ──
 
 const VTT_TIMESTAMP_RE = /^(\d{2}):(\d{2}):(\d{2})\.(\d{3}) --> /;
-const HTML_TAG_RE = /<[^>]+>/g;
 // Inline timestamp tags like <00:00:01.234>
 const INLINE_TS_RE = /<\d{2}:\d{2}:\d{2}\.\d{3}>/g;
+
+function stripHtmlLikeMarkup(input: string): string {
+  let output = "";
+  let inTag = false;
+  for (const char of input) {
+    if (char === "<") {
+      inTag = true;
+      continue;
+    }
+    if (char === ">") {
+      inTag = false;
+      continue;
+    }
+    if (!inTag) output += char;
+  }
+  return output;
+}
 
 function vttTimestampToSeconds(text: string): number {
   const m = text.match(VTT_TIMESTAMP_RE);
@@ -175,9 +191,8 @@ export function parseVtt(vttText: string): VttCue[] {
     if (currentLines.length === 0) return;
     const raw = currentLines.join(" ").trim();
     if (!raw) return;
-    // Strip HTML tags and inline timestamp tags; remove any unmatched angle
-    // brackets so malformed captions cannot leave HTML-shaped text behind.
-    const clean = raw.replace(INLINE_TS_RE, "").replace(HTML_TAG_RE, "").replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
+    // Strip inline timestamp tags and HTML-shaped cue markup.
+    const clean = stripHtmlLikeMarkup(raw.replace(INLINE_TS_RE, "")).replace(/\s+/g, " ").trim();
     if (!clean) return;
     // Deduplicate: skip if clean text is a suffix of what we've already emitted
     if (prevAccumulated.endsWith(clean)) return;
