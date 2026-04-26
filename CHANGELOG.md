@@ -69,6 +69,21 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`canonicalize.ts` robustness — markdown / prose / common-verb gaps.**
+  Tokenizer now strips a leading U+FEFF BOM and treats backticks (`` ` ``) and
+  zero-width space (U+200B) as whitespace in both the outer and word loops, so
+  inputs from markdown fences, doc snippets, and BOM-prefixed files extract
+  cleanly instead of embedding the noise into the first path segment.
+  `GENERAL_COMMANDS` gains four verbs that are universal in the rosetta
+  `commands` table but were missing: `clear`, `unset`, `reset-counters`,
+  `reset-counters-all`. Cross-checked against the DB to confirm zero path
+  collisions — `info`/`warning`/`error`/`debug` are intentionally NOT added
+  (`/error` is itself a top-level cmd; `info` is a dir at
+  `/interface/wireless`). Menu-specific verbs need a path-aware resolver
+  (tracked as H4 in the audit). New `src/canonicalize.fuzz.test.ts` with
+  37 assertions + 9 `test.todo` markers documents both the shipped behaviour
+  and the still-on-the-books H1–H8 hardenings. Test count for the canonicalize
+  file pair went 61 → 98 pass / 9 todo / 0 fail.
 - **Phase 1 self-supervised sampling is now deterministic on full DBs.**
   The cmd-path strategy no longer uses SQL randomness; it samples from a
   stable ordered set using the same seeded shuffle as the other strategies,

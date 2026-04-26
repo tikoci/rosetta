@@ -47,9 +47,16 @@ export interface ParseResult {
 // ---------------------------------------------------------------------------
 
 const GENERAL_COMMANDS = new Set([
-  'add', 'comment', 'disable', 'edit', 'enable', 'export', 'find',
-  'get', 'move', 'print', 'remove', 'reset', 'set',
+  'add', 'clear', 'comment', 'disable', 'edit', 'enable', 'export', 'find',
+  'get', 'move', 'print', 'remove', 'reset', 'reset-counters',
+  'reset-counters-all', 'set', 'unset',
 ]);
+
+// Verbs that are NOT in this set despite being common at certain menus:
+//   'info', 'warning', 'error', 'debug' — used by /log, but `info` is also a
+//     dir at /interface/wireless, and /error is itself a top-level cmd.
+//     Adding them here would mis-resolve those paths. Use a path-aware verb
+//     resolver (see CanonicalizeOptions.isVerb) for menu-specific verbs.
 
 /**
  * Commands that are clearly verbs even though they only appear at certain
@@ -97,14 +104,21 @@ interface Token {
  */
 function tokenize(input: string): Token[] {
   const tokens: Token[] = [];
-  let i = 0;
+  // Strip leading BOM (U+FEFF) — common when input is read from a UTF-8 file
+  // with a BOM marker. Without this, the BOM ends up embedded in the first
+  // path segment.
+  let i = input.charCodeAt(0) === 0xfeff ? 1 : 0;
   const len = input.length;
 
   while (i < len) {
     const ch = input[i];
 
-    // Skip whitespace (except newlines)
-    if (ch === ' ' || ch === '\t' || ch === '\r') { i++; continue; }
+    // Skip whitespace (except newlines).
+    // Backticks (`) are treated as whitespace so markdown-style snippets like
+    // `/ip/address/print` extract cleanly from prose.
+    // Zero-width space (U+200B) is also stripped — sometimes copy-pasted from
+    // documentation and otherwise pollutes path segments.
+    if (ch === ' ' || ch === '\t' || ch === '\r' || ch === '`' || ch === '​') { i++; continue; }
 
     // Newline
     if (ch === '\n') { tokens.push({ type: Tok.Newline, value: '\n' }); i++; continue; }
@@ -164,6 +178,9 @@ function tokenize(input: string): Token[] {
     while (i < len) {
       const c = input[i];
       if (c === ' ' || c === '\t' || c === '\r' || c === '\n') break;
+      // Treat the same as outer loop: backtick + ZWSP are whitespace inside words too,
+      // so trailing markdown markers don't get glued onto path segments.
+      if (c === '`' || c === '​') break;
       if (c === '[' || c === ']' || c === '{' || c === '}' || c === ';') break;
       if (c === '#') break;
       // Slash breaks a word UNLESS it's inside a CIDR or we're at a slash
