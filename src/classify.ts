@@ -13,7 +13,7 @@
  * See DESIGN.md "North Star Architecture — Unified routeros_search".
  */
 
-import { canonicalize } from "./canonicalize.ts";
+import { type CanonicalizeOptions, canonicalize } from "./canonicalize.ts";
 
 /**
  * Known RouterOS topics — extracted from changelog categories, top-level
@@ -138,7 +138,7 @@ function detectVersion(input: string): string | undefined {
 }
 
 /** Detect command path. Uses canonicalize.primaryPath for robust handling of `/ip address`, `ip/address`, etc. */
-function detectCommandPath(input: string): string | undefined {
+function detectCommandPath(input: string, options: CanonicalizeOptions): string | undefined {
   // Heuristic: only run the canonicalizer if the input contains a forward slash
   // OR starts with a known top-level command word. Otherwise every "routing"
   // query would be classified as a command path.
@@ -151,7 +151,7 @@ function detectCommandPath(input: string): string | undefined {
   try {
     // Prefer the parsed command's dir path if a verb was recognized; otherwise
     // fall back to finalPath (pure navigation like `/ip/firewall/filter`).
-    const { commands, finalPath } = canonicalize(trimmed, "/");
+    const { commands, finalPath } = canonicalize(trimmed, "/", options);
     const primary = commands.find((c) => !c.subshell) ?? commands[0];
     const path = primary?.path ?? finalPath;
     if (!path || path === "/") return undefined;
@@ -220,10 +220,22 @@ function detectProperty(
 }
 
 /**
+ * Options for {@link classifyQuery}. Currently a thin pass-through to
+ * {@link CanonicalizeOptions}; rosetta's `searchAll()` wires a DB-backed
+ * `isVerb` resolver so `/log/info` and `/system/script/run` classify as
+ * commands instead of falling back to bare navigation. Kept generic so
+ * non-DB callers (TUI in offline mode, tests) work without a resolver.
+ */
+export interface ClassifyOptions {
+  /** See {@link CanonicalizeOptions.isVerb}. */
+  isVerb?: CanonicalizeOptions["isVerb"];
+}
+
+/**
  * Classify a user query. Detectors run independently; return object lists every
  * signal found so `searchAll()` can route parallel side queries.
  */
-export function classifyQuery(input: string): QueryClassification {
+export function classifyQuery(input: string, options: ClassifyOptions = {}): QueryClassification {
   const normalized = input ?? "";
   const result: QueryClassification = {
     input: normalized,
@@ -235,7 +247,8 @@ export function classifyQuery(input: string): QueryClassification {
   const version = detectVersion(normalized);
   if (version) result.version = version;
 
-  const commandPath = detectCommandPath(normalized);
+  const canonOptions: CanonicalizeOptions = options.isVerb ? { isVerb: options.isVerb } : {};
+  const commandPath = detectCommandPath(normalized, canonOptions);
   if (commandPath) result.command_path = commandPath;
 
   const fragment = detectCommandFragment(normalized);

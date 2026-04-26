@@ -367,6 +367,19 @@ Targeted manual review of WiFi, LoRa, scripting to close highest-value gaps.
 
 `lsp-routeros-ts` hover handler should consume property data. Consumer-side work — data is ready.
 
+**`canonicalize.ts` parity (issue #5).** rosetta and `lsp-routeros-ts` both vendor `canonicalize.ts` and intentionally diverge only in their `CanonicalizeOptions.isVerb` backend (rosetta: DB; LSP: static `verbs.json` + `/console/inspect highlight`). The hardening roadmap from the cross-project audit is tracked in [issue #5](https://github.com/tikoci/rosetta/issues/5):
+
+- ✅ **H4** — pluggable `isVerb` resolver (shipped 2026-04-26). rosetta wires DB-backed; LSP can pick this up by diff once it has a verbs source.
+- ✅ **H6** — `extractMentions(input)` for navigation-only path references (shipped 2026-04-26).
+- ✅ **H7** — BOM / zero-width space tolerated (shipped 2026-04-25).
+- ✅ **H8** — `confidence` flag on each `CanonicalCommand` (shipped 2026-04-26).
+- ⬜ **H1** — `mode: 'strict' | 'lenient'` to drop leading prose words and split mid-line slashes. Biggest remaining item for prose / chat-style input.
+- ⬜ **H2** — dedicated `Tok.Var` for `$identifier` so vars never become path segments.
+- ⬜ **H3** — paren `(…)` expression scope so `:if ($x = 1) do={ /log/info "yes" }` no longer swallows the body.
+- ⬜ **H5** — `{ … }` after `key=` treated as a literal block value, not a recursive scope.
+
+**Cross-side artifacts.** Issue #4 proposes publishing `routeros-docs-links.json` (path → URL/title for ~551 dirs) as a CI artifact; H4 suggests doing the same for `verbs.json` so LSP can ship a cmd/dir manifest without bundling the DB. Both are downstream-of-rosetta artifacts — safe to bundle once issue #5 H4 is also wired into LSP.
+
 ### 🟢 Browse REPL wishlist
 
 Tab completion, history persistence (`~/.rosetta/browse_history`), raw SQL mode, export (JSON/CSV/Markdown), audit views (unlinked commands, pages without properties), bookmarks.

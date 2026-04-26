@@ -3,6 +3,7 @@ import {
   _normalizePath,
   _tokenize,
   canonicalize,
+  extractMentions,
   extractPaths,
   primaryPath,
 } from './canonicalize.ts';
@@ -516,5 +517,62 @@ describe('edge cases', () => {
     const printCmd = result.commands.find(c => c.verb === 'print');
     expect(printCmd).toBeDefined();
     expect(printCmd?.path).toBe('/interface');
+  });
+});
+
+// ===========================================================================
+// CanonicalizeOptions — pluggable isVerb resolver (H4)
+// ===========================================================================
+describe('CanonicalizeOptions.isVerb', () => {
+  test('resolver receives token and parent path', () => {
+    const calls: Array<{ token: string; parentPath: string }> = [];
+    canonicalize('/ip/address/print', '/', {
+      isVerb: (token, parentPath) => {
+        calls.push({ token, parentPath });
+        return token === 'print' && parentPath === '/ip/address';
+      },
+    });
+    expect(calls.some(c => c.token === 'print' && c.parentPath === '/ip/address')).toBe(true);
+  });
+
+  test('resolver call site is path-aware: same token, different parent', () => {
+    // Call with a resolver that ONLY recognizes `info` at /log.
+    const isVerb = (token: string, parentPath: string) =>
+      token === 'info' && parentPath === '/log';
+
+    const atLog = canonicalize('/log/info "msg"', '/', { isVerb });
+    expect(atLog.commands[0]?.verb).toBe('info');
+    expect(atLog.commands[0]?.path).toBe('/log');
+
+    // Same token at a different path → not a verb, treated as navigation.
+    const atWifi = canonicalize('/interface/wireless/info', '/', { isVerb });
+    expect(atWifi.commands.length).toBe(0);
+    expect(atWifi.finalPath).toBe('/interface/wireless/info');
+  });
+
+  test('omitting options preserves backward-compatible behaviour', () => {
+    const r1 = canonicalize('/ip/address/print');
+    const r2 = canonicalize('/ip/address/print', '/');
+    expect(r1.commands[0]?.verb).toBe('print');
+    expect(r2.commands[0]?.verb).toBe('print');
+  });
+});
+
+// ===========================================================================
+// extractMentions (H6) — sanity unit tests
+// ===========================================================================
+describe('extractMentions', () => {
+  test('verbed command surfaces both dir and dir/verb', () => {
+    const m = extractMentions('/ip/address/print');
+    expect(m).toContain('/ip/address');
+    expect(m).toContain('/ip/address/print');
+  });
+
+  test('bare path surfaces as a single mention', () => {
+    expect(extractMentions('/ip/firewall/filter')).toEqual(['/ip/firewall/filter']);
+  });
+
+  test('empty input → empty mentions', () => {
+    expect(extractMentions('')).toEqual([]);
   });
 });

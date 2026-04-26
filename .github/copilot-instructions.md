@@ -67,12 +67,14 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 | Component | File | Purpose |
 |-----------|------|---------|
 | MCP Server | `src/mcp.ts` | 13 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
-| Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition |
+| Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition. Owns the DB-backed `isVerb` resolver wired into `classify.ts` |
+| Classifier | `src/classify.ts` | Pre-search regex classifier (command path, version, topic, device, property, fragment). Pure — no DB. Accepts a `ClassifyOptions { isVerb? }` pass-through |
+| Canonicalizer | `src/canonicalize.ts`, `src/canonicalize-resolver.ts` | RouterOS CLI path → `{ path, verb, args, confidence }`. Pure module + DB-backed adapter. Vendored for parity with `lsp-routeros-ts`; see DESIGN.md |
 | Database | `src/db.ts` | Schema init, WAL mode, FTS5 triggers, singleton pattern |
 | Extractors | `src/extract-*.ts` | HTML/JSON → SQLite (each drops and recreates its tables) |
 | Linker | `src/link-commands.ts` | Command tree ↔ page matching (code paths + heuristics) |
 | CLI Search | `src/search.ts` | Quick search from terminal |
-| Tests | `src/query.test.ts`, `src/release.test.ts` | Bun tests — query planner + DB integration + schema; release readiness |
+| Tests | `src/query.test.ts`, `src/classify.test.ts`, `src/canonicalize.test.ts`, `src/canonicalize.fuzz.test.ts`, `src/release.test.ts` | Bun tests — query planner + DB integration + schema; classifier detectors; CLI path canonicalization (incl. fuzz/anchor tests for issue #5 hardenings); release readiness |
 
 **Database:** `ros-help.db` (SQLite WAL mode). Main tables: `pages`, `sections`, `callouts`, `properties`, `commands`, `ros_versions`, `command_versions`, `devices`, `device_test_results`, `changelogs`, `videos`, `video_segments` with FTS5 indexes on pages, callouts, properties, devices, changelogs, videos, and video_segments.
 
@@ -112,12 +114,19 @@ Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FOR
 | Test file | What it covers |
 |-----------|---------------|
 | `src/query.test.ts` | Query planner (pure functions), DB integration (in-memory SQLite), schema health |
+| `src/classify.test.ts` | Classifier detectors (command path, version, topic, device, property, fragment) — pure module, no DB |
+| `src/canonicalize.test.ts` | CLI path canonicalization — path forms, subshells, blocks, navigation, `CanonicalizeOptions` resolver, `extractMentions` |
+| `src/canonicalize.fuzz.test.ts` | Torture inputs (prose, markdown, malformed scripts) + anchor tests for issue #5 hardenings (H1–H8) |
 | `src/release.test.ts` | File consistency, build constants, structural pattern checks, container setup |
 | `src/mcp-http.test.ts` | HTTP transport: session lifecycle, multi-client, errors (live server) |
+| `src/mcp-contract.test.ts` | MCP tool registry, workflow-arrow convention, token-budget guardrails, response-shape invariants |
 
 **When to add tests:**
 - New query function or tool → `query.test.ts`
+- New classifier detector or signal → `classify.test.ts`
+- Canonicalizer change (parser, options, resolver, mentions, confidence) → `canonicalize.test.ts`; if it lands a hardening from issue #5 (H1–H8) also flip the matching `test.todo` in `canonicalize.fuzz.test.ts` to a real test
 - Transport or protocol changes → `mcp-http.test.ts`
+- Tool registry / token budget / response-shape change → `mcp-contract.test.ts`
 - New CLI flag, build artifact, or file structure → `release.test.ts`
 - Schema change → schema health section in `query.test.ts`
 

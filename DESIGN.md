@@ -157,6 +157,20 @@ Agent skills from tikoci/routeros-skills are community-created supplemental guid
 
 **Extraction:** GitHub API fetch at build time (in CI). Supports local path (`--local`) for development and `--from-cache` for offline/cached mode. Skills update when a new DB is built — no automatic sync.
 
+### `canonicalize.ts` — vendoring intent and DB-backed verb resolver
+
+`src/canonicalize.ts` parses any RouterOS-CLI-shaped input (well-formed scripts, prose, markdown, partial fragments) into `{ path, verb, args }` tuples. It is intentionally a **vendored module** rather than a published library. The same module is mirrored in [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) — the goal is shape parity, not code reuse.
+
+**Why vendoring instead of a shared library:**
+
+- Each consumer has different *data backends*. rosetta is offline but has the full `commands` table — every cmd verb at every menu, version-tagged. lsp-routeros-ts is online (it can ask `/console/inspect`) but has no prospective knowledge of paths until it tests them. A shared library would have to settle for the lowest-common-denominator data model.
+- The "RouterOS logic" — tokenizer, scoping rules for `[…]` / `{…}` / `;`, path resolution, `..` navigation — is universally true. We want this part to stay aligned across consumers so that what we learn in one repo flows back to the others by manual diff, not a release cadence.
+- The pure-module split lets each consumer plug in its own verb classifier. The parser asks "is `info` a verb at `/log`?" via `CanonicalizeOptions.isVerb`. rosetta answers that with a SQL query against `commands`; lsp-routeros-ts answers with a static `verbs.json` (planned: see issue #4) augmented by classifications observed in `/console/inspect highlight` responses; standalone callers omit the option and get the small built-in universal-verb-set heuristic.
+
+**rosetta-side wiring:** `src/canonicalize-resolver.ts` exports `makeDbVerbResolver(db)` returning an `(token, parentPath) => boolean` function backed by `SELECT 1 FROM commands WHERE name=? AND parent_path=? AND type='cmd'`, with per-resolver in-memory caching. `searchAll()` builds the resolver lazily and threads it through `classifyQuery({ isVerb })`. The pure module stays DB-free; the adapter is the only place that imports `bun:sqlite`.
+
+**Hardening roadmap (issue #5, H1–H8):** H4 (this resolver), H6 (`extractMentions`), H7 (BOM/ZWSP), and H8 (confidence flag) shipped. H1 (lenient mode for prose-shaped input), H2 (`Tok.Var`), H3 (paren expression scope), H5 (`source={…}` as block value) remain — they all preserve the same `CanonicalizeOptions` shape so downstream consumers can pick up improvements by diff.
+
 ## Cross-References
 
 | Project | Relationship |

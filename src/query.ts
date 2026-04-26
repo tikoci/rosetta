@@ -5,8 +5,20 @@
  * no author/date/engagement signals — just text search with BM25 ranking.
  */
 
+import { makeDbVerbResolver } from "./canonicalize-resolver.ts";
 import { classifyQuery, type QueryClassification } from "./classify.ts";
 import { db } from "./db.ts";
+
+/**
+ * Lazy DB-backed verb resolver for the classifier. Built on first use so
+ * tests that import query.ts but never call searchAll don't pay the cost,
+ * and it inherits the same `db` singleton everything else uses.
+ */
+let _verbResolver: ReturnType<typeof makeDbVerbResolver> | null = null;
+function getVerbResolver() {
+  if (!_verbResolver) _verbResolver = makeDbVerbResolver(db);
+  return _verbResolver;
+}
 
 export type SearchResult = {
   id: number;
@@ -273,7 +285,7 @@ function relatedCaps(limit: number): { cap: number; videoCap: number } {
 }
 
 export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllResponse {
-  const classified = classifyQuery(query);
+  const classified = classifyQuery(query, { isVerb: getVerbResolver() });
   const pagesResp = searchPages(query, limit);
   const { cap: RELATED_CAP, videoCap: RELATED_VIDEO_CAP } = relatedCaps(limit);
 

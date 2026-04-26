@@ -530,7 +530,8 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
 | `src/extract-html.ts` | HTML → pages + callouts + sections tables (repeatable) |
-| `src/canonicalize.ts` | Pure RouterOS CLI path canonicalizer — maps any input form to `{ path, verb, args }` tuples |
+| `src/canonicalize.ts` | Pure RouterOS CLI path canonicalizer — maps any input form to `{ path, verb, args, confidence }` tuples. Pluggable `isVerb` resolver via `CanonicalizeOptions` (issue #5 H4). Also exports `extractMentions()` for navigation-only path references |
+| `src/canonicalize-resolver.ts` | DB-backed `isVerb` resolver for `canonicalize.ts` — adapter from rosetta's `commands` table to the pure module's `CanonicalizeOptions.isVerb` callback |
 | `src/extract-properties.ts` | Property table parsing from HTML |
 | `src/restraml.ts` | Shared helpers for fetching from tikoci/restraml (GitHub API + Pages) |
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware, legacy fallback for pre-deep-inspect versions) |
@@ -548,7 +549,8 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/browse.ts` | Interactive terminal browser — REPL with paging, OSC 8 links, context-scoped navigation |
 | `src/query.test.ts` | Bun tests — query planner + DB integration + schema health (in-memory SQLite) |
 | `src/classify.test.ts` | Bun tests — 42 table-driven cases covering every detector + overlap cases from DESIGN.md |
-| `src/canonicalize.test.ts` | Bun tests — CLI path canonicalization: 61 tests for path forms, subshells, blocks, navigation |
+| `src/canonicalize.test.ts` | Bun tests — CLI path canonicalization: 61+ tests for path forms, subshells, blocks, navigation, plus options/resolver/extractMentions surface |
+| `src/canonicalize.fuzz.test.ts` | Bun tests — torture inputs (prose, markdown, malformed scripts) + anchor tests for issue #5 hardenings (H1–H8). Promoted-from-todo coverage for H4/H6/H7/H8 |
 | `src/extract-videos.test.ts` | yt-dlp mock tests + cache function tests (saveCache/importCache/loadKnownBad/findLatestCache) |
 | `src/schema-roundtrip.test.ts` | Bun tests — schema importer round-trip: fixture walk/merge, arch diffs, desc parsing, completion, legacy compat |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |

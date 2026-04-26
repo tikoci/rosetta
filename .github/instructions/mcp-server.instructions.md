@@ -1,8 +1,14 @@
 ---
-description: "Use when working on MCP server tools, query logic, FTS5 search, or the browse TUI. Covers BM25 ranking, compound terms, stop words, tool schema conventions, and TUI-MCP alignment."
-applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse.ts, src/db.ts"
+description: "Use when working on MCP server tools, query logic, FTS5 search, the browse TUI, the input classifier, or the RouterOS CLI canonicalizer. Covers BM25 ranking, compound terms, stop words, tool schema conventions, TUI-MCP alignment, and the canonicalize.ts vendoring contract with lsp-routeros-ts."
+applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse.ts, src/db.ts, src/classify.ts, src/classify.test.ts, src/canonicalize.ts, src/canonicalize-resolver.ts, src/canonicalize.test.ts, src/canonicalize.fuzz.test.ts, src/mcp-contract.test.ts, src/mcp-http.test.ts"
 ---
 # MCP Server & Query Engine
+
+## Vendored module — `canonicalize.ts`
+
+`src/canonicalize.ts` is intentionally **vendored**, not a published library. The same module is mirrored in [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) — goal is shape parity, not code reuse. Each consumer plugs in its own backend through `CanonicalizeOptions.isVerb`: rosetta wires a DB-backed resolver against the `commands` table (`src/canonicalize-resolver.ts`); LSP plans a static `verbs.json`-backed one. Keep the pure module DB-free; the adapter is the only place that imports `bun:sqlite`.
+
+When you change parser logic (tokenizer rules, scoping, path resolution), prefer changes that LSP can mirror by diff. When you change rosetta-only data wiring, put it in `canonicalize-resolver.ts` or `query.ts`, not the pure module. Issue #5 tracks the H1–H8 hardening roadmap; H4 / H6 / H7 / H8 shipped, H1 / H2 / H3 / H5 are still open.
 
 ## Core Principle — TUI and MCP are a pair
 
@@ -93,12 +99,18 @@ Returns a plain-text version string (e.g., `7.22.1`).
 | File | Scope | Runs against |
 |------|-------|-------------|
 | `src/query.test.ts` | Query planner, FTS5, DB integration, schema health | In-memory SQLite |
+| `src/classify.test.ts` | Classifier detectors — pure module, no DB | Pure functions |
+| `src/canonicalize.test.ts` | CLI path canonicalizer — path forms, subshells, blocks, navigation, `CanonicalizeOptions` resolver, `extractMentions` | Pure functions |
+| `src/canonicalize.fuzz.test.ts` | Torture inputs + anchor tests for issue #5 hardenings (H1–H8) | Pure functions |
+| `src/mcp-contract.test.ts` | Tool registry, workflow-arrow convention, token-budget guardrails, response-shape invariants | Pure for Block A; live DB for B/C |
 | `src/release.test.ts` | File consistency, build constants, structural checks | File reads only |
 | `src/mcp-http.test.ts` | HTTP transport: session lifecycle, multi-client, errors | Live server process |
 
 ### When to add tests
 
-- **New tool** → unit test in `query.test.ts` (pure function + DB)
+- **New tool** → unit test in `query.test.ts` (pure function + DB); registry change in `mcp-contract.test.ts`
+- **Classifier detector or signal** → table-driven case in `classify.test.ts`
+- **Canonicalizer change** (parser, options, resolver, mentions, confidence) → unit test in `canonicalize.test.ts`. If the change lands an issue #5 hardening (H1–H8), promote the matching `test.todo` in `canonicalize.fuzz.test.ts` to a real `test()` and update the corresponding "anchor" test
 - **Transport changes** → integration test in `mcp-http.test.ts` (real HTTP requests)
 - **New CLI flag or build artifact** → structural test in `release.test.ts`
 - **Schema changes** → schema health tests in `query.test.ts`

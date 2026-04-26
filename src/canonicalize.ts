@@ -31,13 +31,52 @@ export interface CanonicalCommand {
   args: string[];
   /** For subshell commands extracted from [...], this is true */
   subshell?: boolean;
+  /**
+   * How well-formed the extraction was. Lets consumers filter prose-extracted
+   * results when they need higher precision (e.g. LSP hover).
+   * - 'high'   — absolute path with directly-identified verb (well-formed CLI)
+   * - 'medium' — relative-with-cwd, pure navigation, or block/subshell context
+   * - 'low'    — verb was inferred from a trailing path segment at flush time,
+   *              i.e. extracted from looser/prose-shaped input
+   */
+  confidence: 'high' | 'medium' | 'low';
 }
 
 export interface ParseResult {
   /** All commands extracted from the input, in order */
   commands: CanonicalCommand[];
+  /**
+   * Every distinct path the input *referenced* — including bare navigation
+   * (e.g. `/ip/firewall/filter` with no verb). Superset of `commands[i].path`.
+   * Used by `extractMentions()` for "what does this text reference?" queries.
+   */
+  mentions: string[];
   /** The cwd after executing all navigation (useful for interactive sessions) */
   finalPath: string;
+}
+
+/**
+ * Optional behaviour knobs. Keeping the module pure: the resolver is supplied
+ * by the caller, never imported. rosetta wires a DB-backed resolver against
+ * its `commands` table; lsp-routeros-ts wires a static `verbs.json`-backed
+ * one; standalone callers omit it and get the universal-verb-set heuristic.
+ */
+export interface CanonicalizeOptions {
+  /**
+   * Path-aware verb classifier. Called when the parser is deciding whether a
+   * token at the end of an in-flight command is a verb or another path
+   * segment. Return `true` to treat `token` as the verb.
+   *
+   * `parentPath` is the absolute dir path the verb would attach to (the
+   * resolved path of all path segments seen so far, *without* this token).
+   * MUST be synchronous and side-effect-free.
+   *
+   * When omitted, falls back to the small built-in universal verb set
+   * (GENERAL_COMMANDS + EXTRA_VERBS). Path-context-dependent verbs like
+   * `info`/`warning`/`error` only resolve correctly when a resolver is
+   * supplied (see issue #5, finding #4).
+   */
+  isVerb?: (token: string, parentPath: string) => boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -279,6 +318,45 @@ interface ParseContext {
   cwd: string;
   commands: CanonicalCommand[];
   subshell: boolean;
+  options: CanonicalizeOptions;
+  /**
+   * Accumulator for paths the input *navigated to* — including bare
+   * navigation that doesn't produce a CanonicalCommand. Surfaced via
+   * `ParseResult.mentions` and `extractMentions()`.
+   */
+  mentions: string[];
+}
+
+/**
+ * Resolve the absolute path for a token's `parentPath` argument when the
+ * parser is deciding whether the token is a verb. Mirrors the resolution
+ * `flushCommand` would do, *without* including the token itself.
+ */
+function resolveParentPath(
+  commandStartPath: string,
+  isAbsolute: boolean,
+  pathSegments: string[],
+): string {
+  let p = isAbsolute ? '/' : commandStartPath;
+  for (const seg of pathSegments) {
+    if (seg === '..') p = resolveParent(p);
+    else p = joinPath(p, seg);
+  }
+  return normalizePath(p);
+}
+
+/**
+ * Path-aware verb check. Resolver wins when supplied — the caller's data
+ * source (DB, JSON manifest) is authoritative. Falls back to the static
+ * universal-verb heuristic when no resolver is wired.
+ */
+function isVerbAt(
+  token: string,
+  parentPath: string,
+  options: CanonicalizeOptions,
+): boolean {
+  if (options.isVerb) return options.isVerb(token, parentPath);
+  return isKnownVerb(token);
 }
 
 /**
@@ -300,6 +378,10 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
   let pathSegments: string[] = [];
   let isAbsolute = false;
   let verb = '';
+  // True when the verb was directly identified during Word handling (well-formed
+  // CLI). False when the verb is inferred from the trailing path segment in
+  // flushCommand — that path is prose-shaped / lower confidence.
+  let verbExplicit = false;
   let args: string[] = [];
   let inCommand = false; // true once we've seen at least one token in this command
   let inIce = false; // true if we're in an ICE command (: prefix)
@@ -320,23 +402,52 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
     resolvedPath = normalizePath(resolvedPath);
 
     if (verb || args.length > 0 || pathSegments.length > 0) {
-      // If no explicit verb but we have path segments, the last segment might be a verb
+      // If no explicit verb but we have path segments, the last segment might
+      // be a verb. Use the resolver-aware check so e.g. /log/info resolves
+      // when a resolver is wired, while staying conservative when not.
+      let verbInferred = false;
       if (!verb && pathSegments.length > 0) {
         const lastSeg = pathSegments[pathSegments.length - 1];
-        if (lastSeg !== '..' && isKnownVerb(lastSeg)) {
-          verb = lastSeg;
-          // Remove the verb from the resolved path
-          resolvedPath = resolveParent(resolvedPath);
+        if (lastSeg !== '..') {
+          const parentOfLast = resolveParent(resolvedPath);
+          if (isVerbAt(lastSeg, parentOfLast, ctx.options)) {
+            verb = lastSeg;
+            verbInferred = true;
+            // Remove the verb from the resolved path
+            resolvedPath = parentOfLast;
+          }
         }
       }
 
       if (verb || args.length > 0) {
+        // Confidence:
+        //  - 'low'    when the verb was inferred from a trailing path segment
+        //             at flush time (looser/prose-shaped input)
+        //  - 'high'   absolute path + directly-identified verb (well-formed)
+        //  - 'medium' everything else (relative-with-cwd, navigation, blocks)
+        let confidence: 'high' | 'medium' | 'low';
+        if (verbInferred) {
+          confidence = 'low';
+        } else if (isAbsolute && verbExplicit) {
+          confidence = 'high';
+        } else {
+          confidence = 'medium';
+        }
+
         ctx.commands.push({
           path: resolvedPath,
           verb,
           args: [...args],
           ...(ctx.subshell ? { subshell: true } : {}),
+          confidence,
         });
+      }
+
+      // Track every path the input mentions, even when no command is emitted
+      // (pure navigation like `/ip/firewall/filter`). Surfaced via
+      // ParseResult.mentions and extractMentions().
+      if (pathSegments.length > 0 || isAbsolute) {
+        ctx.mentions.push(resolvedPath);
       }
 
       // After a command with a verb, path does NOT change for next command in same scope
@@ -357,6 +468,7 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
     pathSegments = [];
     isAbsolute = false;
     verb = '';
+    verbExplicit = false;
     args = [];
     inCommand = false;
     inIce = false;
@@ -446,6 +558,8 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
           cwd: subshellCwd,
           commands: ctx.commands,
           subshell: true,
+          options: ctx.options,
+          mentions: ctx.mentions,
         };
         parseCommands(subCtx, Tok.RBracket);
         ctx.pos = subCtx.pos;
@@ -483,6 +597,8 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
           cwd: blockPath,
           commands: ctx.commands,
           subshell: ctx.subshell,
+          options: ctx.options,
+          mentions: ctx.mentions,
         };
         parseCommands(blockCtx, Tok.RBrace);
         ctx.pos = blockCtx.pos;
@@ -524,10 +640,17 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
 
         // Is this a known verb?
         // Recognized when we have a path prefix (explicit segments or absolute /),
-        // OR when cwd is non-root (e.g., inside a subshell or script context)
-        if (!verb && isKnownVerb(w) && (pathSegments.length > 0 || isAbsolute || commandStartPath !== '/')) {
-          verb = w;
-          break;
+        // OR when cwd is non-root (e.g., inside a subshell or script context).
+        // Path-aware: consults the optional resolver against the parent path of
+        // segments seen so far (without `w`), so /log/info and /interface/wireless/info
+        // disambiguate correctly when a resolver is wired.
+        if (!verb && (pathSegments.length > 0 || isAbsolute || commandStartPath !== '/')) {
+          const parentPath = resolveParentPath(commandStartPath, isAbsolute, pathSegments);
+          if (isVerbAt(w, parentPath, ctx.options)) {
+            verb = w;
+            verbExplicit = true;
+            break;
+          }
         }
 
         // Is this an unnamed param (starts with * for item ID, or is a value after a verb)?
@@ -598,7 +721,11 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
  * // ], finalPath: '/ip/address' }
  * ```
  */
-export function canonicalize(input: string, cwd = '/'): ParseResult {
+export function canonicalize(
+  input: string,
+  cwd = '/',
+  options: CanonicalizeOptions = {},
+): ParseResult {
   const tokens = tokenize(input);
   const ctx: ParseContext = {
     tokens,
@@ -606,18 +733,40 @@ export function canonicalize(input: string, cwd = '/'): ParseResult {
     cwd: normalizePath(cwd),
     commands: [],
     subshell: false,
+    options,
+    mentions: [],
   };
   const finalPath = parseCommands(ctx);
-  return { commands: ctx.commands, finalPath: normalizePath(finalPath) };
+  // Dedupe mentions in order of first appearance
+  const seenMentions = new Set<string>();
+  const mentions: string[] = [];
+  for (const m of ctx.mentions) {
+    if (!seenMentions.has(m)) {
+      seenMentions.add(m);
+      mentions.push(m);
+    }
+  }
+  return {
+    commands: ctx.commands,
+    mentions,
+    finalPath: normalizePath(finalPath),
+  };
 }
 
 /**
  * Convenience: extract just the canonical paths from an input.
  * Returns unique paths in order of first appearance.
  * Useful for "what commands does this script reference?" queries.
+ *
+ * Only includes paths attached to a verb. For navigation-only mentions
+ * (e.g. bare `/ip/firewall/filter`), use {@link extractMentions}.
  */
-export function extractPaths(input: string, cwd = '/'): string[] {
-  const { commands } = canonicalize(input, cwd);
+export function extractPaths(
+  input: string,
+  cwd = '/',
+  options: CanonicalizeOptions = {},
+): string[] {
+  const { commands } = canonicalize(input, cwd, options);
   const seen = new Set<string>();
   const paths: string[] = [];
   for (const cmd of commands) {
@@ -632,11 +781,62 @@ export function extractPaths(input: string, cwd = '/'): string[] {
 }
 
 /**
+ * "What does this text reference?" — every distinct RouterOS path the input
+ * mentions, including bare navigation with no verb (e.g. `/ip/firewall/filter`
+ * sitting alone in prose). Superset of {@link extractPaths}.
+ *
+ * Useful for the rosetta classifier, LSP document-link providers, and
+ * MCP context feeders that want to surface every path the user gestured at,
+ * not just well-formed CLI commands.
+ *
+ * @example
+ * ```ts
+ * extractMentions('See /ip/firewall/filter and /ip/firewall/nat')
+ * // => ['/ip/firewall/filter', '/ip/firewall/nat']
+ * ```
+ */
+export function extractMentions(
+  input: string,
+  cwd = '/',
+  options: CanonicalizeOptions = {},
+): string[] {
+  const { commands, mentions } = canonicalize(input, cwd, options);
+  const seen = new Set<string>();
+  const out: string[] = [];
+  // Verbed paths first (commands carry richer signal), then bare mentions.
+  for (const cmd of commands) {
+    const full = cmd.verb ? `${cmd.path}/${cmd.verb}` : cmd.path;
+    const normalized = normalizePath(full);
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      out.push(normalized);
+    }
+    // Also surface the dir path itself (not just path/verb) so
+    // /ip/firewall/filter/print also mentions /ip/firewall/filter.
+    if (cmd.verb && !seen.has(cmd.path)) {
+      seen.add(cmd.path);
+      out.push(cmd.path);
+    }
+  }
+  for (const m of mentions) {
+    if (!seen.has(m)) {
+      seen.add(m);
+      out.push(m);
+    }
+  }
+  return out;
+}
+
+/**
  * Convenience: extract the primary command path (the first non-subshell command).
  * Useful for quick lookup: "what's the main path this user is asking about?"
  */
-export function primaryPath(input: string, cwd = '/'): string | null {
-  const { commands } = canonicalize(input, cwd);
+export function primaryPath(
+  input: string,
+  cwd = '/',
+  options: CanonicalizeOptions = {},
+): string | null {
+  const { commands } = canonicalize(input, cwd, options);
   const primary = commands.find(c => !c.subshell) ?? commands[0];
   if (!primary) return null;
   return normalizePath(primary.path);

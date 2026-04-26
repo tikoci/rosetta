@@ -20,7 +20,7 @@
  * - `lsp-routeros-ts/docs/canonicalize-audit.md` (findings #1–#12, hardenings H1–H8)
  */
 import { describe, expect, test } from 'bun:test';
-import { canonicalize, extractPaths } from './canonicalize.ts';
+import { canonicalize, extractMentions, extractPaths } from './canonicalize.ts';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -206,23 +206,63 @@ describe('finding #1 — mid-line slash does not restart path (anchor)', () => {
   });
 });
 
-describe('finding #4 — menu-specific verbs (anchor)', () => {
-  test('/log/info "msg" produces no command (info not in universal verbs)', () => {
-    // Today: zero commands.
-    // After H4 (data-driven verb table from rosetta `commands`): would
-    // recognise info as a verb under /log.
+describe('finding #4 — menu-specific verbs', () => {
+  // Today (no resolver): zero commands. /log/info, /log/warning, /log/error
+  // are not in the universal verb set so the parser treats them as paths
+  // without verbs (and `info`/`warning`/`error` aren't verbs at flush time
+  // either). H4 fixed this for callers that wire a resolver.
+  test('/log/info "msg" without resolver produces no command (anchor)', () => {
     const r = canonicalize('/log/info "msg"');
     expect(r.commands.length).toBe(0);
   });
 
-  test('/log/warning produces no command', () => {
-    const r = canonicalize('/log/warning "warn"');
-    expect(r.commands.length).toBe(0);
+  // H4 — supplying a path-aware resolver makes /log/info classify correctly.
+  // The resolver returns true for {info, warning, error} at /log only,
+  // mirroring what rosetta's DB-backed resolver does.
+  const logVerbs = new Set(['info', 'warning', 'error', 'debug']);
+  const logResolver = (token: string, parentPath: string) =>
+    parentPath === '/log' && logVerbs.has(token);
+
+  test('H4: /log/info "msg" with resolver classifies as cmd', () => {
+    const r = canonicalize('/log/info "msg"', '/', { isVerb: logResolver });
+    expect(r.commands.length).toBe(1);
+    expect(r.commands[0].path).toBe('/log');
+    expect(r.commands[0].verb).toBe('info');
   });
 
-  test('/log/error produces no command', () => {
-    const r = canonicalize('/log/error "boom"');
+  test('H4: /log/warning with resolver classifies as cmd', () => {
+    const r = canonicalize('/log/warning "warn"', '/', { isVerb: logResolver });
+    expect(r.commands[0].path).toBe('/log');
+    expect(r.commands[0].verb).toBe('warning');
+  });
+
+  test('H4: /log/error with resolver classifies as cmd', () => {
+    const r = canonicalize('/log/error "boom"', '/', { isVerb: logResolver });
+    expect(r.commands[0].path).toBe('/log');
+    expect(r.commands[0].verb).toBe('error');
+  });
+
+  test('H4: /interface/wireless/info with same resolver stays a path (info is a dir there)', () => {
+    // Resolver only returns true for `info` at /log, not /interface/wireless.
+    // The token `info` at /interface/wireless is therefore navigation, not
+    // a verb — exactly the disambiguation H4 enables.
+    const r = canonicalize('/interface/wireless/info', '/', { isVerb: logResolver });
     expect(r.commands.length).toBe(0);
+    expect(r.finalPath).toBe('/interface/wireless/info');
+  });
+
+  test('H4: resolver wins over universal-verb-set when supplied', () => {
+    // Even `print` should NOT be a verb when the resolver explicitly
+    // refuses it (caller-authoritative semantics). Edge case but documents
+    // the contract: resolver is authoritative when wired.
+    const r = canonicalize('/ip/address/print', '/', {
+      isVerb: () => false,
+    });
+    // print falls out of explicit-verb identification; flushCommand also
+    // calls isVerbAt for the trailing-segment fallback, which also returns
+    // false → no verb inferred, /ip/address/print is treated as nav.
+    expect(r.commands.length).toBe(0);
+    expect(r.finalPath).toBe('/ip/address/print');
   });
 });
 
@@ -239,11 +279,43 @@ describe('finding #3 — :if (cond) do={…} swallows body (anchor)', () => {
 
 describe('finding #7 — pure path mention not in extractPaths (anchor)', () => {
   test('bare path mention returns empty extractPaths', () => {
-    // Today: extractPaths only includes commands that have a verb.
-    // After H6: navigation-only paths should also surface as
-    // "this text references /ip/firewall/filter".
+    // extractPaths only includes commands that have a verb. Use
+    // extractMentions for navigation-only references — see H6 below.
     const ps = extractPaths('/ip/firewall/filter');
     expect(ps).toEqual([]);
+  });
+});
+
+// ===========================================================================
+// H6 — extractMentions surfaces bare path mentions
+// ===========================================================================
+describe('H6: extractMentions for navigation-only references', () => {
+  test('bare /ip/firewall/filter is reported as a mention', () => {
+    const m = extractMentions('/ip/firewall/filter');
+    expect(m).toEqual(['/ip/firewall/filter']);
+  });
+
+  test('two semicolon-separated bare paths surface both', () => {
+    // Note: prose like "See /ip/firewall/filter and /ip/firewall/nat" is
+    // still mishandled by the mid-line-slash issue (finding #1, H1). Use
+    // explicit separators here — that's what extractMentions can support
+    // before lenient mode lands.
+    const m = extractMentions('/ip/firewall/filter ; /ip/firewall/nat');
+    expect(m).toContain('/ip/firewall/filter');
+    expect(m).toContain('/ip/firewall/nat');
+  });
+
+  test('command path also surfaces as mention (dir + dir/verb)', () => {
+    const m = extractMentions('/ip/address/print');
+    // Contains both the verbed path and the dir.
+    expect(m).toContain('/ip/address/print');
+    expect(m).toContain('/ip/address');
+  });
+
+  test('mentions are deduped in order of first appearance', () => {
+    const m = extractMentions('/ip/address ; /ip/address/print');
+    // /ip/address shows up twice (nav + dir-of-cmd) but is only emitted once.
+    expect(m.filter(p => p === '/ip/address').length).toBe(1);
   });
 });
 
@@ -264,6 +336,43 @@ describe('finding #8 — source={…} block-as-value misread (anchor)', () => {
 // ===========================================================================
 // Hardenings not yet shipped — todo() so they show in the runner output
 // ===========================================================================
+// ===========================================================================
+// H8 — confidence flag on each CanonicalCommand
+// ===========================================================================
+describe('H8: confidence flag', () => {
+  test('high: absolute path with explicit verb', () => {
+    const r = canonicalize('/ip/address/print');
+    expect(r.commands[0].confidence).toBe('high');
+  });
+
+  test('medium: relative path with cwd', () => {
+    const r = canonicalize('print', '/ip/address');
+    expect(r.commands[0].confidence).toBe('medium');
+  });
+
+  test('low: verb inferred at flush time when no path context exists', () => {
+    // Bare word `print` with cwd='/' gates out of the explicit-verb check
+    // (the parser only treats a word as a verb if it has path context).
+    // It falls through to the path-segment branch and flushCommand's
+    // trailing-segment-as-verb fallback promotes it. That is exactly the
+    // looser/prose-shaped path H8 flags as 'low'.
+    const r = canonicalize('print');
+    expect(r.commands[0]?.verb).toBe('print');
+    expect(r.commands[0]?.confidence).toBe('low');
+  });
+
+  test('subshell command keeps confidence on the inner command', () => {
+    const r = canonicalize('/ip/address set [find interface=ether1] disabled=yes');
+    const find = r.commands.find(c => c.subshell);
+    const set = r.commands.find(c => c.verb === 'set');
+    expect(find?.confidence).toBeDefined();
+    expect(set?.confidence).toBe('high');
+  });
+});
+
+// ===========================================================================
+// Hardenings not yet shipped — todo() so they show in the runner output
+// ===========================================================================
 describe('hardenings not yet shipped', () => {
   test.todo('H1: lenient mode drops leading prose word', () => {
     // const r = canonicalize('Run /ip/address/print', '/', { mode: 'lenient' });
@@ -271,12 +380,8 @@ describe('hardenings not yet shipped', () => {
     //   { path: '/ip/address', verb: 'print', args: [], confidence: 'low' },
     // ]);
   });
-  test.todo('H1: lenient mode splits "/a/b/c and /d/e/f" into two commands');
-  test.todo('H2: $variable becomes Tok.Var, never a path segment');
-  test.todo('H3: :if ($x = 1) do={ cmd } parses do block');
-  test.todo('H4: data-driven verb table recognises /log/info');
-  test.todo('H4: data-driven verb table does NOT misread /interface/wireless/info as verb');
-  test.todo('H5: source={ … } in /system/script/add is a value, not a scope');
-  test.todo('H6: bare /ip/firewall/filter mention surfaces in extractMentions()');
-  test.todo('H8: confidence flag on each CanonicalCommand');
+  test.todo('H1: lenient mode splits "/a/b/c and /d/e/f" into two commands', () => {});
+  test.todo('H2: $variable becomes Tok.Var, never a path segment', () => {});
+  test.todo('H3: :if ($x = 1) do={ cmd } parses do block', () => {});
+  test.todo('H5: source={ … } in /system/script/add is a value, not a scope', () => {});
 });
