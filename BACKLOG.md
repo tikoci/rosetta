@@ -456,17 +456,273 @@ The North Star folded callouts, videos, and properties into `routeros_search`'s 
 **Trigger:** Confirmed agent need for broad property FTS (currently only TUI `props` does this).
 Extend the existing tool with an optional `query` parameter that runs `searchProperties(query, command_path?, limit)` — returns ranked rows when `query` is set, exact match when `name` is set. Keeps tool count at 13.
 
-### 🟢 Programmatic tool calling / "code mode" exploration
+### 🟡 Cross-tikoci alignment — `explain → validate → run` for RouterOS commands
 
-**Trigger:** Anthropic Apps SDK or comparable spec stabilizes; or a user explicitly requests it.
+**Trigger:** none in the strict sense — this is the *direction* most other
+backlog items implicitly serve. Capture the design intent here so future
+work (canonicalize hardening, package metadata, code-mode tools) can
+cite it.
 
-David Parra's Anthropic Code Conf talk (https://youtu.be/v3Fr2JR47KA) argues that letting the model write small programs that orchestrate MCP tool calls (rather than one tool call per turn through inference) is materially better for cost, latency, and composability. Worth investigating whether rosetta should expose:
+**Status:** rosetta is tier-1 (read-only docs / schema / glossary),
+canonicalize.ts in rosetta and lsp-routeros-ts is the start of tier-2
+(parse + classify), tier-3 (run on a router) does not exist as a
+tikoci-owned MCP yet. There is a third-party
+[`jeff-nasseri/mikrotik-mcp`](https://github.com/jeff-nasseri/mikrotik-mcp)
+that takes the API↔MCP-mapping route — see "Why API↔MCP-mapping isn't
+the answer" below.
 
-- A "tool of tools" that takes a small JS/TS snippet calling our query functions and returns the result
-- An MCP `applications` or `skills` surface for guided multi-step tasks (e.g., "diagnose why X broke after upgrading from A to B")
-- More compact tool responses to fit better in code-mode inner loops
+#### The three-tier picture (what we are building toward)
 
-Not urgent — the current 13-tool surface is clean and small enough — but capture as a research item.
+| Tier | Scope | Connects to a router? | Owns the trust property |
+|---|---|---|---|
+| **1. Rosetta** (this repo) | RouterOS docs, command tree (46 versions), properties, devices, changelogs, glossary, skills. SQL-as-RAG over an offline DB. | **No.** "Rosetta does not modify or connect to a router" is a load-bearing trust claim. | Always read-only against a baked DB. The agent can call `routeros_search` 100 times and never touch a real device. |
+| **2. Validator** (could live in rosetta or in a new MCP — open question) | Given a candidate command, return canonical form + args validated against schema + version bracket + package required + arch implications + breaking-change warnings from changelog. NO router connection. | **No.** Pure offline reasoning over rosetta + restraml `deep-inspect.json`. | Read-only over the validator's input data. Same trust property as tier 1, just a richer API. |
+| **3. Runner** (separate MCP, NOT this repo) | Actually executes a command against a router via REST / SSH / API. Always re-validates server-side using tier 2 even if the calling agent skipped it. | **Yes.** This is the only place a tikoci MCP touches a real device. | Has to earn trust via auth, dry-run mode, audit log, idempotency hints. Out of scope here — capture only the *interface* it should accept from tier 2. |
+
+The split exists so that the trust property (tier 1 never modifies) is
+preserved even as we add tier-3 capability. An agent that wires up only
+tiers 1+2 gets all the syntax/version reasoning a thoughtful operator
+would do, with zero blast radius. Adding tier 3 then lets the agent
+*finish* the loop without changing anything about how tiers 1+2 behave.
+
+#### Why API↔MCP-mapping isn't the answer
+
+`mikrotik-mcp` (and similar) expose each RouterOS REST endpoint as a
+distinct MCP tool. That is faithful to the API but mismatched to how
+LLMs fail on RouterOS:
+
+- **Tool count explodes.** Every menu × every verb × every version
+  shape becomes a tool. The 13-tool ceiling we hold ourselves to here
+  exists for a reason — once a model has 100+ tools, selection
+  accuracy collapses and descriptions get truncated.
+- **Forces the model to fabricate.** RouterOS has hundreds of property
+  names, many overloaded across menus (`disabled`, `chain`, `name`).
+  Training data covers the famous ones inconsistently. With API-shaped
+  tools the agent must guess property names to fill the input schema —
+  the worst place to be wrong, because the call leaves the model and
+  hits the router.
+- **No room for "ask docs first" behaviour.** When the only surface is
+  the router itself, every wrong guess is a real call. With a docs
+  tier in front, wrong guesses are turned into "you might mean…"
+  responses.
+- **Where it does work:** simple, well-known commands (`/system/identity/print`,
+  `/ip/address/print`). Useful for inspection. The tier-3 runner we
+  describe should *cover* those uses too — but with rosetta-grounded
+  validation in front of writes.
+
+Our position: agents arrive with surprisingly good RouterOS intuition
+from training (VLAN semantics, firewall chains, basic CLI shape), and
+surprisingly bad recall on the specifics that matter (exact property
+names per version, package requirements, which CAPsMAN scheme a wifi
+driver belongs to). Rosetta's job is to fill in the second list cheaply
+so the model's first list isn't wasted.
+
+The horse/water framing applies here: we can't force the agent to call
+rosetta before guessing. But the existing `limit=` "hunger knob",
+`related` block, glossary, and skills surface are all about making the
+*one* call a thoughtful agent does make return enough context that the
+guessing stops.
+
+#### The fix-and-retry loop — modelled on tikapp.html WebMCP
+
+`~/GitHub/restraml/docs/tikapp.html` registers a working WebMCP surface
+for the `/app` YAML editor. The pattern we want to mirror for RouterOS
+commands is right there:
+
+- **`set_tikapp_editor_content`** writes YAML AND validates in the same
+  call, returning `{ ok, valid, status, message, errorCount, errors[],
+  schemaVersion, validationError }`. The tool description literally
+  tells the agent: *"This call is only fully successful when ok=true
+  and valid=true. If ok=false, read errors and call this tool again
+  with corrected YAML."* Reported to work well with Gemini 2.5 (try →
+  error → fix → retry → valid in one chain).
+- **`get_routeros_app_yaml_schema_outline`** returns a compact schema
+  summary plus `writingHints` written *for an agent*: "The required
+  top-level key is services. Inline file contents belong under
+  top-level configs…". Agent can ask for the schema before writing,
+  then write against it.
+
+Translating that pattern to RouterOS commands gives us three concrete
+tool sketches (names are placeholders — name them when we ship):
+
+1. **`routeros_explain_command(command, ros_version?, model?)`** —
+   *Stepping stone, useful on its own.* Takes a candidate command
+   string. Returns:
+   ```text
+   {
+     canonical: { path, verb, args },           // from canonicalize.ts
+     confidence,                                // 'high' | 'medium' | 'low'
+     classified: { topics, version, device },
+     args: [
+       { name, type, default, valid_values?,
+         description, present_in_versions, _from: 'schema_nodes' }
+     ],
+     warnings: [
+       { kind: 'unknown-arg' | 'arg-removed-in-version' |
+              'requires-package' | 'arch-not-in-our-data',
+         message, suggestion }
+     ],
+     pages: [ ... ],                            // doc pages for the menu
+     changelog_hits: [ ... ]                    // entries mentioning this path
+   }
+   ```
+   Equivalent today would be 4–5 separate tool calls (`routeros_search`
+   + `routeros_lookup_property` per arg + `routeros_command_version_check`
+   + `routeros_search_changelogs`). Bundling them is exactly the
+   "single roundtrip for a typical question" North Star principle
+   applied to *write-shaped* questions.
+
+2. **`routeros_validate_command(command, target_version?, target_model?)`** —
+   Same input as `_explain` plus a target context. Returns the
+   `_explain` shape with `warnings` upgraded into `errors[]` (typed
+   the same way tikapp's validator does — `path`, `arg`, `kind`,
+   `message`, optional `suggestion`). The tool description should be
+   blunt: *"Only fully successful when `ok: true`. Otherwise read
+   `errors` and call again with a corrected command."* Same loop
+   shape Gemini 2.5 handles in tikapp.
+
+3. **`routeros_validate_script([command1, command2, ...], context)`** —
+   Bulk validate. Returns per-command `{ ok, errors[] }` plus a
+   *script-level* annotation: which commands `read` vs `modify` vs
+   `delete`, which depend on others (`add` then `set` referencing the
+   added item), which would survive a reboot vs not. Lets the agent
+   report a plan to the human before any tier-3 call. This is also the
+   shape a tier-3 runner should accept: validate the whole script
+   first, run the whole script, return per-command results.
+
+The runner (tier 3) becomes mostly mechanical at that point: run each
+validated command, attach the actual response, surface validator
+warnings the agent ignored. Validation lives in tier 2 either way; the
+runner just enforces it.
+
+#### Code-mode (Parra) — what it actually buys us for RouterOS
+
+David Parra's Anthropic Code Conf talk
+(<https://youtu.be/v3Fr2JR47KA>) argues that letting the model write
+small programs that orchestrate MCP tool calls in one round-trip beats
+tool-call-per-turn for cost, latency, and composability. RouterOS-shaped
+example: *"validate this 30-line firewall config against 7.22 on a
+hAP ax² and tell me which rules might fail."* Today the agent must
+call our 13 atomic tools 30+ times. With code mode it writes:
+
+```ts
+// pseudo: agent snippet inside a hypothetical run_query tool
+const results = []
+for (const line of script) {
+  const r = explainCommand(line, { ros_version: '7.22', model: 'hAP ax²' })
+  if (r.warnings.length) results.push({ line, warnings: r.warnings })
+}
+return results
+```
+
+Concrete code-mode primitives rosetta could eventually expose:
+
+- **`run_query(snippet)`** — sandboxed JS/TS with access to a typed
+  surface mirroring `query.ts` (`searchAll`, `getPage`,
+  `lookupProperty`, `browseCommands`, `checkCommandVersions`,
+  `explainCommand`). Returns whatever the snippet returns, capped by a
+  budget.
+- **Bulk-shaped tool variants** — `lookupPropertyMany`, `searchMany`,
+  `explainCommandMany` — useful even without code mode, and required
+  for code mode to not N+1.
+- **Tighter response schemas** — code-mode inner loops want flat
+  arrays of small objects, not the agent-friendly prose-plus-related
+  shape we ship today. We may want a `format: 'compact' | 'rich'`
+  param on the heavy tools so a code-mode caller can opt out of
+  next-step hints and excerpts they will not show to a human.
+
+Not free: sandboxing (Bun has WASM and V8 isolates, or we could ship a
+small DSL), token budgeting per snippet, error-shape consistency. The
+win is real for the validate-a-script use case; iffy for one-off
+questions that are already well-served by `routeros_search`.
+
+#### What rosetta should add NOW to enable tier 2/3 (concrete, ordered)
+
+Strictly within rosetta's "no router connection" scope, in the order
+that pays for itself:
+
+1. **`routeros_explain_command`** as a real MCP tool (sketch above).
+   Bundle of 4–5 existing query functions; reuses canonicalize.ts
+   with the DB resolver we just shipped. No new schema. Agent value
+   is immediate and per-call cost is comparable to one
+   `routeros_search`. This is the smallest concrete next step.
+2. **Confidence-flag plumbing into `routeros_search` /
+   `routeros_lookup_property` results.** Canonicalize already
+   produces `confidence`; surface it in `classified.confidence` on
+   `searchAll()` and as a per-result field on lookup. Tier-2 tools
+   downstream will gate on it.
+3. **Package metadata on `schema_nodes._package`.** Already a
+   placeholder column. Higher leverage than arch — a validator that
+   says "this command needs `wifi-qcom` which is not present on
+   x86 CHR" is far more useful than one that says "we have no x86
+   data for this command." Pairs with the arch entry above.
+4. **`routeros_validate_command`** — once `_explain` ships and we
+   have package metadata, `validate` is mostly a wrapper that
+   upgrades warnings to errors based on a target context.
+5. **Bulk variants** of `_explain` / `_validate` for code mode.
+6. **`run_query(snippet)`** — explore only after 1–5 land. Sandbox
+   choice and shape are downstream concerns the user explicitly
+   parked.
+
+Items 1–3 are also interesting on their own — even without ever
+shipping tier 3, an explainer + confidence + package metadata makes
+rosetta's existing search noticeably better for write-shaped
+questions, which is currently its weakest suit.
+
+#### Open design questions (worth flagging, not deciding now)
+
+- **Where does the validator live?** Inside this repo (rosetta tools
+  18, 19, …) or as a separate `tikoci/routeros-validator` MCP that
+  declares rosetta as a runtime dependency? Trade-off: same-process
+  is one less moving part for users; separate-process keeps the
+  "rosetta is read-only docs, full stop" framing crisp. Lean toward
+  in-process for now — `_explain` is just a query bundle and
+  packaging it as its own MCP would dilute the trust claim more than
+  it helps.
+- **Does the validator call `/console/inspect` on a real router for
+  edge-case completion?** Today restraml's deep-inspect data covers
+  x86 + arm64 latest. For unrepresented arches (MIPSBE, ARM 32-bit)
+  or older versions the validator quality is bounded. A permanent
+  router rig owned by restraml CI is the path — already flagged in
+  the arch-as-suggestion entry. Validator quality tracks inspect
+  data freshness; that is a feature, not a bug.
+- **Cross-pollination with `lsp-routeros-ts`.** A
+  `routeros_validate_command` is essentially an LSP `textDocument/diagnostic`
+  on a one-line buffer. We could share validation logic the same way
+  we already share `canonicalize.ts`. Worth a sketch when LSP picks
+  up the H4 resolver work — same vendoring discipline.
+- **Trust labelling on every response.** Validator output should
+  always carry a `validated_against: { ros_version, arch,
+  inspect_source, package_check: 'on'|'off' }` block so the agent
+  (and the human reading agent output) knows what was checked. We
+  already do something similar via `confidence`; this extends it to
+  the validation layer.
+- **Where rosetta ends and the runner begins.** The strict line:
+  rosetta is allowed to *return* commands it would run, but never
+  run them. If we ever feel pressure to relax that (e.g., "but we
+  could just hit upgrade.mikrotik.com…"), we already do — that is
+  `routeros_current_versions`. Limit network calls to read-only
+  public endpoints documented in the tool description. Anything
+  router-specific belongs in tier 3.
+
+#### Why this is the cross-tikoci core
+
+Most of the project map in `~/GitHub/CLAUDE.md` is implicitly serving
+this picture:
+
+- `restraml` produces the inspect schema the validator needs.
+- `rosetta` produces the prose context the agent needs to *want* to
+  validate (and the corpus the validator pulls from).
+- `lsp-routeros-ts` is the same validator shape, rendered for IDEs
+  instead of MCP.
+- `routeros-skills` adds opinionated "how to do this on RouterOS"
+  guides the agent can pull in alongside docs.
+- `quickchr` gives restraml the iteration loop to refresh inspect
+  data without a real device.
+- Future runner (wherever it lives) closes the loop.
+
+Capturing this so future backlog items can say "this serves
+explain/validate/run" instead of re-deriving the picture each time.
 
 ---
 
