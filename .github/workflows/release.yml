@@ -24,8 +24,10 @@ on:
         required: false
         type: boolean
         default: true
-      force:
-        description: 'Overwrite existing release (--clobber)'
+      republish_assets:
+        description: >
+          Reupload GitHub Release assets and OCI tags for an existing version.
+          Does NOT re-publish npm; bump package.json version for a new npm package.
         required: false
         type: boolean
         default: false
@@ -67,6 +69,9 @@ jobs:
 
       - name: Lint (fast-fail)
         run: bun run lint
+
+      - name: Run tests (fast-fail)
+        run: bun test
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -166,6 +171,9 @@ jobs:
 
       - name: Link commands to pages
         run: bun run src/link-commands.ts
+
+      - name: GC schema node presence versions
+        run: make gc-versions EXTRA_FLAGS=--verbose
 
       # ── Post-extraction DB-wipe guard ──
       # query.test.ts hard-fails if the DB singleton isn't :memory:, so
@@ -391,8 +399,8 @@ jobs:
           - **Full version extraction:** ${{ inputs.full_versions }}
           - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          if [ "${{ inputs.force }}" = "true" ]; then
-            # Create release if it doesn't exist, then upload with clobber
+          if [ "${{ inputs.republish_assets }}" = "true" ]; then
+            # Create release if it doesn't exist, then reupload assets with clobber.
             gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" 2>/dev/null || true
             gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
             gh release edit "$VERSION" --notes "$NOTES"
@@ -404,17 +412,17 @@ jobs:
           fi
 
       # npm is immutable — you cannot republish the same version with different
-      # contents. `force: true` re-clobbers GH release assets and OCI tags, but
-      # trying to re-push npm would always 403. Skip the npm step when forcing.
+      # contents. `republish_assets: true` re-clobbers GH release assets and OCI
+      # tags, but trying to re-push npm would always 403. Skip npm in that mode.
       - name: Publish to npm
-        if: inputs.force != true
+        if: inputs.republish_assets != true
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Skip npm publish (force mode)
-        if: inputs.force == true
-        run: echo "force=true → skipping npm publish (npm versions are immutable)"
+      - name: Skip npm publish (republish_assets mode)
+        if: inputs.republish_assets == true
+        run: echo "republish_assets=true → skipping npm publish (npm versions are immutable; bump package.json for a new npm package)"
 
   # End-to-end bunx smoke — replicates exactly what users hit:
   # fresh runner → bunx pulls the just-published @tikoci/rosetta → --refresh
@@ -426,7 +434,7 @@ jobs:
   # NOT gate bump-version — see comment on bump-version for the reasoning.
   bunx-smoke:
     needs: build-and-release
-    if: inputs.force != true  # force mode skips npm publish, so nothing to smoke
+    if: inputs.republish_assets != true  # republish_assets skips npm publish, so nothing to smoke
     strategy:
       fail-fast: false
       matrix:
@@ -520,11 +528,11 @@ jobs:
   # starts from a clean version number with no manual intervention needed.
   #
   # If npm publish itself fails (e.g. network, auth), build-and-release fails
-  # and this job is skipped via `needs:`. If force=true was used, npm wasn't
-  # touched at all, so keep the existing version.
+  # and this job is skipped via `needs:`. If republish_assets=true was used,
+  # npm wasn't touched at all, so keep the existing version.
   bump-version:
     needs: build-and-release
-    if: inputs.force != true
+    if: inputs.republish_assets != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

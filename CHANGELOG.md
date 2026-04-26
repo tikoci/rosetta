@@ -19,6 +19,19 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **MCP search/property confidence metadata:** `routeros_search.classified`
+  now includes `command_path_confidence`, and `routeros_lookup_property`
+  rows include `confidence` (`high`/`medium`/`low`) to distinguish scoped
+  command-page matches from global fallbacks.
+- **CI release hygiene:** the `Release` workflow input formerly named
+  `force` is now `republish_assets`, making clear that it reuploads GitHub
+  Release assets / OCI tags while skipping immutable npm publication. Release
+  CI also runs `bun test` in the early fast-fail gate before downloading the
+  HTML export while preserving the post-extraction DB-wipe guard.
+- **DB retention:** release builds now run `make gc-versions` after command
+  linking to prune `schema_node_presence` to active RouterOS channel heads
+  (stable, long-term, testing, development). Full command-version history and
+  changelogs remain untouched.
 - **Tool descriptions: `routeros_stats` and `routeros_current_versions`
   now follow the workflow-arrow (→) convention.** `stats` suggests
   `→ routeros_search`; `current_versions` suggests
@@ -28,6 +41,9 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`routeros_explain_command` MCP tool:** read-only CLI command explanation
+  with canonical path/verb, argument property matches, warnings, docs,
+  changelogs, version check, and TUI dot-command parity.
 - **`canonicalize.ts`: pluggable verb resolver, `extractMentions()`,
   per-command confidence flag (issue #5 — H4, H6, H8).**
   - `CanonicalizeOptions { isVerb?: (token, parentPath) => boolean }` lets
@@ -56,6 +72,12 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Changelog version lookup and bridge VLAN retrieval.** `routeros_search` /
+  `routeros_search_changelogs` now keep exact patch-version lookups exact, but
+  fall back from an absent major.minor changelog (for example `7.22`) to its
+  patch rows (`7.22.*`). Generic "what changed in X.Y" questions now populate
+  `related.changelogs`, and bridge VLAN filtering searches treat "switch" as
+  context so the dedicated Bridge VLAN Table page ranks in the top results.
 - **`canonicalize.ts` robustness — markdown / prose / common-verb gaps.**
   Tokenizer now strips a leading U+FEFF BOM and treats backticks (`` ` ``) and
   zero-width space (U+200B) as whitespace in both the outer and word loops, so
@@ -109,7 +131,7 @@ uses [Semantic Versioning](https://semver.org/).
   - **Phase 1** (`make eval-self`) — ~170 auto-generated queries from
     section headings, property names, and page titles using deterministic
     seeded sampling. Per-strategy thresholds + 5pp baseline tolerance.
-  - **Phase 2** (`bun test src/mcp-contract.test.ts`) — frozen 13-tool
+  - **Phase 2** (`bun test src/mcp-contract.test.ts`) — frozen tool
     registry test, workflow-arrow (→) convention check, token-budget
     guardrails on 10 canonical queries, and response-shape invariants for
     5 representative queries (portable across DBs of varying richness).

@@ -336,7 +336,7 @@ Never return bare empty results. Run OR fallback → re-run classifier side quer
 
 ### Tool consolidation target
 
-Baker's dozen ceiling reached at 13 tools (from 15). Lower targets (~8–10) would require merging structural drill-downs like `routeros_command_tree`, `routeros_lookup_property`, or `routeros_command_diff` into `routeros_search`, which trades clarity for compression. Not pursuing.
+Baker's-dozen-ish ceiling is now 14 tools: the surface was consolidated from 15 to 13, then `routeros_explain_command` was added deliberately as a read-only bridge for write-shaped CLI questions. Lower targets (~8–10) would require merging structural drill-downs like `routeros_command_tree`, `routeros_lookup_property`, or `routeros_command_diff` into `routeros_search`, which trades clarity for compression. Not pursuing.
 
 **Folded into `routeros_search` side queries (shipped — no longer standalone MCP tools):**
 - `routeros_search_properties` — removed: useless without command-tree context (function kept internally for TUI)

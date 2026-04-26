@@ -9,7 +9,7 @@ FORCE      ?=
         extract-videos extract-videos-from-cache save-videos-cache \
         extract-dude extract-dude-from-cache \
         extract-skills extract-skills-from-cache \
-        link assess search browse serve \
+        link gc-versions assess search browse serve \
 	typecheck lint test preflight build-release release bump-version \
         install setup clean eval eval-update eval-self eval-self-update
 
@@ -126,6 +126,9 @@ extract-skills-from-cache:
 
 link:
 	bun run src/link-commands.ts
+
+gc-versions:
+	bun run src/gc-versions.ts $(EXTRA_FLAGS)
 
 # ── Release ──
 #

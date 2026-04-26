@@ -123,7 +123,15 @@
       "shape": "version-question",
       "expected_classified": { "version": "7.22.1" },
       "expected_related": ["changelogs"],
-      "notes": "Classifier captures the patch version when present. NOTE: a related real-bug — querying just '7.22' classifies as version='7.22' but the DB has changelogs only for '7.22.1' so related.changelogs is silently empty. See BACKLOG: 'Changelog version-rollup'."
+      "notes": "Classifier captures the patch version when present; exact patch versions must stay exact."
+    },
+    {
+      "id": "version-7-22",
+      "query": "what changed in 7.22",
+      "shape": "version-question",
+      "expected_classified": { "version": "7.22" },
+      "expected_related": ["changelogs"],
+      "notes": "Major.minor version questions should surface changelogs even when the DB stores only patch-version rows."
     },
     {
       "id": "device-ccr2216",

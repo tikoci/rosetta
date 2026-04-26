@@ -33,6 +33,7 @@ import {
   checkCommandVersions,
   compareVersions,
   diffCommandVersions,
+  explainCommand,
   fetchCurrentVersions,
   getDudePage,
   getPage,
@@ -1105,7 +1106,7 @@ function renderHelp(): string {
 
   out.push("");
   out.push(`  ${bold("MCP probe (dot-commands)")}  ${dim("— see exactly what an agent sees")}`);
-  out.push(`  ${cyan(pad(".help", 38))} ${dim("Full list of all 13 tool dot-commands + meta")}`);
+  out.push(`  ${cyan(pad(".help", 38))} ${dim("Full list of all 14 tool dot-commands + meta")}`);
   out.push(`  ${cyan(pad(".instructions", 38))} ${dim("MCP server instructions string (sent on init)")}`);
   out.push(`  ${cyan(pad(".resources", 38))} ${dim("Registered MCP resources (rosetta:// URIs)")}`);
   out.push(`  ${cyan(pad(".routeros_search <q> [limit=N]", 38))} ${dim("Raw JSON output, same query path as MCP")}`);
@@ -1206,6 +1207,15 @@ const dotTools: Record<string, DotTool> = {
     tui: "p <name>",
     desc: "Property by exact name (args: name=, command_path=)",
     run: (a) => lookupProperty(String(a.name ?? ""), a.command_path ? String(a.command_path) : undefined),
+  },
+  routeros_explain_command: {
+    primary: "command",
+    desc: "Explain CLI command: canonical path/verb, args, warnings, docs, changelogs (args: command=, ros_version=, model=)",
+    run: (a) => explainCommand(
+      String(a.command ?? ""),
+      a.ros_version ? String(a.ros_version) : undefined,
+      a.model ? String(a.model) : undefined,
+    ),
   },
   routeros_command_tree: {
     primary: "path",

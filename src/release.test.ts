@@ -15,6 +15,12 @@ function readText(relPath: string): string {
   return readFileSync(path.join(ROOT, relPath), "utf-8");
 }
 
+function mustIndex(haystack: string, needle: string): number {
+  const idx = haystack.indexOf(needle);
+  expect(idx).toBeGreaterThanOrEqual(0);
+  return idx;
+}
+
 // ---------------------------------------------------------------------------
 // package.json health
 // ---------------------------------------------------------------------------
@@ -299,6 +305,18 @@ describe("Makefile", () => {
     expect(phonyBlock).toContain("extract-skills");
   });
 
+  test("has gc-versions target with EXTRA_FLAGS passthrough", () => {
+    expect(makefile).toContain("gc-versions:");
+    expect(makefile).toContain("src/gc-versions.ts $(EXTRA_FLAGS)");
+  });
+
+  test("gc-versions is in PHONY", () => {
+    const phonyStart = makefile.indexOf(".PHONY:");
+    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    expect(phonyBlock).toContain("gc-versions");
+  });
+
   test("extract-dude is in PHONY", () => {
     const phonyStart = makefile.indexOf(".PHONY:");
     const phonyEnd = makefile.indexOf("\n\n", phonyStart);
@@ -356,6 +374,8 @@ describe("release.yml", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("html_url:");
     expect(src).toContain("version:");
+    expect(src).toContain("republish_assets:");
+    expect(src).not.toContain("inputs.force");
   });
 
   test("tolerates Confluence zip with absolute path root entry", () => {
@@ -394,6 +414,44 @@ describe("release.yml", () => {
     expect(src).toContain("bun run lint");
   });
 
+  test("runs early quality gate before downloading HTML export", () => {
+    const src = readText(".github/workflows/release.yml");
+    const installIdx = mustIndex(src, "bun install");
+    const typecheckIdx = mustIndex(src, "Type check (fast-fail)");
+    const lintIdx = mustIndex(src, "Lint (fast-fail)");
+    const earlyTestIdx = mustIndex(src, "Run tests (fast-fail)");
+    const downloadIdx = mustIndex(src, "Download HTML export");
+
+    expect(installIdx).toBeLessThan(typecheckIdx);
+    expect(typecheckIdx).toBeLessThan(lintIdx);
+    expect(lintIdx).toBeLessThan(earlyTestIdx);
+    expect(earlyTestIdx).toBeLessThan(downloadIdx);
+  });
+
+  test("keeps post-extraction DB-wipe guard after extraction", () => {
+    const src = readText(".github/workflows/release.yml");
+    const linkIdx = mustIndex(src, "Link commands to pages");
+    const guardIdx = mustIndex(src, "Run tests (DB-wipe guard)");
+    const buildIdx = mustIndex(src, "Build release artifacts");
+
+    expect(guardIdx).toBeGreaterThan(linkIdx);
+    expect(guardIdx).toBeLessThan(buildIdx);
+    expect(src.slice(guardIdx, buildIdx)).toContain("bun test");
+  });
+
+  test("runs schema_node_presence GC after link and before stats/build", () => {
+    const src = readText(".github/workflows/release.yml");
+    const linkIdx = mustIndex(src, "Link commands to pages");
+    const gcIdx = mustIndex(src, "GC schema node presence versions");
+    const statsIdx = mustIndex(src, "Collect DB stats");
+    const buildIdx = mustIndex(src, "Build release artifacts");
+
+    expect(gcIdx).toBeGreaterThan(linkIdx);
+    expect(gcIdx).toBeLessThan(statsIdx);
+    expect(gcIdx).toBeLessThan(buildIdx);
+    expect(src.slice(gcIdx, statsIdx)).toContain("make gc-versions EXTRA_FLAGS=--verbose");
+  });
+
   test("runs MCP contract tests against the real built DB before eval/release", () => {
     const src = readText(".github/workflows/release.yml");
     const contractIdx = src.indexOf("bun test src/mcp-contract.test.ts");
@@ -407,6 +465,50 @@ describe("release.yml", () => {
   test("creates GitHub Release", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("gh release create");
+  });
+
+  test("republish_assets controls immutable npm skips and release clobbering", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toContain("republish_assets:");
+    expect(src).toContain("Does NOT re-publish npm");
+    expect(src).not.toContain("inputs.force");
+    expect(src).not.toContain("force=true");
+
+    const republishBranchIdx = src.search(
+      /if \[ "\$\{\{ inputs\.republish_assets \}\}" = "true" \]; then/,
+    );
+    expect(republishBranchIdx).toBeGreaterThanOrEqual(0);
+    const clobberIdx = mustIndex(src, "gh release upload");
+    expect(src.slice(clobberIdx, clobberIdx + 120)).toContain("--clobber");
+    expect(republishBranchIdx).toBeLessThan(clobberIdx);
+
+    expect(src).toContain("if: inputs.republish_assets != true");
+    expect(src).toContain("if: inputs.republish_assets == true");
+    expect(src).toMatch(
+      /Publish to npm[\s\S]{0,120}if: inputs\.republish_assets != true/,
+    );
+    expect(src).toMatch(
+      /bunx-smoke:[\s\S]{0,120}if: inputs\.republish_assets != true/,
+    );
+    expect(src).toMatch(
+      /bump-version:[\s\S]{0,120}if: inputs\.republish_assets != true/,
+    );
+  });
+
+  test("bump-version fetches and rebases before retrying push", () => {
+    const src = readText(".github/workflows/release.yml");
+    const bumpIdx = mustIndex(src, "bump-version:");
+    const bumpBlock = src.slice(bumpIdx);
+    const loopIdx = mustIndex(bumpBlock, "for attempt in 1 2 3; do");
+    const fetchIdx = mustIndex(bumpBlock, "git fetch origin main");
+    const rebaseIdx = mustIndex(bumpBlock, "git rebase origin/main");
+    const pushIdx = mustIndex(bumpBlock, "git push origin HEAD:main");
+    const retryIdx = mustIndex(bumpBlock, "Push rejected on attempt");
+
+    expect(loopIdx).toBeLessThan(fetchIdx);
+    expect(fetchIdx).toBeLessThan(rebaseIdx);
+    expect(rebaseIdx).toBeLessThan(pushIdx);
+    expect(pushIdx).toBeLessThan(retryIdx);
   });
 
   test("publishes to npm", () => {

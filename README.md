@@ -275,13 +275,14 @@ Ask your AI assistant questions like:
 
 ## MCP Tools
 
-The server exposes 13 tools designed to work together — agents start with `routeros_search` and drill into specific data as needed:
+The server exposes 14 tools designed to work together — agents start with `routeros_search` and drill into specific data as needed:
 
 | Tool | What it does |
 |------|-------------|
 | `routeros_search` | **Start here.** Unified search with input classifier — returns pages + related callouts, videos, properties, changelogs, devices, skills |
 | `routeros_get_page` | Full page content by ID or title, section-aware for large pages |
 | `routeros_lookup_property` | Property by exact name — type, default, description |
+| `routeros_explain_command` | Read-only explanation for a CLI command — canonical path/verb, args, warnings, docs, changelogs |
 | `routeros_command_tree` | Browse the command hierarchy (`/ip/firewall/filter` style) |
 | `routeros_search_changelogs` | Changelogs filtered by version range, category, breaking flag |
 | `routeros_command_version_check` | Which RouterOS versions include a command path |

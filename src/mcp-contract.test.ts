@@ -2,7 +2,7 @@
  * mcp-contract.test.ts — MCP tool surface contract tests (Phase 2).
  *
  * Guards against silent breaking changes to the MCP tool registry:
- * - Block A: Frozen 13-tool list + workflow-arrow (→) convention in descriptions
+ * - Block A: Frozen 14-tool list + workflow-arrow (→) convention in descriptions
  * - Block B: Token-budget guardrails for 10 canonical queries (rough chars/4)
  * - Block C: Shape snapshots — fingerprint the *contract* (keys, counts,
  *           classifier output), NOT the corpus. Deliberately omits page IDs
@@ -54,6 +54,7 @@ describe("Frozen tool registry", () => {
     "routeros_search",
     "routeros_get_page",
     "routeros_lookup_property",
+    "routeros_explain_command",
     "routeros_command_tree",
     "routeros_stats",
     "routeros_search_changelogs",
@@ -66,13 +67,13 @@ describe("Frozen tool registry", () => {
     "routeros_current_versions",
   ];
 
-  test("exactly 13 tools registered", () => {
+  test("exactly 14 tools registered", () => {
     const mcpSrc = readFileSync(path.join(ROOT, "src/mcp.ts"), "utf-8");
     // Extract tool names from server.registerTool("<name>", patterns
     const toolMatches = mcpSrc.matchAll(/server\.registerTool\(\s*["']([^"']+)["']/g);
     const foundTools = Array.from(toolMatches, (m) => m[1]);
 
-    expect(foundTools.length).toBe(13);
+    expect(foundTools.length).toBe(14);
     expect(foundTools.sort()).toEqual(EXPECTED_TOOLS.sort());
   });
 
@@ -123,7 +124,7 @@ describe("Frozen tool registry", () => {
     const totalFound = Array.from(
       mcpSrc.matchAll(/server\.registerTool\(\s*["']([^"']+)["']/g),
     ).length;
-    expect(totalFound).toBe(13);
+    expect(totalFound).toBe(14);
   });
 });
 

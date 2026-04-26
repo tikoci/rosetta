@@ -14,7 +14,7 @@ When you change parser logic (tokenizer rules, scoping, path resolution), prefer
 
 The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. Both the MCP tool layer and the TUI are thin adapters over query functions in `src/query.ts`. When adding a feature, default to putting the logic in core (`query.ts`) so both surfaces inherit it. PRs that grow TUI-only or MCP-only heuristics are a smell — flag and move the logic to core. See `BACKLOG.md` "Guiding Principles" and "North Star — unified `routeros_search`".
 
-**Consolidation direction:** tool count reduced from 15 → 13 via a unified `routeros_search` that classifies input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`. `routeros_search_callouts`, `routeros_search_videos`, and `routeros_search_properties` were folded in; the underlying query functions remain as internal helpers for the TUI. Before adding a new tool, ask: can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
+**Consolidation direction:** tool count was reduced from 15 → 13 via a unified `routeros_search` that classifies input (command path, version, topic, device, property) and returns enriched results with cross-table `related` sections and `next_steps`; `routeros_explain_command` brought the current count to 14 as a deliberate read-only bridge for write-shaped CLI questions. `routeros_search_callouts`, `routeros_search_videos`, and `routeros_search_properties` were folded in; the underlying query functions remain as internal helpers for the TUI. Before adding a new tool, ask: can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
 
 ## MCP Tool Conventions
 - Server name: `"rosetta"` — never change
@@ -24,12 +24,13 @@ The browse TUI (`src/browse.ts`) is a first-class surface, not a test harness. B
 - Tool descriptions should include knowledge boundaries (doc export date, version range)
 - **Before adding a new tool, ask:** can `routeros_search` (via classifier + `related` sections) or `routeros_get_page` (via smart prioritization) answer this instead? Usually yes.
 
-## 13 Tools
+## 14 Tools
 | Tool | Purpose |
 |------|---------|  
 | `routeros_search` | Unified search — classifier + FTS5 across pages, BM25 ranked, with `related` block (callouts, videos, properties, changelogs, devices, skills, glossary). Caps in `related` scale with `limit` — higher `limit` = more callouts/videos surfaced (the "hunger knob"). |
 | `routeros_get_page` | Full page by ID or title, includes callouts |
 | `routeros_lookup_property` | Exact property name, optional command path filter |
+| `routeros_explain_command` | Read-only CLI command explanation: canonical path/verb, key=value arg docs, warnings, pages, changelogs, version check |
 | `routeros_command_tree` | Browse command hierarchy, optional version param |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
 | `routeros_command_version_check` | Which RouterOS versions include a command path |
@@ -140,6 +141,7 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 | `search` / bare text | `routeros_search` | — |
 | `page` | `routeros_get_page` | — |
 | `prop` / `props` | `routeros_lookup_property` | `prop` is context-scoped to current page; `props` uses `searchProperties()` (internal, no MCP tool) |
+| `.routeros_explain_command` | `routeros_explain_command` | Dot-command only for now; raw JSON explains canonical command, args, warnings, docs/changelogs |
 | `cmd` | `routeros_command_tree` | `cmd edit` resolves relative to current commands context |
 | `device` / `dev` | `routeros_device_lookup` | — |
 | `tests` | `routeros_search_tests` | Default `packet_size=512` when no filters given |
@@ -152,7 +154,7 @@ Tests in `mcp-http.test.ts` start an actual server process and make real HTTP re
 | `versions` / `ver` | `routeros_current_versions` | — |
 | `stats` | `routeros_stats` | — |
 | `glossary` / `g` | *(folded into `routeros_search.related.glossary`)* | TUI-only: `g <term>` calls `lookupGlossary()` directly; agents reach it via `routeros_search` when input matches a glossary term/alias |
-| `.<tool_name> ...` | every MCP tool, 1:1 | **MCP probe** — bypasses TUI rendering, calls the same query function as the MCP tool, dumps raw JSON. `.help` lists all 13 dot-commands. Format: `.routeros_search firewall filter limit=20`, `.routeros_get_page 28282`, `.routeros_lookup_property name=disabled command_path=/ip/firewall/filter`. This is the contract for "human can always see what the agent sees." |
+| `.<tool_name> ...` | every MCP tool, 1:1 | **MCP probe** — bypasses TUI rendering, calls the same query function as the MCP tool, dumps raw JSON. `.help` lists all 14 dot-commands. Format: `.routeros_search firewall filter limit=20`, `.routeros_get_page 28282`, `.routeros_lookup_property name=disabled command_path=/ip/firewall/filter`. This is the contract for "human can always see what the agent sees." |
 
 ### Browse TUI conventions
 

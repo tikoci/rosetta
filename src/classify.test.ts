@@ -13,6 +13,7 @@ type Expectation = {
   topics?: string[];        // must be a subset of detected topics (order-insensitive)
   topicsExact?: string[];   // exact match on detected topics (order-sensitive)
   command_path?: string;
+  command_path_confidence?: "high" | "medium" | "low";
   fragment_pairs?: Array<{ key: string; value: string }>;
   fragment_verbs?: string[];
   device?: string;
@@ -57,17 +58,27 @@ const CASES: Array<{ name: string; input: string; expect: Expectation }> = [
   {
     name: "absolute slash path",
     input: "/ip/firewall/filter",
-    expect: { command_path: "/ip/firewall/filter", topics: ["ip", "firewall", "filter"] },
+    expect: { command_path: "/ip/firewall/filter", command_path_confidence: "medium", topics: ["ip", "firewall", "filter"] },
   },
   {
     name: "space-separated absolute path",
     input: "/ip firewall filter",
-    expect: { command_path: "/ip/firewall/filter" },
+    expect: { command_path: "/ip/firewall/filter", command_path_confidence: "medium" },
   },
   {
     name: "path without leading slash",
     input: "ip firewall filter",
-    expect: { command_path: "/ip/firewall/filter" },
+    expect: { command_path: "/ip/firewall/filter", command_path_confidence: "medium" },
+  },
+  {
+    name: "absolute path with explicit verb has high confidence",
+    input: "/ip firewall filter add chain=forward",
+    expect: {
+      command_path: "/ip/firewall/filter",
+      command_path_confidence: "high",
+      fragment_pairs: [{ key: "chain", value: "forward" }],
+      fragment_verbs: ["add"],
+    },
   },
   {
     name: "system scheduler path",
@@ -142,6 +153,7 @@ describe("classifyQuery", () => {
       if (want.none) {
         expect(result.version).toBeUndefined();
         expect(result.command_path).toBeUndefined();
+        expect(result.command_path_confidence).toBeUndefined();
         expect(result.command_fragment).toBeUndefined();
         expect(result.device).toBeUndefined();
         expect(result.property).toBeUndefined();
@@ -151,6 +163,7 @@ describe("classifyQuery", () => {
 
       if (want.version !== undefined) expect(result.version).toBe(want.version);
       if (want.command_path !== undefined) expect(result.command_path).toBe(want.command_path);
+      if (want.command_path_confidence !== undefined) expect(result.command_path_confidence).toBe(want.command_path_confidence);
       if (want.device !== undefined) expect(result.device).toBe(want.device);
       if (want.property !== undefined) expect(result.property).toBe(want.property);
 

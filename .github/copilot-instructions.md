@@ -60,13 +60,13 @@ make clean               # Remove DB files
 
 Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make extract-devices`, `make extract-test-results`, `make extract-changelogs`, `make link`.
 
-Release: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FORCE=1` (update existing). See `make build-release` for build-only (no git/upload).
+Release: prefer the GitHub Actions `Release` workflow for published artifacts. Use `republish_assets` only to reupload GitHub Release assets / OCI tags; it does not re-publish npm. Local compatibility path: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FORCE=1` (update existing assets only). See `make build-release` for build-only (no git/upload).
 
 ## Architecture
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| MCP Server | `src/mcp.ts` | 13 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
+| MCP Server | `src/mcp.ts` | 14 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
 | Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition. Owns the DB-backed `isVerb` resolver wired into `classify.ts` |
 | Classifier | `src/classify.ts` | Pre-search regex classifier (command path, version, topic, device, property, fragment). Pure — no DB. Accepts a `ClassifyOptions { isVerb? }` pass-through |
 | Canonicalizer | `src/canonicalize.ts`, `src/canonicalize-resolver.ts` | RouterOS CLI path → `{ path, verb, args, confidence }`. Pure module + DB-backed adapter. Vendored for parity with `lsp-routeros-ts`; see DESIGN.md |

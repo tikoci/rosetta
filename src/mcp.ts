@@ -226,6 +226,7 @@ const {
   browseCommandsAtVersion,
   checkCommandVersions,
   diffCommandVersions,
+  explainCommand,
   exportDevicesCsv,
   exportDeviceTestsCsv,
   fetchCurrentVersions,
@@ -575,8 +576,8 @@ and FTS in parallel, returning pages plus classifier-informed side queries in a
 single response. Consolidates what used to require 3–5 separate tool calls.
 
 Response shape:
-- classified: { version, topics, command_path, device, property } — what the
-  classifier detected from your input
+- classified: { version, topics, command_path, command_path_confidence, device, property } — what the
+  classifier detected from your input; command_path_confidence is high/medium/low
 - pages: top FTS matches (title, path, URL, excerpt, best_section)
 - related: callouts, properties, changelogs, videos, commands, devices, skills,
   glossary — empty sections are omitted. Cap scales with \`limit\`: small limit
@@ -696,8 +697,10 @@ server.registerTool(
   {
     description: `Look up a specific RouterOS configuration property by exact name.
 
-Returns type, default value, description, and documentation page.
+Returns type, default value, description, documentation page, and confidence.
 Optionally filter by command path to disambiguate (e.g., "disabled" appears everywhere).
+Confidence is high for exact matches on the page linked from command_path, medium for
+global exact matches without command_path, and low for global fallback with command_path.
 
 This requires the **exact property name**. If you don't know the name:
 → routeros_search: find the documentation page, then routeros_get_page to read properties in context
@@ -730,6 +733,57 @@ Examples:
     }
     return {
       content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
+    };
+  },
+);
+
+// ---- routeros_explain_command ----
+
+server.registerTool(
+  "routeros_explain_command",
+  {
+    description: `Explain a candidate RouterOS CLI command using rosetta's offline docs and command tree.
+
+This is a read-only tier-1 helper for write-shaped questions: it canonicalizes
+the command, annotates key=value arguments with documented properties, checks
+tracked RouterOS version presence, and returns compact docs/changelog context.
+It never connects to a router, validates against a live device, or executes anything.
+
+Returns:
+- command: original input
+- canonical: { path, verb, args, confidence } for the primary non-subshell command
+- confidence: high/medium/low/none from the CLI canonicalizer
+- args: parsed key=value args with first property match and lookup confidence when found
+- warnings: no-command, low-confidence, unknown-arg, command-not-in-version, or model-context-unused signals
+- pages: compact documentation search hits
+- changelog_hits: compact changelog hits
+- version_check: command version range when a canonical path is available
+
+Workflow:
+→ routeros_get_page: read full docs for a returned page
+→ routeros_lookup_property: inspect a specific argument/property in more detail
+→ routeros_command_tree: browse available commands/arguments under the canonical path
+→ routeros_command_version_check / routeros_command_diff: investigate version-specific availability
+
+Boundaries: Documentation covers RouterOS v7, aligned with long-term ~7.22; command data covers 7.9–7.23beta2. This tool is explanatory only — use a separate validator/runner before touching a router.`,
+    inputSchema: {
+      command: z
+        .string()
+        .describe("RouterOS CLI command to explain (e.g., '/ip/firewall/filter add chain=forward action=drop')"),
+      ros_version: z
+        .string()
+        .optional()
+        .describe("Optional RouterOS version to check against tracked command availability (e.g., '7.22')."),
+      model: z
+        .string()
+        .optional()
+        .describe("Optional device model context. Accepted for future use; device-specific validation is not implemented."),
+    },
+  },
+  async ({ command, ros_version, model }) => {
+    const result = explainCommand(command, ros_version, model);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
   },
 );

@@ -35,7 +35,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Three outputs (three surfaces, one core):
 
-1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — 13 tools plus 2 CSV resources for LLM agents. Unified `routeros_search` runs a regex classifier (`src/classify.ts`), executes side queries in parallel, and returns pages + a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + `next_steps` hints. Consolidation from 15 tools achieved by folding `routeros_search_callouts` and `routeros_search_videos` into that `related` block; see `DESIGN.md` "North Star".
+1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — 14 tools plus 2 CSV resources for LLM agents. Unified `routeros_search` runs a regex classifier (`src/classify.ts`), executes side queries in parallel, and returns pages + a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + `next_steps` hints. Consolidation from 15 tools achieved by folding `routeros_search_callouts` and `routeros_search_videos` into that `related` block; `routeros_explain_command` is the read-only tier-1 bridge for write-shaped CLI questions. See `DESIGN.md` "North Star".
 2. **Browse TUI** (`src/browse.ts`) — interactive terminal browser with keyword-driven NL-like input. **First-class path into the data, not a test harness that happens to be usable.** Every MCP tool has a TUI command that mirrors its shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.).
 3. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration.
 
@@ -45,7 +45,7 @@ Both the MCP tool layer and the TUI are thin adapters over query functions in `s
 
 This is a deliberate design, not a happy accident. The TUI's dual use (human tool + MCP behavior test harness) is the feature. Gaps visible in `browse` almost always point to gaps in the MCP tool surface. Any PR that grows TUI-only or MCP-only heuristics is a smell — the heuristic probably belongs in `query.ts` so both surfaces inherit it.
 
-The TUI is a **superset** of MCP — paged ANSI rendering, Markdown→ANSI for skill/page content, context-aware drill-down — but every MCP tool is also reachable verbatim through a **dot-command** (`.routeros_search query=foo limit=12`, `.routeros_get_page 28282`, `.routeros_stats`, …). Dot-commands invoke the same query function the MCP server uses and dump raw JSON, so a human can always see exactly what an agent would receive. `.help` lists the 13 dot-commands. This is the contract: TUI may be richer, but the agent-facing surface stays directly observable.
+The TUI is a **superset** of MCP — paged ANSI rendering, Markdown→ANSI for skill/page content, context-aware drill-down — but every MCP tool is also reachable verbatim through a **dot-command** (`.routeros_search query=foo limit=12`, `.routeros_get_page 28282`, `.routeros_stats`, …). Dot-commands invoke the same query function the MCP server uses and dump raw JSON, so a human can always see exactly what an agent would receive. `.help` lists the 14 dot-commands. This is the contract: TUI may be richer, but the agent-facing surface stays directly observable.
 
 ## Current State
 
@@ -56,14 +56,14 @@ The TUI is a **superset** of MCP — paged ANSI rendering, Markdown→ANSI for s
 - **4,860 properties** extracted from confluenceTable rows (name, type, default, description)
 - **40K command tree entries** from `inspect.json` / `deep-inspect.json` (551 dirs, 5114 cmds, 34K args), primary version: 7.22 (latest stable)
 - **Multi-arch schema** via `schema_nodes` table — dual-arch deep-inspect files track x86/arm64 differences, completion data (11K+ args with valid values), and desc decomposition (enum, range, type parsing)
-- **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries
+- **46 RouterOS versions tracked** (7.9 through 7.23beta2) — 1.67M command_versions entries; `schema_node_presence` is release-pruned to active channel heads only
 - **92% of dirs linked** to documentation pages via automated code-block + heuristic matching
 - **144 devices** from MikroTik product matrix CSV (hardware specs, license levels, pricing)
 - **2,874 device test results** from mikrotik.com product pages (ethernet + IPSec throughput benchmarks at 64/512/1518 byte packets) for 125 devices, with block diagrams for 110
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **8 agent skills** from tikoci/routeros-skills (community-created, human-reviewed guides with provenance attribution)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs, skills) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 13 tools and 8+ resources: search, get_page, lookup_property, command_tree, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; callouts and videos surface inside `routeros_search`'s `related` block (no longer standalone tools). Resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
+- **MCP server** with 14 tools and 8+ resources: search, get_page, lookup_property, explain_command, command_tree, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; callouts and videos surface inside `routeros_search`'s `related` block (no longer standalone tools). Resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
 
 ## Schema
 
@@ -171,6 +171,9 @@ schema_node_presence (
     version TEXT NOT NULL,
     PRIMARY KEY (node_id, version)
 )
+-- Release DBs prune schema_node_presence to active channel heads
+-- (stable, long-term, testing, development); command_versions keeps
+-- the full extracted version history.
 
 -- MikroTik product hardware specs (from product matrix CSV)
 devices (
@@ -371,6 +374,7 @@ Register in MCP client config (bunx example — no paths needed):
 | `routeros_search` | Unified RouterOS search — regex classifier (command path, version, device, topics) + BM25 FTS + parallel side queries. Returns `{query, classified, pages, related: {command_node, properties, devices, callouts, videos, changelogs, skills, glossary}, next_steps}` |
 | `routeros_get_page` | Full page text by ID or title. Section-aware: `max_length` defaults to 16000; large pages return TOC with **top properties + related videos + callout summary** surfaced up front; `section` param retrieves specific sections |
 | `routeros_lookup_property` | Property by exact name, optionally filtered by command path |
+| `routeros_explain_command` | Read-only CLI command explanation: canonical path/verb, key=value arg property annotations, warnings, docs, changelogs, and version check |
 | `routeros_command_tree` | Browse command hierarchy at a given path |
 | `routeros_search_changelogs` | FTS across parsed changelog entries, version range + category + breaking-only filters |
 | `routeros_command_version_check` | Version range for a command path, boundary notes |
@@ -435,12 +439,17 @@ Single-file executables from GitHub Releases. User runs `--setup` to download DB
 
 ### Release Workflow
 
-The Makefile is the source of truth for releasing. It chains preflight checks, build, git tagging, and upload:
+GitHub Actions is the traceable release path for published artifacts: run the
+`Release` workflow (`workflow_dispatch`) with a fresh package version. Use the
+`republish_assets` input only to reupload GitHub Release assets and OCI tags for
+an existing version; it skips npm because npm versions are immutable.
+
+The Makefile remains a local compatibility path. It chains preflight checks, build, git tagging, and upload:
 
 ```sh
 make build-release VERSION=v0.1.0          # Build artifacts only (no git, no upload)
 make release VERSION=v0.1.0                # Full flow: preflight → build → tag → push → create release
-make release VERSION=v0.1.0 FORCE=1        # Update existing: preflight → build → force-move tag → upload --clobber
+make release VERSION=v0.1.0 FORCE=1        # Update existing local assets: preflight → build → force-move tag → upload --clobber
 ```
 
 `make preflight` runs independently as a health check: clean working tree, DB exists, typecheck, tests, lint.
@@ -460,13 +469,13 @@ Also publishes multi-arch OCI images (linux/amd64 + linux/arm64):
 
 Per release, tags are `VERSION`, `latest`, and `sha-<12-char-commit>`.
 
-The `FORCE=1` flag:
+The local Makefile `FORCE=1` flag:
 
 - Force-moves the git tag to HEAD (`git tag -f`)
 - Force-pushes the tag (`git push --force`)
 - Replaces release assets (`gh release upload --clobber`)
 
-Without `FORCE`, the release target errors if the tag already exists and uses `gh release create`.
+It does not republish npm. Without `FORCE`, the release target errors if the tag already exists and uses `gh release create`.
 
 ### Tester Workflow
 
@@ -525,7 +534,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 13 tools + 2 CSV resources, stdio + Streamable HTTP transport |
+| `src/mcp.ts` | MCP server — 14 tools + 2 CSV resources, stdio + Streamable HTTP transport |
 | `src/classify.ts` | Pre-search regex classifier — detects command path, version, topics, device model, command fragment, property-name candidate. Pure module, no DB |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
@@ -537,6 +546,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/extract-commands.ts` | inspect.json → commands table (version-aware, legacy fallback for pre-deep-inspect versions) |
 | `src/extract-schema.ts` | deep-inspect.json → schema_nodes + schema_node_presence tables (dual-arch, completion data, desc parsing). Also regenerates `commands` + `command_versions` for backward compat |
 | `src/extract-all-versions.ts` | Batch extract all RouterOS versions from restraml (prefers deep-inspect files, falls back to inspect.json) |
+| `src/gc-versions.ts` | Prune `schema_node_presence` to active channel heads only; `--dry-run` / `--verbose`; conservative no-delete fallback if channel heads cannot be computed |
 | `src/extract-devices.ts` | Product matrix CSV → devices table (idempotent) |
 | `src/extract-test-results.ts` | mikrotik.com product pages → device_test_results + block diagram URLs (idempotent) |
 | `src/extract-changelogs.ts` | MikroTik download server changelogs → changelogs table (idempotent) |
@@ -555,7 +565,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 | `src/schema-roundtrip.test.ts` | Bun tests — schema importer round-trip: fixture walk/merge, arch diffs, desc parsing, completion, legacy compat |
 | `src/release.test.ts` | Release readiness tests — file consistency, build constants, structural patterns, container setup |
 | `src/mcp-http.test.ts` | HTTP transport integration — session lifecycle, multi-client, errors (live server process) |
-| `src/mcp-contract.test.ts` | MCP contract: frozen 13-tool registry, workflow-arrow convention, token-budget guardrails (10 canonical queries), shape snapshots (5 stable queries). Phase 2 of MCP Behavioral Testing |
+| `src/mcp-contract.test.ts` | MCP contract: frozen 14-tool registry, workflow-arrow convention, token-budget guardrails (10 canonical queries), shape snapshots (5 stable queries). Phase 2 of MCP Behavioral Testing |
 | `src/eval/retrieval.ts` | Phase 0 hand-curated golden-query retrieval eval — recall@k / MRR / classifier accuracy, baseline regression gating. Run with `make eval` |
 | `src/eval/self-supervised.ts` | Phase 1 auto-generated retrieval eval (~170 queries from sections/properties/titles, deterministic seeded sampling). Run with `make eval-self` |
 | `fixtures/eval/queries.json` | 20 hand-curated golden queries across 6 shapes (nl-question, command-path, version, device, topic-multi, ambiguous) with `_thresholds` block |
@@ -586,6 +596,7 @@ When a new HTML/PDF export is available:
 make clean
 make extract       # runs extract-html, extract-properties, extract-commands, extract-devices, extract-skills, link
 make extract-full  # runs extract-html, extract-properties, extract-all-versions, extract-devices, extract-skills, link
+make gc-versions EXTRA_FLAGS=--verbose  # release retention: prune schema_node_presence active heads
 ```
 
 The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
@@ -607,9 +618,9 @@ Non-English videos (~27 known) are stored as metadata-only rows (no transcript).
 
 The `release.yml` workflow (`workflow_dispatch`) builds the database from a remote HTML export URL and creates a GitHub Release — same pipeline as local, but traceable to a specific commit and CI log.
 
-**Inputs:** `html_url` (required — direct download URL to `.zip`, pre-populated with the current known MikroTik export link), `version` (optional override — defaults to `v` + `package.json` version), `docs_date` (optional — export date for traceability), `full_versions` (default: true — all 46 RouterOS versions), `force` (default: false — overwrite existing release).
+**Inputs:** `html_url` (required — direct download URL to `.zip`, pre-populated with the current known MikroTik export link), `version` (optional override — defaults to `v` + `package.json` version), `docs_date` (optional — export date for traceability), `full_versions` (default: true — all 46 RouterOS versions), `republish_assets` (default: false — reupload GitHub Release assets and OCI tags for an existing version; does **not** re-publish npm, so bump `package.json` for a new npm package).
 
-**Steps:** download + validate zip → extract HTML → run full extraction pipeline → quality gate (typecheck + test + lint) → build release artifacts + OCI image tars → publish OCI images to Docker Hub/GHCR → smoke-test pulled `sha-*` images on `/mcp` → create GitHub Release with DB stats in release notes.
+**Steps:** early quality gate (typecheck + lint + tests) → download + validate zip → extract HTML → run full extraction pipeline → link commands → GC `schema_node_presence` to active channel heads → post-extraction DB-wipe guard tests → stamp DB provenance + stats → build release artifacts + OCI image tars → publish OCI images to Docker Hub/GHCR → smoke-test pulled `sha-*` images on `/mcp` → create GitHub Release with DB stats in release notes.
 
 For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Product matrix CSV uses the committed copy in `matrix/`.
 
@@ -631,7 +642,7 @@ For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Produc
 - **Content:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 cmds, 34K args (primary: 7.22). Deep-inspect adds `_completion` data (11K+ args with valid values and style hints) and per-arch coverage (x86/arm64).
 - **Versions:** 7.9 through 7.23beta2 (stable + development channels). New versions appear weekly; the latest stable is auto-detected as primary.
 - **Primary version:** latest stable from inspect.json (currently 7.22.1) — used for the `commands` table and linking. Note: this is newer than the HTML docs export (pinned to 7.22) since HTML exports are manual/monthly while inspect.json versions are automated/daily.
-- **Version tracking:** 1.67M entries in `command_versions` junction table; `schema_node_presence` mirrors this with FK to `schema_nodes`
+- **Version tracking:** 1.67M entries in `command_versions` junction table. `schema_node_presence` mirrors this with FK to `schema_nodes` during extraction, then release GC prunes it to active channel heads (version-keyed only; `ros_versions` arch duplicates are de-duplicated). `command_versions` and `changelogs` keep full history.
 - **Multi-arch:** deep-inspect files carry separate x86 and arm64 trees. ~97% of paths are shared; ~1.3K arm64-only (wifi-qcom, ethernet/switch), ~36 x86-only (system/check-disk, console/screen). Arch differences tracked via `schema_nodes._arch` (NULL=both, value=platform-specific).
 - **Coverage gap:** CHR doesn't have Wi-Fi hardware, so wireless driver packages (`wifi-qcom`, etc.) are missing from inspect.json. Some packages like `zerotier` are also absent. The HTML docs cover these — deep-inspect arm64 files include wifi-qcom paths that inspect.json lacks.
 

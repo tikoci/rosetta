@@ -54,6 +54,7 @@ const {
   listGlossary,
   KNOWN_TOPICS,
   searchAll,
+  explainCommand,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
@@ -122,6 +123,14 @@ beforeAll(() => {
     (id, page_id, name, type, default_val, description, section, sort_order)
     VALUES (2, 1, 'address-pool', 'string', '', 'Name of the address pool to use', NULL, 1)`);
 
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, sort_order)
+    VALUES (3, 2, 'chain', 'string', '', 'Firewall chain to match or create', NULL, 0)`);
+
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, sort_order)
+    VALUES (4, 2, 'action', 'string', 'accept', 'Action to take when a packet matches the rule', NULL, 1)`);
+
   db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
     VALUES ('7.22', 'x86', 'stable', 0, '2024-01-01T00:00:00Z')`);
   db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
@@ -136,6 +145,14 @@ beforeAll(() => {
   db.run(`INSERT INTO commands
     (id, path, name, type, parent_path, page_id, description, ros_version)
     VALUES (2, '/ip/dhcp-server', 'dhcp-server', 'dir', '/ip', 1, 'DHCP Server configuration', '7.22')`);
+
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (3, '/ip/firewall', 'firewall', 'dir', '/ip', 2, 'Firewall configuration', '7.22')`);
+
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (4, '/ip/firewall/filter', 'filter', 'dir', '/ip/firewall', 2, 'Firewall filter rules', '7.22')`);
 
   // schema_nodes for arch-filter tests: shared + x86-only child of /ip
   db.run(`INSERT INTO schema_nodes (path, name, type, parent_path, dir_role, _arch)
@@ -153,6 +170,8 @@ beforeAll(() => {
     VALUES ('/ip/dhcp-server', '7.22')`);
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.9')`);
+  db.run(`INSERT INTO command_versions (command_path, ros_version)
+    VALUES ('/ip/firewall/filter', '7.22')`);
 
   // Extra command_versions entries to support diffCommandVersions tests
   // /ip/dhcp-server/lease only in 7.22 (added)
@@ -384,7 +403,11 @@ beforeAll(() => {
   db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
     VALUES ('7.22', '2026-Mar-09 10:38', 'bridge', 0, 'added local and static MAC synchronization for MLAG', 2)`);
   db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.22', '2026-Mar-09 10:38', 'firewall', 0, 'improved firewall filter rule handling', 3)`);
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
     VALUES ('7.22.1', '2026-Apr-01 09:00', 'wifi', 0, 'fixed channel switching for MediaTek access points', 0)`);
+  db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
+    VALUES ('7.23.1', '2026-Apr-15 09:00', 'routing', 0, 'fixed route cache after upgrade', 0)`);
 
   // Video and transcript fixtures for searchVideos tests
   db.run(`INSERT INTO videos
@@ -458,6 +481,10 @@ describe("extractTerms", () => {
   test("removes stop words", () => {
     // every word here is in the STOP_WORDS set
     expect(extractTerms("how and the with without")).toEqual([]);
+  });
+
+  test("drops switch as context for bridge VLAN filtering queries", () => {
+    expect(extractTerms("bridge vlan filtering on a switch")).toEqual(["bridge", "vlan", "filtering"]);
   });
 
   test("filters terms shorter than 2 characters", () => {
@@ -777,11 +804,13 @@ describe("lookupProperty", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0].name).toBe("lease-time");
     expect(rows[0].page_title).toBe("DHCP Server");
+    expect(rows[0].confidence).toBe("medium");
   });
 
   test("case-insensitive name lookup", () => {
     const rows = lookupProperty("LEASE-TIME");
     expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.confidence === "medium")).toBe(true);
   });
 
   test("returns empty for unknown property", () => {
@@ -792,12 +821,74 @@ describe("lookupProperty", () => {
     const rows = lookupProperty("lease-time", "/ip/dhcp-server");
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0].name).toBe("lease-time");
+    expect(rows[0].confidence).toBe("high");
   });
 
-  test("returns empty when command path has no linked page", () => {
+  test("marks global fallback low when command path has no linked page", () => {
     const rows = lookupProperty("lease-time", "/ip/unlinked");
     // /ip/unlinked has no page_id → falls through to global search
     expect(Array.isArray(rows)).toBe(true);
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.confidence === "low")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DB integration: explainCommand
+// ---------------------------------------------------------------------------
+
+describe("explainCommand", () => {
+  test("returns canonical command, known arg property, pages, changelog hits, and version check", () => {
+    const result = explainCommand("/ip firewall filter add chain=forward action=drop", "7.22");
+
+    expect(result.command).toBe("/ip firewall filter add chain=forward action=drop");
+    expect(result.canonical).toEqual({
+      path: "/ip/firewall/filter",
+      verb: "add",
+      args: ["chain=forward", "action=drop"],
+      confidence: "high",
+    });
+    expect(result.confidence).toBe("high");
+    expect(result.args.map((arg) => arg.name)).toEqual(["chain", "action"]);
+    expect(result.args[0].property?.name).toBe("chain");
+    expect(result.args[0].property?.confidence).toBe("high");
+    expect(result.warnings).toEqual([]);
+    expect(result.pages.some((page) => page.title === "Firewall Filter")).toBe(true);
+    expect(result.changelog_hits.some((hit) => hit.category === "firewall")).toBe(true);
+    expect(result.version_check?.versions).toContain("7.22");
+  });
+
+  test("warns for unknown args, absent target versions, and unused model context", () => {
+    const result = explainCommand("/ip firewall filter add frobnicate=yes", "7.9", "hAP ax3");
+
+    expect(result.canonical?.path).toBe("/ip/firewall/filter");
+    expect(result.confidence).toBe("high");
+    expect(result.args[0]).toMatchObject({ name: "frobnicate", value: "yes" });
+    expect(result.args[0].property).toBeUndefined();
+    expect(result.warnings.map((warning) => warning.kind)).toEqual(
+      expect.arrayContaining([
+        "unknown-arg",
+        "command-not-in-version",
+        "model-context-unused",
+      ]),
+    );
+  });
+
+  test("warns on low-confidence canonicalization", () => {
+    const result = explainCommand("print");
+
+    expect(result.canonical).toMatchObject({ path: "/", verb: "print", confidence: "low" });
+    expect(result.confidence).toBe("low");
+    expect(result.warnings.some((warning) => warning.kind === "low-confidence")).toBe(true);
+  });
+
+  test("warns when no primary command can be extracted", () => {
+    const result = explainCommand("not a routeros command");
+
+    expect(result.canonical).toBeNull();
+    expect(result.confidence).toBe("none");
+    expect(result.args).toEqual([]);
+    expect(result.warnings.some((warning) => warning.kind === "no-command")).toBe(true);
   });
 });
 
@@ -1563,12 +1654,33 @@ describe("searchChangelogs", () => {
     expect(results.some((r) => r.category === "bgp")).toBe(true);
   });
 
-  test("version filter returns only that version", () => {
+  test("exact patch version stays exact", () => {
+    const results = searchChangelogs("", { version: "7.22.1" });
+    expect(results.length).toBeGreaterThan(0);
+    for (const r of results) {
+      expect(r.version).toBe("7.22.1");
+    }
+  });
+
+  test("major.minor version filter preserves exact rows before patch fallback", () => {
     const results = searchChangelogs("", { version: "7.22" });
     expect(results.length).toBeGreaterThan(0);
     for (const r of results) {
       expect(r.version).toBe("7.22");
     }
+    expect(results.some((r) => r.version === "7.22.1")).toBe(false);
+  });
+
+  test("major.minor version filter falls back to patch rows when exact rows are absent", () => {
+    const results = searchChangelogs("", { version: "7.23" });
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((r) => r.version === "7.23.1")).toBe(true);
+  });
+
+  test("generic major.minor version questions browse fallback patch rows", () => {
+    const results = searchChangelogs("what changed in 7.23", { version: "7.23" });
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((r) => r.version === "7.23.1")).toBe(true);
   });
 
   test("version range filter works (from_version exclusive, to_version inclusive)", () => {
@@ -2169,6 +2281,25 @@ describe("listGlossary", () => {
 // ---------------------------------------------------------------------------
 
 describe("searchAll related block", () => {
+  test("exposes command path confidence in classified output", () => {
+    const res = searchAll("/ip/dhcp-server");
+    expect(res.classified.command_path).toBe("/ip/dhcp-server");
+    expect(res.classified.command_path_confidence).toBe("medium");
+  });
+
+  test("includes property lookup confidence in related properties", () => {
+    const res = searchAll("lease-time");
+    expect(res.related.properties?.length).toBeGreaterThan(0);
+    expect(res.related.properties?.[0].confidence).toBe("medium");
+  });
+
+  test("includes changelogs for major.minor version questions backed only by patch rows", () => {
+    const res = searchAll("what changed in 7.23");
+    expect(res.classified.version).toBe("7.23");
+    expect(res.related.changelogs?.length).toBeGreaterThan(0);
+    expect(res.related.changelogs?.every((row) => row.version === "7.23.1")).toBe(true);
+  });
+
   test("includes glossary when input matches a glossary term", () => {
     const res = searchAll("chr");
     expect(res.related).toBeDefined();

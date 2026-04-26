@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-04-22T14:55:14.175Z",
-  "total_queries": 20,
+  "generated_at": "2026-04-26T16:33:57.329Z",
+  "total_queries": 21,
   "metrics": {
     "recall_at_5": 1,
     "recall_at_3": 1,
-    "mrr": 0.9607843137254903,
+    "mrr": 0.9629629629629631,
     "classifier_accuracy": 1,
     "related_block_accuracy": 1,
     "topics_accuracy": 1
@@ -16,7 +16,7 @@
       "mrr": 0.9444444444444445
     },
     "version-question": {
-      "count": 1,
+      "count": 2,
       "recall_at_5": 1,
       "mrr": 1
     },
@@ -138,24 +138,24 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 103841826,
-          "title": "Basic VLAN switching"
-        },
-        {
-          "id": 30474317,
-          "title": "Marvell Prestera switch chip features"
-        },
-        {
-          "id": 19136718,
-          "title": "Layer2 misconfiguration"
+          "id": 28606465,
+          "title": "Bridge VLAN Table"
         },
         {
           "id": 122388482,
           "title": "Wireless VLAN Trunk"
         },
         {
-          "id": 328068,
-          "title": "Bridging and Switching"
+          "id": 103841826,
+          "title": "Basic VLAN switching"
+        },
+        {
+          "id": 122388507,
+          "title": "VLANs on Wireless"
+        },
+        {
+          "id": 19136718,
+          "title": "Layer2 misconfiguration"
         }
       ],
       "classified_actual": {
@@ -165,7 +165,8 @@
           "vlan",
           "switch"
         ],
-        "command_path": "/bridge/vlan/filtering/on/a/switch"
+        "command_path": "/bridge/vlan/filtering/on/a/switch",
+        "command_path_confidence": "medium"
       },
       "notes": []
     },
@@ -583,6 +584,46 @@
         "input": "what changed in 7.22.1",
         "topics": [],
         "version": "7.22.1"
+      },
+      "notes": []
+    },
+    {
+      "id": "version-7-22",
+      "query": "what changed in 7.22",
+      "shape": "version-question",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 47579173,
+          "title": "IPIP"
+        },
+        {
+          "id": 119144661,
+          "title": "IPv4 and IPv6 Fundamentals"
+        },
+        {
+          "id": 78086201,
+          "title": "Bluetooth"
+        },
+        {
+          "id": 88014957,
+          "title": "VLAN"
+        },
+        {
+          "id": 176914435,
+          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard"
+        }
+      ],
+      "classified_actual": {
+        "input": "what changed in 7.22",
+        "topics": [],
+        "version": "7.22"
       },
       "notes": []
     },

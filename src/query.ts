@@ -5,6 +5,7 @@
  * no author/date/engagement signals — just text search with BM25 ranking.
  */
 
+import { type CanonicalCommand, canonicalize } from "./canonicalize.ts";
 import { makeDbVerbResolver } from "./canonicalize-resolver.ts";
 import { classifyQuery, type QueryClassification } from "./classify.ts";
 import { db } from "./db.ts";
@@ -53,6 +54,18 @@ const STOP_WORDS = new Set([
   "of", "on", "or", "page", "pages", "routeros", "router", "show", "tell",
   "that", "the", "their", "them", "these", "this", "those",
   "what", "when", "where", "which", "why", "with", "without",
+]);
+
+const CHANGELOG_GENERIC_TERMS = new Set([
+  "change",
+  "changed",
+  "changes",
+  "changelog",
+  "changelogs",
+  "new",
+  "release",
+  "released",
+  "version",
 ]);
 
 const COMPOUND_TERMS: [string, string][] = [
@@ -106,6 +119,13 @@ const COMPOUND_TERMS: [string, string][] = [
 // from here for backward compatibility. See classify.ts for the canonical definition.
 export { KNOWN_TOPICS } from "./classify.ts";
 
+function applyContextualTermFilters(terms: string[]): string[] {
+  if (terms.includes("bridge") && terms.includes("vlan") && terms.includes("filtering")) {
+    return terms.filter((term) => term !== "switch");
+  }
+  return terms;
+}
+
 function getSpecialSearchHint(question: string): string | undefined {
   const normalized = question.toLowerCase();
   if (/(?:^|\b)(?:the\s+)?dude(?:\b|$)/.test(normalized)) {
@@ -130,12 +150,13 @@ function rowsToCsv<T extends Record<string, CsvScalar>>(
 }
 
 export function extractTerms(question: string): string[] {
-  return question
+  const terms = question
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ")
     .split(/\s+/)
     .filter((t) => t.length >= MIN_TERM_LENGTH && !STOP_WORDS.has(t))
     .slice(0, MAX_TERMS);
+  return applyContextualTermFilters(terms);
 }
 
 export function buildFtsQuery(terms: string[], mode: "AND" | "OR"): string {
@@ -215,6 +236,7 @@ type RelatedProperty = {
   page_title: string;
   page_url: string;
   page_id: number;
+  confidence: PropertyLookupConfidence;
 };
 
 type RelatedDevice = {
@@ -342,6 +364,7 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
         page_title: p.page_title,
         page_url: p.page_url,
         page_id: p.page_id,
+        confidence: p.confidence,
       }));
     }
   }
@@ -510,6 +533,177 @@ function buildSearchAllNote(
     notes.push(`Nothing matched for "${classified.input}".${hintStr} See next_steps for alternatives.`);
   }
   return notes.length > 0 ? notes.join(" ") : undefined;
+}
+
+type ExplainCommandConfidence = CanonicalCommand["confidence"] | "none";
+
+type ExplainCommandCanonical = {
+  path: string;
+  verb: string;
+  args: string[];
+  confidence: CanonicalCommand["confidence"];
+};
+
+type ExplainCommandArg = {
+  raw: string;
+  name: string;
+  value: string;
+  property?: {
+    name: string;
+    type: string | null;
+    default_val: string | null;
+    description: string;
+    page_title: string;
+    page_url: string;
+    page_id: number;
+    confidence: PropertyLookupConfidence;
+  };
+};
+
+type ExplainCommandWarning = {
+  kind: "no-command" | "low-confidence" | "unknown-arg" | "command-not-in-version" | "model-context-unused";
+  message: string;
+  arg?: string;
+  suggestion?: string;
+};
+
+export type ExplainCommandResult = {
+  command: string;
+  canonical: ExplainCommandCanonical | null;
+  confidence: ExplainCommandConfidence;
+  args: ExplainCommandArg[];
+  warnings: ExplainCommandWarning[];
+  pages: SearchResult[];
+  changelog_hits: ChangelogResult[];
+  version_check?: ReturnType<typeof checkCommandVersions>;
+};
+
+function parseKeyValueArg(raw: string): { name: string; value: string } | null {
+  const eq = raw.indexOf("=");
+  if (eq <= 0) return null;
+  return {
+    name: raw.slice(0, eq),
+    value: raw.slice(eq + 1),
+  };
+}
+
+function explainCommandSearchText(command: string, canonical: ExplainCommandCanonical | null, args: ExplainCommandArg[]): string {
+  if (!canonical) return command;
+  const argNames = args.map((arg) => arg.name).join(" ");
+  return `${canonical.path} ${canonical.verb} ${argNames}`.trim();
+}
+
+/**
+ * Explain a candidate RouterOS CLI command using only the local rosetta DB.
+ *
+ * This is read-only: it canonicalizes the command, annotates key=value args
+ * with documentation-property matches, checks version presence, and surfaces
+ * compact docs/changelog context. It never connects to or modifies a router.
+ */
+export function explainCommand(command: string, rosVersion?: string, model?: string): ExplainCommandResult {
+  const parsed = canonicalize(command, "/", { isVerb: getVerbResolver() });
+  const primary = parsed.commands.find((cmd) => !cmd.subshell) ?? parsed.commands[0] ?? null;
+  const warnings: ExplainCommandWarning[] = [];
+
+  if (!primary?.verb) {
+    warnings.push({
+      kind: "no-command",
+      message: "No primary RouterOS command verb could be extracted from the input.",
+      suggestion: "Pass a full CLI command such as '/ip/firewall/filter add chain=forward action=drop'.",
+    });
+  }
+
+  const canonical = primary
+    ? {
+      path: primary.path,
+      verb: primary.verb,
+      args: primary.args,
+      confidence: primary.confidence,
+    }
+    : null;
+  const confidence: ExplainCommandConfidence = canonical?.confidence ?? "none";
+
+  if (confidence === "low") {
+    warnings.push({
+      kind: "low-confidence",
+      message: "The command path/verb was inferred from a loose or prose-shaped input.",
+      suggestion: "Use a full absolute RouterOS CLI form such as '/ip/firewall/filter add ...'.",
+    });
+  }
+
+  if (model) {
+    warnings.push({
+      kind: "model-context-unused",
+      message: `Model context "${model}" was accepted but device-specific command validation is not implemented yet.`,
+      suggestion: "Use routeros_device_lookup separately for hardware specs; this tool stays read-only and documentation-backed.",
+    });
+  }
+
+  const args: ExplainCommandArg[] = [];
+  if (canonical) {
+    for (const raw of canonical.args) {
+      const parsedArg = parseKeyValueArg(raw);
+      if (!parsedArg) continue;
+      const match = lookupProperty(parsedArg.name, canonical.path)[0];
+      const explainedArg: ExplainCommandArg = {
+        raw,
+        name: parsedArg.name,
+        value: parsedArg.value,
+      };
+      if (match) {
+        explainedArg.property = {
+          name: match.name,
+          type: match.type,
+          default_val: match.default_val,
+          description: match.description,
+          page_title: match.page_title,
+          page_url: match.page_url,
+          page_id: match.page_id,
+          confidence: match.confidence,
+        };
+      } else {
+        warnings.push({
+          kind: "unknown-arg",
+          arg: parsedArg.name,
+          message: `No documented property named "${parsedArg.name}" was found for ${canonical.path}.`,
+          suggestion: `Use routeros_command_tree path="${canonical.path}" or routeros_get_page for the linked documentation to confirm available arguments.`,
+        });
+      }
+      args.push(explainedArg);
+    }
+  }
+
+  let version_check: ReturnType<typeof checkCommandVersions> | undefined;
+  if (canonical) {
+    version_check = checkCommandVersions(canonical.path);
+    if (rosVersion && !version_check.versions.includes(rosVersion)) {
+      warnings.push({
+        kind: "command-not-in-version",
+        message: `${canonical.path} is not present in tracked command data for RouterOS ${rosVersion}.`,
+        suggestion: version_check.versions.length > 0
+          ? `Tracked range for this path: ${version_check.first_seen}–${version_check.last_seen}. Use routeros_command_diff for upgrade changes.`
+          : "Use routeros_command_tree/routeros_search to confirm the path, or check routeros_stats for tracked version coverage.",
+      });
+    }
+  }
+
+  const contextQuery = explainCommandSearchText(command, canonical, args);
+  const pages = searchPages(contextQuery || command, 3).results;
+  const changelog_hits = searchChangelogs(contextQuery || command, {
+    ...(rosVersion ? { version: rosVersion } : {}),
+    limit: 3,
+  });
+
+  return {
+    command,
+    canonical,
+    confidence,
+    args,
+    warnings,
+    pages,
+    changelog_hits,
+    ...(version_check ? { version_check } : {}),
+  };
 }
 
 function runFtsQuery(ftsQuery: string, limit: number): SearchResult[] {
@@ -816,11 +1010,9 @@ function getPageToc(pageId: number, pageUrl: string): SectionTocEntry[] {
   }));
 }
 
-/** Lookup property by name, optionally filtered by command path. */
-export function lookupProperty(
-  name: string,
-  commandPath?: string,
-): Array<{
+export type PropertyLookupConfidence = "high" | "medium" | "low";
+
+export type PropertyLookupRow = {
   name: string;
   type: string | null;
   default_val: string | null;
@@ -829,7 +1021,13 @@ export function lookupProperty(
   page_title: string;
   page_url: string;
   page_id: number;
-}> {
+  confidence: PropertyLookupConfidence;
+};
+
+type PropertyLookupRowWithoutConfidence = Omit<PropertyLookupRow, "confidence">;
+
+/** Lookup property by name, optionally filtered by command path. */
+export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
   if (commandPath) {
     // Find the page linked to this command path, then search properties there
     const linked = db
@@ -840,7 +1038,7 @@ export function lookupProperty(
       .get(commandPath) as { page_id: number } | null;
 
     if (linked) {
-      return db
+      const scopedRows = db
         .prepare(
           `SELECT p.name, p.type, p.default_val, p.description, p.section,
                   pg.title as page_title, pg.url as page_url, pg.id as page_id
@@ -849,12 +1047,15 @@ export function lookupProperty(
            WHERE p.page_id = ? AND p.name = ? COLLATE NOCASE
            ORDER BY p.sort_order`,
         )
-        .all(linked.page_id, name) as typeof lookupProperty extends (...a: unknown[]) => infer R ? R : never;
+        .all(linked.page_id, name) as PropertyLookupRowWithoutConfidence[];
+      if (scopedRows.length > 0) {
+        return scopedRows.map((row) => ({ ...row, confidence: "high" }));
+      }
     }
   }
 
   // Fallback: search by property name across all pages
-  return db
+  const globalRows = db
     .prepare(
       `SELECT p.name, p.type, p.default_val, p.description, p.section,
               pg.title as page_title, pg.url as page_url, pg.id as page_id
@@ -863,7 +1064,9 @@ export function lookupProperty(
        WHERE p.name = ? COLLATE NOCASE
        ORDER BY pg.title, p.sort_order`,
     )
-    .all(name) as typeof lookupProperty extends (...a: unknown[]) => infer R ? R : never;
+    .all(name) as PropertyLookupRowWithoutConfidence[];
+  const confidence: PropertyLookupConfidence = commandPath ? "low" : "medium";
+  return globalRows.map((row) => ({ ...row, confidence }));
 }
 
 /** Parse _attrs JSON and extract completion, stripping _attrs from output. */
@@ -1943,6 +2146,29 @@ function filterVersionRange(
   });
 }
 
+function isMajorMinorVersion(version: string): boolean {
+  return /^\d+\.\d+$/.test(version);
+}
+
+function resolveChangelogVersionList(version: string): string[] {
+  const all = getChangelogVersions();
+  if (all.includes(version)) return [version];
+  if (isMajorMinorVersion(version)) {
+    const patchPrefix = `${version}.`;
+    const patchVersions = all.filter((v) => v.startsWith(patchPrefix));
+    if (patchVersions.length > 0) return patchVersions;
+  }
+  return [version];
+}
+
+function extractChangelogTerms(query: string, version?: string): string[] {
+  const terms = extractTerms(query);
+  if (!version) return terms;
+
+  const versionParts = new Set(version.match(/\d+/g) ?? []);
+  return terms.filter((term) => !CHANGELOG_GENERIC_TERMS.has(term) && !versionParts.has(term));
+}
+
 /** Search changelogs with FTS, version range, category, and breaking-only filters. */
 export function searchChangelogs(
   query: string,
@@ -1958,12 +2184,12 @@ export function searchChangelogs(
   } = {},
 ): ChangelogResult[] {
   const limit = options.limit ?? 20;
-  const terms = extractTerms(query);
+  const terms = extractChangelogTerms(query, options.version);
 
   // Build version filter
   let versionList: string[] | null = null;
   if (options.version) {
-    versionList = [options.version];
+    versionList = resolveChangelogVersionList(options.version);
   } else if (options.fromVersion || options.toVersion) {
     const all = getChangelogVersions();
     versionList = filterVersionRange(all, options.fromVersion, options.toVersion, options.inclusiveFrom);

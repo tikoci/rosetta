@@ -7,13 +7,14 @@
 > **Design principles and the North Star architecture are in `DESIGN.md`.** This file is the *action list* — what to build, what needs a decision, what's waiting on a trigger.
 >
 > **Last holistic review:** 2026-04-26. MCP-tool / backlog alignment pass —
-> walked the 13-tool registry against this file. Promoted three items to ✅
+> walked the then-13-tool registry against this file. Promoted three items to ✅
 > (changelog compact-summary mode, `routeros_search_tests` device filter,
 > `routeros_current_versions` WinBox 4 in-band); added three follow-ups
 > (workflow-arrow gaps on `stats` + `current_versions`,
 > `routeros_command_version_check` `arch` consistency,
 > `related`-bucket doc drift around `glossary`). Tool count and registry
-> contract still match the Phase 2 frozen-13 list; no surprises.
+> contract matched the Phase 2 frozen-13 list at the time. Since then,
+> `routeros_explain_command` deliberately raised the registry to 14 tools.
 >
 > **Earlier review:** 2026-04-21. CI / release-workflow hygiene pass —
 > captured FORCE semantics confusion, `bump-version` race, local-release
@@ -51,24 +52,26 @@ User flagged a bundle of related concerns after the v0.7.x–v0.8.x release
 storm. Capture verbatim; address in small, separate PRs so each one is easy
 to review.
 
-1. **`FORCE`/`force` semantics are confusing agents.** The flag is named like
-   a generic "re-do this step" but in practice npm publish is always skipped
-   (npm is immutable), so "force" only re-uploads GitHub Release assets +
-   re-tags OCI images + force-moves the git tag. Users / agents think they
-   should always try `force=true` when something fails; what they really
-   need is to bump the version and run again. Fix: **rename to something
-   honest** (`republish_assets` or `overwrite_gh_release`), and make the
-   workflow description say "does NOT re-publish npm — bump version first if
-   you need that." Also consider: if a given tag already exists on npm,
-   refuse a non-force run with a clear "version is already on npm; bump
-   first" error instead of the current fast-follow bump dance.
+**Status 2026-04-26:** `ci-release-hygiene` shipped items 1, 2, and 5.
+CI pickup is explicit: `.github/workflows/release.yml` exercises the renamed
+`workflow_dispatch` input, early fast-fail gate, post-extraction DB-wipe guard,
+and `bump-version` rebase retry during normal release dispatches; `.github/workflows/test.yml`
+runs `bun test` (including `src/release.test.ts`) plus lint/typecheck on
+`push`, `pull_request`, and `workflow_dispatch`. No local `make` or manual
+build assumption is required for these checks.
 
-2. **`bump-version` job races itself.** Back-to-back release runs produce
-   `! [rejected] HEAD -> main (fetch first)` because each checkout pins to
-   the SHA at workflow start. Fix: `git pull --rebase origin main` before the
-   push, or retry the push up to 3× with rebase between attempts. The bump
-   commit is trivially rebaseable (only touches `package.json`), so a rebase
-   is safe.
+1. **DONE — `FORCE`/`force` semantics are clearer in GitHub Actions.**
+   The release workflow input is now `republish_assets`; its description says
+   it reuploads GitHub Release assets + OCI tags and **does NOT** re-publish
+   npm. Npm, bunx-smoke, and bump-version are skipped in this mode; bump
+   `package.json` for a new npm package. Follow-up still open: if a tag
+   already exists on npm, consider refusing a non-republish run with a clear
+   "version is already on npm; bump first" error.
+
+2. **DONE — `bump-version` job races itself.** Back-to-back release runs used
+   to produce `! [rejected] HEAD -> main (fetch first)` because each checkout
+   pinned the SHA at workflow start. The job now retries up to 3×, fetching
+   and rebasing on `origin/main` before each push.
 
 3. **Drop the local `make release` path (or clearly label it internal).**
    DESIGN.md still says "local release continues to work as an alternative
@@ -82,13 +85,12 @@ to review.
 
 4. **Release workflow still uses deprecated Node 20 actions.** `actions/setup-node@v4`, `actions/upload-artifact@v4`, `docker/login-action@v3`, `docker/setup-buildx-action@v3` all emit the "Node 20 deprecated, forced to Node 24 June 2026" warning. Bump or pin `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` before June to avoid a forced breakage window.
 
-5. **Move lint + typecheck + tests earlier in `release.yml`.** Currently they
-   run AFTER the full extraction pipeline (~2 minutes). A lint error that
-   slipped past `test.yml` (see v0.8.2: `noNonNullAssertion` in
-   `canonicalize.test.ts`) wastes the entire extraction budget before
-   failing. Run them immediately after `bun install`, before `Download HTML
-   export`. Extraction-specific tests (anything touching `ros-help.db`) can
-   keep their current position.
+5. **DONE — Move lint + typecheck + tests earlier in `release.yml`.** The
+   `build-and-release` job now runs `bun run typecheck`, `bun run lint`, and
+   `bun test` immediately after `bun install`, before `Download HTML export`.
+   The post-extraction `Run tests (DB-wipe guard)` step remains after the
+   extraction/link pipeline so regressions of the v0.7.6 DB-wipe bug still
+   fail before publish.
 
 6. **`html_url` input defaults to a Seafile direct-link that rotates.** When
    MikroTik publishes a new export, the hard-coded default becomes wrong and
@@ -104,7 +106,7 @@ to review.
    section, use it as the body of the GitHub Release (instead of or
    alongside the current auto-generated "Database Stats" block), and commit
    the version-bumped `CHANGELOG.md` in the same step as `bump-version`.
-   Skipped for force mode (no new version).
+   Skipped for `republish_assets` mode (no new version).
 
 8. **`.npm-publish-checklist.md` in repo root is stale.** Predates the CI
    release workflow. Either delete it or move the still-relevant parts into
@@ -193,9 +195,22 @@ Action: apply the same pattern to extractor entrypoints (`main()` +
 
 **Out of scope.** Telemetry, signed DB downloads, mirror CDN. Security posture: download URL stays under `github.com/tikoci/rosetta/`, `redirect: follow` only follows to `objects.githubusercontent.com`.
 
-### 🔴 Version GC — bound `schema_node_presence` growth
+### ✅ Version GC — bound `schema_node_presence` growth — DONE
 
-Keep ~4 active channel heads (long-term, stable, testing, development). Drop `schema_node_presence` rows for versions older than previous long-term on each extraction run. Keeps junction at ~160K rows instead of growing unboundedly. GC is a release-pipeline step (`make gc-versions`). Changelogs exempt (full v7 record, tiny data).
+`src/gc-versions.ts` prunes only `schema_node_presence` to the active RouterOS
+channel heads (long-term, stable, testing, development), de-duplicated by
+version because `ros_versions` is keyed by `(version, arch)` while
+`schema_node_presence` is version-keyed. It has `--dry-run` and `--verbose`
+flags plus a conservative fallback: if no recognized channel heads can be
+computed, it skips without deleting rows. `command_versions`, `changelogs`,
+`schema_nodes`, and `commands` are untouched.
+
+**CI pickup:** `.github/workflows/release.yml` runs `make gc-versions
+EXTRA_FLAGS=--verbose` immediately after `Link commands to pages` and before
+DB provenance/stats/build in the normal `workflow_dispatch` release path.
+`src/release.test.ts` structurally verifies that ordering and that the Makefile
+target exists / is in `.PHONY`. No local-only command is required for release
+DBs to get the retention behavior.
 
 ### 🟡 Completion data column promotion
 
@@ -241,7 +256,7 @@ for history.
 `routeros_current_versions` ends with `→ routeros_search_changelogs`
 (suggesting `to_version=<latest>`, `from_version=<user's version>`).
 `KNOWN_EXCEPTIONS` removed from `src/mcp-contract.test.ts` —
-the workflow-arrow check is now uniform across all 13 tools. Recorded
+the workflow-arrow check became uniform across the then-13 tools. Recorded
 for history.
 
 ### 🟢 `arch` as a *suggestion*, not a filter — and the package angle
@@ -449,7 +464,7 @@ The North Star folded callouts, videos, and properties into `routeros_search`'s 
 - **Callouts / Videos** — `searchAll()` now scales `RELATED_CAP`/`RELATED_VIDEO_CAP` proportionally to the `limit` argument via `relatedCaps(limit)`. Higher `limit` = more callouts/videos surfaced. The `limit` parameter doubles as a "hunger knob" — agents express how much context they want, and the related block expands accordingly. Aligned with David Parra's MCP talk (https://youtu.be/v3Fr2JR47KA): one knob > many narrow tools.
 - **Glossary** — added to `searchAll().related.glossary`. Triggered when input ≤2 words matches a glossary term/alias, or when a classified topic matches. Closes the most clear-cut gap without adding an MCP tool.
 - **Properties** — deferred. Better solution is to extend `routeros_lookup_property` with a `query=` mode (FTS over name+description). Tracked separately under the next backlog item.
-- **MCP probe in TUI (dot-commands)** — `.<tool_name> [positional...] [key=value ...]` in the TUI invokes the same code path as the MCP server tool and dumps raw JSON. 13 dot-commands cover every MCP tool 1:1. `.help` lists them. This is the contract for "human can always see what the agent sees."
+- **MCP probe in TUI (dot-commands)** — `.<tool_name> [positional...] [key=value ...]` in the TUI invokes the same code path as the MCP server tool and dumps raw JSON. 14 dot-commands cover every MCP tool 1:1. `.help` lists them. This is the contract for "human can always see what the agent sees."
 
 ### 🟢 routeros_lookup_property — add `query=` FTS mode
 
@@ -492,7 +507,7 @@ distinct MCP tool. That is faithful to the API but mismatched to how
 LLMs fail on RouterOS:
 
 - **Tool count explodes.** Every menu × every verb × every version
-  shape becomes a tool. The 13-tool ceiling we hold ourselves to here
+  shape becomes a tool. The small-tool-surface ceiling we hold ourselves to here
   exists for a reason — once a model has 100+ tools, selection
   accuracy collapses and descriptions get truncated.
 - **Forces the model to fabricate.** RouterOS has hundreds of property
@@ -602,8 +617,8 @@ David Parra's Anthropic Code Conf talk
 small programs that orchestrate MCP tool calls in one round-trip beats
 tool-call-per-turn for cost, latency, and composability. RouterOS-shaped
 example: *"validate this 30-line firewall config against 7.22 on a
-hAP ax² and tell me which rules might fail."* Today the agent must
-call our 13 atomic tools 30+ times. With code mode it writes:
+  hAP ax² and tell me which rules might fail."* Today the agent must
+  call our 14 atomic tools 30+ times. With code mode it writes:
 
 ```ts
 // pseudo: agent snippet inside a hypothetical run_query tool
@@ -641,16 +656,25 @@ questions that are already well-served by `routeros_search`.
 Strictly within rosetta's "no router connection" scope, in the order
 that pays for itself:
 
-1. **`routeros_explain_command`** as a real MCP tool (sketch above).
-   Bundle of 4–5 existing query functions; reuses canonicalize.ts
-   with the DB resolver we just shipped. No new schema. Agent value
-   is immediate and per-call cost is comparable to one
-   `routeros_search`. This is the smallest concrete next step.
-2. **Confidence-flag plumbing into `routeros_search` /
-   `routeros_lookup_property` results.** Canonicalize already
-   produces `confidence`; surface it in `classified.confidence` on
-   `searchAll()` and as a per-result field on lookup. Tier-2 tools
-   downstream will gate on it.
+1. ✅ **`routeros_explain_command`** as a real MCP tool — DONE.
+   Shipped as a read-only tier-1 helper that reuses canonicalize.ts
+   with rosetta's DB-backed verb resolver, parses `key=value` args,
+   attaches `lookupProperty()` matches (including lookup confidence),
+   warns on no-command / low-confidence / unknown-arg /
+   command-not-in-version / unused model context, and returns compact
+   `searchPages()` / `searchChangelogs()` context plus
+   `checkCommandVersions()`. TUI parity is via `.routeros_explain_command`
+   raw JSON dot-command. No schema change and no router connection.
+   CI pickup: `.github/workflows/test.yml` runs `bun test` (including
+   `src/query.test.ts` and `src/mcp-contract.test.ts`), `bun run
+   typecheck`, and `bun run lint` on push / pull_request /
+   workflow_dispatch, so the new tool registry, core response shape,
+   and dot-command import are exercised by normal CI.
+2. ✅ **Confidence-flag plumbing into `routeros_search` /
+   `routeros_lookup_property` results.** Canonicalize produces command
+   confidence; `searchAll().classified.command_path_confidence` and
+   `lookupProperty()` result rows now surface confidence for downstream
+   tier-2 gating.
 3. **Package metadata on `schema_nodes._package`.** Already a
    placeholder column. Higher leverage than arch — a validator that
    says "this command needs `wifi-qcom` which is not present on
@@ -768,7 +792,7 @@ config blocks per client. Users will not put up with it.
    MCP that exposes `routeros_*` (rosetta), `routeros_validate_*`
    (validator), and (gated, opt-in) `routeros_run_*` (runner) tools.
    Pro: one config block per client. Con: tool count balloons past
-   the 13-tool ceiling rosetta deliberately holds; trust labelling
+   the small-tool-surface ceiling rosetta deliberately holds; trust labelling
    gets harder; one bug takes everything down.
 
 3. **`bunx @tikoci/install <client>`** — an opinionated installer
@@ -875,8 +899,27 @@ Implemented in `src/eval/retrieval.ts` + `fixtures/eval/queries.json` + `fixture
 
 **Real bugs surfaced during golden-set tightening (worth filing):**
 
-- 🟡 **Changelog version-rollup gap.** Classifier extracts `version="7.22"` from "what changed in 7.22", but DB only has changelogs for the patch versions (`7.22.1`, `7.22.2`, …). `searchAll().related.changelogs` is silently empty. Either (a) classify rolls up a major version to "match any 7.22.*", or (b) the changelog query does a `LIKE '7.22%'` fallback when the exact version is missing. Either fix should preserve exact-match precedence. Caught only because the eval expected the related block to populate.
-- 🟡 **Bridge VLAN ranking.** "Bridge VLAN Table" (the dedicated case-study page) ranks #6 for `bridge vlan filtering on a switch` — outside the default top-5. Other bridging/VLAN pages do rank, so this isn't a wrong-answer bug, but it suggests the title-weighted BM25 isn't pulling the most-on-topic page to the top. Worth a one-shot look at compound terms for "bridge vlan" / "VLAN table" before treating as a real regression.
+**Status 2026-04-26:** `phase0-findings` fixed the changelog rollup and
+applied the bridge VLAN tuning after measurement. CI pickup is explicit:
+`.github/workflows/test.yml` runs `bun test` (including `src/query.test.ts`)
+plus lint/typecheck on `push`, `pull_request`, and `workflow_dispatch`; the
+normal `release.yml` extraction path also runs Phase 0
+(`bun run src/eval/retrieval.ts`) after building the full DB, so the
+`version-7-22` and `nl-bridge-vlan` golden queries are exercised without any
+local-only build assumption.
+
+- ✅ **Changelog version-rollup gap — DONE.** Classifier extracts
+  `version="7.22"` from "what changed in 7.22", while the production DB may
+  only have patch changelog rows (`7.22.1`, `7.22.2`, …). `searchChangelogs()`
+  now preserves exact precedence (`7.22` rows win when present; `7.22.1` stays
+  exact) and falls back from absent major.minor releases to matching patch rows.
+  Generic version questions drop non-discriminating changelog words plus the
+  version number before FTS, so `searchAll().related.changelogs` populates.
+- ✅ **Bridge VLAN ranking — DONE.** Measured baseline: "Bridge VLAN Table"
+  ranked #6 for `bridge vlan filtering on a switch`; removing the context word
+  `switch` for the specific `bridge` + `vlan` + `filtering` term set moved it
+  to rank #1, while the `nl-bridge-vlan` eval stayed green. This is intentionally
+  narrower than making `switch` a global stop word.
 
 ### ✅ Phase 1 — Self-supervised query generation (auto-grow the golden set) — **DONE 2026-04-22**
 
@@ -884,7 +927,7 @@ Implemented in `src/eval/self-supervised.ts` + `fixtures/eval/self-supervised-ba
 
 ### ✅ Phase 2 — Tool-shape contract + token-budget tests — **DONE 2026-04-22**
 
-Implemented in `src/mcp-contract.test.ts`. Runs inside `bun test`. 17 assertions across three blocks: (A) frozen 13-tool registry + workflow-arrow (→) convention, (B) token-budget guardrails on 10 canonical queries (`tokens(x) = ceil(JSON.stringify(x).length / 4)` — guardrail not precision; all queries currently use 20–32% of budget), (C) response-shape invariants for 5 representative queries (top-level keys exist, classifier output matches expected subset, `pages` is a bounded array, `related` buckets hold non-empty arrays or a single object for `command_node`, `next_steps` is an array). No new deps (no `tiktoken`). Block C originally used `toMatchSnapshot`, but the snapshot file was captured on a slim dev DB and diverged from the full CI-built DB (more populated `related_buckets`: `changelogs`, `videos`, `command_node`, `commands`). Switched to explicit invariants that hold on any populated DB — the snapshot surface was re-solving what Phase 0 already does for corpus-linked expectations.
+Implemented in `src/mcp-contract.test.ts`. Runs inside `bun test`. Assertions cover three blocks: (A) frozen 14-tool registry + workflow-arrow (→) convention, (B) token-budget guardrails on 10 canonical queries (`tokens(x) = ceil(JSON.stringify(x).length / 4)` — guardrail not precision; all queries currently use 20–32% of budget), (C) response-shape invariants for 5 representative queries (top-level keys exist, classifier output matches expected subset, `pages` is a bounded array, `related` buckets hold non-empty arrays or a single object for `command_node`, `next_steps` is an array). No new deps (no `tiktoken`). Block C originally used `toMatchSnapshot`, but the snapshot file was captured on a slim dev DB and diverged from the full CI-built DB (more populated `related_buckets`: `changelogs`, `videos`, `command_node`, `commands`). Switched to explicit invariants that hold on any populated DB — the snapshot surface was re-solving what Phase 0 already does for corpus-linked expectations.
 
 Tool-surface change ritual documented in `CLAUDE.md` (under "Changelog discipline"): updating the registry requires touching both `src/mcp.ts` and `EXPECTED_TOOLS` in the test, plus a `CHANGELOG.md` entry. Description-only edits don't trigger the test.
 
@@ -900,7 +943,7 @@ Tool-surface change ritual documented in `CLAUDE.md` (under "Changelog disciplin
 - ✅ **CI wiring — Phase 0 + Phase 2 wired to `release.yml`.** `release.yml` runs Phase 0 (`bun run src/eval/retrieval.ts`) as a non-blocking post-extract step and the dedicated real-DB Phase 2 contract test. Phase 1 stays local-only for now (noisier, auto-gen).
 - 🟡 **Baseline rebuild cadence.** `fixtures/eval/baseline.json` and `self-supervised-baseline.json` are committed metrics on the *current local* DB. Each real DB refresh will drift. 2pp (Phase 0) / 5pp (Phase 1) tolerance absorbs small moves; larger moves need `--update-baseline` in the DB-refresh commit. Document this as part of the HTML-export refresh ritual when we next re-extract.
 - ✅ **Phase 1 determinism now holds across all strategies.** The initial cmd-path sampler used SQL `ORDER BY RANDOM()` and would have churned the sample set on a full DB. Fixed by selecting a stable ordered set and applying the same seeded JS shuffle (`0xC0FFEE`) as the other strategies. This keeps `self-supervised-baseline.json` reproducible across runs on the same DB.
-- 🟢 **Two real bugs Phase 0 surfaced are ready to fix** — changelog version-rollup (already tracked above) and the two missing workflow arrows. Both are small, both prove the framework's value. Do before Phase 3.
+- ✅ **Phase 0/2 quick fixes completed.** Changelog version-rollup and the two missing workflow arrows have shipped; both proved the framework's value before Phase 3.
 
 ### 🟡 Phase 3 — Local-LLM judge (free, opt-in, never CI-default)
 

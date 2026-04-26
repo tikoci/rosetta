@@ -113,14 +113,21 @@ automatically at release time.
 
 ## Creating a Release
 
-The Makefile handles the full release flow — preflight checks, cross-compile, git tag, push, and GitHub Release upload:
+The preferred published release path is the GitHub Actions `Release`
+workflow (`workflow_dispatch`), because it ties the generated DB, assets, OCI
+images, npm publish, and version bump to one CI log. Its `republish_assets`
+input reuploads GitHub Release assets and OCI tags for an existing version, but
+does **not** re-publish npm; bump `package.json` for a new npm package.
+
+The Makefile remains available as a local compatibility path — preflight checks,
+cross-compile, git tag, push, and GitHub Release upload:
 
 ```sh
 make release VERSION=v0.1.0          # New release
-make release VERSION=v0.1.0 FORCE=1  # Update existing release
+make release VERSION=v0.1.0 FORCE=1  # Update existing local release assets
 ```
 
-This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, compresses the database, tags the commit, and creates a GitHub Release with all artifacts.
+This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, compresses the database, tags the commit, and creates a GitHub Release with all artifacts. Local `FORCE=1` only force-moves/reuploads GitHub assets; it does not republish npm.
 
 Release CI also publishes multi-arch OCI images (linux/amd64 + linux/arm64) to
 Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) via
@@ -132,14 +139,14 @@ Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) via
 ```sh
 make build-release VERSION=v0.1.0   # Build artifacts only (no git, no upload)
 make release VERSION=v0.1.0         # Full flow: preflight → build → tag → push → create release
-make release VERSION=v0.1.0 FORCE=1 # Update existing: force-move tag → upload --clobber
+make release VERSION=v0.1.0 FORCE=1 # Update existing assets: force-move tag → upload --clobber
 ```
 
 ## Project Structure
 
 ```text
 src/
-├── mcp.ts                  # MCP server (13 tools, stdio + HTTP) + CLI dispatch
+├── mcp.ts                  # MCP server (14 tools, stdio + HTTP) + CLI dispatch
 ├── setup.ts                # --setup: DB download + MCP client config
 ├── browse.ts               # Interactive terminal browser (REPL)
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking

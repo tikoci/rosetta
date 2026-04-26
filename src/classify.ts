@@ -13,7 +13,7 @@
  * See DESIGN.md "North Star Architecture — Unified routeros_search".
  */
 
-import { type CanonicalizeOptions, canonicalize } from "./canonicalize.ts";
+import { type CanonicalCommand, type CanonicalizeOptions, canonicalize } from "./canonicalize.ts";
 
 /**
  * Known RouterOS topics — extracted from changelog categories, top-level
@@ -65,6 +65,8 @@ export type CommandFragment = {
   verbs: string[];
 };
 
+export type CommandPathConfidence = CanonicalCommand["confidence"];
+
 export type QueryClassification = {
   /** Raw input (unchanged). */
   input: string;
@@ -74,6 +76,8 @@ export type QueryClassification = {
   topics: string[];
   /** Canonical command path (e.g. `/ip/firewall/filter`) if the input looks path-ish. */
   command_path?: string;
+  /** Confidence reported by canonicalize for `command_path`; pure navigation is `medium`. */
+  command_path_confidence?: CommandPathConfidence;
   /** `key=value` pairs / verbs parsed from fragment-style input (`add chain=forward`). */
   command_fragment?: CommandFragment;
   /** Device model candidate (e.g. `RB1100AHx4`, `hAP`, `CCR2216`). DB resolution happens in searchAll. */
@@ -137,8 +141,13 @@ function detectVersion(input: string): string | undefined {
   return m ? m[0] : undefined;
 }
 
-/** Detect command path. Uses canonicalize.primaryPath for robust handling of `/ip address`, `ip/address`, etc. */
-function detectCommandPath(input: string, options: CanonicalizeOptions): string | undefined {
+type CommandPathDetection = {
+  path: string;
+  confidence: CommandPathConfidence;
+};
+
+/** Detect command path. Uses canonicalize for robust handling of `/ip address`, `ip/address`, etc. */
+function detectCommandPath(input: string, options: CanonicalizeOptions): CommandPathDetection | undefined {
   // Heuristic: only run the canonicalizer if the input contains a forward slash
   // OR starts with a known top-level command word. Otherwise every "routing"
   // query would be classified as a command path.
@@ -155,7 +164,10 @@ function detectCommandPath(input: string, options: CanonicalizeOptions): string 
     const primary = commands.find((c) => !c.subshell) ?? commands[0];
     const path = primary?.path ?? finalPath;
     if (!path || path === "/") return undefined;
-    return path;
+    return {
+      path,
+      confidence: primary?.confidence ?? "medium",
+    };
   } catch {
     return undefined;
   }
@@ -249,7 +261,10 @@ export function classifyQuery(input: string, options: ClassifyOptions = {}): Que
 
   const canonOptions: CanonicalizeOptions = options.isVerb ? { isVerb: options.isVerb } : {};
   const commandPath = detectCommandPath(normalized, canonOptions);
-  if (commandPath) result.command_path = commandPath;
+  if (commandPath) {
+    result.command_path = commandPath.path;
+    result.command_path_confidence = commandPath.confidence;
+  }
 
   const fragment = detectCommandFragment(normalized);
   if (fragment) result.command_fragment = fragment;
