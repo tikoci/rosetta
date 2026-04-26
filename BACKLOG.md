@@ -724,6 +724,83 @@ this picture:
 Capturing this so future backlog items can say "this serves
 explain/validate/run" instead of re-deriving the picture each time.
 
+### 🟡 MCP-client diversity is the deployment gate (cross-tikoci)
+
+**Companion to the explain → validate → run entry above.** The user
+flagged this as the issue they are *actively mulling* — it is the gating
+question for the cross-tikoci direction, not the tool surface itself.
+
+**Problem.** "Install rosetta" today means a different ritual depending
+on the client: Claude Desktop wants `claude_desktop_config.json`,
+Claude Code wants `~/.claude/settings.json` or `mcp.json`, VS Code
+Copilot wants `.vscode/mcp.json` *or* a workspace-level extension hook,
+Copilot CLI has its own path, Codex has yet another, Cursor and web
+clients each differ again. Even with `bunx @tikoci/rosetta` collapsing
+the *runtime* story, the *config* story is N-fold. Adding a separate
+validator MCP and an eventual runner MCP multiplies that — three
+config blocks per client. Users will not put up with it.
+
+**Constraints.**
+
+- Bun is a hard runtime requirement for rosetta (`bun:sqlite`,
+  `Bun.serve`, etc. — see root `~/CLAUDE.md`). Any "minimal" wrapper
+  must accept that.
+- Trust property must survive: rosetta has to remain identifiable as
+  read-only, even when bundled with a write-capable runner. If a user
+  cannot tell *at install time* which tools touch a router, the trust
+  story is gone.
+- We are not in a position to ship per-client installers ourselves;
+  the matrix grows and we do not own those clients.
+
+**Possible directions** (capture, do not decide here):
+
+1. **VS Code extension as opinionated host** — extends
+   `vscode-tikbook` (Theme 3 already prototypes rosetta MCP injection
+   via `mcp.json`). The extension becomes the *single* install step:
+   "install TikBook" pulls in rosetta MCP + the LSP + (eventually) a
+   validator and offers the runner as a prompted opt-in. Pro: one
+   install for the most common tikoci user (network admin in VS Code).
+   Con: only covers VS Code; Claude Desktop / Code / others still need
+   their own path. Also conflates "use TikBook" with "use rosetta MCP"
+   when many users want one without the other.
+
+2. **Single MCP identity, multiple tool prefixes** — one `tikoci`
+   MCP that exposes `routeros_*` (rosetta), `routeros_validate_*`
+   (validator), and (gated, opt-in) `routeros_run_*` (runner) tools.
+   Pro: one config block per client. Con: tool count balloons past
+   the 13-tool ceiling rosetta deliberately holds; trust labelling
+   gets harder; one bug takes everything down.
+
+3. **`bunx @tikoci/install <client>`** — an opinionated installer
+   CLI that knows the config conventions of the major MCP clients
+   and writes the right blocks. Pro: keeps each MCP small and
+   independent; user runs one command. Con: we own the client matrix
+   forever; clients change their conventions.
+
+4. **Status quo + per-client docs** — what we do today. Pro: nothing
+   to maintain. Con: every additional tikoci MCP makes this worse;
+   already a tax for users with rosetta + the LSP.
+
+**Position to take (initial lean, revisit):** path 1 (VS Code
+extension as the *primary* curated install) for the "I am a network
+admin in VS Code" user, plus path 4 (per-client docs) for everyone
+else. Path 2 stays off the table because it dilutes the trust
+property. Path 3 is the back-pocket option if the docs surface gets
+too noisy.
+
+**Why park this here.** The explain → validate → run design is
+useless if it cannot land in front of users. Decide the install
+strategy (or at least which paths are out) before scaling MCP-tool
+count past today's 13. Most cross-tikoci backlog items implicitly
+assume "and then users will install both" — flag the assumption.
+
+**Cross-references.**
+
+- `vscode-tikbook/ROADMAP.md` Theme 3 — rosetta MCP bundling prototype.
+- `vscode-tikbook/ROADMAP.md` Theme 6 — Copilot integration surfaces.
+- `tikoci-crossref` skill — "MCP-client diversity is the deployment
+  gate" learning under "Critical Cross-Project Learnings."
+
 ---
 
 ## Improvements (smaller, not urgent)
