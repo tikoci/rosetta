@@ -811,7 +811,9 @@ Knowledge boundaries:
 - No RouterOS v6 data available — v6 syntax and subsystems differ significantly from v7
 - For versions older than 7.9, no command tree data exists
 - Versions older than current long-term are unpatched by MikroTik
-- Absence of a peripheral in docs doesn't mean unsupported — most MBIM modems work`,
+- Absence of a peripheral in docs doesn't mean unsupported — most MBIM modems work
+
+→ routeros_search: probe the corpus these stats describe with any RouterOS question`,
     inputSchema: {},
   },
   async () => {
@@ -1402,7 +1404,9 @@ Key context for version reasoning:
 - Our command tree data covers 7.9–7.23beta2
 - If a user's version is older than the current long-term, recommend upgrading
 
-Requires network access to upgrade.mikrotik.com.`,
+Requires network access to upgrade.mikrotik.com.
+
+→ routeros_search_changelogs: read what changed *into* the current/target version (use to_version=<latest> and from_version=<user's version>)`,
     inputSchema: {},
   },
   async () => {

@@ -6,9 +6,28 @@
 >
 > **Design principles and the North Star architecture are in `DESIGN.md`.** This file is the *action list* — what to build, what needs a decision, what's waiting on a trigger.
 >
-> **Last holistic review:** 2026-04-21. CI / release-workflow hygiene pass — captured FORCE semantics confusion, `bump-version` race, local-release deprecation, and changelog-discipline adoption. CHANGELOG.md back-filled from v0.1.0–v0.8.3. Doc drift fixes in CLAUDE.md (six-doc table, agentic changelog rule) and CONTRIBUTING.md (crane → docker buildx, changelog section).
+> **Last holistic review:** 2026-04-26. MCP-tool / backlog alignment pass —
+> walked the 13-tool registry against this file. Promoted three items to ✅
+> (changelog compact-summary mode, `routeros_search_tests` device filter,
+> `routeros_current_versions` WinBox 4 in-band); added three follow-ups
+> (workflow-arrow gaps on `stats` + `current_versions`,
+> `routeros_command_version_check` `arch` consistency,
+> `related`-bucket doc drift around `glossary`). Tool count and registry
+> contract still match the Phase 2 frozen-13 list; no surprises.
 >
-> **Shipped since last review:** North Star steps 2–4 — `classifyQuery` (src/classify.ts, 42 table-driven tests), `searchAll()` wrapper (src/query.ts) wired into both MCP `routeros_search` and TUI, dropped folded standalone tools `routeros_search_callouts` and `routeros_search_videos` (tool count 15→13; content surfaces in `related` block instead), and budget-aware `getPage()` that includes `properties` + `related_videos` on TOC-mode responses.
+> **Earlier review:** 2026-04-21. CI / release-workflow hygiene pass —
+> captured FORCE semantics confusion, `bump-version` race, local-release
+> deprecation, and changelog-discipline adoption. CHANGELOG.md back-filled
+> from v0.1.0–v0.8.3.
+>
+> **Shipped since last review:** `canonicalize.ts` hardenings H4/H6/H7/H8
+> (resolver plug-in point, `extractMentions()`, BOM/ZWSP tolerance,
+> per-command `confidence` flag) — wired into `searchAll()` via
+> `ClassifyOptions { isVerb }`. Earlier round (Mar–Apr): North Star steps
+> 2–4 — `classifyQuery`, `searchAll()`, dropped folded
+> `routeros_search_callouts` / `routeros_search_videos` (tool count 15→13;
+> content in `related`), budget-aware `getPage()` with TOC-mode
+> `properties` + `related_videos`.
 
 ---
 
@@ -190,9 +209,18 @@ Store `transcript_source` column (`'auto'|'author'|'none'`). Surface `{transcrip
 
 Code blocks track `brush: ros` but extraction flattens to separate `code` field. Consider inlining as fenced blocks so they appear in context. Structural change — pairs with Smart `get_page()`. Keep an alternate plain-text path for consumers that want unformatted text. (Markdown signal tokens already landed 2026-04-16.)
 
-### 🟡 Changelog tool: compact summary mode
+### ✅ Changelog tool: compact summary mode — DONE
 
-Real session produced 802 lines / 23.2 KB for a version-range query. Fix: (1) grouped-summary mode by version×category, (2) raise `limit` max to 200-500, (3) make `from_version` exclusive (currently re-includes entries the user already has).
+All three sub-items shipped in `src/mcp.ts::routeros_search_changelogs` and
+`groupChangelogsByVersion()`: (1) grouped-by-version output with per-version
+`entry_count` + `breaking_count`, (2) `limit` max raised to 500, (3)
+`from_version` is exclusive (callsite + tool description). Recorded for
+history.
+
+**Follow-up (🟢, optional):** add `category` rollup *within* a version group
+(e.g. version → categories → entries) when results span many subsystems —
+only worth it if real sessions still produce noisy output now that grouping
+is in place. Capture a session example before acting.
 
 ### 🟡 Multi-arch schema remaining items
 
@@ -201,9 +229,109 @@ Real session produced 802 lines / 23.2 KB for a version-range query. Fix: (1) gr
 - **Accumulate mode drops presence for removed nodes** — non-primary version commands removed by primary can't be FK-referenced. Fix: union all versions' nodes (large) or legacy presence table (no FK). Defer until GC designed.
 - **`commands` UNIQUE(path) vs `schema_nodes` UNIQUE(path, type)** — `INSERT OR IGNORE` could silently drop a row if RouterOS ever has same-path different-type entries. Not possible today; note for future.
 
-### 🟢 `routeros_search_tests` device filter
+### ✅ `routeros_search_tests` device filter — DONE
 
-TUI half shipped. Verify MCP tool + `searchDeviceTests()` also accepts `device` param; if not, add it.
+MCP tool exposes `device` (substring match) and `searchDeviceTests()` accepts
+it (`src/mcp.ts:1305`, `src/query.ts:1741`). TUI parity confirmed. Recorded
+for history.
+
+### ✅ Workflow-arrow gaps on `stats` + `current_versions` — DONE
+
+`routeros_stats` description now ends with `→ routeros_search`;
+`routeros_current_versions` ends with `→ routeros_search_changelogs`
+(suggesting `to_version=<latest>`, `from_version=<user's version>`).
+`KNOWN_EXCEPTIONS` removed from `src/mcp-contract.test.ts` —
+the workflow-arrow check is now uniform across all 13 tools. Recorded
+for history.
+
+### 🟢 `arch` as a *suggestion*, not a filter — and the package angle
+
+(2026-04-26 — captured user's framing during MCP-tool / backlog audit.)
+
+**Decision direction (not yet implemented):** `arch` should NOT be a
+hard filter on `routeros_command_version_check` /
+`routeros_command_tree` / `routeros_command_diff`. Real-world usage:
+
+- 95–99% of RouterOS commands behave identically across arches; filtering
+  hides answers from agents who passed `arch` defensively.
+- Agents often try to fill in optional params even when they shouldn't.
+  An agent that *thinks* it knows the arch (chained from a model lookup
+  via `routeros_device_lookup`) shouldn't be punished with empty results
+  if our inspect data only covers one arch.
+- We extract from CHR (x86_64) primarily, plus arm64 deep-inspect. We
+  have **no** MIPSBE / ARM 32-bit data — yet ARM 32-bit is plausibly the
+  most common deployed arch (Audience, cAP ax, hAP family below ax², many
+  switches).
+
+**Behaviour we want instead:**
+
+1. Accept `arch` on every command-tree tool as an *advisory* hint, not a
+   WHERE clause. Always return all matching nodes from the data we have.
+2. When `arch` is supplied AND we have inspect data for it (today: `x86`
+   or `arm64`), prefer that arch's data in the response and tag the
+   record (e.g. `_arch: 'arm64'`).
+3. When `arch` is supplied but we have no data for it (today: anything
+   that is not x86/arm64), return arm64 (or x86) data with an explicit
+   `note` field on the response: e.g. `"rosetta has no inspect data for
+   ARM 32-bit yet; the answer below comes from arm64 inspect data and is
+   likely correct for shared subsystems but may diverge for wireless
+   drivers and arch-specific packages."`
+4. Track `arch` solicitations passively (count by value) so we know
+   which gaps to prioritise filling. No telemetry shipped — local-only,
+   piggyback on the deferred `usage_log` / `ROSETTA_LOG_USAGE=1` idea.
+
+**The bigger problem isn't arch — it's package.** Agents asking "why
+doesn't `/interface/wifi-qcom/...` work on my router?" usually have a
+package-availability problem, not an arch problem. Wireless is the worst
+offender:
+
+- `wifi-qcom` (newer, ax/ax2/ax3 hardware) vs the older `wireless`
+  driver (legacy chips). RouterOS lets both packages co-exist — older
+  `wireless` becomes a CAPsMAN-only (CAPsMAN v1) controller package
+  while `wifi-qcom` drives the local radios with its own newer CAPsMAN
+  scheme. Sorting this out is hard for agents without grounded data on
+  the specific model.
+- A "valid" command can be unavailable simply because the package isn't
+  installed. CHR-derived inspect data has most extra-packages but
+  notably NOT the wireless-driver packages (no Wi-Fi hardware in CHR).
+- This points to wanting per-node **package** annotations
+  (`schema_nodes._package` is already a placeholder column awaiting
+  restraml metadata). Higher leverage than arch filtering.
+
+**Future-work nudges (capture, don't act now):**
+
+- **Backfill MIPSBE / ARM 32-bit inspect data** by pointing restraml's
+  `/console/inspect` extractor at a permanent real router instead of
+  CHR. Likely candidates: a hAP ax² (ARM64, but already covered) — what
+  we actually need is an Audience or hAP ac² (ARM 32-bit) and a hEX or
+  RB750Gr3 (MMIPS / MIPSBE). Requires controlled upgrade flow on the
+  test rig so the data tracks current versions.
+- **Wireless driver disambiguation.** When `routeros_device_lookup`
+  identifies a model, surface its expected wireless driver
+  (`wifi-qcom` vs `wireless`) and CAPsMAN scheme as a soft hint — not
+  as a hard cross-product. The model → driver mapping lives in product
+  matrix data we already have; the hard part is per-device family
+  rules.
+- **Package awareness in command responses.** Once
+  `schema_nodes._package` is populated, every command-tree response
+  should mention the providing package. Agents can then reason about
+  "is this command unavailable, or is the package just not enabled?".
+
+No code change in this audit pass. The previously-proposed `arch`
+parameter on `routeros_command_version_check` is folded into this entry
+— if we add `arch` there in the future, ship it in the
+"suggestion-not-filter" mode described above so all three command-tree
+tools behave consistently.
+
+### ✅ Doc drift — `related` block listing missing `glossary` — DONE
+
+Added `glossary` to `DESIGN.md` "Enriched response shape" example
+(plus a clarifying line that `command_node` is a single object, not an
+array, and that array buckets scale with `limit`); added it to the
+North Star history entry; added it to the `CLAUDE.md` overview line and
+the `routeros_search` row in the tool table. CLAUDE.md's "Folded into
+routeros_search.related" paragraph already mentioned glossary, so no
+change there. Recorded for history.
 
 ### 🟢 Browse REPL — paging + pass-through params
 
@@ -349,7 +477,14 @@ Not urgent — the current 13-tool surface is clean and small enough — but cap
 Items the TUI cleanup surfaced that *also* apply to the agent-facing MCP surface (most TUI fixes are pure UX and don't need MCP equivalents — these two do):
 
 - **Structured highlights in search responses.** FTS5 `snippet()` returns `**…**` boundary markers. Agents currently see them as literal asterisks inside JSON string values. Consider returning a sibling `highlights: [{ start, end }]` array (offsets into the excerpt text) alongside the raw text, so clients can render bold/colour without parsing the markers themselves. The TUI now post-processes `**…**` → ANSI bold in dot-command output as a stopgap.
-- **`routeros_current_versions` enrichment (`additional_data=true`).** Today the tool returns RouterOS channel versions only. Consider an opt-in flag that also returns: WinBox 4 version (separate field, clearly labelled), download URLs (mikrotik.com/download for each channel), and tikoci-sourced refs (restraml inspect.json index, OpenAPI3, `/app` YAML schema). All tikoci refs MUST be flagged with provenance ("from tikoci/restraml — community, not official MikroTik"). Helps agents construct download links and locate machine-readable specs without a separate web search.
+- **`routeros_current_versions` enrichment.** WinBox 4 version is now returned
+  in-band (no flag — confirmed in tool description + response shape). Still
+  open as an opt-in `additional_data=true` flag: download URLs
+  (mikrotik.com/download per channel) and tikoci-sourced refs (restraml
+  inspect.json index, OpenAPI3, `/app` YAML schema). All tikoci refs MUST be
+  flagged with provenance ("from tikoci/restraml — community, not official
+  MikroTik"). Helps agents construct download links and locate machine-
+  readable specs without a separate web search.
 
 ### 🟢 Stop words — post-classifier
 

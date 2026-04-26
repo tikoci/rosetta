@@ -17,6 +17,15 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Tool descriptions: `routeros_stats` and `routeros_current_versions`
+  now follow the workflow-arrow (→) convention.** `stats` suggests
+  `→ routeros_search`; `current_versions` suggests
+  `→ routeros_search_changelogs` with a `from_version`/`to_version`
+  hint. The Phase 2 contract test's `KNOWN_EXCEPTIONS` allow-list is
+  removed — every registered tool now carries a follow-up arrow.
+
 ### Added
 
 - **`canonicalize.ts`: pluggable verb resolver, `extractMentions()`,

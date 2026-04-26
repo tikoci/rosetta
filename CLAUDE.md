@@ -35,7 +35,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Three outputs (three surfaces, one core):
 
-1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — 13 tools plus 2 CSV resources for LLM agents. Unified `routeros_search` runs a regex classifier (`src/classify.ts`), executes side queries in parallel, and returns pages + a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills) + `next_steps` hints. Consolidation from 15 tools achieved by folding `routeros_search_callouts` and `routeros_search_videos` into that `related` block; see `DESIGN.md` "North Star".
+1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — 13 tools plus 2 CSV resources for LLM agents. Unified `routeros_search` runs a regex classifier (`src/classify.ts`), executes side queries in parallel, and returns pages + a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + `next_steps` hints. Consolidation from 15 tools achieved by folding `routeros_search_callouts` and `routeros_search_videos` into that `related` block; see `DESIGN.md` "North Star".
 2. **Browse TUI** (`src/browse.ts`) — interactive terminal browser with keyword-driven NL-like input. **First-class path into the data, not a test harness that happens to be usable.** Every MCP tool has a TUI command that mirrors its shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.).
 3. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration.
 
@@ -368,7 +368,7 @@ Register in MCP client config (bunx example — no paths needed):
 
 | Tool | Purpose |
 |------|---------|
-| `routeros_search` | Unified RouterOS search — regex classifier (command path, version, device, topics) + BM25 FTS + parallel side queries. Returns `{query, classified, pages, related: {command_node, properties, devices, callouts, videos, changelogs, skills}, next_steps}` |
+| `routeros_search` | Unified RouterOS search — regex classifier (command path, version, device, topics) + BM25 FTS + parallel side queries. Returns `{query, classified, pages, related: {command_node, properties, devices, callouts, videos, changelogs, skills, glossary}, next_steps}` |
 | `routeros_get_page` | Full page text by ID or title. Section-aware: `max_length` defaults to 16000; large pages return TOC with **top properties + related videos + callout summary** surfaced up front; `section` param retrieves specific sections |
 | `routeros_lookup_property` | Property by exact name, optionally filtered by command path |
 | `routeros_command_tree` | Browse command hierarchy at a given path |

@@ -321,13 +321,14 @@ Detectors are non-exclusive. `bgp 7.22 route reflection` fires **topic**, **vers
   query, classified: { version, topics, command_path, device, property },
   pages: [ ... ],
   related: {
-    callouts, properties, changelogs, videos, skills, commands, devices
+    command_node,    // single object (the matched command-tree node), not an array
+    callouts, properties, changelogs, videos, skills, commands, devices, glossary
   },
   next_steps: [ ... concrete follow-up calls ... ]
 }
 ```
 
-All `related` sections cap at 2–3 entries. Empty sections omitted.
+All array `related` sections cap at 2–3 entries (scaled by `limit` — see "hunger knob" in CLAUDE.md). `command_node` is a single object when the classifier identified a command path. Empty sections omitted.
 
 ### Zero-result handling
 
@@ -363,5 +364,5 @@ What was built, in rough order (March 2026):
 8. **CI release workflow** — `release.yml` workflow_dispatch: download HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.
 9. **HTTP transport** — Streamable HTTP via `--http` flag for remote/LAN MCP clients (ChatGPT Apps, OpenAI platform). Uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport`. Optional TLS.
 10. **MCP Registry metadata** — `server.json` manifest + CI validation for official registry publication.
-11. **North Star (April 2026)** — Regex classifier (`classify.ts`) + `searchAll()` wrapper. Unified `routeros_search` now returns pages + `related` (command_node, properties, devices, callouts, videos, changelogs, skills) + classifier-informed `next_steps`. Folded `routeros_search_callouts` / `routeros_search_videos` into `related`. MCP tool count 15 → 13.
+11. **North Star (April 2026)** — Regex classifier (`classify.ts`) + `searchAll()` wrapper. Unified `routeros_search` now returns pages + `related` (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + classifier-informed `next_steps`. Folded `routeros_search_callouts` / `routeros_search_videos` into `related`. MCP tool count 15 → 13.
 12. **Smart `get_page()` (April 2026)** — Budget-aware TOC mode. When `max_length` is exceeded, the TOC response now surfaces top properties + related videos + callout summary inline, so small-budget callers rarely need a second tool call.

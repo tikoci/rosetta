@@ -79,10 +79,6 @@ describe("Frozen tool registry", () => {
   test("all tools have workflow arrow (→) in description", () => {
     const mcpSrc = readFileSync(path.join(ROOT, "src/mcp.ts"), "utf-8");
 
-    // Terminal/informational tools that don't have natural follow-ups
-    // (identified during Phase 2 implementation as missing workflow arrows)
-    const KNOWN_EXCEPTIONS = ["routeros_stats", "routeros_current_versions"];
-
     // Extract each complete registerTool block (tool name to closing paren before next registerTool)
     // Split on registerTool calls, then extract name + description from each block
     const toolBlocks = mcpSrc.split(/(?=server\.registerTool\()/);
@@ -105,14 +101,14 @@ describe("Frozen tool registry", () => {
         if (!altMatch) continue;
 
         const description = altMatch[1];
-        if (!description.includes("→") && !KNOWN_EXCEPTIONS.includes(toolName)) {
+        if (!description.includes("→")) {
           toolsWithoutArrow.push(toolName);
         }
         continue;
       }
 
       const description = descMatch[1];
-      if (!description.includes("→") && !KNOWN_EXCEPTIONS.includes(toolName)) {
+      if (!description.includes("→")) {
         toolsWithoutArrow.push(toolName);
       }
     }
