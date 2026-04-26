@@ -175,8 +175,9 @@ export function parseVtt(vttText: string): VttCue[] {
     if (currentLines.length === 0) return;
     const raw = currentLines.join(" ").trim();
     if (!raw) return;
-    // Strip HTML tags and inline timestamp tags
-    const clean = raw.replace(INLINE_TS_RE, "").replace(HTML_TAG_RE, "").replace(/\s+/g, " ").trim();
+    // Strip HTML tags and inline timestamp tags; remove any unmatched angle
+    // brackets so malformed captions cannot leave HTML-shaped text behind.
+    const clean = raw.replace(INLINE_TS_RE, "").replace(HTML_TAG_RE, "").replace(/[<>]/g, "").replace(/\s+/g, " ").trim();
     if (!clean) return;
     // Deduplicate: skip if clean text is a suffix of what we've already emitted
     if (prevAccumulated.endsWith(clean)) return;
@@ -186,7 +187,7 @@ export function parseVtt(vttText: string): VttCue[] {
   }
 
   for (const rawLine of lines) {
-    const line = rawLine.replace(/\r/, "");
+    const line = rawLine.replace(/\r/g, "");
 
     if (line.startsWith("WEBVTT") || line.startsWith("Kind:") || line.startsWith("Language:")) {
       inCueText = false;

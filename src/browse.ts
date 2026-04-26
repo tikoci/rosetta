@@ -1119,7 +1119,7 @@ function renderHelp(): string {
   out.push(`  ${bold("CLI flags")}`);
   out.push(`  ${cyan(pad("--db <path>", 26))} ${dim("")} Use a specific database file`);
   out.push(`  ${cyan(pad("--once", 26))} ${dim("")} Execute any command once and exit (for piping)`);
-  out.push(`  ${cyan(pad("browse <cmd> [args]", 26))} ${dim("")} Pass any TUI command directly from the shell:`)
+  out.push(`  ${cyan(pad("browse <cmd> [args]", 26))} ${dim("")} Pass any TUI command directly from the shell:`);
   out.push(`  ${cyan(pad("", 26))} ${dim("")}   ${dim("browse changelog 7.20..7.22")}`);
   out.push(`  ${cyan(pad("", 26))} ${dim("")}   ${dim("browse cmd /ip/firewall")}`);
   out.push(`  ${cyan(pad("", 26))} ${dim("")}   ${dim("browse .routeros_search vrrp")}`);

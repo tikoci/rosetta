@@ -3,10 +3,10 @@ name: rosetta CodeQL configuration
 # rosetta is mostly TypeScript, but the repo also carries a lot of *data* —
 # vendored HTML exports, CSV snapshots, NDJSON transcript caches, cached
 # Markdown skill copies, and large JSON fixtures. None of that is application
-# code; pinning paths-ignore here keeps scans focused on authored TypeScript,
-# the bin shim, release scripts, and workflow YAML while preventing future drift
-# if any of these data directories ever sprouts a stray .js file we don't
-# actually maintain.
+# code; pinning paths-ignore here keeps scans focused on shipped/runtime
+# TypeScript, extractors, the bin shim, release scripts, and workflow YAML while
+# preventing future drift if any of these data directories ever sprouts a stray
+# .js file we don't actually maintain.
 paths-ignore:
   # Vendored MikroTik Confluence HTML export (~317 pages). Source data, not
   # code we author. Also gitignored, but listed here defensively for clarity.
@@ -21,10 +21,21 @@ paths-ignore:
   - transcripts/**
   # Test/eval fixtures — large JSON, not application code.
   - fixtures/**
+  # Test and retrieval-eval harnesses are covered by CI but are not shipped
+  # application code; CodeQL's temp-file/file-race rules are noisy there.
+  - src/**/*.test.ts
+  - src/eval/**
   # Build output and vendored binaries.
   - dist/**
   - images/**
   - bun.lock
+
+# This repo intentionally tracks third-party action major tags with Dependabot
+# version updates. SHA pinning would reduce the CodeQL badge signal-to-noise
+# ratio here without changing runtime application risk.
+query-filters:
+  - exclude:
+      id: actions/unpinned-tag
 
 # security-and-quality covers all of security-extended plus the code-quality
 # queries — that's the same posture lsp-routeros-ts runs with code quality

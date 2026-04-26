@@ -1999,6 +1999,14 @@ Today we will cover trunking. Let us begin.
     expect(cues[0].text).not.toContain("<b>");
     expect(cues[0].text).toContain("Bold text");
   });
+
+  test("removes unmatched angle brackets from malformed cue markup", () => {
+    const vtt = `WEBVTT\n\n00:00:01.000 --> 00:00:03.000\n<scr<script>ipt>alert</scr<script>ipt> safe text.\n`;
+    const cues = parseVtt(vtt);
+    expect(cues[0].text).not.toContain("<");
+    expect(cues[0].text).not.toContain(">");
+    expect(cues[0].text).toContain("safe text");
+  });
 });
 
 // ---------------------------------------------------------------------------

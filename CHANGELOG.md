@@ -26,7 +26,9 @@ uses [Semantic Versioning](https://semver.org/).
   cron. [`.github/codeql/codeql-config.yml`](.github/codeql/codeql-config.yml)
   excludes vendored/generated content (`box/`, `dude/`, `transcripts/`,
   `matrix/`, `skills/`, `fixtures/`, `dist/`, `images/`) so scans focus on
-  authored TypeScript, the bin shim, release scripts, and workflow YAML. New
+  shipped/runtime TypeScript, extractors, the bin shim, release scripts, and
+  workflow YAML; test/eval harnesses are excluded to avoid temp-file/file-race
+  noise outside shipped code. New
   [`.github/workflows/dependency-review.yml`](.github/workflows/dependency-review.yml)
   blocks PRs introducing high-severity dependency advisories. New
   [`.github/dependabot.yml`](.github/dependabot.yml) opens weekly grouped
