@@ -207,73 +207,57 @@ describe('finding #1 — mid-line slash does not restart path (anchor)', () => {
 });
 
 describe('finding #4 — menu-specific verbs', () => {
-  // Today (no resolver): zero commands. /log/info, /log/warning, /log/error
-  // are not in the universal verb set so the parser treats them as paths
-  // without verbs (and `info`/`warning`/`error` aren't verbs at flush time
-  // either). H4 fixed this for callers that wire a resolver.
-  test('/log/info "msg" without resolver produces no command (anchor)', () => {
-    const r = canonicalize('/log/info "msg"');
+  // Today (no resolver): zero commands. /interface/wifi-qcom/info is not in
+  // the universal verb set so the parser treats it as a path without a verb.
+  // H4 fixed this for callers that wire a resolver.
+  test('/interface/wifi-qcom/info without resolver produces no command (anchor)', () => {
+    const r = canonicalize('/interface/wifi-qcom/info');
     expect(r.commands.length).toBe(0);
   });
 
-  // H4 — supplying a path-aware resolver makes /log/info classify correctly.
-  // The resolver returns true for {info, warning, error} at /log only,
-  // mirroring what rosetta's DB-backed resolver does.
-  const logVerbs = new Set(['info', 'warning', 'error', 'debug']);
-  const logResolver = (token: string, parentPath: string) =>
-    parentPath === '/log' && logVerbs.has(token);
+  // H4 — supplying a path-aware resolver makes /interface/wifi-qcom/info
+  // classify correctly. The resolver returns true for `info` at
+  // /interface/wifi-qcom only, mirroring a DB/live-router path-specific hit.
+  const wifiQcomResolver = (token: string, parentPath: string) =>
+    parentPath === '/interface/wifi-qcom' && token === 'info';
 
-  test('H4: /log/info "msg" with resolver classifies as cmd', () => {
-    const r = canonicalize('/log/info "msg"', '/', { isVerb: logResolver });
+  test('H4: /interface/wifi-qcom/info with resolver classifies as cmd', () => {
+    const r = canonicalize('/interface/wifi-qcom/info', '/', { isVerb: wifiQcomResolver });
     expect(r.commands.length).toBe(1);
-    expect(r.commands[0].path).toBe('/log');
+    expect(r.commands[0].path).toBe('/interface/wifi-qcom');
     expect(r.commands[0].verb).toBe('info');
   });
 
-  test('H4: /log/warning with resolver classifies as cmd', () => {
-    const r = canonicalize('/log/warning "warn"', '/', { isVerb: logResolver });
-    expect(r.commands[0].path).toBe('/log');
-    expect(r.commands[0].verb).toBe('warning');
-  });
-
-  test('H4: /log/error with resolver classifies as cmd', () => {
-    const r = canonicalize('/log/error "boom"', '/', { isVerb: logResolver });
-    expect(r.commands[0].path).toBe('/log');
-    expect(r.commands[0].verb).toBe('error');
-  });
-
   test('H4: /interface/wireless/info with same resolver stays a path (info is a dir there)', () => {
-    // Resolver only returns true for `info` at /log, not /interface/wireless.
+    // Resolver only returns true for `info` at /interface/wifi-qcom, not /interface/wireless.
     // The token `info` at /interface/wireless is therefore navigation, not
     // a verb — exactly the disambiguation H4 enables.
-    const r = canonicalize('/interface/wireless/info', '/', { isVerb: logResolver });
+    const r = canonicalize('/interface/wireless/info', '/', { isVerb: wifiQcomResolver });
     expect(r.commands.length).toBe(0);
     expect(r.finalPath).toBe('/interface/wireless/info');
   });
 
-  test('H4: resolver wins over universal-verb-set when supplied', () => {
-    // Even `print` should NOT be a verb when the resolver explicitly
-    // refuses it (caller-authoritative semantics). Edge case but documents
-    // the contract: resolver is authoritative when wired.
+  test('H4: universal-verb-set still works when resolver is supplied', () => {
+    // The DB resolver supplements path-specific verbs, but it is not allowed
+    // to disable universal helpers. RouterOS command data does not enumerate
+    // all helper verbs (notably `find`) under every parent path.
     const r = canonicalize('/ip/address/print', '/', {
       isVerb: () => false,
     });
-    // print falls out of explicit-verb identification; flushCommand also
-    // calls isVerbAt for the trailing-segment fallback, which also returns
-    // false → no verb inferred, /ip/address/print is treated as nav.
-    expect(r.commands.length).toBe(0);
-    expect(r.finalPath).toBe('/ip/address/print');
+    expect(r.commands[0]?.path).toBe('/ip/address');
+    expect(r.commands[0]?.verb).toBe('print');
   });
 });
 
-describe('finding #3 — :if (cond) do={…} swallows body (anchor)', () => {
-  test(':if with paren expression loses inner command', () => {
-    // Today: ZERO commands. The (...) is not tokenized.
-    // After H3 (paren expression scope): /log/info should still be
-    // missed (finding #4) but the structure should be preserved for
-    // any nested [...] subshells.
-    const r = canonicalize(':if ($x = 1) do={ /log/info "yes" }');
-    expect(r.commands.length).toBe(0);
+describe('finding #3 — paren expression scope needs re-audit (anchor)', () => {
+  test(':if with paren expression preserves recognized inner command', () => {
+    // The original audit used /log/info here, but the zero-command result was
+    // confounded by finding #4 (menu-specific verb recognition). With a
+    // recognized command in the body, current code does preserve the block.
+    // H3 stays as a re-audit item for expression-scope correctness.
+    const r = canonicalize(':if ($x = 1) do={ /ip/address/print }');
+    expect(r.commands[0]?.path).toBe('/ip/address');
+    expect(r.commands[0]?.verb).toBe('print');
   });
 });
 
@@ -382,6 +366,6 @@ describe('hardenings not yet shipped', () => {
   });
   test.todo('H1: lenient mode splits "/a/b/c and /d/e/f" into two commands', () => {});
   test.todo('H2: $variable becomes Tok.Var, never a path segment', () => {});
-  test.todo('H3: :if ($x = 1) do={ cmd } parses do block', () => {});
+  test.todo('H3: re-audit paren expression scope independent of menu-specific verbs', () => {});
   test.todo('H5: source={ … } in /system/script/add is a value, not a scope', () => {});
 });

@@ -4,11 +4,13 @@
  * `canonicalize.ts` is intentionally pure — it knows nothing about the DB.
  * This module is the rosetta-side adapter: given a `Database`, it returns
  * an `isVerb(token, parentPath)` function that consults the `commands`
- * table to decide whether a token at a given menu is a verb (`type='cmd'`)
- * or another path segment (`type='dir'`).
+ * table to decide whether a token at a given menu is a path-specific verb
+ * (`type='cmd'`). The pure canonicalizer still keeps its universal verb
+ * fallback active for helpers that RouterOS introspection does not enumerate
+ * everywhere (for example `find`).
  *
  * Why path-aware lookup matters:
- *   /log/info "msg"             ← `info` is a cmd at /log
+ *   /interface/wifi-qcom/info   ← `info` is a cmd at /interface/wifi-qcom
  *   /interface/wireless/info    ← `info` is a dir at /interface/wireless
  * The pure-module universal-verb-set heuristic can't tell these apart;
  * the DB can.
@@ -28,10 +30,10 @@ import type { Database } from "bun:sqlite";
  * function suitable for {@link CanonicalizeOptions.isVerb}.
  *
  * The resolver is path-aware: `(token, parentPath) => boolean`. A token
- * counts as a verb if there exists a `commands` row with
- * `name=token`, `parent_path=parentPath`, `type='cmd'`. Returns `false`
- * when no matching row exists (the caller may then treat the token as a
- * path segment).
+ * counts as a path-specific verb if there exists a `commands` row with
+ * `name=token`, `parent_path=parentPath`, `type='cmd'`. Returning `false`
+ * means "no DB-specific hit"; the canonicalizer may still accept the token
+ * via its built-in universal verb set.
  */
 export function makeDbVerbResolver(
   db: Database,

@@ -17,6 +17,51 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`canonicalize.ts`: pluggable verb resolver, `extractMentions()`,
+  per-command confidence flag (issue #5 — H4, H6, H8).**
+  - `CanonicalizeOptions { isVerb?: (token, parentPath) => boolean }` lets
+    callers plug in a path-aware verb classifier. rosetta wires a DB-backed
+    resolver against the `commands` table so `/interface/wifi-qcom/info`,
+    `/system/script/run`, and other menu-specific verbs classify correctly
+    instead of falling back to bare navigation. The resolver supplements the
+    curated universal verb heuristic (it does not replace helpers like
+    `find`, which are not enumerated everywhere in the command tree).
+  - `extractMentions(input, cwd?, options?)` — surfaces every distinct path
+    the input *references*, including bare navigation with no verb (e.g.
+    `/ip/firewall/filter` standing alone in prose). Superset of
+    `extractPaths()`. `ParseResult` also carries a new `mentions: string[]`
+    field for callers that already use `canonicalize()` directly.
+  - `CanonicalCommand.confidence: 'high' | 'medium' | 'low'` — `high` for
+    well-formed CLI (absolute path with directly-identified verb),
+    `medium` for relative-with-cwd or pure navigation, `low` when the verb
+    was inferred from a trailing path segment (looser/prose-shaped input).
+    Lets consumers filter prose-extracted results when they need higher
+    precision.
+- **`src/canonicalize-resolver.ts`** — DB-backed `isVerb` adapter for
+  rosetta's `commands` table, with per-resolver in-memory caching. Wired
+  into `searchAll()` via a `ClassifyOptions { isVerb? }` pass-through on
+  `classifyQuery`, so MCP `routeros_search` and TUI `s` benefit
+  automatically when input contains a path with a menu-specific verb.
+
+### Fixed
+
+- **`canonicalize.ts` robustness — markdown / prose / common-verb gaps.**
+  Tokenizer now strips a leading U+FEFF BOM and treats backticks (`` ` ``) and
+  zero-width space (U+200B) as whitespace in both the outer and word loops, so
+  inputs from markdown fences, doc snippets, and BOM-prefixed files extract
+  cleanly instead of embedding the noise into the first path segment.
+  `GENERAL_COMMANDS` gains four verbs that are universal in the rosetta
+  `commands` table but were missing: `clear`, `unset`, `reset-counters`,
+  `reset-counters-all`. Cross-checked against the DB to confirm zero path
+  collisions — `info`/`warning`/`error`/`debug` are intentionally NOT added
+  (`/error` is itself a top-level cmd; `info` is a dir at
+  `/interface/wireless`). Menu-specific verbs need a path-aware resolver
+  (tracked as H4 in the audit). New `src/canonicalize.fuzz.test.ts`
+  documents both the shipped behaviour and the still-on-the-books H1–H8
+  hardenings.
+
 ## [0.8.9] — 2026-04-23
 
 ## [0.8.8] — 2026-04-22
@@ -46,31 +91,6 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **`canonicalize.ts`: pluggable verb resolver, `extractMentions()`,
-  per-command confidence flag (issue #5 — H4, H6, H8).**
-  - `CanonicalizeOptions { isVerb?: (token, parentPath) => boolean }` lets
-    callers plug in a path-aware verb classifier. rosetta wires a DB-backed
-    resolver against the `commands` table so `/log/info`, `/log/warning`,
-    `/system/script/run`, and other menu-specific verbs classify correctly
-    instead of falling back to bare navigation. Resolver is authoritative
-    when supplied; callers without one fall back to the universal verb
-    heuristic (no behaviour change for existing callers).
-  - `extractMentions(input, cwd?, options?)` — surfaces every distinct path
-    the input *references*, including bare navigation with no verb (e.g.
-    `/ip/firewall/filter` standing alone in prose). Superset of
-    `extractPaths()`. `ParseResult` also carries a new `mentions: string[]`
-    field for callers that already use `canonicalize()` directly.
-  - `CanonicalCommand.confidence: 'high' | 'medium' | 'low'` — `high` for
-    well-formed CLI (absolute path with directly-identified verb),
-    `medium` for relative-with-cwd or pure navigation, `low` when the verb
-    was inferred from a trailing path segment (looser/prose-shaped input).
-    Lets consumers filter prose-extracted results when they need higher
-    precision.
-- **`src/canonicalize-resolver.ts`** — DB-backed `isVerb` adapter for
-  rosetta's `commands` table, with per-resolver in-memory caching. Wired
-  into `searchAll()` via a `ClassifyOptions { isVerb? }` pass-through on
-  `classifyQuery`, so MCP `routeros_search` and TUI `s` benefit
-  automatically when input contains a path with a menu-specific verb.
 - **MCP behavioural eval framework (Phases 0–2)** — three new surfaces for
   validating that the MCP tool layer keeps doing what we expect, with no LLM
   cost in the default flow:
@@ -94,21 +114,6 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- **`canonicalize.ts` robustness — markdown / prose / common-verb gaps.**
-  Tokenizer now strips a leading U+FEFF BOM and treats backticks (`` ` ``) and
-  zero-width space (U+200B) as whitespace in both the outer and word loops, so
-  inputs from markdown fences, doc snippets, and BOM-prefixed files extract
-  cleanly instead of embedding the noise into the first path segment.
-  `GENERAL_COMMANDS` gains four verbs that are universal in the rosetta
-  `commands` table but were missing: `clear`, `unset`, `reset-counters`,
-  `reset-counters-all`. Cross-checked against the DB to confirm zero path
-  collisions — `info`/`warning`/`error`/`debug` are intentionally NOT added
-  (`/error` is itself a top-level cmd; `info` is a dir at
-  `/interface/wireless`). Menu-specific verbs need a path-aware resolver
-  (tracked as H4 in the audit). New `src/canonicalize.fuzz.test.ts` with
-  37 assertions + 9 `test.todo` markers documents both the shipped behaviour
-  and the still-on-the-books H1–H8 hardenings. Test count for the canonicalize
-  file pair went 61 → 98 pass / 9 todo / 0 fail.
 - **Phase 1 self-supervised sampling is now deterministic on full DBs.**
   The cmd-path strategy no longer uses SQL randomness; it samples from a
   stable ordered set using the same seeded shuffle as the other strategies,

@@ -375,10 +375,10 @@ Targeted manual review of WiFi, LoRa, scripting to close highest-value gaps.
 - ✅ **H8** — `confidence` flag on each `CanonicalCommand` (shipped 2026-04-26).
 - ⬜ **H1** — `mode: 'strict' | 'lenient'` to drop leading prose words and split mid-line slashes. Biggest remaining item for prose / chat-style input.
 - ⬜ **H2** — dedicated `Tok.Var` for `$identifier` so vars never become path segments.
-- ⬜ **H3** — paren `(…)` expression scope so `:if ($x = 1) do={ /log/info "yes" }` no longer swallows the body.
+- ⬜ **H3** — re-audit paren `(…)` expression scope independent of menu-specific verbs. The original `:if ($x = 1) do={ /log/info "yes" }` anchor was confounded by H4 (`/log/info` is not a command in the current DB); recognized body commands are preserved today.
 - ⬜ **H5** — `{ … }` after `key=` treated as a literal block value, not a recursive scope.
 
-**Cross-side artifacts.** Issue #4 proposes publishing `routeros-docs-links.json` (path → URL/title for ~551 dirs) as a CI artifact; H4 suggests doing the same for `verbs.json` so LSP can ship a cmd/dir manifest without bundling the DB. Both are downstream-of-rosetta artifacts — safe to bundle once issue #5 H4 is also wired into LSP.
+**Cross-side artifacts.** Issue #4 proposes publishing `routeros-docs-links.json` (path → URL/title for ~551 dirs) as a CI artifact; H4 suggests doing the same for `verbs.json` so LSP can ship a cmd/dir manifest without bundling the DB. Both are downstream-of-rosetta artifacts — safe to bundle once issue #5 H4 is also wired into LSP. Keep the curated universal verb fallback active alongside any resolver: rosetta's `commands` table does not enumerate all helper verbs (notably `find`) under every parent path, so a DB/static resolver should supplement universal verbs rather than replace them.
 
 ### 🟢 Browse REPL wishlist
 

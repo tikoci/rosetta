@@ -6,7 +6,7 @@ applyTo: "src/mcp.ts, src/query.ts, src/query.test.ts, src/search.ts, src/browse
 
 ## Vendored module — `canonicalize.ts`
 
-`src/canonicalize.ts` is intentionally **vendored**, not a published library. The same module is mirrored in [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) — goal is shape parity, not code reuse. Each consumer plugs in its own backend through `CanonicalizeOptions.isVerb`: rosetta wires a DB-backed resolver against the `commands` table (`src/canonicalize-resolver.ts`); LSP plans a static `verbs.json`-backed one. Keep the pure module DB-free; the adapter is the only place that imports `bun:sqlite`.
+`src/canonicalize.ts` is intentionally **vendored**, not a published library. The same module is mirrored in [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) — goal is shape parity, not code reuse. Each consumer plugs in its own backend through `CanonicalizeOptions.isVerb`: rosetta wires a DB-backed resolver against the `commands` table (`src/canonicalize-resolver.ts`); LSP plans a static `verbs.json`-backed one. Keep the pure module DB-free; the adapter is the only place that imports `bun:sqlite`. The resolver supplements the curated universal verb set rather than replacing it because the command tree does not enumerate every helper verb (for example `find`) at every parent path.
 
 When you change parser logic (tokenizer rules, scoping, path resolution), prefer changes that LSP can mirror by diff. When you change rosetta-only data wiring, put it in `canonicalize-resolver.ts` or `query.ts`, not the pure module. Issue #5 tracks the H1–H8 hardening roadmap; H4 / H6 / H7 / H8 shipped, H1 / H2 / H3 / H5 are still open.
 

@@ -59,7 +59,8 @@ export interface ParseResult {
  * Optional behaviour knobs. Keeping the module pure: the resolver is supplied
  * by the caller, never imported. rosetta wires a DB-backed resolver against
  * its `commands` table; lsp-routeros-ts wires a static `verbs.json`-backed
- * one; standalone callers omit it and get the universal-verb-set heuristic.
+ * one. The built-in universal-verb-set heuristic always remains active so
+ * resolvers only need to supply path-specific verbs, not every common command.
  */
 export interface CanonicalizeOptions {
   /**
@@ -71,10 +72,11 @@ export interface CanonicalizeOptions {
    * resolved path of all path segments seen so far, *without* this token).
    * MUST be synchronous and side-effect-free.
    *
-   * When omitted, falls back to the small built-in universal verb set
-   * (GENERAL_COMMANDS + EXTRA_VERBS). Path-context-dependent verbs like
-   * `info`/`warning`/`error` only resolve correctly when a resolver is
-   * supplied (see issue #5, finding #4).
+   * The small built-in universal verb set (GENERAL_COMMANDS + EXTRA_VERBS)
+   * is checked first; this resolver supplements it for path-context-specific
+   * verbs. That keeps callers from having to enumerate ubiquitous helpers
+   * like `find` while still allowing DB/live-router precision for ambiguous
+   * tokens (see issue #5, finding #4).
    */
   isVerb?: (token: string, parentPath: string) => boolean;
 }
@@ -346,17 +348,18 @@ function resolveParentPath(
 }
 
 /**
- * Path-aware verb check. Resolver wins when supplied — the caller's data
- * source (DB, JSON manifest) is authoritative. Falls back to the static
- * universal-verb heuristic when no resolver is wired.
+ * Path-aware verb check. The curated universal verb set remains active even
+ * when a resolver is supplied because RouterOS introspection data does not
+ * necessarily enumerate helper verbs like `find` at every parent path.
+ * Resolver hits add path-specific verbs (for example, `info` at menus where
+ * it is actually a command).
  */
 function isVerbAt(
   token: string,
   parentPath: string,
   options: CanonicalizeOptions,
 ): boolean {
-  if (options.isVerb) return options.isVerb(token, parentPath);
-  return isKnownVerb(token);
+  return isKnownVerb(token) || options.isVerb?.(token, parentPath) === true;
 }
 
 /**
@@ -403,7 +406,7 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
 
     if (verb || args.length > 0 || pathSegments.length > 0) {
       // If no explicit verb but we have path segments, the last segment might
-      // be a verb. Use the resolver-aware check so e.g. /log/info resolves
+      // be a verb. Use the resolver-aware check so path-specific verbs resolve
       // when a resolver is wired, while staying conservative when not.
       let verbInferred = false;
       if (!verb && pathSegments.length > 0) {
@@ -642,8 +645,8 @@ function parseCommands(ctx: ParseContext, stopAt?: Tok): string {
         // Recognized when we have a path prefix (explicit segments or absolute /),
         // OR when cwd is non-root (e.g., inside a subshell or script context).
         // Path-aware: consults the optional resolver against the parent path of
-        // segments seen so far (without `w`), so /log/info and /interface/wireless/info
-        // disambiguate correctly when a resolver is wired.
+        // segments seen so far (without `w`), so menu-specific commands and
+        // same-named directories disambiguate correctly when a resolver is wired.
         if (!verb && (pathSegments.length > 0 || isAbsolute || commandStartPath !== '/')) {
           const parentPath = resolveParentPath(commandStartPath, isAbsolute, pathSegments);
           if (isVerbAt(w, parentPath, ctx.options)) {
@@ -791,7 +794,7 @@ export function extractPaths(
  *
  * @example
  * ```ts
- * extractMentions('See /ip/firewall/filter and /ip/firewall/nat')
+ * extractMentions('/ip/firewall/filter ; /ip/firewall/nat')
  * // => ['/ip/firewall/filter', '/ip/firewall/nat']
  * ```
  */

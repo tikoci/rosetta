@@ -524,30 +524,40 @@ describe('edge cases', () => {
 // CanonicalizeOptions — pluggable isVerb resolver (H4)
 // ===========================================================================
 describe('CanonicalizeOptions.isVerb', () => {
-  test('resolver receives token and parent path', () => {
+  test('resolver receives non-universal token and parent path', () => {
     const calls: Array<{ token: string; parentPath: string }> = [];
-    canonicalize('/ip/address/print', '/', {
+    canonicalize('/interface/wifi-qcom/info', '/', {
       isVerb: (token, parentPath) => {
         calls.push({ token, parentPath });
-        return token === 'print' && parentPath === '/ip/address';
+        return token === 'info' && parentPath === '/interface/wifi-qcom';
       },
     });
-    expect(calls.some(c => c.token === 'print' && c.parentPath === '/ip/address')).toBe(true);
+    expect(calls.some(c => c.token === 'info' && c.parentPath === '/interface/wifi-qcom')).toBe(true);
   });
 
   test('resolver call site is path-aware: same token, different parent', () => {
-    // Call with a resolver that ONLY recognizes `info` at /log.
+    // Call with a resolver that ONLY recognizes `info` at /interface/wifi-qcom.
     const isVerb = (token: string, parentPath: string) =>
-      token === 'info' && parentPath === '/log';
+      token === 'info' && parentPath === '/interface/wifi-qcom';
 
-    const atLog = canonicalize('/log/info "msg"', '/', { isVerb });
-    expect(atLog.commands[0]?.verb).toBe('info');
-    expect(atLog.commands[0]?.path).toBe('/log');
+    const atWifiQcom = canonicalize('/interface/wifi-qcom/info', '/', { isVerb });
+    expect(atWifiQcom.commands[0]?.verb).toBe('info');
+    expect(atWifiQcom.commands[0]?.path).toBe('/interface/wifi-qcom');
 
     // Same token at a different path → not a verb, treated as navigation.
     const atWifi = canonicalize('/interface/wireless/info', '/', { isVerb });
     expect(atWifi.commands.length).toBe(0);
     expect(atWifi.finalPath).toBe('/interface/wireless/info');
+  });
+
+  test('universal verbs remain active when a resolver is supplied', () => {
+    const result = canonicalize('/ip/address set [find interface=ether1] disabled=yes', '/', {
+      isVerb: () => false,
+    });
+    const setCmd = result.commands.find(c => c.verb === 'set' && !c.subshell);
+    const findCmd = result.commands.find(c => c.verb === 'find' && c.subshell);
+    expect(setCmd?.path).toBe('/ip/address');
+    expect(findCmd?.path).toBe('/ip/address');
   });
 
   test('omitting options preserves backward-compatible behaviour', () => {
