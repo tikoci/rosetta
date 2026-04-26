@@ -6,11 +6,17 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  # security-events read is needed for the AI findings probe (and for the
+  # standard CodeQL alerts API). It costs nothing to grant on a read-only token.
+  security-events: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install mcp-publisher
         run: |
@@ -33,3 +39,41 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: AI findings probe (forward-compat)
+        # GitHub's "Code Quality > AI findings" tab is in preview and is not
+        # reachable via REST/GraphQL or the public webpage without auth
+        # (probed 2026-04-26, all candidate paths 404). This step polls a
+        # handful of plausible endpoints; today it's a no-op that prints a
+        # notice. Once GitHub ships a real API and one of these returns 200,
+        # the step starts surfacing the count + first lines as a CI notice —
+        # without ever blocking a PR. Promote to a failure (`exit 1`) only
+        # when the findings have stabilized and the team agrees they're a PR
+        # gate.
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -u
+          paths=(
+            "repos/${REPO}/code-quality/findings"
+            "repos/${REPO}/code-quality/alerts"
+            "repos/${REPO}/code-scanning/ai-alerts"
+            "repos/${REPO}/security/quality"
+            "repos/${REPO}/security/ai-findings"
+          )
+          found=""
+          for p in "${paths[@]}"; do
+            status=$(gh api -i "$p" 2>/dev/null | head -1 | awk '{print $2}' || true)
+            if [ -n "$status" ] && [ "$status" != "404" ] && [ "$status" != "410" ]; then
+              found="$p (HTTP $status)"
+              break
+            fi
+          done
+          if [ -z "$found" ]; then
+            echo "::notice title=AI findings API::Not yet exposed via REST. Check https://github.com/${REPO}/security/quality/ai-findings in a browser (requires auth). (Probed: ${paths[*]})"
+            exit 0
+          fi
+          echo "::warning title=AI findings API now available::Endpoint ${found} responded — promote this step from probe to gate."
+          gh api "${found%% *}" || true

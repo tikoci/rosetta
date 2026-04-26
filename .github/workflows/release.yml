@@ -46,7 +46,7 @@ jobs:
     outputs:
       version: ${{ steps.release_version.outputs.version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -232,13 +232,15 @@ jobs:
           PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
           VIDEOS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM videos" 2>/dev/null || echo 0)
           SEGMENTS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM video_segments WHERE transcript != ''" 2>/dev/null || echo 0)
-          echo "pages=$PAGES" >> "$GITHUB_OUTPUT"
-          echo "commands=$COMMANDS" >> "$GITHUB_OUTPUT"
-          echo "versions=$VERSIONS" >> "$GITHUB_OUTPUT"
-          echo "devices=$DEVICES" >> "$GITHUB_OUTPUT"
-          echo "properties=$PROPERTIES" >> "$GITHUB_OUTPUT"
-          echo "videos=$VIDEOS" >> "$GITHUB_OUTPUT"
-          echo "segments=$SEGMENTS" >> "$GITHUB_OUTPUT"
+          {
+            echo "pages=$PAGES"
+            echo "commands=$COMMANDS"
+            echo "versions=$VERSIONS"
+            echo "devices=$DEVICES"
+            echo "properties=$PROPERTIES"
+            echo "videos=$VIDEOS"
+            echo "segments=$SEGMENTS"
+          } >> "$GITHUB_OUTPUT"
           echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments)"
 
       # ── Sanity gate: refuse to publish a degenerate DB ──
@@ -301,10 +303,10 @@ jobs:
           SHORT_SHA="${{ steps.image_meta.outputs.short_sha }}"
           VERSION="${{ steps.release_version.outputs.version }}"
 
-          tags=""
+          tags=()
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
             for tag in "$VERSION" latest "sha-${SHORT_SHA}"; do
-              tags="$tags --tag ${registry}:${tag}"
+              tags+=(--tag "${registry}:${tag}")
             done
           done
 
@@ -313,7 +315,7 @@ jobs:
             --platform linux/amd64,linux/arm64 \
             --build-arg VERSION="$VERSION" \
             --build-arg REPO_URL=tikoci/rosetta \
-            $tags \
+            "${tags[@]}" \
             --push \
             -f Dockerfile.release \
             .
@@ -453,7 +455,7 @@ jobs:
           # Strip leading v — npm versions are unprefixed.
           NPM_VER="${VERSION#v}"
           echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
-          for i in $(seq 1 30); do
+          for _ in {1..30}; do
             if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
               echo "✓ npm registry has ${NPM_VER} (attempt $i)"
               exit 0
@@ -497,7 +499,7 @@ jobs:
           trap 'kill "$PID" 2>/dev/null || true' EXIT
 
           ok=0
-          for i in $(seq 1 30); do
+          for _ in {1..30}; do
             if ! kill -0 "$PID" 2>/dev/null; then
               echo "::error::Server exited early"
               cat "$LOG"
@@ -535,7 +537,7 @@ jobs:
     if: inputs.republish_assets != true
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v4
         with:

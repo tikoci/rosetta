@@ -17,6 +17,26 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+
+- **CodeQL + Dependency Review wired up.** New
+  [`.github/workflows/codeql.yml`](.github/workflows/codeql.yml) runs the
+  `security-and-quality` suite (security-extended + code-quality queries)
+  against `javascript-typescript` and `actions` on push, PR, and a weekly
+  cron. [`.github/codeql/codeql-config.yml`](.github/codeql/codeql-config.yml)
+  excludes vendored/generated content (`box/`, `dude/`, `transcripts/`,
+  `matrix/`, `skills/`, `fixtures/`, `dist/`, `images/`) so scans focus on
+  authored TypeScript, the bin shim, release scripts, and workflow YAML. New
+  [`.github/workflows/dependency-review.yml`](.github/workflows/dependency-review.yml)
+  blocks PRs introducing high-severity dependency advisories. New
+  [`.github/dependabot.yml`](.github/dependabot.yml) opens weekly grouped
+  update PRs for `github-actions` and `bun` ecosystems. The Test workflow
+  gains an "AI findings probe" step that polls candidate Code Quality
+  endpoints and prints a CI notice (no-op until GitHub ships a stable API).
+  Repo-level Dependabot security updates, secret scanning with push protection,
+  and private vulnerability reporting are enabled.
+  See `SECURITY.md` for the configured posture summary.
+
 ### Changed
 
 - **MCP search/property confidence metadata:** `routeros_search.classified`

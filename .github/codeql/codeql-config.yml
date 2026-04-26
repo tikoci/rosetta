@@ -1,0 +1,35 @@
+name: rosetta CodeQL configuration
+
+# rosetta is mostly TypeScript, but the repo also carries a lot of *data* —
+# vendored HTML exports, CSV snapshots, NDJSON transcript caches, cached
+# Markdown skill copies, and large JSON fixtures. None of that is application
+# code; pinning paths-ignore here keeps scans focused on authored TypeScript,
+# the bin shim, release scripts, and workflow YAML while preventing future drift
+# if any of these data directories ever sprouts a stray .js file we don't
+# actually maintain.
+paths-ignore:
+  # Vendored MikroTik Confluence HTML export (~317 pages). Source data, not
+  # code we author. Also gitignored, but listed here defensively for clarity.
+  - box/**
+  # Archived Dude wiki HTML cached from Wayback Machine — vendored content.
+  - dude/**
+  # Cached SKILL.md + reference files extracted from tikoci/routeros-skills.
+  - skills/**
+  # Committed CSV snapshots of the MikroTik product matrix.
+  - matrix/**
+  # Committed NDJSON transcript caches (one per extraction date).
+  - transcripts/**
+  # Test/eval fixtures — large JSON, not application code.
+  - fixtures/**
+  # Build output and vendored binaries.
+  - dist/**
+  - images/**
+  - bun.lock
+
+# security-and-quality covers all of security-extended plus the code-quality
+# queries — that's the same posture lsp-routeros-ts runs with code quality
+# turned on, but expressed via the suite name rather than Default Setup.
+# Specifying it here (not in the workflow step) avoids the ambiguous + prefix
+# that produced "is not a .ql file" fatal errors with codeql-action@v3.
+queries:
+  - uses: security-and-quality
