@@ -171,6 +171,63 @@ Agent skills from tikoci/routeros-skills are community-created supplemental guid
 
 **Hardening roadmap (issue #5, H1–H8):** H4 (this resolver), H6 (`extractMentions`), H7 (BOM/ZWSP), and H8 (confidence flag) shipped. H1 (lenient mode for prose-shaped input), H2 (`Tok.Var`), H3 (paren expression scope), H5 (`source={…}` as block value) remain — they all preserve the same `CanonicalizeOptions` shape so downstream consumers can pick up improvements by diff.
 
+## Command validation pipeline — explain / validate / run
+
+The cross-tikoci RouterOS command direction is a three-tier pipeline, not an API-to-MCP one-tool-per-endpoint mapping.
+
+| Tier | Scope | Connects to a router? | Trust property |
+|------|-------|-----------------------|----------------|
+| **1. Rosetta** | Offline docs, command tree, properties, devices, changelogs, glossary, and skills. | **No.** | Read-only SQL-as-RAG over a baked SQLite DB. Rosetta does not modify or connect to a router. |
+| **2. Validator** | Canonical command/script form, argument validation, version/package/arch notes, changelog warnings. | **No.** | Read-only reasoning over rosetta + restraml `deep-inspect.json`/schema data. |
+| **3. Runner** | Executes validated RouterOS commands through REST, SSH, native API, or serial. | **Yes.** | Separate write-capable component with auth, dry-run, audit log, idempotency hints, and server-side re-validation. |
+
+This split preserves rosetta's load-bearing trust claim while still giving agents a path from documentation to safe execution. A user can install tiers 1+2 and get useful syntax/version/package reasoning with zero router blast radius; tier 3 is an explicit, separate opt-in.
+
+### Why endpoint-shaped MCP is not the answer
+
+RouterOS has a very large, version-sensitive REST/CLI surface. Exposing every endpoint or menu+verb as an MCP tool is faithful to the API but poorly matched to how LLMs fail:
+
+- Tool count explodes, reducing selection accuracy and causing descriptions to be truncated.
+- Models are forced to fabricate exact property names (`disabled`, `chain`, `name`, and many overloaded menu-specific args) at the moment a call leaves the model and hits a router.
+- "Ask docs first" disappears; wrong guesses become real router calls instead of validation errors or suggestions.
+
+The better surface is compact and command-shaped: accept RouterOS CLI/script-like input, canonicalize it, annotate it with docs/schema/version context, and return typed warnings/errors the agent can fix and retry. The working reference pattern is the tikapp WebMCP flow in `restraml/docs/tikapp.html`: a write-shaped call validates immediately, returns `{ ok, valid, errors[] }`, and tells the agent to retry with corrected input until valid.
+
+### Rosetta-owned pieces
+
+Within rosetta's read-only scope, the ordered path is:
+
+1. **`routeros_explain_command`** — shipped. Bundles what used to require `routeros_search` + `routeros_lookup_property` + `routeros_command_version_check` + `routeros_search_changelogs`: canonical path/verb/args, confidence, property matches, warnings, docs, changelogs, and version checks.
+2. **Confidence plumbing** — shipped. `searchAll().classified.command_path_confidence` and `lookupProperty()` row confidence support downstream validation gating.
+3. **Package metadata** — pending. `schema_nodes._package` exists as a placeholder; once restraml emits package provenance, command responses can distinguish "invalid command" from "valid command, package not installed/enabled."
+4. **`routeros_validate_command`** — future. Same input family as `_explain`, but with target context (`target_version`, model/arch/package context) and `warnings` promoted to typed `errors[]` when the target makes them blocking.
+5. **Bulk validation** — future. Validate scripts as ordered command lists, including read/modify/delete classification and cross-command dependencies.
+6. **Code-mode / compact bulk helpers** — future research. Useful for large script audits, but only after validation primitives exist.
+
+Validator output should carry explicit provenance such as `validated_against: { ros_version, arch, inspect_source, package_check }` so the human and agent know which facts were actually checked.
+
+### Where rosetta ends
+
+Rosetta may return commands an operator or runner could execute, but it must not execute router-specific commands or connect to a user's router. Network calls inside rosetta stay limited to documented, read-only public endpoints such as MikroTik's version channel files. Anything that needs router credentials or changes router state belongs in tier 3.
+
+## Deployment strategy and MCP client diversity
+
+MCP-client diversity is the deployment gate for cross-tikoci RouterOS tooling. Claude Desktop, Claude Code, VS Code Copilot, Copilot CLI, Codex, Cursor, and web clients all use different MCP config conventions. `bunx @tikoci/rosetta` collapses the runtime story, but not the config story; adding a separate validator and runner can multiply that burden.
+
+Design constraints:
+
+- **Bun remains required** for rosetta (`bun:sqlite`, `Bun.serve`, compiled binary path, and existing package/runtime assumptions).
+- **Trust boundaries must be visible at install time.** Users must be able to tell which tools are read-only and which touch a router.
+- **Do not grow one giant tool server by default.** A single `tikoci` MCP identity with rosetta + validator + runner tools would reduce config blocks but risks bloating the tool surface and blurring the read/write trust line.
+- **Copilot/VS Code is the primary curated path today, but not the only client.** Claude-oriented docs still matter because Claude Code and Claude Desktop are used in parallel.
+
+Current lean:
+
+1. Keep rosetta's standalone install simple and read-only (`bunx @tikoci/rosetta`, `/app`, binary/container fallback).
+2. Treat VS Code / `vscode-tikbook` as the most likely curated host for bundling rosetta + LSP + future validator because it can inject or manage workspace MCP config for the common Copilot workflow.
+3. Keep per-client docs for other clients until the burden justifies an installer CLI.
+4. Avoid a single write-capable `tikoci` MCP identity unless tooling can label trust boundaries clearly and keep tool selection manageable.
+
 ## Cross-References
 
 | Project | Relationship |

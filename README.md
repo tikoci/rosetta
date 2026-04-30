@@ -255,7 +255,7 @@ Type a search query to find documentation pages, then select a numbered result t
 
 Type `help` for the full command list. URLs are clickable in terminals that support OSC 8 hyperlinks (iTerm2, Windows Terminal, GNOME Terminal, etc.).
 
-The browser is also useful as a test harness — it interacts with the data the same way an AI agent would through MCP, so gaps or rough edges visible here often point to MCP tool improvements too.
+The browser is also useful as an audit surface — it shares core query functions with MCP and exposes every MCP tool as a raw dot-command, so gaps or rough edges visible here often point to agent-facing improvements too.
 
 > **From a router:** If rosetta is installed as a `/app`, access the browser via `/container/shell app-rosetta` then `/app/rosetta browse`.
 

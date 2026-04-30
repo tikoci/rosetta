@@ -34,9 +34,9 @@ ln -s documents-export-<date> box/latest
 Then:
 
 ```sh
-make extract       # HTML → properties → commands (single version) → link
+make extract       # HTML → properties → commands → devices → tests → changelogs → Dude cache → skills → link
 # or
-make extract-full  # Same but with all 46 RouterOS versions
+make extract-full  # Same, but command data uses all 46 RouterOS versions
 ```
 
 `make extract` and `make extract-full` fetch `inspect.json` from restraml GitHub Pages by default. You can also pass a local source:
@@ -51,7 +51,7 @@ bun run src/extract-all-versions.ts /path/to/restraml/docs
 ```sh
 bun test             # Run tests (in-memory SQLite, no DB needed)
 bun run typecheck    # Type check
-make lint            # Biome linter
+bun run lint         # Biome linter
 make preflight       # All checks: clean tree, DB, typecheck, test, lint
 bun run src/mcp.ts   # Start MCP server in dev mode
 ```
@@ -87,10 +87,14 @@ Three ways to exercise MCP tools during development:
 | Test file | What it covers |
 |-----------|---------------|
 | `src/query.test.ts` | Query planner (pure functions), DB integration (in-memory SQLite), schema health |
-| `src/release.test.ts` | File consistency, build constants, structural pattern checks, container setup |
+| `src/classify.test.ts` | Classifier detectors for command paths, versions, topics, devices, properties |
+| `src/canonicalize.test.ts`, `src/canonicalize.fuzz.test.ts` | RouterOS CLI canonicalizer behavior and issue #5 hardening anchors |
+| `src/mcp-contract.test.ts` | Frozen tool registry, workflow-arrow convention, token budgets, response-shape invariants |
 | `src/mcp-http.test.ts` | HTTP transport: session lifecycle, multi-client, errors (live server) |
+| `src/release.test.ts` | File consistency, build constants, structural pattern checks, container setup |
+| `src/schema-roundtrip.test.ts`, `src/extract-*.test.ts`, `src/gc-versions.test.ts` | Extraction/schema/retention behavior and importer isolation |
 
-Run `bun test` and `make lint` before any commit.
+Run `bun test` and `bun run lint` before any commit.
 
 ## Changelog discipline
 
@@ -183,7 +187,11 @@ make extract-all-versions  # All 46 RouterOS versions
 make extract-devices       # Product matrix CSV → devices
 make extract-test-results  # Product page benchmarks + block diagrams
 make extract-changelogs    # Changelog entries from download server
+make extract-videos-from-cache # Import committed transcript NDJSON (CI path)
+make extract-dude-from-cache   # Import cached Dude wiki HTML
+make extract-skills            # Fetch/import tikoci/routeros-skills
 make link                  # Command ↔ page matching
+make gc-versions           # Release retention: prune schema_node_presence to active channel heads
 ```
 
 ## Data Sources
@@ -201,5 +209,9 @@ The database combines multiple sources of MikroTik data:
 - **Changelogs** — Parsed per-entry from MikroTik download server.
 
 - **YouTube Transcripts** — Auto-generated English transcripts from the official MikroTik YouTube channel (518 videos, ~1,890 transcript segments). Extracted via `yt-dlp`, cached as NDJSON in `transcripts/` for reproducible CI builds. See `make extract-videos` / `make extract-videos-from-cache`.
+
+- **Archived Dude Wiki** — Cached Wayback HTML under `dude/pages/`, imported with `make extract-dude-from-cache` for release builds.
+
+- **Agent Skills** — Community-created guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills), fetched by CI and cached under `skills/` for offline extraction.
 
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time.

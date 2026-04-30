@@ -8,17 +8,18 @@ See [CLAUDE.md](../CLAUDE.md) for full architecture, schema, and source details.
 
 ## Project Documentation Convention
 
-Five doc files, each with a clear role — use these, don't create new top-level `.md` files:
+Six doc files, each with a clear role — use these, don't create new top-level `.md` files:
 
 | File | What goes in it |
 |------|----------------|
 | [CLAUDE.md](../CLAUDE.md) | Architecture, schema, conventions — what the project **is** and how it works |
 | [DESIGN.md](../DESIGN.md) | Decisions, data sources, constraints, cross-references — **why** things are the way they are |
 | [BACKLOG.md](../BACKLOG.md) | Ideas, considerations, future work — structured parking lot for anything not yet active |
+| [CHANGELOG.md](../CHANGELOG.md) | User-visible changes per release — **what** shipped, in which version |
 | [README.md](../README.md) | User-facing quick start — `/app` install, bunx setup, browse TUI, tool overview |
 | [MANUAL.md](../MANUAL.md) | Extended reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
-**Rule:** Decision or rationale → `DESIGN.md`. Idea, question, or future work → `BACKLOG.md`. How the project works → `CLAUDE.md`. User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
+**Rule:** Decision or rationale → `DESIGN.md`. Idea, question, or future work → `BACKLOG.md`. How the project works → `CLAUDE.md`. User-visible shipped behavior → `CHANGELOG.md` under `[Unreleased]`. User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
 
 When deferring work or recording ideas, add them to `BACKLOG.md` under the appropriate heading.
 
@@ -38,7 +39,7 @@ When deferring work or recording ideas, add them to `BACKLOG.md` under the appro
 
 When marking a backlog item or implementation step as completed, explicitly verify and record how CI will pick it up:
 
-- **Workflow coverage:** Identify the exact workflow/step that executes the changed behavior (for example, `.github/workflows/release.yml` extraction step, `.github/workflows/test.yml` quality gate).
+- **Workflow coverage:** Identify the exact workflow/step that executes the changed behavior (for example, `.github/workflows/release.yml` extraction step, post-extraction DB guard/eval/stats gate, `.github/workflows/test.yml` quality gate).
 - **Trigger path:** Confirm the change is exercised by normal CI triggers (`push`, `pull_request`, or `workflow_dispatch`) without requiring local-only commands.
 - **No local build assumption:** Do not require the user to run `make`/build commands to validate completion unless they explicitly ask for a local verification run.
 - **If CI will not pick it up:** treat as incomplete and either update CI in the same change or record a concrete deferred item in `BACKLOG.md` with what workflow step must be added.
@@ -47,8 +48,8 @@ When marking a backlog item or implementation step as completed, explicitly veri
 
 ```sh
 bun install              # Install dependencies
-make extract             # Full pipeline: HTML → properties → commands → link
-make extract-full        # Full pipeline with all 46 RouterOS versions
+make extract             # HTML → properties → commands → devices → tests → changelogs → Dude cache → skills → link
+make extract-full        # Same, but command data uses all 46 RouterOS versions
 make serve               # Start MCP server (stdio transport)
 make search query="DHCP" # CLI search
 bun test                 # Run tests (query + schema + release readiness + HTTP transport)
@@ -58,7 +59,7 @@ make preflight           # All checks: clean tree, DB, typecheck, test, lint
 make clean               # Remove DB files
 ```
 
-Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-all-versions`, `make extract-devices`, `make extract-test-results`, `make extract-changelogs`, `make link`.
+Individual extraction steps: `make extract-html`, `make extract-properties`, `make extract-commands`, `make extract-schema`, `make extract-all-versions`, `make extract-devices`, `make extract-test-results`, `make extract-changelogs`, `make extract-videos-from-cache`, `make extract-dude-from-cache`, `make extract-skills`, `make link`, `make gc-versions`.
 
 Release: prefer the GitHub Actions `Release` workflow for published artifacts. Use `republish_assets` only to reupload GitHub Release assets / OCI tags; it does not re-publish npm. Local compatibility path: `make release VERSION=v0.1.0` (new) or `make release VERSION=v0.1.0 FORCE=1` (update existing assets only). See `make build-release` for build-only (no git/upload).
 
@@ -66,7 +67,7 @@ Release: prefer the GitHub Actions `Release` workflow for published artifacts. U
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| MCP Server | `src/mcp.ts` | 14 tools via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
+| MCP Server | `src/mcp.ts` | 14 tools plus MCP resources via stdio + Streamable HTTP transport using `@modelcontextprotocol/sdk` |
 | Query Engine | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, compound term recognition. Owns the DB-backed `isVerb` resolver wired into `classify.ts` |
 | Classifier | `src/classify.ts` | Pre-search regex classifier (command path, version, topic, device, property, fragment). Pure — no DB. Accepts a `ClassifyOptions { isVerb? }` pass-through |
 | Canonicalizer | `src/canonicalize.ts`, `src/canonicalize-resolver.ts` | RouterOS CLI path → `{ path, verb, args, confidence }`. Pure module + DB-backed adapter. Vendored for parity with `lsp-routeros-ts`; see DESIGN.md |
@@ -84,7 +85,9 @@ Release: prefer the GitHub Actions `Release` workflow for published artifacts. U
 - Product matrix CSV in `matrix/` (144 products, 34 columns — hardware specs, license levels, pricing)
 - Product test results + block diagrams from `https://mikrotik.com/product/<slug>` (125 devices with ethernet/IPSec benchmarks, 110 with block diagrams)
 - Changelogs from `https://download.mikrotik.com/routeros/{version}/CHANGELOG` (parsed per-entry with category and breaking flag)
-- YouTube transcripts from the official MikroTik YouTube channel via yt-dlp (518 videos, ~1,890 chapter-level segments; cached as NDJSON in `transcripts/`)
+- YouTube transcripts from the official MikroTik YouTube channel via yt-dlp (518 videos, ~1,890 chapter-level segments; release CI imports committed NDJSON from `transcripts/`)
+- Archived Dude wiki pages from cached Wayback HTML in `dude/pages/`
+- Agent skills from `tikoci/routeros-skills` (CI fetches GitHub; cached `skills/` supports offline extraction)
 
 ## Code Style
 
@@ -120,6 +123,9 @@ Release: prefer the GitHub Actions `Release` workflow for published artifacts. U
 | `src/release.test.ts` | File consistency, build constants, structural pattern checks, container setup |
 | `src/mcp-http.test.ts` | HTTP transport: session lifecycle, multi-client, errors (live server) |
 | `src/mcp-contract.test.ts` | MCP tool registry, workflow-arrow convention, token-budget guardrails, response-shape invariants |
+| `src/schema-roundtrip.test.ts` | Schema importer round-trip: fixture merge, arch diffs, desc parsing, completion metadata |
+| `src/extract-*.test.ts` | Extractor-specific parsing/cache behavior without touching the real DB |
+| `src/gc-versions.test.ts` | `schema_node_presence` release-retention pruning behavior |
 
 **When to add tests:**
 - New query function or tool → `query.test.ts`

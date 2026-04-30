@@ -22,9 +22,15 @@ applyTo: "src/db.ts"
 - `changelogs` + `changelogs_fts` — parsed per-entry changelog data from MikroTik download server (version, category, breaking flag)
 - `videos` + `videos_fts` — MikroTik YouTube video metadata (518 videos: title, description, channel, duration, chapters)
 - `video_segments` + `video_segments_fts` — chapter-level transcript segments with timestamps (~1,890 rows; FK → videos.id)
+- `dude_pages` + `dude_pages_fts` — archived Dude wiki pages from Wayback/cache
+- `dude_images` — screenshot metadata for Dude wiki pages
+- `skills` + `skills_fts` — RouterOS agent skill guides from tikoci/routeros-skills
+- `skill_references` — reference documents attached to skills
+- `glossary` — seeded RouterOS terms and aliases
+- `db_meta` — release provenance and schema/update metadata
 
 ## FTS5 Triggers
-Content-sync triggers on `pages`, `callouts`, `properties`, and `changelogs` tables handle INSERT/UPDATE/DELETE automatically. Do not manually insert into `*_fts` tables.
+Content-sync triggers on content tables (`pages`, `callouts`, `properties`, `devices`, `changelogs`, `videos`, `video_segments`, `dude_pages`, `skills`) handle INSERT/UPDATE/DELETE automatically. Do not manually insert into `*_fts` tables.
 
 ## Schema Changes
 If modifying tables, update both:

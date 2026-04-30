@@ -35,7 +35,7 @@ MikroTik's help site (Confluence-based) exports both a ~107MB PDF and an HTML ar
 
 Three outputs (three surfaces, one core):
 
-1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — 14 tools plus 2 CSV resources for LLM agents. Unified `routeros_search` runs a regex classifier (`src/classify.ts`), executes side queries in parallel, and returns pages + a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + `next_steps` hints. Consolidation from 15 tools achieved by folding `routeros_search_callouts` and `routeros_search_videos` into that `related` block; `routeros_explain_command` is the read-only tier-1 bridge for write-shaped CLI questions. See `DESIGN.md` "North Star".
+1. **SQL-as-RAG MCP Server** (`src/mcp.ts`) — 14 tools plus MCP resources for LLM agents. Unified `routeros_search` runs a regex classifier (`src/classify.ts`), executes side queries in parallel, and returns pages + a `related` block (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + `next_steps` hints. Consolidation from 15 tools achieved by folding `routeros_search_callouts` and `routeros_search_videos` into that `related` block; `routeros_explain_command` is the read-only tier-1 bridge for write-shaped CLI questions. See `DESIGN.md` "North Star".
 2. **Browse TUI** (`src/browse.ts`) — interactive terminal browser with keyword-driven NL-like input. **First-class path into the data, not a test harness that happens to be usable.** Every MCP tool has a TUI command that mirrors its shape (`s <query>` ≈ `routeros_search`, `page <id>` ≈ `routeros_get_page`, etc.).
 3. **RouterOS Glossary** — command-tree → documentation mapping, feeding [lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) (hover help) and future Copilot integration.
 
@@ -63,7 +63,7 @@ The TUI is a **superset** of MCP — paged ANSI rendering, Markdown→ANSI for s
 - **Changelogs** parsed per-entry from MikroTik download server (category, breaking flag, version metadata)
 - **8 agent skills** from tikoci/routeros-skills (community-created, human-reviewed guides with provenance attribution)
 - **FTS5 indexes** with `porter unicode61` tokenizer (pages, properties, callouts, changelogs, skills) and `unicode61` without porter (devices), BM25-weighted ranking
-- **MCP server** with 14 tools and 8+ resources: search, get_page, lookup_property, explain_command, command_tree, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; callouts and videos surface inside `routeros_search`'s `related` block (no longer standalone tools). Resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills` (listing), `rosetta://skills/{name}` (per-skill)
+- **MCP server** with 14 tools and MCP resources: search, get_page, lookup_property, explain_command, command_tree, search_changelogs, command_version_check, command_diff, device_lookup, search_tests, dude_search, dude_get_page, stats, current_versions; callouts and videos surface inside `routeros_search`'s `related` block (no longer standalone tools). Fixed resources: `rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`, `rosetta://schema.sql`, `rosetta://schema-guide.md`, `rosetta://skills`; per-skill resources use `rosetta://skills/{name}`.
 
 ## Schema
 
@@ -496,9 +496,11 @@ bunx @tikoci/rosetta --setup   # Optional: verify + print MCP config snippets
 ### CLI Flags
 
 | Flag | Purpose |
-|------|---------|| `browse` | Interactive terminal browser (REPL) |
+|------|---------|
+| `browse` | Interactive terminal browser (REPL) |
 | `browse <cmd> [args]` | Run any TUI command, then enter REPL (e.g. `browse changelog 7.20..7.22`) |
-| `browse --once <cmd>` | Execute any TUI command and exit — no REPL (for piping) || `--setup` | Download DB + print MCP config |
+| `browse --once <cmd>` | Execute any TUI command and exit — no REPL (for piping) |
+| `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--refresh` | Shortcut for `--setup --force` (refresh DB) |
 | `--version` | Print version |
@@ -534,7 +536,7 @@ Uses the MCP Streamable HTTP transport (spec 2025-03-26) via `Bun.serve()` + `We
 
 | File | Purpose |
 |------|---------|
-| `src/mcp.ts` | MCP server — 14 tools + 2 CSV resources, stdio + Streamable HTTP transport |
+| `src/mcp.ts` | MCP server — 14 tools + MCP resources, stdio + Streamable HTTP transport |
 | `src/classify.ts` | Pre-search regex classifier — detects command path, version, topics, device model, command fragment, property-name candidate. Pure module, no DB |
 | `src/query.ts` | NL → FTS5 query planner, BM25 ranking, OR fallback, version sorting |
 | `src/db.ts` | Schema init, singleton DB, WAL mode |
@@ -594,12 +596,12 @@ When a new HTML/PDF export is available:
 # Place new export in box/ and update symlink
 # ln -s documents-export-<date> box/latest
 make clean
-make extract       # runs extract-html, extract-properties, extract-commands, extract-devices, extract-skills, link
-make extract-full  # runs extract-html, extract-properties, extract-all-versions, extract-devices, extract-skills, link
+make extract       # HTML → properties → commands → devices → tests → changelogs → Dude cache → skills → link
+make extract-full  # Same, but command data uses all 46 RouterOS versions
 make gc-versions EXTRA_FLAGS=--verbose  # release retention: prune schema_node_presence active heads
 ```
 
-The Makefile orchestrates the full pipeline. Each script drops and recreates its tables.
+The Makefile orchestrates the local extraction pipeline. Each script drops and recreates its tables. Release CI runs the same core steps, additionally imports video transcripts from committed NDJSON, prunes `schema_node_presence`, reruns DB-wipe guard tests, stamps `db_meta`, and validates minimum DB content before publishing artifacts.
 
 ### Video transcript refresh (local-only, requires yt-dlp)
 
@@ -620,7 +622,7 @@ The `release.yml` workflow (`workflow_dispatch`) builds the database from a remo
 
 **Inputs:** `html_url` (required — direct download URL to `.zip`, pre-populated with the current known MikroTik export link), `version` (optional override — defaults to `v` + `package.json` version), `docs_date` (optional — export date for traceability), `full_versions` (default: true — all 46 RouterOS versions), `republish_assets` (default: false — reupload GitHub Release assets and OCI tags for an existing version; does **not** re-publish npm, so bump `package.json` for a new npm package).
 
-**Steps:** early quality gate (typecheck + lint + tests) → download + validate zip → extract HTML → run full extraction pipeline → link commands → GC `schema_node_presence` to active channel heads → post-extraction DB-wipe guard tests → stamp DB provenance + stats → build release artifacts + OCI image tars → publish OCI images to Docker Hub/GHCR → smoke-test pulled `sha-*` images on `/mcp` → create GitHub Release with DB stats in release notes.
+**Steps:** early quality gate (typecheck + lint + tests) → download + validate zip → extract HTML/properties/commands/devices/test-results/changelogs → import video transcript cache → import Dude cache → extract skills → link commands → GC `schema_node_presence` to active channel heads → post-extraction DB-wipe guard tests → non-blocking MCP contract/eval checks → stamp DB provenance + stats → validate minimum DB content → build release artifacts + OCI image tars → publish OCI images to Docker Hub/GHCR → smoke-test pulled `sha-*` images on `/mcp` → create GitHub Release with DB stats in release notes.
 
 For Seafile links (box.mikrotik.com), append `&dl=1` for direct download. Product matrix CSV uses the committed copy in `matrix/`.
 

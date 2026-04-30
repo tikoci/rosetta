@@ -12,17 +12,19 @@ Every extractor follows the same structure:
 
 ## Pipeline Order
 
-**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `link-commands`
+**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `extract-dude-from-cache` → `extract-skills` → `link-commands`
 ```sh
 make extract
 ```
 
-**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `link-commands`
+**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `extract-dude-from-cache` → `extract-skills` → `link-commands`
 ```sh
 make extract-full
 ```
 
-**Note:** `extract-videos` is NOT in either chain — it requires `yt-dlp` installed and takes 30–60 min. Run separately with `make extract-videos` (full fetch) or `make extract-videos-from-cache` (from committed NDJSON, used in CI).
+**Video note:** `extract-videos` is NOT in `make extract` / `make extract-full` because a full YouTube fetch requires `yt-dlp` and takes 30–60 min. Release CI imports committed NDJSON with `make extract-videos-from-cache`; run `make extract-videos` locally only when refreshing the transcript cache, then `make save-videos-cache`.
+
+**Release-only retention:** published DB builds run `make gc-versions EXTRA_FLAGS=--verbose` after linking to prune `schema_node_presence` to active channel heads. Local `make extract-full` intentionally keeps the full presence table until that target is run.
 
 ## CI Pickup Checklist (Required)
 
@@ -31,7 +33,8 @@ When an extraction/backfill item is marked complete, verify CI behavior explicit
 1. Confirm the release workflow step in `.github/workflows/release.yml` runs the extractor with the required flags/defaults.
 2. If extraction defaults changed, confirm CI uses that default path (not a local-only Make target).
 3. If a new Make target was added for convenience, do not rely on it for CI unless the workflow actually calls it.
-4. If CI does not yet execute the new behavior, update the workflow in the same PR or keep the backlog item open/deferred with a specific CI follow-up.
+4. Confirm the release workflow's post-extraction gates still exercise the changed DB shape: `bun test` DB-wipe guard, MCP contract test/eval when relevant, DB provenance stamping, stats collection, and minimum-content validation before artifacts are published.
+5. If CI does not yet execute the new behavior, update the workflow in the same PR or keep the backlog item open/deferred with a specific CI follow-up.
 
 Do not assume maintainers will run local `make` commands to compensate for missing CI wiring.
 
@@ -50,11 +53,11 @@ Do not assume maintainers will run local `make` commands to compensate for missi
 - CLI flags: `--version`, `--channel`, `--extra`, `--accumulate`
 - Default mode: replaces `commands` table (primary version)
 - `--accumulate` mode: only adds to `command_versions`, preserves `commands`
-- Primary version = latest stable (currently 7.22)
+- Primary version = latest stable discovered from restraml; docs may lag because the HTML export is manual
 
 ## Batch Version Extraction (extract-all-versions.ts)
-- Discovers versions from restraml GitHub Pages index (`https://tikoci.github.io/restraml/`) by default; accepts explicit local `docs/` path override when passed as CLI arg
-- Prefers `extra/inspect.json` (all extra-packages on CHR) over base `inspect.json`
+- Discovers versions from restraml GitHub Pages / GitHub API by default; accepts explicit local `docs/` path override when passed as CLI arg
+- Prefers deep-inspect files when available, falls back to `extra/inspect.json`, then base `inspect.json`
 - Classifies channel: "beta"/"rc" → development, else stable
 - Runs primary extraction for latest stable, accumulate for all others
 - 46 versions: 7.9 through 7.23beta2

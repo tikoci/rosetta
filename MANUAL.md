@@ -83,6 +83,8 @@ If your MCP client supports resources, rosetta exposes datasets and supplemental
 |----------|---------|
 | `rosetta://datasets/device-test-results.csv` | Full joined benchmark dataset as CSV |
 | `rosetta://datasets/devices.csv` | Full device catalog with normalized fields and URLs |
+| `rosetta://schema.sql` | Live SQLite DDL from `sqlite_master` |
+| `rosetta://schema-guide.md` | Schema relationships, FTS5 query guidance, and join gotchas |
 | `rosetta://skills` | Listing of all agent skill guides with names and descriptions |
 | `rosetta://skills/{name}` | Full skill guide content with provenance header (community content) |
 
@@ -103,6 +105,8 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 - **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
 
 - **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (518 videos, ~1,800 transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
+
+- **Archived Dude Wiki** — Wayback Machine snapshots cached in `dude/pages/`, exposed through separate Dude tools because the retired GUI docs are not part of current RouterOS v7 help.
 
 - **Agent Skills** — Community-created agent guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) (8 skills, ~30K words). NOT official MikroTik documentation — AI-generated, human-reviewed, served with provenance attribution. Practical domain knowledge for topics like containers, QEMU CHR, netinstall, and RouterOS fundamentals.
 
@@ -148,6 +152,12 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
 | `videos` | 518 | MikroTik YouTube video metadata — title, description, duration, chapters |
 | `video_segments` | ~1,890 | Chapter-level transcript segments with timestamps for deep linking |
+| `dude_pages` | varies | Archived Dude wiki pages from Wayback/cache |
+| `dude_images` | varies | Screenshot metadata for Dude wiki pages |
+| `skills` | 8 | Agent skill guides from tikoci/routeros-skills with provenance |
+| `skill_references` | varies | Reference documents bundled with skills |
+| `glossary` | varies | RouterOS terms, aliases, definitions, and search hints |
+| `db_meta` | varies | Release provenance and schema/update metadata |
 
 Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `properties_fts`, `devices_fts`, `video_segments_fts`).
 

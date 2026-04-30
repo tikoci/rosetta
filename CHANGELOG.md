@@ -41,6 +41,9 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Documentation/instruction cleanup:** agent-facing instructions, release/extraction docs,
+  and BACKLOG structure now match the current CI pipeline, MCP resource surface,
+  and `DESIGN.md` source-of-truth for cross-tikoci command validation strategy.
 - **MCP search/property confidence metadata:** `routeros_search.classified`
   now includes `command_path_confidence`, and `routeros_lookup_property`
   rows include `confidence` (`high`/`medium`/`low`) to distinguish scoped
