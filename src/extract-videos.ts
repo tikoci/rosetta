@@ -150,21 +150,47 @@ function checkYtDlp(ytdlp = YTDLP_DEFAULT): boolean {
 const VTT_TIMESTAMP_RE = /^(\d{2}):(\d{2}):(\d{2})\.(\d{3}) --> /;
 // Inline timestamp tags like <00:00:01.234>
 const INLINE_TS_RE = /<\d{2}:\d{2}:\d{2}\.\d{3}>/g;
+const VTT_CUE_TAG_RE =
+  /^<\/?(?:b|i|u|ruby|rt|c(?:\.[A-Za-z0-9_-]+)*|v(?:\s+[^<>]+)?|lang(?:\s+[A-Za-z0-9_-]+)?)>/;
 
 function stripHtmlLikeMarkup(input: string): string {
   let output = "";
-  let inTag = false;
-  for (const char of input) {
+  let i = 0;
+
+  while (i < input.length) {
+    const char = input[i];
+
     if (char === "<") {
-      inTag = true;
+      const validCueTag = input.slice(i).match(VTT_CUE_TAG_RE);
+      if (validCueTag) {
+        i += validCueTag[0].length;
+        continue;
+      }
+
+      let j = i + 1;
+      let lastClose = -1;
+      while (j < input.length) {
+        if (input[j] === ">") lastClose = j;
+        if (lastClose !== -1 && /\s/.test(input[j])) break;
+        j++;
+      }
+
+      if (lastClose > i && lastClose + 1 < j) {
+        output += input.slice(lastClose + 1, j).replace(/[<>]/g, "");
+      }
+      i = j;
       continue;
     }
+
     if (char === ">") {
-      inTag = false;
+      i++;
       continue;
     }
-    if (!inTag) output += char;
+
+    output += char;
+    i++;
   }
+
   return output;
 }
 

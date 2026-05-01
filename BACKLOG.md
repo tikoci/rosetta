@@ -29,7 +29,7 @@ Clear scope, no blockers, ready to act.
 ### 🔴 Release, update, and packaging cleanup
 
 - **Drop or gate local `make release`.** Preferred published release path is the GitHub Actions `Release` workflow. Decide between deleting the local `release` target or gating it behind `ALLOW_LOCAL_RELEASE=1`; update `DESIGN.md`, `CONTRIBUTING.md`, and `CLAUDE.md` if behavior changes. CI pickup: release semantics are exercised by `.github/workflows/release.yml`; Makefile structural expectations are covered by `src/release.test.ts`.
-- **Update GitHub Actions before Node 20 action deprecation bites.** Current workflow actions (`actions/setup-node@v4`, `actions/upload-artifact@v4`, Docker actions) can emit Node 20 deprecation warnings. Bump/pin before GitHub's forced Node 24 transition.
+- **Keep GitHub Actions on Node 24-compatible majors.** Dependabot is already bumping `actions/setup-node`, `actions/upload-artifact`, and Docker actions; keep merging those PRs before GitHub's forced runtime transitions turn warnings into failures.
 - **Make `html_url` intentionally supplied or auto-discovered.** The default Seafile direct link can rotate. Either remove the default so dispatchers must supply the export URL, or implement latest-export discovery from a durable index.
 - **Promote CHANGELOG.md into release notes.** Release workflow should use `[Unreleased]` as the GitHub Release body, promote it to a dated version heading, and commit that in the same bump-version path. Skip in `republish_assets` mode.
 - **Shrink Makefile toward ETL only.** Keep extraction/check orchestration where `make` adds value; drop pure `bun` delegations if the local release path is removed. Update docs in the same change.

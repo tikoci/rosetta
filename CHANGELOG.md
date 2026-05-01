@@ -64,6 +64,13 @@ uses [Semantic Versioning](https://semver.org/).
   hint. The Phase 2 contract test's `KNOWN_EXCEPTIONS` allow-list is
   removed — every registered tool now carries a follow-up arrow.
 
+### Fixed
+
+- **Video transcript VTT cleanup:** malformed cue markup is dropped without
+  leaking tag fragments into extracted transcript text.
+- **Release workflow npm propagation log:** the bunx smoke-test polling loop
+  now reports the correct attempt number while waiting for the npm registry.
+
 ### Added
 
 - **`routeros_explain_command` MCP tool:** read-only CLI command explanation

@@ -455,7 +455,7 @@ jobs:
           # Strip leading v — npm versions are unprefixed.
           NPM_VER="${VERSION#v}"
           echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
-          for _ in {1..30}; do
+          for i in {1..30}; do
             if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
               echo "✓ npm registry has ${NPM_VER} (attempt $i)"
               exit 0
