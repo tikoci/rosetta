@@ -488,6 +488,27 @@ describe("release.yml", () => {
     expect(contractIdx).toBeLessThan(buildIdx);
   });
 
+  test("runs Phase 1 self-supervised eval against the built DB and appends a summary result", () => {
+    const src = readText(".github/workflows/release.yml");
+    const phase0Idx = mustIndex(src, "MCP retrieval eval (Phase 0, non-blocking)");
+    const phase1Idx = mustIndex(
+      src,
+      "MCP retrieval eval (Phase 1, self-supervised, non-blocking)",
+    );
+    const buildIdx = mustIndex(src, "Build release artifacts");
+    const phase1Block = src.slice(phase1Idx, buildIdx);
+
+    expect(phase1Idx).toBeGreaterThan(phase0Idx);
+    expect(phase1Idx).toBeLessThan(buildIdx);
+    expect(phase1Block).toContain("continue-on-error: true");
+    expect(phase1Block).toContain("bun run src/eval/self-supervised.ts");
+    expect(phase1Block).toContain(
+      "## Phase 1 retrieval eval (self-supervised)",
+    );
+    expect(phase1Block).toContain("Result: ✅ pass");
+    expect(phase1Block).toContain("Result: ⚠️ non-blocking failure");
+  });
+
   test("creates GitHub Release", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("gh release create");
@@ -541,6 +562,18 @@ describe("release.yml", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("npm publish");
     expect(src).toContain("NPM_TOKEN");
+  });
+
+  test("bunx-smoke covers windows with bash steps and a runner temp log", () => {
+    const src = readText(".github/workflows/release.yml");
+    const bunxIdx = mustIndex(src, "bunx-smoke:");
+    const bumpIdx = mustIndex(src, "bump-version:");
+    const bunxBlock = src.slice(bunxIdx, bumpIdx);
+
+    expect(bunxBlock).toContain("windows-latest");
+    expect(bunxBlock).toContain("shell: bash");
+    expect(bunxBlock).toContain("RUNNER_TEMP");
+    expect(bunxBlock).not.toContain("mktemp");
   });
 
   test("validates DB content before publishing (regression: v0.7.6 shipped 3 pages)", () => {

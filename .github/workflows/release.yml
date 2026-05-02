@@ -214,6 +214,31 @@ jobs:
           bun run src/eval/retrieval.ts | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      # ── MCP retrieval eval (Phase 1, self-supervised, non-blocking) ──
+      # Runs the auto-generated query set against the freshly built full DB and
+      # appends the outcome to the workflow summary. Keep non-blocking on first
+      # landing so we can observe real release-build drift before promoting it
+      # to a hard gate.
+      - name: MCP retrieval eval (Phase 1, self-supervised, non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Phase 1 retrieval eval (self-supervised)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          bun run src/eval/self-supervised.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -eq 0 ]; then
+            echo "Result: ✅ pass" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Result: ⚠️ non-blocking failure (exit $status)" >> "$GITHUB_STEP_SUMMARY"
+            exit "$status"
+          fi
+
       # ── Build and release ──
 
       - name: Stamp DB provenance (db_meta)
@@ -428,19 +453,22 @@ jobs:
 
   # End-to-end bunx smoke — replicates exactly what users hit:
   # fresh runner → bunx pulls the just-published @tikoci/rosetta → --refresh
-  # downloads the DB and opens it. Matrix covers macOS + Linux because the
-  # v0.8.0 "DB=unreadable" bug only fires on macOS (WAL-mode SQLite + readonly
-  # open with no .shm). Linux-only CI greenlit that release.
+  # downloads the DB and opens it. Matrix now covers macOS + Linux + Windows so
+  # the v0.8.x Windows EBUSY / temp-artifact class and the macOS readonly-WAL
+  # class are both exercised on the release path.
   #
   # Failure here fails the overall workflow (red X, notifications) but does
   # NOT gate bump-version — see comment on bump-version for the reasoning.
   bunx-smoke:
     needs: build-and-release
     if: inputs.republish_assets != true  # republish_assets skips npm publish, so nothing to smoke
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: oven-sh/setup-bun@v2
@@ -484,7 +512,6 @@ jobs:
       - name: MCP server starts and DB probe succeeds
         env:
           VERSION: ${{ needs.build-and-release.outputs.version }}
-        shell: bash
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"
@@ -493,7 +520,8 @@ jobs:
           # server exits with "Still incompatible after re-download" and /mcp
           # never responds.
           PORT=18765
-          LOG=$(mktemp)
+          LOG="${RUNNER_TEMP}/rosetta-bunx-smoke-${{ matrix.os }}.log"
+          rm -f "$LOG"
           bunx "@tikoci/rosetta@${NPM_VER}" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
           PID=$!
           trap 'kill "$PID" 2>/dev/null || true' EXIT

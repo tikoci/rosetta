@@ -21,6 +21,9 @@ uses [Semantic Versioning](https://semver.org/).
 
 - **Work tracking restructured.** `BACKLOG.md` slimmed to an inbox + triggers list. Active work now lives in `tasks/T-NNNN-*.md` (frontmatter: status, depends_on, conflicts_with, validation, acceptance). Research and decision notes live in `briefings/B-NNNN-*.md`. New `VALIDATION.md` matrix names every load-bearing invariant and the CI step that proves it. Three new `.github/skills/` (`pick-next-task`, `promote-idea`, `verify-task`) wrap the conventions. `CLAUDE.md` and `.github/copilot-instructions.md` doc-rule tables updated to match.
 - **Task verification docs now distinguish current proofs from planned ones.** `tasks/README.md` and the `verify-task` skill no longer assume a `make verify` target already exists, `VALIDATION.md` now points `V-db-min-content` at the real inline release step, and `V-retrieval-self` is recorded honestly as a tracked gap until release CI actually runs the self-supervised eval.
+- **The test workflow now exercises the real stdio MCP client path.** `.github/workflows/test.yml` runs `src/mcp-stdio-client.test.ts`, which spawns `bun src/mcp.ts` through `@modelcontextprotocol/sdk`'s `StdioClientTransport`, proves the 14-tool registry/resources surface over stdio, and catches stdout framing pollution.
+- **Release `bunx-smoke` matrix now includes `windows-latest`.** Catches the EBUSY / readonly-WAL / temp-file class of bugs on Windows. Step uses `RUNNER_TEMP` instead of `mktemp` (not available in Git Bash) and sets `shell: bash` as the job default.
+- **Release CI now runs the Phase 1 self-supervised retrieval eval (non-blocking).** After the existing Phase 0 hand-curated eval step, `release.yml` now executes `src/eval/self-supervised.ts` against the freshly built full DB and appends the pass/fail result to the workflow summary. Results are visible but non-blocking until a stable baseline is established.
 
 ### Security
 

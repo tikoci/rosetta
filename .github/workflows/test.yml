@@ -34,6 +34,9 @@ jobs:
       - name: Type check
         run: bun run typecheck
 
+      - name: Run stdio MCP integration test
+        run: bun test src/mcp-stdio-client.test.ts
+
       - name: Run tests
         run: bun test
 

@@ -43,16 +43,13 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 
 ### `area: ci`
 
-- `T-0009-windows-bunx-smoke` — Add windows-latest to bunx-smoke matrix
 - `T-0028-make-verify-target` — `make verify` local CI parity target
 - `T-0029-flip-contract-eval-blocking` — Promote contract test + retrieval eval to blocking
 
 ### `area: qa`
 
-- `T-0010-mcp-stdio-client-test` — Real-client MCP stdio integration test
 - `T-0011-tui-mcp-parity-test` — Enforce TUI ↔ MCP tool parity
 - `T-0012-cli-flag-uniformity-test` — CLI flag documentation parity test
-- `T-0030-self-supervised-eval-release-ci` — Wire self-supervised retrieval eval into release CI
 
 ### `area: release`
 
@@ -114,3 +111,6 @@ Greppable history of merged work. See `tasks/done/T-*.md` for full back-fill of 
 - T-0006 `routeros_search_tests` + workflow arrows + glossary fixes
 - T-0007 "Looks like a command, but args not found" warning
 - T-0008 Deleted stale `.npm-publish-checklist.md`
+- T-0009 Windows `bunx-smoke` release coverage
+- T-0010 Real-client MCP stdio integration test
+- T-0030 Self-supervised retrieval eval wired into release CI

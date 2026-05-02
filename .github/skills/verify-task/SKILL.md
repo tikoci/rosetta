@@ -48,7 +48,7 @@ Closes the loop between a task's claimed acceptance and what's actually proven. 
    | V-schema-roundtrip     | `bun test src/schema-roundtrip.test.ts` |
    | V-extract-videos       | `bun test src/extract-videos.test.ts` |
    | V-http-handshake       | `bun test src/mcp-http.test.ts` |
-   | V-stdio-handshake      | `bun test src/mcp-stdio-client.test.ts` (after T-0010) |
+   | V-stdio-handshake      | `bun test src/mcp-stdio-client.test.ts` |
    | V-tui-mcp-parity       | `bun test src/browse-parity.test.ts` (after T-0011) |
    | V-cli-flag-uniformity  | `bun test src/cli-help.test.ts` (after T-0012) |
    | V-db-wipe-guard        | `bun test src/query.test.ts` |
