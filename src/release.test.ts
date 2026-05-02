@@ -202,11 +202,24 @@ describe("setup.ts", () => {
     expect(mcp).toContain("refreshDb");
   });
 
+  test("serializes package DB preparation with a sidecar lock", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain(".lock");
+    expect(src).toContain("tryAcquireDownloadLock");
+    expect(src).toContain("waitForUsableDb");
+  });
+
   test("mcp.ts fails hard on persistent schema mismatch (no silent fall-through)", () => {
     const src = readText("src/mcp.ts");
     // Must call process.exit on the unrecoverable schema-mismatch path
     expect(src).toContain("Still incompatible after re-download");
-    expect(src).toMatch(/Still incompatible[\s\S]{0,400}process\.exit\(1\)/);
+    expect(src).toMatch(/Still incompatible[\s\S]{0,500}(throw new Error|process\.exit\(1\))/);
+  });
+
+  test("mcp.ts aborts startup instead of continuing with an empty DB", () => {
+    const src = readText("src/mcp.ts");
+    expect(src).toContain("Unable to start rosetta without a usable database");
+    expect(src).toContain("Database remained empty after recovery");
   });
 
   test("no DB open uses { readonly: true } (WAL-shm init trap on macOS)", () => {
@@ -564,6 +577,11 @@ describe("CLI flags", () => {
   test("browse mode bootstraps database before importing browse.ts", () => {
     expect(src).toContain('if (args[0] === "browse")');
     expect(src).toContain("await ensureDbReady");
+  });
+
+  test("top-level CLI bootstrap has a catch that exits non-zero on startup errors", () => {
+    expect(src).toContain("})().catch((err) => {");
+    expect(src).toContain("process.exit(1)");
   });
 });
 

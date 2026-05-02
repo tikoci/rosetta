@@ -20,8 +20,25 @@ afterAll(() => {
   } catch {}
 });
 
-const { probeDb, dbDownloadUrls } = await import("./setup.ts");
+const { dbDownloadUrls, probeDb, releaseDownloadLock, tryAcquireDownloadLock, waitForUsableDb } = await import("./setup.ts");
 const { SCHEMA_VERSION } = await import("./paths.ts");
+
+function writeUsableDb(dbFile: string, releaseTag = "v0.0.0-test"): void {
+  const db = new sqlite(dbFile);
+  db.run(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+  db.run("CREATE TABLE pages (id INTEGER PRIMARY KEY, title TEXT);");
+  db.run("CREATE TABLE commands (id INTEGER PRIMARY KEY, path TEXT);");
+  db.run("CREATE TABLE db_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+
+  const insertPage = db.prepare("INSERT INTO pages (title) VALUES (?)");
+  for (let i = 0; i < 100; i++) insertPage.run(`page-${i}`);
+
+  const insertCmd = db.prepare("INSERT INTO commands (path) VALUES (?)");
+  for (let i = 0; i < 1000; i++) insertCmd.run(`/cmd/${i}`);
+
+  db.run("INSERT INTO db_meta (key, value) VALUES ('release_tag', ?);", [releaseTag]);
+  db.close();
+}
 
 // ---------------------------------------------------------------------------
 // dbDownloadUrls — version pinning + latest fallback
@@ -50,6 +67,53 @@ describe("dbDownloadUrls", () => {
     expect(dbDownloadUrls("")).toEqual([
       expect.stringContaining("/releases/latest/download/ros-help.db.gz"),
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// download lock helpers — serialize package-mode DB preparation
+// ---------------------------------------------------------------------------
+
+describe("download lock helpers", () => {
+  test("lock is exclusive until released", () => {
+    const dbFile = path.join(tmp, "locked.db");
+    const first = tryAcquireDownloadLock(dbFile);
+    expect(first).not.toBeNull();
+    const second = tryAcquireDownloadLock(dbFile);
+    expect(second).toBeNull();
+
+    releaseDownloadLock(first);
+
+    const third = tryAcquireDownloadLock(dbFile);
+    expect(third).not.toBeNull();
+    releaseDownloadLock(third);
+  });
+
+  test("waitForUsableDb returns false when lock goes away without a healthy DB", async () => {
+    const dbFile = path.join(tmp, "wait-false.db");
+    const lock = tryAcquireDownloadLock(dbFile);
+    expect(lock).not.toBeNull();
+
+    const waiter = waitForUsableDb(dbFile, () => {}, 2_000);
+    setTimeout(() => releaseDownloadLock(lock), 100);
+
+    expect(await waiter).toBe(false);
+  });
+
+  test("waitForUsableDb returns true when another process finishes the DB", async () => {
+    const dbFile = path.join(tmp, "wait-true.db");
+    const lock = tryAcquireDownloadLock(dbFile);
+    expect(lock).not.toBeNull();
+
+    writeUsableDb(dbFile, "v0.0.0-wait");
+    const waiter = waitForUsableDb(dbFile, () => {}, 2_000);
+    setTimeout(() => releaseDownloadLock(lock), 100);
+
+    expect(await waiter).toBe(true);
+    const probe = probeDb(dbFile);
+    expect(probe?.releaseTag).toBe("v0.0.0-wait");
+    expect(probe?.pages).toBe(100);
+    expect(probe?.commands).toBe(1000);
   });
 });
 

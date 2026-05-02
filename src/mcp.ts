@@ -53,8 +53,8 @@ function link(url: string, display?: string): string {
  * on fresh installs.
  *
  * Failure modes are explicit:
- *   - Missing or empty DB → download once. If download fails, return — server
- *     will start but tool calls will surface the underlying SQL error.
+ *   - Missing or empty DB → download once. If download fails, abort startup —
+ *     package-mode startup must not continue into db.ts and create a schema-only DB.
  *   - Schema mismatch → re-download once, then re-probe. If still mismatched,
  *     fail hard with an actionable message rather than silently using a DB
  *     that the running code can't query correctly.
@@ -101,14 +101,17 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       p = probe();
     } catch (e) {
       log(`Auto-download failed: ${e instanceof Error ? e.message : e}`);
-      log(`Run: bunx @tikoci/rosetta --refresh`);
-      return;
+      log(`Close other rosetta clients and run: bunx @tikoci/rosetta --refresh`);
+      throw new Error(`Unable to start rosetta without a usable database at ${dbPath}.`);
     }
   }
 
   if (!p) {
-    log(`Database probe failed after download.`);
-    return;
+    throw new Error(`Database probe failed after download: ${dbPath}`);
+  }
+
+  if (p.pages === 0) {
+    throw new Error(`Database remained empty after recovery: ${dbPath}`);
   }
 
   // Case 2: Schema mismatch → re-download, then re-probe and fail hard if
@@ -124,9 +127,9 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       log(`✗ Auto-recovery download failed: ${e instanceof Error ? e.message : e}`);
       log(
         `  This rosetta build (v${runningVersion}) cannot use the existing DB. ` +
-          `Run \`bun pm cache rm\` to clear the bunx cache and relaunch.`,
+          `Close other rosetta clients, then run \`bun pm cache rm && bunx @tikoci/rosetta --refresh\`.`,
       );
-      process.exit(1);
+      throw new Error(`Unable to recover an incompatible database at ${dbPath}.`);
     }
     const p2 = probe();
     if (!p2 || p2.schemaVersion !== SCHEMA_VERSION) {
@@ -137,7 +140,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
         `  The published database does not match this rosetta build (v${runningVersion}). ` +
           `Run \`bun pm cache rm && bunx @tikoci/rosetta --refresh\` to update both the package and the DB.`,
       );
-      process.exit(1);
+      throw new Error(`Database remained incompatible after recovery: ${dbPath}`);
     }
     p = p2;
   }
@@ -1616,4 +1619,8 @@ if (useHttp) {
   await server.connect(transport);
 }
 
-})();
+})().catch((err) => {
+  const message = err instanceof Error ? err.message : String(err);
+  process.stderr.write(`${message}\n`);
+  process.exit(1);
+});

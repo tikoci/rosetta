@@ -66,6 +66,12 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **bunx/package startup no longer races the shared `~/.rosetta/ros-help.db`.**
+  Package-mode DB preparation now uses a sidecar lock so concurrent MCP clients
+  wait for the first download instead of competing to rename the file on
+  Windows. Startup also aborts instead of falling through to a schema-only
+  empty DB when recovery fails, preventing the misleading `0 pages / 0
+  commands` state.
 - **Video transcript VTT cleanup:** malformed cue markup is dropped without
   leaking tag fragments into extracted transcript text.
 - **Release workflow npm propagation log:** the bunx smoke-test polling loop

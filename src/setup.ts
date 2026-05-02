@@ -8,7 +8,15 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  openSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { gunzipSync } from "bun";
 import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
@@ -25,6 +33,21 @@ const MIN_PAGES = 100;
 const MIN_COMMANDS = 1000;
 const MIN_DECOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB
 const SQLITE_MAGIC = "SQLite format 3\0";
+const DOWNLOAD_LOCK_WAIT_MS = 90_000;
+const DOWNLOAD_LOCK_POLL_MS = 250;
+const DOWNLOAD_LOCK_STALE_MS = 15 * 60 * 1000;
+
+type DbProbe = {
+  schemaVersion: number;
+  pages: number;
+  commands: number;
+  releaseTag: string | null;
+};
+
+type DownloadLockHandle = {
+  fd: number;
+  path: string;
+};
 
 /** Check if a DB file exists and has actual page data.
  *  Opens read-write — see probeDb's note: freshly written WAL-mode files can
@@ -79,6 +102,106 @@ export function probeDb(dbPath: string): {
   }
 }
 
+function isUsableDbProbe(probe: DbProbe | null): probe is DbProbe {
+  return !!probe && probe.schemaVersion === SCHEMA_VERSION && probe.pages >= MIN_PAGES && probe.commands >= MIN_COMMANDS;
+}
+
+function lockPathFor(dbPath: string): string {
+  return `${dbPath}.lock`;
+}
+
+function formatProbeSummary(probe: DbProbe): string {
+  const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
+  return `schema v${probe.schemaVersion}, ${probe.pages} pages, ${probe.commands} commands${tagInfo}`;
+}
+
+export function tryAcquireDownloadLock(dbPath: string): DownloadLockHandle | null {
+  const lockPath = lockPathFor(dbPath);
+
+  while (true) {
+    try {
+      const fd = openSync(lockPath, "wx");
+      writeFileSync(
+        fd,
+        JSON.stringify({
+          pid: process.pid,
+          created_at: new Date().toISOString(),
+          db_path: dbPath,
+        }) + "\n",
+      );
+      return { fd, path: lockPath };
+    } catch (e) {
+      const code = e instanceof Error && "code" in e ? e.code : undefined;
+      if (code !== "EEXIST") throw e;
+
+      let ageMs: number | null = null;
+      try {
+        ageMs = Date.now() - statSync(lockPath).mtimeMs;
+      } catch {
+        ageMs = null;
+      }
+
+      if (ageMs !== null && ageMs > DOWNLOAD_LOCK_STALE_MS) {
+        tryUnlink(lockPath);
+        continue;
+      }
+
+      return null;
+    }
+  }
+}
+
+export function releaseDownloadLock(lock: DownloadLockHandle | null): void {
+  if (!lock) return;
+  try {
+    closeSync(lock.fd);
+  } catch {
+    // best-effort cleanup
+  }
+  tryUnlink(lock.path);
+}
+
+export async function waitForUsableDb(
+  dbPath: string,
+  log: (msg: string) => void = console.log,
+  timeoutMs = DOWNLOAD_LOCK_WAIT_MS,
+): Promise<boolean> {
+  const lockPath = lockPathFor(dbPath);
+  const deadline = Date.now() + timeoutMs;
+  let announced = false;
+
+  while (Date.now() < deadline) {
+    const probe = probeDb(dbPath);
+    if (isUsableDbProbe(probe)) return true;
+
+    if (!existsSync(lockPath)) return false;
+
+    if (!announced) {
+      log(`  Another rosetta process is preparing ${dbPath}; waiting...`);
+      announced = true;
+    }
+
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    await Bun.sleep(Math.min(remaining, DOWNLOAD_LOCK_POLL_MS));
+  }
+
+  return false;
+}
+
+function replaceDbFile(tmpPath: string, dbPath: string): void {
+  try {
+    renameSync(tmpPath, dbPath);
+    return;
+  } catch (e) {
+    const code = e instanceof Error && "code" in e ? e.code : undefined;
+    if (code !== "EEXIST" && code !== "EPERM") throw e;
+  }
+
+  tryUnlink(dbPath);
+  renameSync(tmpPath, dbPath);
+}
+
 /** Build the version-pinned download URL. Falls back to /latest/ when no version.
  *  Exported for test coverage. */
 export function dbDownloadUrls(version: string): string[] {
@@ -96,7 +219,7 @@ export function dbDownloadUrls(version: string): string[] {
  * Download ros-help.db.gz from GitHub Releases atomically:
  *   1. Try version-pinned URL first, fall back to /latest/ on 404.
  *   2. Decompress in memory, verify SQLite magic bytes + minimum size.
- *   3. Write to <dbPath>.tmp.<pid>, open it read-only, verify schema_version
+ *   3. Write to <dbPath>.tmp.<pid>, probe it with SQLite, verify schema_version
  *      matches the running code and pages/commands counts look healthy.
  *   4. Atomically rename .tmp → dbPath, then delete stale .db-wal / .db-shm.
  *
@@ -108,121 +231,169 @@ export async function downloadDb(
   dbPath: string,
   log: (msg: string) => void = console.log,
 ) {
+  let lock = tryAcquireDownloadLock(dbPath);
+  if (!lock) {
+    const reused = await waitForUsableDb(dbPath, log);
+    if (reused) {
+      const probe = probeDb(dbPath);
+      if (probe) log(`  Reused existing database: ${formatProbeSummary(probe)}`);
+      return;
+    }
+
+    // Re-probe once — the lock may have been released with a healthy DB
+    const fallbackProbe = probeDb(dbPath);
+    if (isUsableDbProbe(fallbackProbe)) {
+      log(`  Reused existing database: ${formatProbeSummary(fallbackProbe)}`);
+      return;
+    }
+
+    lock = tryAcquireDownloadLock(dbPath);
+    if (!lock) {
+      throw new Error(
+        `Timed out waiting for another rosetta process to finish preparing ${dbPath}. ` +
+          `Close other rosetta clients and retry.`,
+      );
+    }
+  }
+
   const urls = dbDownloadUrls(RELEASE_VERSION);
   let lastError: Error | null = null;
 
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i];
-    const isLast = i === urls.length - 1;
-    log(`Downloading database from GitHub Releases...`);
-    log(`  ${url}`);
+  try {
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      const isLast = i === urls.length - 1;
+      log(`Downloading database from GitHub Releases...`);
+      log(`  ${url}`);
 
-    let response: Response;
-    try {
-      response = await fetch(url, { redirect: "follow" });
-    } catch (e) {
-      lastError = e as Error;
-      log(`  Network error: ${e}`);
-      if (isLast) throw lastError;
-      continue;
+      let response: Response;
+      try {
+        response = await fetch(url, { redirect: "follow" });
+      } catch (e) {
+        lastError = e as Error;
+        log(`  Network error: ${e}`);
+        if (isLast) throw lastError;
+        continue;
+      }
+
+      if (response.status === 404 && !isLast) {
+        log(`  Not found at this URL, trying fallback...`);
+        continue;
+      }
+      if (!response.ok) {
+        lastError = new Error(`Download failed: ${response.status} ${response.statusText}`);
+        if (isLast) throw lastError;
+        log(`  ${lastError.message} — trying fallback...`);
+        continue;
+      }
+
+      const contentLength = response.headers.get("content-length");
+      const totalMB = contentLength ? (Number(contentLength) / 1024 / 1024).toFixed(1) : "?";
+      log(`  Downloading ${totalMB} MB (compressed)...`);
+
+      const compressed = new Uint8Array(await response.arrayBuffer());
+      log(`  Decompressing...`);
+
+      let decompressed: Uint8Array;
+      try {
+        decompressed = gunzipSync(compressed);
+      } catch (e) {
+        lastError = new Error(`Gunzip failed (corrupt download or HTML error page): ${e}`);
+        if (isLast) throw lastError;
+        log(`  ${lastError.message}`);
+        continue;
+      }
+
+      // Validate magic bytes and minimum size before touching the filesystem.
+      if (decompressed.byteLength < MIN_DECOMPRESSED_BYTES) {
+        lastError = new Error(
+          `Decompressed DB too small: ${decompressed.byteLength} bytes (expected ≥ ${MIN_DECOMPRESSED_BYTES})`,
+        );
+        if (isLast) throw lastError;
+        log(`  ${lastError.message}`);
+        continue;
+      }
+      const header = new TextDecoder().decode(decompressed.subarray(0, SQLITE_MAGIC.length));
+      if (header !== SQLITE_MAGIC) {
+        lastError = new Error("Downloaded payload is not a SQLite database (magic bytes mismatch)");
+        if (isLast) throw lastError;
+        log(`  ${lastError.message}`);
+        continue;
+      }
+
+      // Write to a temp file next to the canonical DB path, validate, then rename.
+      const tmpPath = `${dbPath}.tmp.${process.pid}`;
+      try {
+        writeFileSync(tmpPath, decompressed);
+      } catch (e) {
+        lastError = new Error(`Write to ${tmpPath} failed: ${e}`);
+        throw lastError;
+      }
+
+      const probe = probeDb(tmpPath);
+      if (!probe) {
+        tryUnlink(tmpPath);
+        lastError = new Error("Downloaded DB failed to open with SQLite");
+        if (isLast) throw lastError;
+        log(`  ${lastError.message} — trying fallback...`);
+        continue;
+      }
+      if (probe.schemaVersion !== SCHEMA_VERSION) {
+        tryUnlink(tmpPath);
+        lastError = new Error(
+          `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
+            `This usually means the cached package version is older than the published DB. ` +
+            `Run \`bun pm cache rm\` and relaunch to pick up the latest package.`,
+        );
+        if (isLast) throw lastError;
+        log(`  ${lastError.message}`);
+        continue;
+      }
+      if (probe.pages < MIN_PAGES || probe.commands < MIN_COMMANDS) {
+        tryUnlink(tmpPath);
+        lastError = new Error(
+          `Downloaded DB content looks incomplete (pages=${probe.pages}, commands=${probe.commands})`,
+        );
+        if (isLast) throw lastError;
+        log(`  ${lastError.message} — trying fallback...`);
+        continue;
+      }
+
+      // Validation passed — drop stale WAL/SHM and atomically swap.
+      try {
+        tryUnlink(`${dbPath}-wal`);
+        tryUnlink(`${dbPath}-shm`);
+        replaceDbFile(tmpPath, dbPath);
+      } catch (e) {
+        const existingProbe = probeDb(dbPath);
+        if (
+          existingProbe &&
+          existingProbe.schemaVersion === probe.schemaVersion &&
+          existingProbe.releaseTag === probe.releaseTag &&
+          existingProbe.pages >= MIN_PAGES &&
+          existingProbe.commands >= MIN_COMMANDS
+        ) {
+          tryUnlink(tmpPath);
+          log(`  Another rosetta process already installed the same database.`);
+          log(`  Reused existing database: ${formatProbeSummary(existingProbe)}`);
+          return;
+        }
+
+        tryUnlink(tmpPath);
+        throw e;
+      }
+
+      const sizeMB = (decompressed.byteLength / 1024 / 1024).toFixed(1);
+      const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
+      log(`  Wrote ${sizeMB} MB to ${dbPath}${tagInfo}`);
+      log(`  Validated: schema v${probe.schemaVersion}, ${probe.pages} pages, ${probe.commands} commands.`);
+      return;
     }
 
-    if (response.status === 404 && !isLast) {
-      log(`  Not found at this URL, trying fallback...`);
-      continue;
-    }
-    if (!response.ok) {
-      lastError = new Error(`Download failed: ${response.status} ${response.statusText}`);
-      if (isLast) throw lastError;
-      log(`  ${lastError.message} — trying fallback...`);
-      continue;
-    }
-
-    const contentLength = response.headers.get("content-length");
-    const totalMB = contentLength ? (Number(contentLength) / 1024 / 1024).toFixed(1) : "?";
-    log(`  Downloading ${totalMB} MB (compressed)...`);
-
-    const compressed = new Uint8Array(await response.arrayBuffer());
-    log(`  Decompressing...`);
-
-    let decompressed: Uint8Array;
-    try {
-      decompressed = gunzipSync(compressed);
-    } catch (e) {
-      lastError = new Error(`Gunzip failed (corrupt download or HTML error page): ${e}`);
-      if (isLast) throw lastError;
-      log(`  ${lastError.message}`);
-      continue;
-    }
-
-    // Validate magic bytes and minimum size before touching the filesystem.
-    if (decompressed.byteLength < MIN_DECOMPRESSED_BYTES) {
-      lastError = new Error(
-        `Decompressed DB too small: ${decompressed.byteLength} bytes (expected ≥ ${MIN_DECOMPRESSED_BYTES})`,
-      );
-      if (isLast) throw lastError;
-      log(`  ${lastError.message}`);
-      continue;
-    }
-    const header = new TextDecoder().decode(decompressed.subarray(0, SQLITE_MAGIC.length));
-    if (header !== SQLITE_MAGIC) {
-      lastError = new Error("Downloaded payload is not a SQLite database (magic bytes mismatch)");
-      if (isLast) throw lastError;
-      log(`  ${lastError.message}`);
-      continue;
-    }
-
-    // Write to a temp file next to the canonical DB path, validate, then rename.
-    const tmpPath = `${dbPath}.tmp.${process.pid}`;
-    try {
-      writeFileSync(tmpPath, decompressed);
-    } catch (e) {
-      lastError = new Error(`Write to ${tmpPath} failed: ${e}`);
-      throw lastError;
-    }
-
-    const probe = probeDb(tmpPath);
-    if (!probe) {
-      tryUnlink(tmpPath);
-      lastError = new Error("Downloaded DB failed to open with SQLite");
-      if (isLast) throw lastError;
-      log(`  ${lastError.message} — trying fallback...`);
-      continue;
-    }
-    if (probe.schemaVersion !== SCHEMA_VERSION) {
-      tryUnlink(tmpPath);
-      lastError = new Error(
-        `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
-          `This usually means the cached package version is older than the published DB. ` +
-          `Run \`bun pm cache rm\` and relaunch to pick up the latest package.`,
-      );
-      if (isLast) throw lastError;
-      log(`  ${lastError.message}`);
-      continue;
-    }
-    if (probe.pages < MIN_PAGES || probe.commands < MIN_COMMANDS) {
-      tryUnlink(tmpPath);
-      lastError = new Error(
-        `Downloaded DB content looks incomplete (pages=${probe.pages}, commands=${probe.commands})`,
-      );
-      if (isLast) throw lastError;
-      log(`  ${lastError.message} — trying fallback...`);
-      continue;
-    }
-
-    // Validation passed — drop stale WAL/SHM and atomically swap.
-    tryUnlink(`${dbPath}-wal`);
-    tryUnlink(`${dbPath}-shm`);
-    renameSync(tmpPath, dbPath);
-
-    const sizeMB = (decompressed.byteLength / 1024 / 1024).toFixed(1);
-    const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
-    log(`  Wrote ${sizeMB} MB to ${dbPath}${tagInfo}`);
-    log(`  Validated: schema v${probe.schemaVersion}, ${probe.pages} pages, ${probe.commands} commands.`);
-    return;
+    throw lastError ?? new Error("Database download failed for unknown reasons");
+  } finally {
+    releaseDownloadLock(lock);
   }
-
-  throw lastError ?? new Error("Database download failed for unknown reasons");
 }
 
 /** Remove a file if it exists, swallowing all errors. */
