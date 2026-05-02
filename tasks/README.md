@@ -107,9 +107,10 @@ A briefing does not "promote" to a task. A briefing might be **cited** by a futu
 ## Closing a task
 
 1. Implement.
-2. Run `make verify` — must pass the rows listed in `validation:`.
-3. PR title: `<Title> (T-NNNN)`.
-4. On merge: change `status: done`, then `git mv tasks/T-NNNN-*.md tasks/done/`.
+2. Run the checks that prove the rows listed in `validation:`. Use `VALIDATION.md` (or the `verify-task` skill) to map each `V-*` row to its current proof. If a row is CI-only, say so explicitly. If a row is still `GAP`, the task is not done until the PR adds the proof and flips the row.
+3. After `T-0028` lands, prefer `make verify` for the rows it covers.
+4. PR title: `<Title> (T-NNNN)`.
+5. On merge: change `status: done`, then `git mv tasks/T-NNNN-*.md tasks/done/`.
 
 ## What does **not** belong here
 

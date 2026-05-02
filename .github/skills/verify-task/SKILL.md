@@ -25,11 +25,11 @@ Closes the loop between a task's claimed acceptance and what's actually proven. 
 
 2. **Read the task's `validation:` frontmatter list.** A list of `V-*` IDs.
 
-3. **Look up each `V-*` in `VALIDATION.md`.** Pull the `Proven by` column. This describes the test file or CI step (e.g. `src/mcp-contract.test.ts Block A in test.yml`).
+3. **Look up each `V-*` in `VALIDATION.md`.** Pull the `Proven by`, `Status`, and `Tracked by` columns. This tells you whether the invariant is already enforced, non-blocking, CI-only, or still a declared gap.
 
 4. **Run the proof.**
 
-   The cheapest way is `make verify` (T-0028) — runs typecheck, lint, unit tests, contract test, retrieval eval. If it passes, all V-* rows it covers are green.
+   There is **not** a repo-wide `make verify` target yet — that is tracked by `T-0028`. Today, run the cheapest targeted proof for each non-GAP row. Once `T-0028` lands, prefer `make verify` for the rows it covers.
 
    For more targeted checks, map common `V-*` IDs to commands:
 
@@ -56,12 +56,17 @@ Closes the loop between a task's claimed acceptance and what's actually proven. 
 
    For `V-bunx-*` and `V-db-min-content` rows, the proof lives in `release.yml` — these can't be cleanly run locally. Note that explicitly: "this V-* is verified by CI on the next release run."
 
+   If a row is currently **`GAP`** in `VALIDATION.md`:
+   - If the task under review is the one named in `Tracked by`, verify that the PR adds the missing proof and updates the row away from `GAP`.
+   - Otherwise report the row as an unresolved gap and do **not** recommend marking the task `done`.
+
 5. **Report.** For each `V-*`:
    - ✓ pass — quote the relevant `Proven by` description so the user knows what just ran.
    - ✗ fail — surface the test output's failure summary.
    - ⊘ CI-only — explain that this row is verified on `workflow_dispatch` of release.yml; can't be checked locally.
+   - ⚠ GAP — explain that the invariant is not yet proven, quote `Tracked by`, and only consider it satisfied if the current task is the one closing that gap.
 
-6. **Conclusion.** If every row green or CI-only, recommend the user can mark the task `done` and proceed with merge. If any row failing, do not recommend `done` — point at the failing acceptance criterion.
+6. **Conclusion.** Recommend `done` only if every row is green or legitimately CI-only. If any row is failing or still GAP, do not recommend `done` — point at the missing proof or failing acceptance criterion.
 
 ## Output format
 

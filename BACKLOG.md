@@ -52,6 +52,7 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 - `T-0010-mcp-stdio-client-test` — Real-client MCP stdio integration test
 - `T-0011-tui-mcp-parity-test` — Enforce TUI ↔ MCP tool parity
 - `T-0012-cli-flag-uniformity-test` — CLI flag documentation parity test
+- `T-0030-self-supervised-eval-release-ci` — Wire self-supervised retrieval eval into release CI
 
 ### `area: release`
 

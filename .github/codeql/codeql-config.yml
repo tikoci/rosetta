@@ -13,8 +13,10 @@ paths-ignore:
   - box/**
   # Archived Dude wiki HTML cached from Wayback Machine — vendored content.
   - dude/**
-  # Cached SKILL.md + reference files extracted from tikoci/routeros-skills.
-  - skills/**
+  # Root-level cached SKILL.md + reference files extracted from
+  # tikoci/routeros-skills. Keep this anchored so `.github/skills/` remains part
+  # of the committed workflow/instructions surface.
+  - /skills/**
   # Committed CSV snapshots of the MikroTik product matrix.
   - matrix/**
   # Committed NDJSON transcript caches (one per extraction date).

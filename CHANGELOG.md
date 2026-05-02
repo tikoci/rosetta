@@ -20,6 +20,11 @@ uses [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - **Work tracking restructured.** `BACKLOG.md` slimmed to an inbox + triggers list. Active work now lives in `tasks/T-NNNN-*.md` (frontmatter: status, depends_on, conflicts_with, validation, acceptance). Research and decision notes live in `briefings/B-NNNN-*.md`. New `VALIDATION.md` matrix names every load-bearing invariant and the CI step that proves it. Three new `.github/skills/` (`pick-next-task`, `promote-idea`, `verify-task`) wrap the conventions. `CLAUDE.md` and `.github/copilot-instructions.md` doc-rule tables updated to match.
+- **Task verification docs now distinguish current proofs from planned ones.** `tasks/README.md` and the `verify-task` skill no longer assume a `make verify` target already exists, `VALIDATION.md` now points `V-db-min-content` at the real inline release step, and `V-retrieval-self` is recorded honestly as a tracked gap until release CI actually runs the self-supervised eval.
+
+### Security
+
+- **CodeQL ignore scope now anchors the root `skills/` cache explicitly.** `.github/codeql/codeql-config.yml` now ignores `/skills/**` instead of an unanchored `skills/**`, keeping the committed `.github/skills/` workflow docs distinct from the extracted root-level skill cache.
 
 ## [0.8.12] — 2026-05-02
 
