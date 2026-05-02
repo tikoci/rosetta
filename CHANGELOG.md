@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.12] — 2026-05-02
+
 ### Fixed
 
 - **Windows package-mode DB installation no longer renames a SQLite-opened temp
