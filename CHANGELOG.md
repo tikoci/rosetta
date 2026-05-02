@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.10] — 2026-05-02
+
 ### Security
 
 - **CodeQL + Dependency Review wired up.** New
