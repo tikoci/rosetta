@@ -61,10 +61,14 @@ function link(url: string, display?: string): string {
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   const { resolveDbPath, SCHEMA_VERSION, resolveVersion } = await import("./paths.ts");
-  const { downloadDb, hasMinimumDbContent, probeDb } = await import("./setup.ts");
+  const { downloadDb, hasMinimumDbContent, probeDb, cleanupStaleTempArtifacts } = await import("./setup.ts");
 
   const dbPath = resolveDbPath(import.meta.dirname);
   const runningVersion = resolveVersion(import.meta.dirname);
+
+  // Always clean stale .tmp.* artifacts from previous failed runs, regardless of
+  // whether a download is needed this time.
+  cleanupStaleTempArtifacts(dbPath);
 
   let p = probeDb(dbPath);
 
@@ -102,7 +106,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       log(`✗ Auto-recovery download failed: ${e instanceof Error ? e.message : e}`);
       log(
         `  This rosetta build (v${runningVersion}) cannot use the existing DB. ` +
-          `Close other rosetta clients, then run \`bun pm cache rm && bunx @tikoci/rosetta --refresh\`.`,
+          `Close other rosetta clients and run: bunx @tikoci/rosetta@latest --refresh`,
       );
       throw new Error(`Unable to recover an incompatible database at ${dbPath}.`);
     }
@@ -112,7 +116,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       );
       log(
         `  The published database does not match this rosetta build (v${runningVersion}). ` +
-          `Run \`bun pm cache rm && bunx @tikoci/rosetta --refresh\` to update both the package and the DB.`,
+          `Run: bunx @tikoci/rosetta@latest --refresh`,
       );
       throw new Error(`Database remained incompatible after recovery: ${dbPath}`);
     }

@@ -17,6 +17,19 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Stale `.tmp.*` cleanup now runs on every startup**, not only when a download
+  is triggered. This removes accumulated 274 MB temp files from previous failed
+  downloads even when the DB is already healthy.
+- **Windows rename now handles `EBUSY`** in addition to `EEXIST`/`EPERM` in the
+  `replaceDbFile` fallback path, providing better defense against antivirus or
+  indexer locks on the destination.
+- **Schema-mismatch recovery messages no longer reference `bun pm cache rm`** or
+  use shell `&&` syntax. The actionable command is now
+  `bunx @tikoci/rosetta@latest --refresh`, which works cross-platform and
+  handles both package and DB refresh in one step.
+
 ## [0.8.10] — 2026-05-02
 
 ### Security

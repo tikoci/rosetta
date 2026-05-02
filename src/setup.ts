@@ -264,7 +264,8 @@ function replaceDbFile(tmpPath: string, dbPath: string): void {
     return;
   } catch (e) {
     const code = e instanceof Error && "code" in e ? e.code : undefined;
-    if (code !== "EEXIST" && code !== "EPERM") throw e;
+    // Windows can return EBUSY, EPERM, or EEXIST when the destination is open.
+    if (code !== "EBUSY" && code !== "EEXIST" && code !== "EPERM") throw e;
   }
 
   tryUnlink(dbPath);
@@ -531,7 +532,7 @@ export async function runSetup(force = false) {
       `✗ DB schema version is ${probe.schemaVersion}, expected ${SCHEMA_VERSION}.`,
     );
     console.error(
-      `  Cached package may be out of date. Run \`bun pm cache rm\` and relaunch.`,
+      `  Package may be out of date. Run: bunx @tikoci/rosetta@latest --refresh`,
     );
     process.exit(1);
   }
