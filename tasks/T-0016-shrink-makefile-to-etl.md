@@ -2,10 +2,9 @@
 id: T-0016-shrink-makefile-to-etl
 title: Shrink Makefile toward ETL only
 status: ready
-priority: medium
+priority: low
 area: release
-depends_on:
-  - T-0013-drop-or-gate-make-release
+depends_on: []
 conflicts_with: []
 validation:
   - V-release-structure
@@ -20,4 +19,4 @@ created: 2026-05-02
 
 # Body
 
-Once T-0013 lands, the Makefile no longer needs to host the local release path. Trim pure `bun` passthroughs that don't add value; keep targets that orchestrate multi-step extraction and checks.
+T-0013 already removed `make release`, `make build-release`, and `make bump-version`. The Makefile is now ETL + dev checks only. Remaining scope (if any): trim additional pure `bun` passthroughs that add no orchestration value. Low priority — the current state is already clean.

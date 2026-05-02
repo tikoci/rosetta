@@ -293,7 +293,7 @@ macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 tes
 
 ### CI release workflow for provenance
 
-Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same extraction pipeline from a remote HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance. Local release continues to work as an alternative path.
+Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same extraction pipeline from a remote HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance.
 
 ### OCI image build: Dockerfile + docker buildx
 

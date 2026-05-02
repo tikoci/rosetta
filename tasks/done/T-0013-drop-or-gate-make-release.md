@@ -1,7 +1,7 @@
 ---
 id: T-0013-drop-or-gate-make-release
 title: Drop or gate local `make release`
-status: ready
+status: done
 priority: high
 area: release
 depends_on: []

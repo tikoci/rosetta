@@ -123,17 +123,7 @@ images, npm publish, and version bump to one CI log. Its `republish_assets`
 input reuploads GitHub Release assets and OCI tags for an existing version, but
 does **not** re-publish npm; bump `package.json` for a new npm package.
 
-The Makefile remains available as a local compatibility path — preflight checks,
-cross-compile, git tag, push, and GitHub Release upload:
-
-```sh
-make release VERSION=v0.1.0          # New release
-make release VERSION=v0.1.0 FORCE=1  # Update existing local release assets
-```
-
-This cross-compiles to macOS (arm64 + x64), Windows (x64), and Linux (x64), creates ZIP archives, compresses the database, tags the commit, and creates a GitHub Release with all artifacts. Local `FORCE=1` only force-moves/reuploads GitHub assets; it does not republish npm.
-
-Release CI also publishes multi-arch OCI images (linux/amd64 + linux/arm64) to
+Release CI publishes multi-arch OCI images (linux/amd64 + linux/arm64) to
 Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) via
 `docker buildx build --push` using `Dockerfile.release`. See DESIGN.md
 "OCI image build: Dockerfile + docker buildx" for why crane was rejected.
@@ -141,9 +131,8 @@ Docker Hub (`ammo74/rosetta`) and GHCR (`ghcr.io/tikoci/rosetta`) via
 ### Release Commands
 
 ```sh
-make build-release VERSION=v0.1.0   # Build artifacts only (no git, no upload)
-make release VERSION=v0.1.0         # Full flow: preflight → build → tag → push → create release
-make release VERSION=v0.1.0 FORCE=1 # Update existing assets: force-move tag → upload --clobber
+make preflight                       # Pre-commit: clean tree + DB + typecheck + lint + test
+make verify                          # CI parity: like preflight but no clean-tree, adds contract tests + Phase 0 eval (requires populated DB)
 ```
 
 ## Project Structure

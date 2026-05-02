@@ -288,12 +288,8 @@ describe("Makefile", () => {
     expect(makefile).toContain("preflight:");
   });
 
-  test("has build-release target", () => {
-    expect(makefile).toContain("build-release:");
-  });
-
-  test("has release target", () => {
-    expect(makefile).toContain("release:");
+  test("has verify target", () => {
+    expect(makefile).toContain("verify:");
   });
 
   test("has extract-videos target", () => {
@@ -350,12 +346,8 @@ describe("Makefile", () => {
     expect(phonyBlock).toContain("extract-dude");
   });
 
-  test("release depends on preflight", () => {
-    expect(makefile).toMatch(/^release:.*preflight/m);
-  });
-
-  test("release depends on build-release", () => {
-    expect(makefile).toMatch(/^release:.*build-release/m);
+  test("extract target includes Dude cache import", () => {
+    expect(makefile).toMatch(/^extract:.*extract-dude-from-cache/m);
   });
 
   test("extract target includes skills", () => {
@@ -366,22 +358,12 @@ describe("Makefile", () => {
     expect(makefile).toMatch(/^extract-full:.*extract-skills/m);
   });
 
-  test("extract target includes Dude cache import", () => {
-    expect(makefile).toMatch(/^extract:.*extract-dude-from-cache/m);
-  });
-
   test("extract-full target includes Dude cache import", () => {
     expect(makefile).toMatch(/^extract-full:.*extract-dude-from-cache/m);
   });
 
   test("preflight checks dirty tree", () => {
     expect(makefile).toContain("git diff --quiet");
-  });
-
-  test("FORCE flag controls tag behavior", () => {
-    expect(makefile).toContain("FORCE");
-    expect(makefile).toContain("git tag -f");
-    expect(makefile).toContain("--clobber");
   });
 });
 
@@ -481,7 +463,7 @@ describe("release.yml", () => {
   test("runs MCP contract tests against the real built DB before eval/release", () => {
     const src = readText(".github/workflows/release.yml");
     const contractIdx = src.indexOf("bun test src/mcp-contract.test.ts");
-    const evalIdx = src.indexOf("MCP retrieval eval (Phase 0, non-blocking)");
+    const evalIdx = src.indexOf("MCP retrieval eval (Phase 0)");
     const buildIdx = src.indexOf("Build release artifacts");
     expect(contractIdx).toBeGreaterThan(0);
     expect(contractIdx).toBeLessThan(evalIdx);
@@ -490,7 +472,7 @@ describe("release.yml", () => {
 
   test("runs Phase 1 self-supervised eval against the built DB and appends a summary result", () => {
     const src = readText(".github/workflows/release.yml");
-    const phase0Idx = mustIndex(src, "MCP retrieval eval (Phase 0, non-blocking)");
+    const phase0Idx = mustIndex(src, "MCP retrieval eval (Phase 0)");
     const phase1Idx = mustIndex(
       src,
       "MCP retrieval eval (Phase 1, self-supervised, non-blocking)",

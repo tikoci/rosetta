@@ -1,7 +1,7 @@
 ---
 id: T-0028-make-verify-target
 title: `make verify` — local CI parity target
-status: ready
+status: done
 priority: medium
 area: ci
 depends_on: []

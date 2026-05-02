@@ -41,11 +41,6 @@ Items waiting on a specific external event. Not tracked as tasks because the wai
 
 Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen script is itself a low-priority follow-up (don't write it until this index gets annoying to maintain).
 
-### `area: ci`
-
-- `T-0028-make-verify-target` — `make verify` local CI parity target
-- `T-0029-flip-contract-eval-blocking` — Promote contract test + retrieval eval to blocking
-
 ### `area: qa`
 
 - `T-0011-tui-mcp-parity-test` — Enforce TUI ↔ MCP tool parity
@@ -53,10 +48,9 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 
 ### `area: release`
 
-- `T-0013-drop-or-gate-make-release` — Drop or gate local `make release`
 - `T-0014-html-url-supplied-or-discovered` — Make `html_url` intentionally supplied or auto-discovered
 - `T-0015-promote-changelog-into-release-notes` — Promote CHANGELOG.md into release notes
-- `T-0016-shrink-makefile-to-etl` — Shrink Makefile toward ETL only
+- `T-0016-shrink-makefile-to-etl` — Shrink Makefile toward ETL only (narrowed: T-0013 removed release targets)
 
 ### `area: install`
 
@@ -113,4 +107,7 @@ Greppable history of merged work. See `tasks/done/T-*.md` for full back-fill of 
 - T-0008 Deleted stale `.npm-publish-checklist.md`
 - T-0009 Windows `bunx-smoke` release coverage
 - T-0010 Real-client MCP stdio integration test
+- T-0013 Dropped `make release` / `make build-release` / `make bump-version`
+- T-0028 `make verify` local CI parity target
+- T-0029 Promoted contract test + Phase 0 retrieval eval to blocking in release CI
 - T-0030 Self-supervised retrieval eval wired into release CI

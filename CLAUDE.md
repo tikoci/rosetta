@@ -459,15 +459,11 @@ GitHub Actions is the traceable release path for published artifacts: run the
 `republish_assets` input only to reupload GitHub Release assets and OCI tags for
 an existing version; it skips npm because npm versions are immutable.
 
-The Makefile remains a local compatibility path. It chains preflight checks, build, git tagging, and upload:
-
-```sh
-make build-release VERSION=v0.1.0          # Build artifacts only (no git, no upload)
-make release VERSION=v0.1.0                # Full flow: preflight → build → tag → push → create release
-make release VERSION=v0.1.0 FORCE=1        # Update existing local assets: preflight → build → force-move tag → upload --clobber
-```
+The Makefile provides ETL targets and local developer checks (`make preflight` for pre-commit clean-tree validation; `make verify` for CI-parity checks — typecheck, lint, tests, contract tests, and Phase 0 eval — requires a populated DB).
 
 `make preflight` runs independently as a health check: clean working tree, DB exists, typecheck, tests, lint.
+
+`make verify` skips the clean-tree requirement and additionally runs MCP contract tests and the Phase 0 retrieval eval — the same gates used in release CI.
 
 Produces in `dist/`:
 
@@ -483,14 +479,6 @@ Also publishes multi-arch OCI images (linux/amd64 + linux/arm64):
 - `ghcr.io/tikoci/rosetta:<tag>` on GHCR
 
 Per release, tags are `VERSION`, `latest`, and `sha-<12-char-commit>`.
-
-The local Makefile `FORCE=1` flag:
-
-- Force-moves the git tag to HEAD (`git tag -f`)
-- Force-pushes the tag (`git push --force`)
-- Replaces release assets (`gh release upload --clobber`)
-
-It does not republish npm. Without `FORCE`, the release target errors if the tag already exists and uses `gh release create`.
 
 ### Tester Workflow
 

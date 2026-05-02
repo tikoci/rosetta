@@ -186,28 +186,21 @@ jobs:
 
       # Runs in a fresh process so the db.ts singleton opens the real built
       # DB (the main `bun test` above pins it to `:memory:`, which skips
-      # Blocks B/C). Non-blocking: Block C asserts shape invariants that
-      # should hold on any populated DB, but we don't want a one-off
-      # classifier tweak to block a release — flip to blocking once we've
-      # observed it green across a few rebuilds.
-      - name: MCP contract tests (real DB, non-blocking)
-        continue-on-error: true
+      # Blocks B/C). Block C asserts shape invariants and Block B asserts
+      # token-budget guardrails — both must pass for release.
+      - name: MCP contract tests (real DB)
         run: |
           echo "## MCP contract test (Phase 2, real DB)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           bun test src/mcp-contract.test.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
-      # ── MCP retrieval eval (Phase 0, non-blocking) ──
+      # ── MCP retrieval eval (Phase 0) ──
       # Runs the 20-query golden set against the freshly built full DB.
-      # Non-blocking on first landing: the committed baseline was captured
-      # against a local dev DB, so the first real-DB run will drift. After
-      # one successful rebuild, flip `continue-on-error` to false and
-      # refresh the baseline as part of that commit. See BACKLOG:
-      # "MCP Behavioral Testing — Review findings + follow-ups".
+      # Blocking: regression > 2pp on recall@10 or classifier accuracy
+      # fails the release.
 
-      - name: MCP retrieval eval (Phase 0, non-blocking)
-        continue-on-error: true
+      - name: MCP retrieval eval (Phase 0)
         run: |
           echo "## Phase 0 retrieval eval" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

@@ -1,7 +1,7 @@
 ---
 id: T-0029-flip-contract-eval-blocking
 title: Promote contract test + retrieval eval to blocking in release.yml
-status: ready
+status: done
 priority: medium
 area: ci
 depends_on:

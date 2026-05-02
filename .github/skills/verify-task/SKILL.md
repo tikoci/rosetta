@@ -29,7 +29,7 @@ Closes the loop between a task's claimed acceptance and what's actually proven. 
 
 4. **Run the proof.**
 
-   There is **not** a repo-wide `make verify` target yet — that is tracked by `T-0028`. Today, run the cheapest targeted proof for each non-GAP row. Once `T-0028` lands, prefer `make verify` for the rows it covers.
+   Run `make verify` — it covers V-typecheck, V-lint, V-unit, V-tool-registry, V-tool-shapes, V-tool-budget, V-retrieval-floor in one command (requires a populated DB). For CI-only invariants (V-db-min-content, V-bunx-*) there is no local equivalent; those are only proven by a release run.
 
    For more targeted checks, map common `V-*` IDs to commands:
 
