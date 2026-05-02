@@ -1,0 +1,40 @@
+---
+id: B-0011-tool-surface-review
+topic: Audit the 14-tool MCP surface for consolidation candidates
+status: open
+related_tasks: []
+created: 2026-05-02
+last_revisited: 2026-05-02
+---
+
+# Question
+
+Are any of the current 14 MCP tools redundant, under-used, or candidates for consolidation into the unified `routeros_search` or `routeros_explain_command` surface?
+
+# What's grounding this
+
+- 14 tools today: `routeros_search`, `_get_page`, `_lookup_property`, `_explain_command`, `_command_tree`, `_search_changelogs`, `_command_version_check`, `_command_diff`, `_device_lookup`, `_search_tests`, `_dude_search`, `_dude_get_page`, `_stats`, `_current_versions`.
+- North Star principle: prefer one tool with a `related` block over many narrow tools.
+- Already consolidated: `routeros_search_callouts` and `routeros_search_videos` were folded into `routeros_search.related` (see T-0001).
+- Frozen by `EXPECTED_TOOLS` in `src/mcp-contract.test.ts` — adds/removes are intentional.
+
+# Candidates worth examining (initial list, not conclusions)
+
+- **`routeros_command_version_check` vs `routeros_command_diff`** — both are version-aware; could one be an option on the other?
+- **`routeros_dude_search` + `_dude_get_page`** — separate surface for a separate (small) data source. Right call, or worth folding?
+- **`routeros_stats` vs `routeros_current_versions`** — both are health/metadata; could become one `routeros_about` tool?
+- **`routeros_lookup_property`** — see B-0001; consider its broad-mode evolution alongside this review.
+
+# Method for the audit
+
+1. For each of the 14 tools, write 2–3 lines: what it does uniquely, what overlaps with `routeros_search.related`, frequency of expected use.
+2. For each pair flagged above, sketch what consolidation would look like (param shape, deprecation path).
+3. Conclude: tools to keep, tools to fold, no-change tools. Each fold spawns a `T-*.md`.
+
+# Why this is a briefing, not a task
+
+This is a "double-check on current think" — the answer might be "all 14 are right." Promoting it to T-*.md upfront would commit to changes before we know which (if any) are warranted. The audit briefing is the work product if no consolidation is recommended.
+
+# Open questions
+
+- What signal do we have about real-session tool usage frequency? Today: none. Worth opt-in logging (see B-0010 → "opt-in TUI/usage logs") to inform this kind of audit?

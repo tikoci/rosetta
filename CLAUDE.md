@@ -4,18 +4,33 @@ RouterOS documentation as SQLite FTS5 — RAG search + command glossary via MCP.
 
 ## Project Documentation
 
-Six doc files, each with a clear role — agents should use these, not create new top-level `.md` files:
+Each file has a single clear role — agents should use these, not create new top-level `.md` files:
 
-| File | What goes in it |
-|------|----------------|
+| File / dir | What goes in it |
+|------------|----------------|
 | `CLAUDE.md` | Architecture, schema, conventions — what the project **is** and how it works |
 | `DESIGN.md` | Decisions, data sources, constraints, cross-references — **why** things are the way they are |
-| `BACKLOG.md` | Ideas, considerations, future work — structured parking lot for anything not yet active |
+| `tasks/T-*.md` | **Active codebase work commitments** with frontmatter (status, deps, validation, acceptance). See `tasks/README.md` |
+| `tasks/done/T-*.md` | Closed work, kept greppable for history |
+| `briefings/B-*.md` | **Grounded research / decision notes.** May go nowhere. See `briefings/README.md` |
+| `BACKLOG.md` | Lightweight inbox + watch list of triggered items + index of tasks/briefings |
+| `VALIDATION.md` | **What's load-bearing and how it's proven.** Every CI-enforced invariant has a row; gaps name the task that closes them |
 | `CHANGELOG.md` | User-visible changes per release (Keep a Changelog format) — **what** shipped, in which version |
 | `README.md` | User-facing quick start — `/app` install, bunx setup, browse TUI, tool overview |
 | `MANUAL.md` | Extended reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
-**Rule:** If it's a decision or rationale → `DESIGN.md`. If it's an idea, question, or future work → `BACKLOG.md`. If it's how the project works → `CLAUDE.md`. If it's a behaviour change that shipped → `CHANGELOG.md` (under `[Unreleased]` until a release tags it). User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
+**Decision rule (where does this go?):**
+
+- **Codebase work I'm committing to** → `tasks/T-*.md` with `status: ready` and a `validation:` row.
+- **Research or "should we do X?" thinking** → `briefings/B-*.md`. May resolve to "no work needed."
+- **Loose thought, no shape yet** → `BACKLOG.md` Inbox (one line).
+- **Waiting on a specific external event** → `BACKLOG.md` Triggers (one line + condition).
+- **Decision or rationale (durable, project-wide)** → `DESIGN.md`.
+- **How the project works** → `CLAUDE.md`.
+- **Behaviour change that shipped** → `CHANGELOG.md` `[Unreleased]`.
+- **Load-bearing invariant + how it's proven** → `VALIDATION.md`.
+
+**Avoid JIRA-style ticket sprawl.** A `T-*.md` file is a commitment. If you'd hesitate to predict anyone will pick it up, it's a briefing or an inbox bullet, not a task.
 
 **Changelog discipline (agentic rule).** When you make a change with a user-visible effect — CLI flag, MCP tool shape, DB schema, CI behaviour, install/update flow, documented invariant — add a one-line bullet under `CHANGELOG.md` → `[Unreleased]` → the appropriate section (`Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` / `Security`) in the same commit. Do **not** list every internal commit; one bullet per behaviour change is enough. Pure refactors, test churn, and CI auto-bumps with no external effect are omitted — git history is authoritative for those. The `bump-version` CI job automatically promotes `[Unreleased]` → `[VERSION] — DATE` and prepends a fresh `[Unreleased]` skeleton after every release — no manual version-heading fixup is needed.
 

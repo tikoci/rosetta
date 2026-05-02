@@ -8,30 +8,44 @@ See [CLAUDE.md](../CLAUDE.md) for full architecture, schema, and source details.
 
 ## Project Documentation Convention
 
-Six doc files, each with a clear role — use these, don't create new top-level `.md` files:
+Each file has a single clear role — use these, don't create new top-level `.md` files:
 
-| File | What goes in it |
-|------|----------------|
+| File / dir | What goes in it |
+|------------|----------------|
 | [CLAUDE.md](../CLAUDE.md) | Architecture, schema, conventions — what the project **is** and how it works |
 | [DESIGN.md](../DESIGN.md) | Decisions, data sources, constraints, cross-references — **why** things are the way they are |
-| [BACKLOG.md](../BACKLOG.md) | Ideas, considerations, future work — structured parking lot for anything not yet active |
+| [tasks/T-*.md](../tasks/) | **Active codebase work commitments** with frontmatter (status, deps, validation, acceptance). See `tasks/README.md` |
+| [tasks/done/T-*.md](../tasks/done/) | Closed work, kept greppable for history |
+| [briefings/B-*.md](../briefings/) | **Grounded research / decision notes.** May go nowhere. See `briefings/README.md` |
+| [BACKLOG.md](../BACKLOG.md) | Lightweight inbox + watch list of triggered items + index of tasks/briefings |
+| [VALIDATION.md](../VALIDATION.md) | **What's load-bearing and how it's proven.** Every CI-enforced invariant has a row |
 | [CHANGELOG.md](../CHANGELOG.md) | User-visible changes per release — **what** shipped, in which version |
 | [README.md](../README.md) | User-facing quick start — `/app` install, bunx setup, browse TUI, tool overview |
 | [MANUAL.md](../MANUAL.md) | Extended reference — binary install, HTTP transport, CLI flags, data sources, troubleshooting, DB schema |
 
-**Rule:** Decision or rationale → `DESIGN.md`. Idea, question, or future work → `BACKLOG.md`. How the project works → `CLAUDE.md`. User-visible shipped behavior → `CHANGELOG.md` under `[Unreleased]`. User-facing install/usage → `README.md` (concise) or `MANUAL.md` (detailed).
+**Decision rule (where does this go?):**
 
-When deferring work or recording ideas, add them to `BACKLOG.md` under the appropriate heading.
+- Codebase work I'm committing to → `tasks/T-*.md` with `status: ready` and a `validation:` row.
+- Research or "should we do X?" thinking → `briefings/B-*.md`. May resolve to "no work needed."
+- Loose thought, no shape yet → `BACKLOG.md` Inbox (one line).
+- Waiting on a specific external event → `BACKLOG.md` Triggers (one line + condition).
+- Decision or rationale (durable, project-wide) → `DESIGN.md`.
+- How the project works → `CLAUDE.md`.
+- Behaviour change that shipped → `CHANGELOG.md` `[Unreleased]`.
+- Load-bearing invariant + how it's proven → `VALIDATION.md`.
+
+**Avoid JIRA-style ticket sprawl.** A `T-*.md` file is a commitment. If you'd hesitate to predict anyone will pick it up, it's a briefing or an inbox bullet, not a task.
 
 ### Capture everything that isn't done
 
-**This is a hard rule, not a suggestion.** If your work surfaces any of the following, you must record it in the appropriate doc file *before finishing your response* — do not leave it as a verbal aside in conversation:
+**This is a hard rule, not a suggestion.** If your work surfaces any of the following, you must record it in the appropriate place *before finishing your response* — do not leave it as a verbal aside:
 
-- **Known breakage or degradation** — something that's broken, will break, or works differently than expected. Include what failed, why, and what would fix it. → `BACKLOG.md` (Ready to Build) if actionable, or (To Investigate) if unclear.
-- **Workarounds applied** — if you worked around a problem instead of fixing it, document both the workaround and the root cause. → `BACKLOG.md`
-- **Deferred or incomplete work** — anything you explicitly chose not to do, or that's blocked on something external. Include the trigger condition ("do this when X happens"). → `BACKLOG.md` (Deferred)
-- **Gotchas and footguns** — non-obvious constraints, compatibility issues, deprecation timelines, or things that will surprise the next person. → `DESIGN.md` if it's a project-level constraint; `BACKLOG.md` if it's a future risk to mitigate.
-- **Schema or architecture changes** — if you changed how the project works, update `CLAUDE.md` to match.
+- **Known breakage or degradation** — `tasks/T-*.md` if actionable now; `briefings/B-*.md` if needs investigation; `BACKLOG.md` Inbox if just a one-line heads-up.
+- **Workarounds applied** — record both the workaround and the root cause. → `briefings/B-*.md` (root-cause discussion) plus a `tasks/T-*.md` if a real fix is committed.
+- **Deferred or incomplete work** — if blocked on a specific external event, → `BACKLOG.md` Triggers with the trigger condition. If a decision is needed first, → `briefings/B-*.md`. Don't park it as a `T-*.md` if no one's picking it up.
+- **Gotchas and footguns** — `DESIGN.md` if it's a project-level constraint; `briefings/B-*.md` if it's a risk worth thinking through.
+- **Schema or architecture changes** — update `CLAUDE.md` to match.
+- **Load-bearing invariants** — add or update a row in `VALIDATION.md` and reference its `V-*` ID from the relevant `T-*.md`.
 
 **The test:** if you deleted the entire conversation history, would a new agent (or the maintainer) be able to discover this information from the project files alone? If not, you haven't captured it.
 
@@ -42,7 +56,7 @@ When marking a backlog item or implementation step as completed, explicitly veri
 - **Workflow coverage:** Identify the exact workflow/step that executes the changed behavior (for example, `.github/workflows/release.yml` extraction step, post-extraction DB guard/eval/stats gate, `.github/workflows/test.yml` quality gate).
 - **Trigger path:** Confirm the change is exercised by normal CI triggers (`push`, `pull_request`, or `workflow_dispatch`) without requiring local-only commands.
 - **No local build assumption:** Do not require the user to run `make`/build commands to validate completion unless they explicitly ask for a local verification run.
-- **If CI will not pick it up:** treat as incomplete and either update CI in the same change or record a concrete deferred item in `BACKLOG.md` with what workflow step must be added.
+- **If CI will not pick it up:** treat as incomplete and either update CI in the same change or record a concrete deferred item — `BACKLOG.md` Triggers if it's waiting on something, `tasks/T-*.md` if it's committed work, or a row in `VALIDATION.md` if the gap is a missing invariant check.
 
 ## Build and Test
 
@@ -107,7 +121,7 @@ Release: prefer the GitHub Actions `Release` workflow for published artifacts. U
 - Stop words are hardcoded in `query.ts` (~50 words)
 - Compound terms (~44 RouterOS pairs like firewall+filter) use FTS5 NEAR expressions
 - Device/product name matching is heuristic and evolving, not a solved canonical mapping problem. Do not assume a false-empty lookup means device absence.
-- When a new mismatch appears (rename/AKA/slug/model-number variant), capture it in `BACKLOG.md` under Device AKA matching with an actionable next step.
+- When a new mismatch appears (rename/AKA/slug/model-number variant), capture it in `briefings/B-0006-device-aliases.md` with the user query, expected product, and source evidence. Once enough misses accumulate, the briefing graduates to a `tasks/T-*.md`.
 - Product Naming (`ROS/pages/17498146`) is useful for future model-number decoding and alias generation, but real products include rule exceptions.
 
 ## Testing Requirements
@@ -138,7 +152,7 @@ Release: prefer the GitHub Actions `Release` workflow for published artifacts. U
 
 **Run `bun test` and `bun run lint` before any commit when feasible.** CI runs both, but catching failures locally is faster. Do not ask the user to run local `make` checks unless they explicitly want a manual local verification.
 
-**Hard rule for agents:** `bun run lint` must exit with **zero errors** before any commit — this means the entire repo, not just touched files. CI has no "pre-existing" exception; any error anywhere fails the build. If lint reports errors in files you did not touch, fix them anyway (or note why they cannot be fixed and keep the item in BACKLOG). Lint **warnings** are acceptable and do not block commits.
+**Hard rule for agents:** `bun run lint` must exit with **zero errors** before any commit — this means the entire repo, not just touched files. CI has no "pre-existing" exception; any error anywhere fails the build. If lint reports errors in files you did not touch, fix them anyway (or, if a fix is non-trivial, open a `tasks/T-*.md` and link it from the PR). Lint **warnings** are acceptable and do not block commits.
 
 ## Version Accuracy
 
