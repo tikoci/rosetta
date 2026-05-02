@@ -219,7 +219,13 @@ describe("setup.ts", () => {
   test("mcp.ts aborts startup instead of continuing with an empty DB", () => {
     const src = readText("src/mcp.ts");
     expect(src).toContain("Unable to start rosetta without a usable database");
-    expect(src).toContain("Database remained empty after recovery");
+    expect(src).toContain("Database remained incomplete after recovery");
+  });
+
+  test("setup.ts cleans temp DB artifacts instead of accumulating stale .tmp files", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain("cleanupStaleTempArtifacts");
+    expect(src).toContain("tryUnlinkDbSidecars(tmpPath)");
   });
 
   test("no DB open uses { readonly: true } (WAL-shm init trap on macOS)", () => {

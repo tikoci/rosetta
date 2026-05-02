@@ -61,44 +61,19 @@ function link(url: string, display?: string): string {
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   const { resolveDbPath, SCHEMA_VERSION, resolveVersion } = await import("./paths.ts");
-  const { downloadDb } = await import("./setup.ts");
-  const { default: sqlite } = await import("bun:sqlite");
+  const { downloadDb, hasMinimumDbContent, probeDb } = await import("./setup.ts");
 
   const dbPath = resolveDbPath(import.meta.dirname);
   const runningVersion = resolveVersion(import.meta.dirname);
 
-  /** Probe an existing DB. Returns null if the file is missing or unreadable.
-   *  Do NOT pass { readonly: true } — freshly written SQLite WAL-mode files fail
-   *  to open readonly on macOS until a read-write connection initialises the WAL
-   *  shared-memory file. Same gotcha as setup.ts::probeDb. */
-  function probe(): { pages: number; schemaVersion: number; releaseTag: string | null } | null {
-    try {
-      const check = new sqlite(dbPath);
-      const pages = (check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number }).c;
-      const ver = (check.prepare("PRAGMA user_version").get() as { user_version: number }).user_version;
-      let releaseTag: string | null = null;
-      try {
-        const meta = check.prepare("SELECT value FROM db_meta WHERE key = 'release_tag'").get() as { value: string } | null;
-        releaseTag = meta?.value ?? null;
-      } catch {
-        // db_meta missing on pre-v5 DBs — leave null
-      }
-      check.close();
-      return { pages, schemaVersion: ver, releaseTag };
-    } catch {
-      return null;
-    }
-  }
-
-  let p = probe();
+  let p = probeDb(dbPath);
 
   // Case 1: DB missing or empty → first-time download.
-  if (!p || p.pages === 0) {
+  if (!hasMinimumDbContent(p)) {
     log(`No usable database at ${dbPath} — downloading...`);
     try {
-      await downloadDb(dbPath, log);
+      p = await downloadDb(dbPath, log);
       log("Database downloaded successfully.");
-      p = probe();
     } catch (e) {
       log(`Auto-download failed: ${e instanceof Error ? e.message : e}`);
       log(`Close other rosetta clients and run: bunx @tikoci/rosetta --refresh`);
@@ -110,8 +85,8 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
     throw new Error(`Database probe failed after download: ${dbPath}`);
   }
 
-  if (p.pages === 0) {
-    throw new Error(`Database remained empty after recovery: ${dbPath}`);
+  if (!hasMinimumDbContent(p)) {
+    throw new Error(`Database remained incomplete after recovery: ${dbPath}`);
   }
 
   // Case 2: Schema mismatch → re-download, then re-probe and fail hard if
@@ -122,7 +97,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
         `Re-downloading database...`,
     );
     try {
-      await downloadDb(dbPath, log);
+      p = await downloadDb(dbPath, log);
     } catch (e) {
       log(`✗ Auto-recovery download failed: ${e instanceof Error ? e.message : e}`);
       log(
@@ -131,10 +106,9 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       );
       throw new Error(`Unable to recover an incompatible database at ${dbPath}.`);
     }
-    const p2 = probe();
-    if (!p2 || p2.schemaVersion !== SCHEMA_VERSION) {
+    if (!p || !hasMinimumDbContent(p) || p.schemaVersion !== SCHEMA_VERSION) {
       log(
-        `✗ Still incompatible after re-download (DB=${p2?.schemaVersion ?? "unreadable"}, expected=${SCHEMA_VERSION}).`,
+        `✗ Still incompatible after re-download (DB=${p?.schemaVersion ?? "unreadable"}, expected=${SCHEMA_VERSION}).`,
       );
       log(
         `  The published database does not match this rosetta build (v${runningVersion}). ` +
@@ -142,7 +116,6 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       );
       throw new Error(`Database remained incompatible after recovery: ${dbPath}`);
     }
-    p = p2;
   }
 
   // Quietly emit a one-line provenance banner so MCP-client logs show what's loaded.

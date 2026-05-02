@@ -12,11 +12,14 @@ import {
   closeSync,
   existsSync,
   openSync,
+  readdirSync,
+  readSync,
   renameSync,
   statSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
+import path from "node:path";
 import { gunzipSync } from "bun";
 import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
@@ -53,15 +56,31 @@ type DownloadLockHandle = {
  *  Opens read-write — see probeDb's note: freshly written WAL-mode files can
  *  fail to open readonly on macOS when the .shm file is missing. */
 function dbHasData(dbPath: string): boolean {
+  return hasMinimumDbContent(probeDb(dbPath));
+}
+
+function looksLikeSqliteFile(dbPath: string): boolean {
   if (!existsSync(dbPath)) return false;
+
+  let fd: number | null = null;
   try {
-    const { default: sqlite } = require("bun:sqlite");
-    const check = new sqlite(dbPath);
-    const row = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
-    check.close();
-    return row.c > 0;
+    const stats = statSync(dbPath);
+    if (!stats.isFile() || stats.size < SQLITE_MAGIC.length) return false;
+
+    fd = openSync(dbPath, "r");
+    const header = Buffer.alloc(SQLITE_MAGIC.length);
+    const bytesRead = readSync(fd, header, 0, header.byteLength, 0);
+    return bytesRead === header.byteLength && header.toString("utf8") === SQLITE_MAGIC;
   } catch {
     return false;
+  } finally {
+    if (fd !== null) {
+      try {
+        closeSync(fd);
+      } catch {
+        // best-effort cleanup
+      }
+    }
   }
 }
 
@@ -77,6 +96,8 @@ export function probeDb(dbPath: string): {
   commands: number;
   releaseTag: string | null;
 } | null {
+  if (!looksLikeSqliteFile(dbPath)) return null;
+
   try {
     const { default: sqlite } = require("bun:sqlite");
     const check = new sqlite(dbPath);
@@ -102,8 +123,12 @@ export function probeDb(dbPath: string): {
   }
 }
 
-function isUsableDbProbe(probe: DbProbe | null): probe is DbProbe {
-  return !!probe && probe.schemaVersion === SCHEMA_VERSION && probe.pages >= MIN_PAGES && probe.commands >= MIN_COMMANDS;
+export function hasMinimumDbContent(probe: DbProbe | null): probe is DbProbe {
+  return !!probe && probe.pages >= MIN_PAGES && probe.commands >= MIN_COMMANDS;
+}
+
+export function isUsableDbProbe(probe: DbProbe | null): probe is DbProbe {
+  return hasMinimumDbContent(probe) && probe.schemaVersion === SCHEMA_VERSION;
 }
 
 function lockPathFor(dbPath: string): string {
@@ -123,11 +148,11 @@ export function tryAcquireDownloadLock(dbPath: string): DownloadLockHandle | nul
       const fd = openSync(lockPath, "wx");
       writeFileSync(
         fd,
-        JSON.stringify({
+        `${JSON.stringify({
           pid: process.pid,
           created_at: new Date().toISOString(),
           db_path: dbPath,
-        }) + "\n",
+        })}\n`,
       );
       return { fd, path: lockPath };
     } catch (e) {
@@ -171,10 +196,9 @@ export async function waitForUsableDb(
   let announced = false;
 
   while (Date.now() < deadline) {
-    const probe = probeDb(dbPath);
-    if (isUsableDbProbe(probe)) return true;
-
-    if (!existsSync(lockPath)) return false;
+    if (!existsSync(lockPath)) {
+      return isUsableDbProbe(probeDb(dbPath));
+    }
 
     if (!announced) {
       log(`  Another rosetta process is preparing ${dbPath}; waiting...`);
@@ -187,6 +211,51 @@ export async function waitForUsableDb(
   }
 
   return false;
+}
+
+function tryUnlinkDbSidecars(dbPath: string): void {
+  tryUnlink(`${dbPath}-wal`);
+  tryUnlink(`${dbPath}-shm`);
+}
+
+function cleanupDbArtifacts(dbPath: string): void {
+  tryUnlinkDbSidecars(dbPath);
+  tryUnlink(dbPath);
+}
+
+export function cleanupStaleTempArtifacts(dbPath: string, staleMs = DOWNLOAD_LOCK_STALE_MS): number {
+  const dir = path.dirname(dbPath);
+  const prefix = `${path.basename(dbPath)}.tmp.`;
+  const now = Date.now();
+  let removed = 0;
+
+  let entries: string[];
+  try {
+    entries = readdirSync(dir);
+  } catch {
+    return 0;
+  }
+
+  for (const entry of entries) {
+    if (!entry.startsWith(prefix)) continue;
+
+    const fullPath = path.join(dir, entry);
+    try {
+      const ageMs = now - statSync(fullPath).mtimeMs;
+      if (ageMs <= staleMs) continue;
+    } catch {
+      continue;
+    }
+
+    try {
+      unlinkSync(fullPath);
+      removed++;
+    } catch {
+      // best-effort cleanup
+    }
+  }
+
+  return removed;
 }
 
 function replaceDbFile(tmpPath: string, dbPath: string): void {
@@ -230,21 +299,23 @@ export function dbDownloadUrls(version: string): string[] {
 export async function downloadDb(
   dbPath: string,
   log: (msg: string) => void = console.log,
-) {
+): Promise<DbProbe> {
   let lock = tryAcquireDownloadLock(dbPath);
   if (!lock) {
     const reused = await waitForUsableDb(dbPath, log);
     if (reused) {
       const probe = probeDb(dbPath);
-      if (probe) log(`  Reused existing database: ${formatProbeSummary(probe)}`);
-      return;
+      if (probe) {
+        log(`  Reused existing database: ${formatProbeSummary(probe)}`);
+        return probe;
+      }
     }
 
     // Re-probe once — the lock may have been released with a healthy DB
     const fallbackProbe = probeDb(dbPath);
     if (isUsableDbProbe(fallbackProbe)) {
       log(`  Reused existing database: ${formatProbeSummary(fallbackProbe)}`);
-      return;
+      return fallbackProbe;
     }
 
     lock = tryAcquireDownloadLock(dbPath);
@@ -260,6 +331,11 @@ export async function downloadDb(
   let lastError: Error | null = null;
 
   try {
+    const cleaned = cleanupStaleTempArtifacts(dbPath);
+    if (cleaned > 0) {
+      log(`  Removed ${cleaned} stale temp DB artifact${cleaned === 1 ? "" : "s"}.`);
+    }
+
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i];
       const isLast = i === urls.length - 1;
@@ -332,14 +408,14 @@ export async function downloadDb(
 
       const probe = probeDb(tmpPath);
       if (!probe) {
-        tryUnlink(tmpPath);
+        cleanupDbArtifacts(tmpPath);
         lastError = new Error("Downloaded DB failed to open with SQLite");
         if (isLast) throw lastError;
         log(`  ${lastError.message} — trying fallback...`);
         continue;
       }
       if (probe.schemaVersion !== SCHEMA_VERSION) {
-        tryUnlink(tmpPath);
+        cleanupDbArtifacts(tmpPath);
         lastError = new Error(
           `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
             `This usually means the cached package version is older than the published DB. ` +
@@ -350,7 +426,7 @@ export async function downloadDb(
         continue;
       }
       if (probe.pages < MIN_PAGES || probe.commands < MIN_COMMANDS) {
-        tryUnlink(tmpPath);
+        cleanupDbArtifacts(tmpPath);
         lastError = new Error(
           `Downloaded DB content looks incomplete (pages=${probe.pages}, commands=${probe.commands})`,
         );
@@ -361,25 +437,19 @@ export async function downloadDb(
 
       // Validation passed — drop stale WAL/SHM and atomically swap.
       try {
-        tryUnlink(`${dbPath}-wal`);
-        tryUnlink(`${dbPath}-shm`);
+        tryUnlinkDbSidecars(tmpPath);
+        tryUnlinkDbSidecars(dbPath);
         replaceDbFile(tmpPath, dbPath);
       } catch (e) {
         const existingProbe = probeDb(dbPath);
-        if (
-          existingProbe &&
-          existingProbe.schemaVersion === probe.schemaVersion &&
-          existingProbe.releaseTag === probe.releaseTag &&
-          existingProbe.pages >= MIN_PAGES &&
-          existingProbe.commands >= MIN_COMMANDS
-        ) {
-          tryUnlink(tmpPath);
+        if (hasMinimumDbContent(existingProbe) && existingProbe.schemaVersion === probe.schemaVersion && existingProbe.releaseTag === probe.releaseTag) {
+          cleanupDbArtifacts(tmpPath);
           log(`  Another rosetta process already installed the same database.`);
           log(`  Reused existing database: ${formatProbeSummary(existingProbe)}`);
-          return;
+          return existingProbe;
         }
 
-        tryUnlink(tmpPath);
+        cleanupDbArtifacts(tmpPath);
         throw e;
       }
 
@@ -387,7 +457,7 @@ export async function downloadDb(
       const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
       log(`  Wrote ${sizeMB} MB to ${dbPath}${tagInfo}`);
       log(`  Validated: schema v${probe.schemaVersion}, ${probe.pages} pages, ${probe.commands} commands.`);
-      return;
+      return probe;
     }
 
     throw lastError ?? new Error("Database download failed for unknown reasons");
@@ -412,15 +482,11 @@ function tryUnlink(p: string): void {
  */
 export async function refreshDb(log: (msg: string) => void = console.log): Promise<boolean> {
   const dbPath = resolveDbPath(import.meta.dirname);
+  let probe: DbProbe;
   try {
-    await downloadDb(dbPath, log);
+    probe = await downloadDb(dbPath, log);
   } catch (e) {
     log(`✗ Refresh failed: ${e instanceof Error ? e.message : e}`);
-    return false;
-  }
-  const probe = probeDb(dbPath);
-  if (!probe) {
-    log(`✗ Post-download probe failed`);
     return false;
   }
   const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
@@ -431,6 +497,7 @@ export async function refreshDb(log: (msg: string) => void = console.log): Promi
 export async function runSetup(force = false) {
   const mode = detectMode(import.meta.dirname);
   const dbPath = resolveDbPath(import.meta.dirname);
+  let downloadedProbe: DbProbe | null = null;
 
   console.log(`rosetta ${RELEASE_VERSION}`);
   console.log(`  ${link("https://github.com/tikoci/rosetta")}`);
@@ -443,7 +510,7 @@ export async function runSetup(force = false) {
     console.log(`  (use --refresh or --setup --force to re-download)`);
   } else {
     try {
-      await downloadDb(dbPath);
+      downloadedProbe = await downloadDb(dbPath);
     } catch (e) {
       console.error(`✗ Database download failed: ${e instanceof Error ? e.message : e}`);
       process.exit(1);
@@ -452,7 +519,7 @@ export async function runSetup(force = false) {
 
   // ── Validate DB ──
   console.log();
-  const probe = probeDb(dbPath);
+  const probe = downloadedProbe ?? probeDb(dbPath);
   if (!probe) {
     console.error(`✗ Database validation failed: cannot open ${dbPath}`);
     const retryCmd = mode === "compiled" ? "rosetta" : mode === "package" ? "bunx @tikoci/rosetta" : "bun run src/setup.ts";

@@ -20,7 +20,14 @@ afterAll(() => {
   } catch {}
 });
 
-const { dbDownloadUrls, probeDb, releaseDownloadLock, tryAcquireDownloadLock, waitForUsableDb } = await import("./setup.ts");
+const {
+  cleanupStaleTempArtifacts,
+  dbDownloadUrls,
+  probeDb,
+  releaseDownloadLock,
+  tryAcquireDownloadLock,
+  waitForUsableDb,
+} = await import("./setup.ts");
 const { SCHEMA_VERSION } = await import("./paths.ts");
 
 function writeUsableDb(dbFile: string, releaseTag = "v0.0.0-test"): void {
@@ -115,6 +122,20 @@ describe("download lock helpers", () => {
     expect(probe?.pages).toBe(100);
     expect(probe?.commands).toBe(1000);
   });
+
+  test("waitForUsableDb does not create a missing canonical DB while waiting", async () => {
+    const dbFile = path.join(tmp, "wait-no-create.db");
+    const lock = tryAcquireDownloadLock(dbFile);
+    expect(lock).not.toBeNull();
+
+    const waiter = waitForUsableDb(dbFile, () => {}, 2_000);
+    await Bun.sleep(100);
+    expect(existsSync(dbFile)).toBe(false);
+
+    releaseDownloadLock(lock);
+    expect(await waiter).toBe(false);
+    expect(existsSync(dbFile)).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -123,7 +144,9 @@ describe("download lock helpers", () => {
 
 describe("probeDb", () => {
   test("returns null for a missing file", () => {
-    expect(probeDb(path.join(tmp, "does-not-exist.db"))).toBeNull();
+    const missing = path.join(tmp, "does-not-exist.db");
+    expect(probeDb(missing)).toBeNull();
+    expect(existsSync(missing)).toBe(false);
   });
 
   test("returns null for a non-SQLite file", () => {
@@ -197,5 +220,25 @@ describe("probeDb", () => {
     expect(probe).not.toBeNull();
     expect(probe?.schemaVersion).toBe(4);
     expect(probe?.releaseTag).toBeNull();
+  });
+});
+
+describe("cleanupStaleTempArtifacts", () => {
+  test("removes stale temp DB files and sidecars", () => {
+    const dbFile = path.join(tmp, "cleanup.db");
+    const artifacts = [
+      `${dbFile}.tmp.111`,
+      `${dbFile}.tmp.111-wal`,
+      `${dbFile}.tmp.111-shm`,
+    ];
+
+    for (const artifact of artifacts) {
+      writeFileSync(artifact, "x");
+    }
+
+    expect(cleanupStaleTempArtifacts(dbFile, -1)).toBe(3);
+    for (const artifact of artifacts) {
+      expect(existsSync(artifact)).toBe(false);
+    }
   });
 });
