@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.11] — 2026-05-02
+
 ### Fixed
 
 - **Stale `.tmp.*` cleanup now runs on every startup**, not only when a download
