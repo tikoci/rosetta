@@ -118,7 +118,7 @@ This downloads the database and prints config snippets for all supported MCP cli
 Need to force a database reload later? Use:
 
 ```sh
-bunx @tikoci/rosetta --refresh
+bunx @tikoci/rosetta@latest --refresh
 ```
 
 ### Configure your MCP client

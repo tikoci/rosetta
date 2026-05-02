@@ -8,7 +8,7 @@
 
 import sqlite from "bun:sqlite";
 import { afterAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -21,6 +21,7 @@ afterAll(() => {
 });
 
 const {
+  cleanupAbandonedTempArtifacts,
   cleanupStaleTempArtifacts,
   dbDownloadUrls,
   probeDb,
@@ -178,6 +179,19 @@ describe("probeDb", () => {
     expect(probe?.releaseTag).toBe("v0.0.0-test");
   });
 
+  test("closes statements so a probed temp DB can be renamed immediately", () => {
+    const dbFile = path.join(tmp, "probe-rename-source.db");
+    const renamed = path.join(tmp, "probe-rename-dest.db");
+    writeUsableDb(dbFile, "v0.0.0-rename");
+
+    const probe = probeDb(dbFile);
+    expect(probe?.releaseTag).toBe("v0.0.0-rename");
+
+    renameSync(dbFile, renamed);
+    expect(existsSync(dbFile)).toBe(false);
+    expect(probeDb(renamed)?.releaseTag).toBe("v0.0.0-rename");
+  });
+
   test("opens a freshly-renamed WAL-mode DB with no .shm sibling", () => {
     // Reproduces the exact state downloadDb leaves the DB in: journal_mode=WAL
     // on disk, but the .wal/.shm siblings are deleted just before the rename.
@@ -239,6 +253,42 @@ describe("cleanupStaleTempArtifacts", () => {
     expect(cleanupStaleTempArtifacts(dbFile, -1)).toBe(3);
     for (const artifact of artifacts) {
       expect(existsSync(artifact)).toBe(false);
+    }
+  });
+});
+
+describe("cleanupAbandonedTempArtifacts", () => {
+  test("removes fresh temp artifacts when no download lock exists", () => {
+    const dbFile = path.join(tmp, "cleanup-abandoned.db");
+    const artifacts = [
+      `${dbFile}.tmp.222`,
+      `${dbFile}.tmp.222-wal`,
+      `${dbFile}.tmp.222-shm`,
+    ];
+
+    for (const artifact of artifacts) {
+      writeFileSync(artifact, "x");
+    }
+
+    expect(cleanupAbandonedTempArtifacts(dbFile)).toBe(3);
+    for (const artifact of artifacts) {
+      expect(existsSync(artifact)).toBe(false);
+    }
+  });
+
+  test("preserves fresh temp artifacts while a download lock exists", () => {
+    const dbFile = path.join(tmp, "cleanup-active.db");
+    const artifact = `${dbFile}.tmp.333`;
+    writeFileSync(artifact, "x");
+    const lock = tryAcquireDownloadLock(dbFile);
+    expect(lock).not.toBeNull();
+
+    try {
+      expect(cleanupAbandonedTempArtifacts(dbFile)).toBe(0);
+      expect(existsSync(artifact)).toBe(true);
+    } finally {
+      releaseDownloadLock(lock);
+      unlinkSync(artifact);
     }
   });
 });

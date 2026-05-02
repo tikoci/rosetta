@@ -61,14 +61,14 @@ function link(url: string, display?: string): string {
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   const { resolveDbPath, SCHEMA_VERSION, resolveVersion } = await import("./paths.ts");
-  const { downloadDb, hasMinimumDbContent, probeDb, cleanupStaleTempArtifacts } = await import("./setup.ts");
+  const { cleanupAbandonedTempArtifacts, downloadDb, hasMinimumDbContent, probeDb } = await import("./setup.ts");
 
   const dbPath = resolveDbPath(import.meta.dirname);
   const runningVersion = resolveVersion(import.meta.dirname);
 
-  // Always clean stale .tmp.* artifacts from previous failed runs, regardless of
-  // whether a download is needed this time.
-  cleanupStaleTempArtifacts(dbPath);
+  // Always clean abandoned .tmp.* artifacts from previous failed runs when no
+  // active download lock exists, regardless of whether a download is needed now.
+  cleanupAbandonedTempArtifacts(dbPath);
 
   let p = probeDb(dbPath);
 
@@ -80,7 +80,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       log("Database downloaded successfully.");
     } catch (e) {
       log(`Auto-download failed: ${e instanceof Error ? e.message : e}`);
-      log(`Close other rosetta clients and run: bunx @tikoci/rosetta --refresh`);
+      log(`Close other rosetta clients and run: bunx @tikoci/rosetta@latest --refresh`);
       throw new Error(`Unable to start rosetta without a usable database at ${dbPath}.`);
     }
   }

@@ -17,6 +17,17 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Windows package-mode DB installation no longer renames a SQLite-opened temp
+  file.** Download validation now finalizes every SQLite statement before close,
+  and `replaceDbFile` retries transient `EBUSY` / `EEXIST` / `EPERM` rename
+  failures for up to 30 seconds to cover delayed handle release, antivirus, or
+  indexers.
+- **Abandoned `.tmp.*` DB artifacts are removed immediately when no active
+  download lock exists**, so failed Windows installs do not keep accumulating
+  274 MB temp databases between launches.
+
 ## [0.8.11] — 2026-05-02
 
 ### Fixed

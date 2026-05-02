@@ -42,11 +42,9 @@ Action: convert remaining extractor entrypoints to the safe pattern used by `ext
 
 ### 🟡 bunx auto-update polish
 
-Critical schema/atomic-download issues are fixed; remaining polish:
+The main sidecar-lock and validated-download path is in place; remaining polish:
 
 - Add a lightweight freshness check after first install so DB-only releases can prompt users to run `--refresh` without silently staying stale. Cache check timestamp in `db_meta.last_check_at`; honor `ROSETTA_OFFLINE=1`.
-- Make `--refresh` quiet: download + validate + one-line stats, without printing full MCP client config.
-- Improve incompatible-version hints so they say `bunx @tikoci/rosetta --refresh` instead of using the bun binary path from `process.argv[0]`.
 - Decide whether package mode should move from a single shared `~/.rosetta/ros-help.db` to a schema-versioned filename (for example `ros-help.v5.db`) so future DB-format changes cannot fight over the same canonical file. Trigger: if cross-version bunx upgrades still produce Windows lock/rename issues after the current sidecar-lock + probe-hardening fix. CI pickup today: normal startup/recovery is covered by `src/setup.test.ts`, `src/release.test.ts`, and `.github/workflows/test.yml`; a pathing change would need those tests plus README/MANUAL updates in the same PR.
 
 ### 🟡 Command tree enrichment / validation metadata

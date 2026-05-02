@@ -47,6 +47,18 @@ type DbProbe = {
   releaseTag: string | null;
 };
 
+type SQLiteStatement = {
+  get: (...params: unknown[]) => unknown;
+  finalize: () => void;
+};
+
+type SQLiteDatabase = {
+  prepare: (sql: string) => SQLiteStatement;
+  close: () => void;
+};
+
+type SQLiteConstructor = new (path: string) => SQLiteDatabase;
+
 type DownloadLockHandle = {
   fd: number;
   path: string;
@@ -98,20 +110,20 @@ export function probeDb(dbPath: string): {
 } | null {
   if (!looksLikeSqliteFile(dbPath)) return null;
 
+  let check: SQLiteDatabase | null = null;
   try {
-    const { default: sqlite } = require("bun:sqlite");
-    const check = new sqlite(dbPath);
-    const ver = check.prepare("PRAGMA user_version").get() as { user_version: number };
-    const pages = check.prepare("SELECT COUNT(*) AS c FROM pages").get() as { c: number };
-    const cmds = check.prepare("SELECT COUNT(*) AS c FROM commands").get() as { c: number };
+    const { default: sqlite } = require("bun:sqlite") as { default: SQLiteConstructor };
+    check = new sqlite(dbPath);
+    const ver = sqliteGet<{ user_version: number }>(check, "PRAGMA user_version");
+    const pages = sqliteGet<{ c: number }>(check, "SELECT COUNT(*) AS c FROM pages");
+    const cmds = sqliteGet<{ c: number }>(check, "SELECT COUNT(*) AS c FROM commands");
     let releaseTag: string | null = null;
     try {
-      const meta = check.prepare("SELECT value FROM db_meta WHERE key = 'release_tag'").get() as { value: string } | null;
+      const meta = sqliteGet<{ value: string } | null>(check, "SELECT value FROM db_meta WHERE key = 'release_tag'");
       releaseTag = meta?.value ?? null;
     } catch {
       // db_meta missing — pre-v5 schema, leave releaseTag null
     }
-    check.close();
     return {
       schemaVersion: ver.user_version,
       pages: pages.c,
@@ -120,6 +132,23 @@ export function probeDb(dbPath: string): {
     };
   } catch {
     return null;
+  } finally {
+    if (check) {
+      try {
+        check.close();
+      } catch {
+        // best-effort cleanup; a failed probe should never leave a DB handle open
+      }
+    }
+  }
+}
+
+function sqliteGet<T>(db: SQLiteDatabase, sql: string): T {
+  const stmt = db.prepare(sql);
+  try {
+    return stmt.get() as T;
+  } finally {
+    stmt.finalize();
   }
 }
 
@@ -258,18 +287,45 @@ export function cleanupStaleTempArtifacts(dbPath: string, staleMs = DOWNLOAD_LOC
   return removed;
 }
 
-function replaceDbFile(tmpPath: string, dbPath: string): void {
-  try {
-    renameSync(tmpPath, dbPath);
-    return;
-  } catch (e) {
-    const code = e instanceof Error && "code" in e ? e.code : undefined;
-    // Windows can return EBUSY, EPERM, or EEXIST when the destination is open.
-    if (code !== "EBUSY" && code !== "EEXIST" && code !== "EPERM") throw e;
+export function cleanupAbandonedTempArtifacts(dbPath: string): number {
+  if (existsSync(lockPathFor(dbPath))) {
+    return cleanupStaleTempArtifacts(dbPath);
+  }
+  return cleanupStaleTempArtifacts(dbPath, -1);
+}
+
+function isReplaceRaceError(e: unknown): boolean {
+  const code = e instanceof Error && "code" in e ? e.code : undefined;
+  // Windows can return EBUSY, EPERM, or EEXIST when the source or destination is open.
+  return code === "EBUSY" || code === "EEXIST" || code === "EPERM";
+}
+
+async function replaceDbFile(tmpPath: string, dbPath: string): Promise<void> {
+  const deadline = Date.now() + 30_000;
+  let lastError: unknown = null;
+
+  while (Date.now() <= deadline) {
+    try {
+      renameSync(tmpPath, dbPath);
+      return;
+    } catch (e) {
+      if (!isReplaceRaceError(e)) throw e;
+      lastError = e;
+    }
+
+    tryUnlink(dbPath);
+    try {
+      renameSync(tmpPath, dbPath);
+      return;
+    } catch (e) {
+      if (!isReplaceRaceError(e)) throw e;
+      lastError = e;
+    }
+
+    await Bun.sleep(250);
   }
 
-  tryUnlink(dbPath);
-  renameSync(tmpPath, dbPath);
+  throw lastError;
 }
 
 /** Build the version-pinned download URL. Falls back to /latest/ when no version.
@@ -418,9 +474,9 @@ export async function downloadDb(
       if (probe.schemaVersion !== SCHEMA_VERSION) {
         cleanupDbArtifacts(tmpPath);
         lastError = new Error(
-          `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
+            `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
             `This usually means the cached package version is older than the published DB. ` +
-            `Run \`bun pm cache rm\` and relaunch to pick up the latest package.`,
+            `Run: bunx @tikoci/rosetta@latest --refresh`,
         );
         if (isLast) throw lastError;
         log(`  ${lastError.message}`);
@@ -440,7 +496,7 @@ export async function downloadDb(
       try {
         tryUnlinkDbSidecars(tmpPath);
         tryUnlinkDbSidecars(dbPath);
-        replaceDbFile(tmpPath, dbPath);
+        await replaceDbFile(tmpPath, dbPath);
       } catch (e) {
         const existingProbe = probeDb(dbPath);
         if (hasMinimumDbContent(existingProbe) && existingProbe.schemaVersion === probe.schemaVersion && existingProbe.releaseTag === probe.releaseTag) {

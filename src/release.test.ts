@@ -225,7 +225,14 @@ describe("setup.ts", () => {
   test("setup.ts cleans temp DB artifacts instead of accumulating stale .tmp files", () => {
     const src = readText("src/setup.ts");
     expect(src).toContain("cleanupStaleTempArtifacts");
+    expect(src).toContain("cleanupAbandonedTempArtifacts");
     expect(src).toContain("tryUnlinkDbSidecars(tmpPath)");
+  });
+
+  test("setup.ts finalizes probe statements before renaming temp DBs", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain("stmt.finalize()");
+    expect(src).toContain("sqliteGet");
   });
 
   test("no DB open uses { readonly: true } (WAL-shm init trap on macOS)", () => {
