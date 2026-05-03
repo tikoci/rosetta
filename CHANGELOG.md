@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.13] — 2026-05-03
+
 ### Added
 
 - **`make verify` target.** Runs typecheck + lint + tests + MCP contract tests + Phase 0 retrieval eval in one command. Requires a populated DB (`make extract` first). Covers V-typecheck, V-lint, V-unit, V-tool-registry, V-tool-shapes, V-tool-budget, V-retrieval-floor. Skips the clean-tree check that `make preflight` enforces.
