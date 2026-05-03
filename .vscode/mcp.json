@@ -1,6 +1,6 @@
 {
 	"servers": {
-		"rosetta": {
+		"io.github.tikoci/rosetta": {
 			"command": "bun",
 			"args": [
 				"run",

@@ -76,6 +76,10 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 - `T-0026-tui-flag-passthrough` — TUI pass-through flag parsing
 - `T-0027-tui-pattern-search` — TUI vi-style `/pattern` search
 
+### `area: docs`
+
+- `T-0031-claude-md-split-into-narrow-instructions` — Split CLAUDE.md into many narrow `.github/instructions/*.md` files (centrs/winrun style); relocate schema/source-details to MANUAL.md/DESIGN.md
+
 ## Briefings index
 
 Grounded research and decision notes. Open items are ongoing thinking; resolved items are decisions on the record.
