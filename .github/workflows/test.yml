@@ -34,20 +34,22 @@ jobs:
       - name: Type check
         run: bun run typecheck
 
-      # Fetch the latest published DB so the stdio integration test (which
-      # needs a real, populated ros-help.db) can run against the same artifact
-      # users get from `bunx @tikoci/rosetta`. The release workflow uploads
-      # ros-help.db.gz to the latest GitHub Release.
+      # Fetch the latest published DB into runner temp so the dedicated stdio
+      # integration test can exercise the same artifact users get from
+      # `bunx @tikoci/rosetta` without leaving ros-help.db in the repo root,
+      # which would pollute the main `bun test` suite's DB-wipe guards.
       - name: Download latest ros-help.db for integration test
         run: |
           set -euo pipefail
           curl -fSL --max-time 600 \
-            -o ros-help.db.gz \
+            -o "$RUNNER_TEMP/ros-help.db.gz" \
             https://github.com/tikoci/rosetta/releases/latest/download/ros-help.db.gz
-          gunzip -f ros-help.db.gz
-          ls -lh ros-help.db
+          gunzip -f "$RUNNER_TEMP/ros-help.db.gz"
+          ls -lh "$RUNNER_TEMP/ros-help.db"
 
       - name: Run stdio MCP integration test
+        env:
+          TEST_DB_PATH: ${{ runner.temp }}/ros-help.db
         run: bun test src/mcp-stdio-client.test.ts
 
       - name: Run tests

@@ -4,7 +4,11 @@ import path from "node:path";
 import { EXPECTED_TOOLS } from "./mcp-contract.test.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const DB_PATH = path.join(ROOT, "ros-help.db");
+const configuredDbPath = process.env.TEST_DB_PATH?.trim();
+const DB_PATH = configuredDbPath ? path.resolve(ROOT, configuredDbPath) : path.join(ROOT, "ros-help.db");
+const hasTestDb = existsSync(DB_PATH);
+const dbWasExplicitlyConfigured = Boolean(configuredDbPath);
+const skipReason = `No populated test database at ${DB_PATH}; set TEST_DB_PATH or place ros-help.db at repo root to run this parity check.`;
 
 function stripAnsi(s: string): string {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape matching requires control chars
@@ -41,7 +45,11 @@ function extractToolDotCommands(helpOutput: string): string[] {
   return [...seen].sort();
 }
 
-describe("browse TUI ↔ MCP parity", () => {
+describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
+  hasTestDb || dbWasExplicitlyConfigured
+    ? "browse TUI ↔ MCP parity"
+    : `browse TUI ↔ MCP parity [skipped: ${skipReason}]`,
+  () => {
   test("browse .help lists a dot-command for every MCP tool", () => {
     const actual = extractToolDotCommands(runBrowseHelp());
     expect(actual).toEqual([...EXPECTED_TOOLS].sort());

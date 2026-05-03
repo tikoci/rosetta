@@ -13,7 +13,11 @@ import { Client } from "@modelcontextprotocol/sdk/client";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
-const DB_PATH = path.join(ROOT, "ros-help.db");
+const configuredDbPath = process.env.TEST_DB_PATH?.trim();
+const DB_PATH = configuredDbPath ? path.resolve(ROOT, configuredDbPath) : path.join(ROOT, "ros-help.db");
+const hasTestDb = existsSync(DB_PATH);
+const dbWasExplicitlyConfigured = Boolean(configuredDbPath);
+const skipReason = `No populated test database at ${DB_PATH}; set TEST_DB_PATH or place ros-help.db at repo root to run this integration test.`;
 
 const EXPECTED_TOOLS = [
   "routeros_search",
@@ -72,7 +76,11 @@ function buildDiagnostics(errors: Error[], stderr: string[]): string {
   return sections.length > 0 ? `\n\n${sections.join("\n\n")}` : "";
 }
 
-describe("stdio transport: real MCP client", () => {
+describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
+  hasTestDb || dbWasExplicitlyConfigured
+    ? "stdio transport: real MCP client"
+    : `stdio transport: real MCP client [skipped: ${skipReason}]`,
+  () => {
   let client: Client | undefined;
 
   afterEach(async () => {
@@ -83,7 +91,7 @@ describe("stdio transport: real MCP client", () => {
   });
 
   test("real stdio client lists tools, calls routeros_search, lists resources, and closes cleanly", async () => {
-    if (!existsSync(DB_PATH)) {
+    if (!hasTestDb) {
       throw new Error(`Expected populated test database at ${DB_PATH}.`);
     }
 
@@ -91,7 +99,7 @@ describe("stdio transport: real MCP client", () => {
       command: "bun",
       args: ["src/mcp.ts"],
       cwd: ROOT,
-      env: { DB_PATH },
+      env: { ...process.env, DB_PATH },
       stderr: "pipe",
     });
 

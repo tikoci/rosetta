@@ -184,15 +184,15 @@ jobs:
       - name: Run tests (DB-wipe guard)
         run: bun test
 
-      # Runs in a fresh process so the db.ts singleton opens the real built
-      # DB (the main `bun test` above pins it to `:memory:`, which skips
-      # Blocks B/C). Block C asserts shape invariants and Block B asserts
-      # token-budget guardrails — both must pass for release.
+      # Runs in a fresh process with the real-DB blocks explicitly enabled.
+      # The main `bun test` above keeps them opt-in so the DB-wipe guard suite
+      # stays on `:memory:`; this step exercises Blocks B/C against the freshly
+      # built DB before eval/release.
       - name: MCP contract tests (real DB)
         run: |
           echo "## MCP contract test (Phase 2, real DB)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
-          bun test src/mcp-contract.test.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       # ── MCP retrieval eval (Phase 0) ──

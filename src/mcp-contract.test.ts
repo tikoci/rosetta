@@ -9,7 +9,8 @@
  *           and titles so DB refreshes don't churn snapshots.
  *
  * These are fast, deterministic, CI-runnable structural tests. No LLM calls,
- * no network. Use the real local DB (ros-help.db) for stable FTS results.
+ * no network. Block A always runs; set ROSETTA_REAL_DB_TESTS=1 to exercise
+ * Blocks B/C against a real populated DB for stable FTS results.
  *
  * When adding/removing/renaming a tool: update EXPECTED_TOOLS below AND add
  * a CHANGELOG entry under [Unreleased] → Added/Changed/Removed. The test is
@@ -20,30 +21,44 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
+const runRealDbBlocks = process.env.ROSETTA_REAL_DB_TESTS === "1";
 
 // Block A (static file parse) runs unconditionally. Blocks B and C need the
-// real populated DB singleton. When another test file (extract-videos,
-// query, etc.) has already pinned the db.ts singleton to :memory:, we skip
-// the DB-dependent blocks — running `bun test src/mcp-contract.test.ts`
-// alone exercises them, and CI's `bun test` still gets Block A coverage.
-const { searchAll } = await import("./query.ts");
-const { DB_PATH, getDbStats } = await import("./db.ts");
+// real populated DB singleton, but opening db.ts during the main `bun test`
+// suite can poison query.test.ts's DB-wipe guard. Keep the real-DB imports
+// behind an explicit opt-in so the shared suite stays on `:memory:` and the
+// dedicated release/real-DB runs can still exercise Blocks B/C.
+let searchAll: typeof import("./query.ts").searchAll | undefined;
+let realDbPath = ":memory:";
+let dbPages = 0;
 
-// getDbStats() throws if tables don't exist (clean checkout before any DB build).
-// Guard defensively: any failure → treat as "DB not usable" and skip B/C.
-function dbPagesOrZero(): number {
+if (runRealDbBlocks) {
+  const queryModule = await import("./query.ts");
+  const dbModule = await import("./db.ts");
+  searchAll = queryModule.searchAll;
+  realDbPath = dbModule.DB_PATH;
   try {
-    return getDbStats().pages;
+    dbPages = dbModule.getDbStats().pages;
   } catch {
-    return 0;
+    dbPages = 0;
   }
 }
 
-const dbPages = dbPagesOrZero();
-const dbIsReal = DB_PATH !== ":memory:" && dbPages > 100;
+function requireSearchAll(): typeof import("./query.ts").searchAll {
+  if (!searchAll) {
+    throw new Error(
+      "searchAll unavailable; set ROSETTA_REAL_DB_TESTS=1 to enable real-DB contract blocks.",
+    );
+  }
+  return searchAll;
+}
+
+const dbIsReal = runRealDbBlocks && realDbPath !== ":memory:" && dbPages > 100;
 const skipReason = dbIsReal
   ? ""
-  : `DB singleton is "${DB_PATH}" (pages=${dbPages}); run \`bun test src/mcp-contract.test.ts\` solo against a populated DB for Blocks B/C.`;
+  : runRealDbBlocks
+    ? `DB singleton is "${realDbPath}" (pages=${dbPages}); run \`ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts\` against a populated DB for Blocks B/C.`
+    : "real-DB blocks are opt-in; set ROSETTA_REAL_DB_TESTS=1 and run this file against a populated DB for Blocks B/C.";
 
 // ---------------------------------------------------------------------------
 // Block A: Frozen tool registry
@@ -157,7 +172,7 @@ describe.skipIf(!dbIsReal)(`Token-budget guardrails${dbIsReal ? "" : ` [skipped:
 
   for (const { query, limit, budget } of QUERIES) {
     test(`"${query}" (limit=${limit}) ≤ ${budget} tokens`, () => {
-      const result = searchAll(query, limit);
+      const result = requireSearchAll()(query, limit);
       const tokens = estimateTokens(result);
 
       if (tokens > budget) {
@@ -217,7 +232,7 @@ describe.skipIf(!dbIsReal)(`Response-shape invariants${dbIsReal ? "" : ` [skippe
 
   for (const { query, limit, classifier_expected } of INVARIANTS) {
     test(`shape: "${query}"`, () => {
-      const result = searchAll(query, limit);
+      const result = requireSearchAll()(query, limit);
 
       // Top-level keys
       expect(result).toHaveProperty("query", query);
