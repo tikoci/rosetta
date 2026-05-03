@@ -14,7 +14,7 @@ Should rosetta build an alias table for renamed device models (e.g. `hex 2024` â
 # What's grounding this
 
 - `routeros_device_lookup` is intentionally heuristic: handles exact name/code, LIKE, FTS, slug-normalized fallback, superscript normalization, disambiguation notes.
-- Renamed-model aliases can still miss. This is documented in `CLAUDE.md` as an ongoing concern, not a solved problem.
+- Renamed-model aliases can still miss. This is documented in `DESIGN.md` as an ongoing concern, not a solved problem.
 - The fix shape is straightforward: table of `{alias â†’ canonical_product_name}` consulted before fallback.
 
 # Why not just build it now
@@ -29,5 +29,5 @@ Build the table only when **real false-empty lookups appear**. Each failed looku
 
 # Open questions
 
-- Where do we record the misses? `tasks/inbox.md` would work; a dedicated `briefings/B-0006-misses.md` appendix is cleaner.
+- Where do we record the misses? `BACKLOG.md` Inbox would work; a dedicated `briefings/B-0006-misses.md` appendix is cleaner.
 - Should the table live in the DB (new `device_aliases` table) or as a JSON file extracted at build time?

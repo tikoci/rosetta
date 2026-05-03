@@ -78,8 +78,6 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 
 ### `area: docs`
 
-- `T-0031-claude-md-split-into-narrow-instructions` — Split CLAUDE.md into many narrow `.github/instructions/*.md` files (centrs/winrun style); relocate schema/source-details to MANUAL.md/DESIGN.md
-
 ## Briefings index
 
 Grounded research and decision notes. Open items are ongoing thinking; resolved items are decisions on the record.
@@ -116,3 +114,4 @@ Greppable history of merged work. See `tasks/done/T-*.md` for full back-fill of 
 - T-0028 `make verify` local CI parity target
 - T-0029 Promoted contract test + Phase 0 retrieval eval to blocking in release CI
 - T-0030 Self-supervised retrieval eval wired into release CI
+- T-0031 Split `CLAUDE.md` into narrow instruction files and relocated canonical docs to `MANUAL.md` / `DESIGN.md`

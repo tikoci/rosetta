@@ -115,7 +115,7 @@ A briefing does not "promote" to a task. A briefing might be **cited** by a futu
 ## What does **not** belong here
 
 - Decisions and rationale (long-form, durable) → `DESIGN.md`.
-- Architecture and how the project works → `CLAUDE.md`.
+- Project orientation and routing → `CLAUDE.md`; durable architecture rationale → `DESIGN.md`.
 - Shipped, user-visible behaviour → `CHANGELOG.md`.
 - Loose ideas with no shape yet → `BACKLOG.md` Inbox (one line).
 - Indeterminate "wait for X" items → `BACKLOG.md` Triggers (one line + condition).

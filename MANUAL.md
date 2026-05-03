@@ -1,6 +1,6 @@
 # Rosetta User Manual
 
-Extended reference for install options, configuration, and database details beyond the [README](README.md).
+Extended reference for install options, configuration, release/re-extraction operations, and database details beyond the [README](README.md). For rationale, source provenance, and cross-project tradeoffs, see [DESIGN.md](DESIGN.md).
 
 ## Install from Binary
 
@@ -112,6 +112,46 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time. v6 had different syntax and major subsystems — answers for v6 are unreliable.
 
+## Re-extracting a Local Database
+
+When a new RouterOS HTML export or supporting dataset is available:
+
+```sh
+# Place the new Confluence export in box/ and update the box/latest symlink.
+make clean
+make extract
+make extract-full
+make gc-versions EXTRA_FLAGS=--verbose
+```
+
+- `make extract` runs the single-version ETL chain: HTML → properties → commands → devices → test results → changelogs → Dude cache → skills → link.
+- `make extract-full` keeps the same pipeline but uses all tracked RouterOS versions for command/schema extraction.
+- `make gc-versions` is the release-retention step that prunes `schema_node_presence` down to active channel heads; local full extracts intentionally keep the full presence history until you run it.
+
+### Video transcript refresh
+
+`extract-videos` is intentionally outside the default extract chain because it requires `yt-dlp` and can take 30–60 minutes:
+
+```sh
+make extract-videos
+make save-videos-cache
+git add transcripts/
+git commit -m "refresh transcript cache YYYY-MM-DD"
+```
+
+Release CI consumes committed NDJSON via `make extract-videos-from-cache`; it does not run a live YouTube scrape.
+
+## Release Workflow
+
+Published artifacts come from the GitHub Actions `Release` workflow (`workflow_dispatch`), not from local ad hoc release commands.
+
+- **Inputs:** `html_url` (required), `version` (optional override), `docs_date`, `full_versions`, and `republish_assets`.
+- **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable.
+- **Traceable pipeline:** early quality gate → download/validate HTML export → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → contract/eval steps → `db_meta` stamping → minimum-content validation → build/publish release assets and OCI images.
+- **Provenance:** release notes include DB stats, and the stamped `db_meta` keys (`release_tag`, `built_at`, `source_commit`, `schema_version`) let runtime surfaces report exactly what shipped.
+
+For Seafile-hosted HTML exports (`box.mikrotik.com`), append `&dl=1` to force direct download in CI.
+
 ## Database (Standalone)
 
 The SQLite database is downloadable on its own from [GitHub Releases](https://github.com/tikoci/rosetta/releases):
@@ -160,6 +200,287 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `db_meta` | varies | Release provenance and schema/update metadata |
 
 Each content table has a corresponding FTS5 index (e.g., `pages_fts`, `properties_fts`, `devices_fts`, `video_segments_fts`).
+
+### Logical schema reference
+
+The live authoritative DDL is available from the `rosetta://schema.sql` MCP resource or `sqlite_master`. This block mirrors the logical table layout and relationship model used throughout the codebase:
+
+```sql
+-- Pages (from Confluence HTML export)
+pages (
+    id INTEGER PRIMARY KEY,  -- Confluence page ID
+    slug, title, path,       -- path = 'RouterOS > Firewall > Filter'
+    depth, parent_id,
+    url,                     -- help.mikrotik.com/docs/spaces/ROS/pages/{id}/{slug}
+    text, code, code_lang,
+    author, last_updated,
+    word_count, code_lines, html_file
+)
+
+-- FTS5 over pages
+pages_fts USING fts5(title, path, text, code,
+    content=pages, content_rowid=id,
+    tokenize='porter unicode61'
+)
+
+-- Callouts (Note/Warning/Info/Tip from Confluence callout macros)
+callouts (
+    id, page_id REFERENCES pages(id),
+    type,          -- 'Note' | 'Warning' | 'Info' | 'Tip'
+    content TEXT,
+    sort_order
+)
+
+-- FTS5 over callouts
+callouts_fts USING fts5(content, ...)
+
+-- Sections (page chunks split by h1–h3 headings)
+sections (
+    id, page_id REFERENCES pages(id),
+    heading, level,        -- heading text, 1/2/3
+    anchor_id,             -- Confluence heading ID for deep-link URLs
+    text, code,
+    word_count, sort_order
+)
+
+-- Property tables extracted from confluenceTable
+properties (
+    id, page_id, name, type, default_val,
+    description, section, sort_order,
+    UNIQUE(page_id, name, section)
+)
+
+-- FTS5 over properties
+properties_fts USING fts5(name, description, ...)
+
+-- RouterOS command tree (from inspect.json / deep-inspect.json)
+commands (
+    id, path UNIQUE,     -- '/ip/firewall/filter'
+    name, type,          -- 'dir' | 'cmd' | 'arg'
+    parent_path,
+    page_id,             -- linked doc page (nullable)
+    description,         -- from inspect.json desc field
+    ros_version          -- primary version tag
+)
+
+-- Version tracking
+ros_versions (
+    version PRIMARY KEY, -- '7.22', '7.23beta2'
+    channel,             -- 'stable' | 'development'
+    extra_packages,      -- 0|1
+    extracted_at,
+    api_transport,       -- from deep-inspect _meta (e.g., 'rest')
+    enrichment_duration_ms, -- deep-inspect enrichment time
+    crash_paths_safe     -- deep-inspect crash safety metadata
+)
+
+command_versions (
+    command_path, ros_version,
+    PRIMARY KEY (command_path, ros_version)
+)
+
+-- Multi-arch schema nodes (from deep-inspect.json — richer than commands table)
+schema_nodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,       -- 'dir' | 'cmd' | 'arg'
+    parent_id INTEGER REFERENCES schema_nodes(id),
+    parent_path TEXT,
+    dir_role TEXT,            -- 'list' | 'namespace' | 'hybrid' (dirs only)
+    desc_raw TEXT,            -- raw description from inspect.json
+    data_type TEXT,           -- parsed: 'string' | 'integer' | 'time' | 'enum' | 'script' | 'range'
+    enum_values TEXT,         -- JSON array of enum values
+    enum_multi INTEGER,       -- 1 if multi-select enum (e.g., "ftp|read[,Permission*]")
+    type_tag TEXT,            -- type tag from multi-select (e.g., "Permission")
+    range_min TEXT,           -- lower bound for ranged types
+    range_max TEXT,           -- upper bound for ranged types
+    max_length INTEGER,       -- max string length
+    _arch TEXT,               -- NULL=both arches, 'x86'/'arm64'=platform-specific
+    _package TEXT,            -- future: package that provides this node
+    _attrs TEXT,              -- JSON catch-all (completion data, future metadata)
+    page_id INTEGER REFERENCES pages(id),
+    UNIQUE(path, type)
+)
+
+-- schema_nodes version presence (flat junction — no arch column, arch is on schema_nodes)
+schema_node_presence (
+    node_id INTEGER NOT NULL REFERENCES schema_nodes(id),
+    version TEXT NOT NULL,
+    PRIMARY KEY (node_id, version)
+)
+-- Release DBs prune schema_node_presence to active channel heads
+-- (stable, long-term, testing, development); command_versions keeps
+-- the full extracted version history.
+
+-- MikroTik product hardware specs (from product matrix CSV)
+devices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_name UNIQUE, product_code,
+    architecture,        -- ARM 64bit, ARM 32bit, MIPSBE, MMIPS, SMIPS
+    cpu, cpu_cores, cpu_frequency,
+    license_level,       -- 3/4/5/6
+    operating_system,    -- RouterOS, RouterOS v7, RouterOS / SwitchOS
+    ram, ram_mb,         -- original text + normalized MB
+    storage, storage_mb,
+    poe_in, poe_out, max_power_w,
+    wireless_24_chains, wireless_5_chains,
+    eth_fast, eth_gigabit, eth_2500,
+    sfp_ports, sfp_plus_ports, eth_multigig,
+    usb_ports, sim_slots, msrp_usd,
+    product_url,         -- mikrotik.com product page URL
+    block_diagram_url    -- CDN URL to block diagram PNG
+)
+
+-- FTS5 over devices (unicode61 only — no porter stemming for model numbers)
+devices_fts USING fts5(product_name, product_code, architecture, cpu, ...)
+
+-- Device performance test results (from mikrotik.com product pages)
+device_test_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    device_id REFERENCES devices(id),
+    test_type,           -- 'ethernet' | 'ipsec'
+    mode,                -- 'Bridging' | 'Routing' | 'Single tunnel' | '256 tunnels'
+    configuration,       -- '25 ip filter rules' | 'AES-128-CBC + SHA1' | etc.
+    packet_size INTEGER, -- 64, 512, 1400, 1518
+    throughput_kpps REAL,
+    throughput_mbps REAL,
+    UNIQUE(device_id, test_type, mode, configuration, packet_size)
+)
+
+-- Changelogs (parsed per-entry from MikroTik download server)
+changelogs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    version TEXT NOT NULL,    -- '7.22', '7.22.1'
+    released TEXT,            -- '2026-Mar-09 10:38'
+    category TEXT NOT NULL,   -- subsystem: 'bgp', 'bridge', 'wifi'
+    is_breaking INTEGER NOT NULL DEFAULT 0,  -- 1 for !) entries
+    description TEXT NOT NULL,
+    sort_order INTEGER NOT NULL,
+    UNIQUE(version, sort_order)
+)
+
+-- FTS5 over changelogs
+changelogs_fts USING fts5(category, description,
+    content=changelogs, content_rowid=id,
+    tokenize='porter unicode61'
+)
+
+-- YouTube video metadata (from yt-dlp transcript extraction)
+videos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id TEXT NOT NULL UNIQUE,   -- YouTube video ID
+    title, description, channel,
+    upload_date,                     -- YYYYMMDD string
+    duration_s INTEGER,              -- duration in seconds
+    url TEXT NOT NULL,               -- https://youtube.com/watch?v=...
+    view_count INTEGER,
+    like_count INTEGER,
+    has_chapters INTEGER NOT NULL DEFAULT 0  -- 1 if yt-dlp provided chapters
+)
+
+-- FTS5 over video titles/descriptions
+videos_fts USING fts5(title, description,
+    content=videos, content_rowid=id,
+    tokenize='porter unicode61'
+)
+
+-- Chapter-level transcript segments (one row per chapter, or one row for no-chapter videos)
+video_segments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    video_id INTEGER REFERENCES videos(id),  -- FK to videos.id (INTEGER, NOT videos.video_id)
+    chapter_title TEXT,              -- NULL if video has no chapters
+    start_s INTEGER NOT NULL DEFAULT 0,
+    end_s INTEGER,                   -- NULL for single-segment no-chapter videos
+    transcript TEXT NOT NULL,        -- joined cue text for this segment
+    sort_order INTEGER NOT NULL
+)
+
+-- FTS5 over transcript segments
+video_segments_fts USING fts5(chapter_title, transcript,
+    content=video_segments, content_rowid=id,
+    tokenize='porter unicode61'
+)
+
+-- The Dude wiki documentation (archived from wiki.mikrotik.com via Wayback Machine)
+dude_pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug TEXT NOT NULL UNIQUE,   -- 'Probes', 'Device_discovery'
+    title, path,                 -- path = 'The Dude > v6 > Probes'
+    version TEXT NOT NULL DEFAULT 'v6',  -- 'v6' or 'v3'
+    url,                         -- original wiki.mikrotik.com URL
+    wayback_url,                 -- web.archive.org snapshot URL used
+    text, code,
+    last_edited,
+    word_count
+)
+
+-- Dude page screenshots (downloaded from Wayback Machine)
+dude_images (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    page_id INTEGER NOT NULL REFERENCES dude_pages(id),
+    filename, alt_text, caption,
+    local_path,                  -- 'dude/images/Dude-probes-all.JPG'
+    original_url, wayback_url,
+    sort_order
+)
+
+-- FTS5 over dude pages
+dude_pages_fts USING fts5(title, path, text, code,
+    content=dude_pages, content_rowid=id,
+    tokenize='porter unicode61'
+)
+
+-- Agent skill guides (from tikoci/routeros-skills — community content, not official MikroTik docs)
+skills (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,       -- 'routeros-fundamentals'
+    description TEXT,                -- from YAML frontmatter
+    content TEXT NOT NULL,           -- full SKILL.md markdown (frontmatter stripped)
+    source_repo TEXT NOT NULL DEFAULT 'tikoci/routeros-skills',
+    source_sha TEXT,                 -- git commit SHA at extraction time
+    source_url TEXT,                 -- GitHub URL to SKILL.md
+    word_count INTEGER,
+    extracted_at TEXT                -- ISO 8601
+)
+
+-- Reference docs for each skill
+skill_references (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    skill_id INTEGER NOT NULL REFERENCES skills(id),
+    path TEXT NOT NULL,              -- 'references/rest-api-patterns.md'
+    filename TEXT NOT NULL,          -- 'rest-api-patterns.md'
+    content TEXT NOT NULL,
+    word_count INTEGER,
+    UNIQUE(skill_id, path)
+)
+
+-- FTS5 over skills
+skills_fts USING fts5(name, description, content,
+    content=skills, content_rowid=id,
+    tokenize='porter unicode61'
+)
+
+-- Glossary of RouterOS terms and abbreviations (seeded at DB init)
+glossary (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    term TEXT NOT NULL UNIQUE,   -- canonical lowercase term
+    definition TEXT NOT NULL,
+    category TEXT NOT NULL,      -- 'product' | 'protocol' | 'subsystem' | 'concept'
+    aliases TEXT,                -- comma-separated alternate names
+    search_hint TEXT,            -- suggested search query for routeros_search
+    UNIQUE(term)
+)
+
+-- DB provenance and update metadata (key/value to avoid schema churn).
+-- Stamped by scripts/stamp-db-meta.ts in CI; read by mcp.ts startup banner
+-- and the bunx auto-update flow. Standard keys: release_tag, built_at,
+-- source_commit, schema_version. Added in SCHEMA_VERSION 5.
+db_meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+)
+```
 
 ## How Updates Work
 

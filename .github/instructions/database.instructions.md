@@ -11,23 +11,27 @@ applyTo: "src/db.ts"
 - Singleton pattern: one `Database` instance shared across modules
 
 ## Tables
-- `pages` + `pages_fts` — 317 Confluence HTML pages
-- `callouts` + `callouts_fts` — 1,034 Note/Warning/Info callouts (FK → pages)
-- `sections` — 2,984 page sections split by h1–h3 headings (FK → pages)
-- `properties` + `properties_fts` — 4,860 property table rows (FK → pages)
-- `commands` — 40K command tree entries from inspect.json (FK → pages for linked dirs)
-- `ros_versions` — 46 RouterOS versions (7.9–7.23beta2) with channel metadata
-- `command_versions` — 1.67M junction table entries (command_path × ros_version)
-- `devices` + `devices_fts` — 144 MikroTik products with hardware specs (from product matrix CSV)
-- `changelogs` + `changelogs_fts` — parsed per-entry changelog data from MikroTik download server (version, category, breaking flag)
-- `videos` + `videos_fts` — MikroTik YouTube video metadata (518 videos: title, description, channel, duration, chapters)
-- `video_segments` + `video_segments_fts` — chapter-level transcript segments with timestamps (~1,890 rows; FK → videos.id)
+- `pages` + `pages_fts` — Confluence HTML pages (breadcrumb path, URL, text, code)
+- `callouts` + `callouts_fts` — Note/Warning/Info/Tip callouts (FK → pages)
+- `sections` — page sections split by h1–h3 headings with anchor IDs (FK → pages)
+- `properties` + `properties_fts` — property table rows parsed from confluenceTable (FK → pages)
+- `commands` — command tree entries from inspect.json (FK → pages for linked dirs)
+- `ros_versions` — tracked RouterOS versions with channel metadata
+- `command_versions` — junction: command_path × ros_version (full extracted history)
+- `schema_nodes` + `schema_node_presence` — multi-arch deep-inspect schema; presence is pruned to active channel heads in release DBs
+- `devices` + `devices_fts` — MikroTik products with hardware specs (from product matrix CSV)
+- `device_test_results` — benchmark rows per device (ethernet/IPSec throughput)
+- `changelogs` + `changelogs_fts` — parsed per-entry changelog data (version, category, breaking flag)
+- `videos` + `videos_fts` — MikroTik YouTube video metadata
+- `video_segments` + `video_segments_fts` — chapter-level transcript segments (FK → videos.id)
 - `dude_pages` + `dude_pages_fts` — archived Dude wiki pages from Wayback/cache
 - `dude_images` — screenshot metadata for Dude wiki pages
 - `skills` + `skills_fts` — RouterOS agent skill guides from tikoci/routeros-skills
 - `skill_references` — reference documents attached to skills
 - `glossary` — seeded RouterOS terms and aliases
 - `db_meta` — release provenance and schema/update metadata
+
+For current corpus counts, use the `routeros_stats` MCP tool or see the snapshot in `DESIGN.md § Corpus Snapshot`.
 
 ## FTS5 Triggers
 Content-sync triggers on content tables (`pages`, `callouts`, `properties`, `devices`, `changelogs`, `videos`, `video_segments`, `dude_pages`, `skills`) handle INSERT/UPDATE/DELETE automatically. Do not manually insert into `*_fts` tables.

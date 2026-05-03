@@ -19,5 +19,5 @@ These are wait-and-see; the Dude pipeline is shipped and stable. If user-visible
 # What's grounding this
 
 - Dude pages live in their own table, separate FTS, separate MCP tools — minimal blast radius if any of this changes.
-- `/Users/amm0/GitHub/rosetta/CLAUDE.md` documents the current Dude tables.
+- `MANUAL.md` documents the current Dude tables in the schema reference.
 - See `donny` project for `dude.db` itself.

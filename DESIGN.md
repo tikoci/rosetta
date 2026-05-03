@@ -1,7 +1,8 @@
 # Design — rosetta
 
 > **Audience:** LLM agents working on this codebase. Explains *why* things are the way they are.
-> For *what* the project is and how it works, see `CLAUDE.md`.
+> For project orientation and the routing map, see `CLAUDE.md`.
+> For install, operations, and schema reference, see `MANUAL.md`.
 > For ideas and future work, see `BACKLOG.md`.
 
 ## SQL-as-RAG Pattern
@@ -25,6 +26,61 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
 **Version cadence:** HTML docs are pinned to a specific export (currently March 2026 / 7.22). inspect.json versions update automatically via restraml's CI — new versions appear weekly. The primary `commands` table uses the latest stable from inspect.json, which may be newer than the HTML docs export.
+
+### HTML archive (primary corpus)
+
+- **Export:** Confluence space export, March 2026.
+- **Format:** 317 HTML files plus attachments in `box/latest/ROS/` (symlink → `box/documents-export-2026-3-25`).
+- **Structure:** Consistent Confluence classes (`confluenceTable`, `confluenceTh`, `syntaxhighlighter-pre`).
+- **Property tables:** 605 tables with `"Property | Description"` headers across 147 pages.
+- **Code blocks:** `data-syntaxhighlighter-params="brush: ros"` for RouterOS CLI.
+
+### Command tree (`inspect.json` / `deep-inspect.json`)
+
+- **Source:** `inspect.json` and `deep-inspect.{x86,arm64}.json` from [tikoci/restraml](https://github.com/tikoci/restraml).
+- **Access path:** Version discovery uses the GitHub API once; actual files come from GitHub Pages at `https://tikoci.github.io/restraml/<version>/extra/...`. Deep-inspect files are preferred when available; older versions fall back to `inspect.json`.
+- **Generation:** restraml's GitHub Actions run RouterOS CHR under QEMU and publish both base (`routeros.npk` only) and `extra/` builds. Rosetta prefers the `extra/` variant.
+- **Coverage:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 commands, and ~34K args in the current primary version. Deep-inspect adds `_completion` data (11K+ args with valid values and style hints) and dual-arch coverage.
+- **Version tracking:** 46 versions from 7.9 through 7.23beta2. New versions appear weekly; the latest stable is auto-detected as primary for `commands`.
+- **Retention split:** `command_versions` keeps the full extracted history. `schema_node_presence` mirrors that history during extraction, then release GC prunes it to active channel heads only.
+- **Multi-arch:** About 97% of paths are shared. The remainder is mostly arm64-only (`wifi-qcom`, `ethernet/switch`) with a very small x86-only set (`system/check-disk`, `console/screen`).
+- **Coverage gap:** CHR lacks Wi-Fi hardware, so some packages (`wifi-qcom`, `zerotier`, architecture-specific extras) do not appear in inspect output even though the HTML docs cover them.
+
+### Product matrix CSV
+
+- **Source:** Manual browser export from <https://mikrotik.com/products/matrix>.
+- **Format:** UTF-8 BOM CSV, 34 columns, 144 products in the current snapshot.
+- **Location:** `matrix/2026-03-25/matrix.csv`; snapshots are date-stamped and committed.
+- **Download path:** Use the site's export/download control, choose **All**, and save to `matrix/<ISODATE>/matrix.csv`.
+- **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
+- **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.
+
+### Product test results and block diagrams
+
+- **Source:** Individual product pages at `https://mikrotik.com/product/<slug>`, parsed server-side with linkedom.
+- **Coverage:** 125 of 144 devices have benchmark tables; 110 expose block diagram URLs.
+- **Benchmarks:** Ethernet bridging/routing at 64/512/1518-byte packets and IPSec throughput at 64/512/1400-byte packets with multiple cipher/config combinations.
+- **URL slugs:** Slug discovery is the fragile part. The extractor tries several generated variants per product, including product-code forms, `plus` substitutions, and Unicode superscript normalization.
+- **Storage shape:** Benchmarks live in normalized `device_test_results` rows, not JSON blobs, so cross-device filtering/sorting stays SQL-native.
+
+### Agent skills (`tikoci/routeros-skills`)
+
+- **Source:** [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills), a community-created and human-reviewed corpus for agents.
+- **Content:** 8 skills, roughly 30K words total, with YAML frontmatter and optional `references/` documents.
+- **Attribution boundary:** Skills are explicitly **not** official MikroTik docs. Every resource read prepends provenance so agents can distinguish textbook facts from guide-style advice.
+- **Extraction:** `src/extract-skills.ts` supports GitHub API fetch, `--local`, and `--from-cache`. CI builds fetch from GitHub; cached `skills/` content supports offline rebuilds.
+
+## Corpus Snapshot
+
+These figures are the March 2026 snapshot shape that the current docs and release process were built around. Use `routeros_stats` for live counts on a built database.
+
+- **Pages:** 317 Confluence pages with breadcrumb paths and help.mikrotik.com URLs.
+- **Text + code:** ~515K words and ~14K RouterOS code lines.
+- **Callouts / sections / properties:** 1,034 callouts, 2,984 sections, 4,860 properties.
+- **Command tree:** ~40K command entries plus 46 tracked RouterOS versions.
+- **Linking coverage:** About 92% of command dirs link to a documentation page.
+- **Hardware corpus:** 144 devices and 2,874 benchmark rows.
+- **Supplemental corpora:** Parsed changelogs, archived Dude pages, and 8 community skill guides.
 
 ## Key Decisions
 
@@ -385,7 +441,7 @@ Detectors are non-exclusive. `bgp 7.22 route reflection` fires **topic**, **vers
 }
 ```
 
-All array `related` sections cap at 2–3 entries (scaled by `limit` — see "hunger knob" in CLAUDE.md). `command_node` is a single object when the classifier identified a command path. Empty sections omitted.
+All array `related` sections cap at 2–3 entries and scale with `limit` (the `relatedCaps(limit)` "hunger knob"). `command_node` is a single object when the classifier identified a command path. Empty sections are omitted.
 
 ### Zero-result handling
 

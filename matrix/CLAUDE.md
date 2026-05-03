@@ -2,6 +2,6 @@
 
 Per-device hardware specs from mikrotik.com/products/matrix. Date-stamped snapshots stored in git.
 
-See main [CLAUDE.md](../CLAUDE.md) → "Product Matrix (CSV)" under Source Details for full schema, download instructions, and column documentation.
+See [DESIGN.md](../DESIGN.md) for product-matrix provenance and naming caveats, and [MANUAL.md](../MANUAL.md) for the re-extraction workflow.
 
 Extraction: `bun run src/extract-devices.ts` (or `make extract-devices`). Idempotent — deletes and re-inserts all rows.

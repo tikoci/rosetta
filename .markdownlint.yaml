@@ -1,6 +1,6 @@
 # markdownlint configuration for rosetta
-# These are project documentation files (CLAUDE.md, DESIGN.md, BACKLOG.md),
-# not README-style docs — prose paragraphs routinely exceed 80 chars.
+# Human-facing project docs (for example DESIGN.md and BACKLOG.md) use long prose.
+# LLM instruction files are excluded separately via .markdownlintignore.
 
 # Duplicate headings — allow in different sections (GitHub auto-suffixes anchors)
 MD024:

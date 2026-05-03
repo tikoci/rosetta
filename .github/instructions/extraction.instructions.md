@@ -1,96 +1,16 @@
 ---
-description: "Use when writing or modifying extraction scripts, property parsing, command tree loading, or callout extraction. Covers idempotent patterns, HTML parsing with linkedom, table detection, version-aware command extraction, and test isolation for extractor modules."
+description: "Routing file for extraction/data work. Follow the narrow instruction files listed here instead of growing this file again."
 applyTo: "src/extract-*.ts, src/extract-*.test.ts, src/link-commands.ts"
 ---
-# Extraction Pipeline
+# Extraction instruction map
 
-## Idempotent Pattern
-Every extractor follows the same structure:
-1. DELETE existing data (respect FK order) or DROP+CREATE
-2. Process input files (HTML, JSON, or CSV)
-3. FTS5 indexes auto-populated via triggers defined in `src/db.ts`
+The extraction surface now uses narrow rule files. Read the ones that match your change:
 
-## Pipeline Order
+- `extractor-idempotent.instructions.md`
+- `extractor-import-side-effects.instructions.md`
+- `command-versions-vs-presence.instructions.md`
+- `schema-roundtrip-compat.instructions.md`
+- `data-source-naming-product-matrix.instructions.md`
+- `skill-attribution-boundary.instructions.md`
 
-**Single version:** `extract-html` → `extract-properties` → `extract-commands` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `extract-dude-from-cache` → `extract-skills` → `link-commands`
-```sh
-make extract
-```
-
-**All versions:** `extract-html` → `extract-properties` → `extract-all-versions` → `extract-devices` → `extract-test-results` → `extract-changelogs` → `extract-dude-from-cache` → `extract-skills` → `link-commands`
-```sh
-make extract-full
-```
-
-**Video note:** `extract-videos` is NOT in `make extract` / `make extract-full` because a full YouTube fetch requires `yt-dlp` and takes 30–60 min. Release CI imports committed NDJSON with `make extract-videos-from-cache`; run `make extract-videos` locally only when refreshing the transcript cache, then `make save-videos-cache`.
-
-**Release-only retention:** published DB builds run `make gc-versions EXTRA_FLAGS=--verbose` after linking to prune `schema_node_presence` to active channel heads. Local `make extract-full` intentionally keeps the full presence table until that target is run.
-
-## CI Pickup Checklist (Required)
-
-When an extraction/backfill item is marked complete, verify CI behavior explicitly:
-
-1. Confirm the release workflow step in `.github/workflows/release.yml` runs the extractor with the required flags/defaults.
-2. If extraction defaults changed, confirm CI uses that default path (not a local-only Make target).
-3. If a new Make target was added for convenience, do not rely on it for CI unless the workflow actually calls it.
-4. Confirm the release workflow's post-extraction gates still exercise the changed DB shape: `bun test` DB-wipe guard, MCP contract test/eval when relevant, DB provenance stamping, stats collection, and minimum-content validation before artifacts are published.
-5. If CI does not yet execute the new behavior, update the workflow in the same PR or keep the backlog item open/deferred with a specific CI follow-up.
-
-Do not assume maintainers will run local `make` commands to compensate for missing CI wiring.
-
-## HTML Parsing (extract-html.ts)
-- Use `linkedom` (not jsdom) — `import { parseHTML } from 'linkedom'`
-- Confluence HTML class patterns:
-  - Property tables: `.confluenceTable` with "Property" header
-  - Code blocks: `pre.syntaxhighlighter-pre` with `brush: ros`
-  - Breadcrumbs: `#breadcrumbs`
-  - Main content: `#main-content`
-  - Callouts: `div[role="region"].confluence-information-macro` with `aria-label`
-  - Headings with IDs: `h1[id], h2[id], h3[id]` — used for section extraction
-- Callouts extracted in Pass 3, sections in Pass 4, after pages and properties
-
-## Version-Aware Commands (extract-commands.ts)
-- CLI flags: `--version`, `--channel`, `--extra`, `--accumulate`
-- Default mode: replaces `commands` table (primary version)
-- `--accumulate` mode: only adds to `command_versions`, preserves `commands`
-- Primary version = latest stable discovered from restraml; docs may lag because the HTML export is manual
-
-## Batch Version Extraction (extract-all-versions.ts)
-- Discovers versions from restraml GitHub Pages / GitHub API by default; accepts explicit local `docs/` path override when passed as CLI arg
-- Prefers deep-inspect files when available, falls back to `extra/inspect.json`, then base `inspect.json`
-- Classifies channel: "beta"/"rc" → development, else stable
-- Runs primary extraction for latest stable, accumulate for all others
-- 46 versions: 7.9 through 7.23beta2
-- **Coverage gap:** CHR misses some extra-packages (Wi-Fi drivers, zerotier) — HTML docs cover those
-
-## Heuristics in link-commands.ts
-- Extracts `/path/like/this` patterns from code blocks and `<strong>`/`<code>` tags
-- Filters non-RouterOS paths (e.g., `/bin/bash`, `/etc/config`)
-- Links dir + all children to matching page
-- Current coverage: ~92% of dirs
-
-## Test Isolation — Extractor Imports
-
-**Problem:** `db.ts` opens a SQLite connection at module-evaluation time. Bun's module cache means the first importer wins the singleton. If an extractor test statically imports a module that has a top-level `import { db } from "./db.ts"`, it will lock the singleton to the real `ros-help.db` path before `query.test.ts` can enforce its `:memory:` guard — causing a hard throw in CI.
-
-**Which extractors are still at risk (top-level `import { db }`)**:
-`extract-changelogs.ts`, `extract-commands.ts`, `extract-devices.ts`, `extract-properties.ts`, `extract-skills.ts`
-
-**Which are already safe (import inside `main()`)**: `extract-html.ts`, `extract-dude.ts`, `extract-schema.ts`, `extract-test-results.ts`, `extract-videos.ts`
-
-**Required pattern for any new extractor test file:**
-
-```ts
-// MUST be the first statement — before any import — so db.ts sees it
-process.env.DB_PATH = ":memory:";
-
-import { describe, expect, it } from "bun:test";
-// ... other safe imports (linkedom, node:fs, etc.) ...
-
-// Dynamic import ensures DB_PATH is set before db.ts module is evaluated
-const { myPureFunction } = await import("./extract-something.ts");
-```
-
-**Why dynamic import:** Bun hoists static `import` declarations before any statements in the file, so `process.env.DB_PATH = ":memory:"` must use a dynamic `await import(...)` for the extractor — otherwise the assignment runs after `db.ts` has already opened the real DB.
-
-**Only needed for extractors still in the "at risk" list above.** For safe extractors (those with `import.meta.main` guards), a static import is fine because importing them never touches the DB.
+Keep this file as a router only. Put new extraction rules in the narrow file that actually owns them.

@@ -1,7 +1,7 @@
 ---
 id: T-0031-claude-md-split-into-narrow-instructions
 title: Split CLAUDE.md into many narrow .github/instructions/*.md files
-status: ready
+status: done
 priority: medium
 area: docs
 depends_on: []
