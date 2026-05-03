@@ -139,6 +139,8 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  rosetta              Start MCP server (stdio transport)");
   console.log("  rosetta --http       Start with Streamable HTTP transport");
   console.log("  rosetta browse       Interactive terminal browser");
+  console.log("  rosetta browse <cmd> [args]  Run any TUI command once, then open REPL");
+  console.log("  rosetta browse --once <cmd>  Execute any TUI command and exit");
   console.log("  rosetta --setup      Download database + print MCP client config");
   console.log("  rosetta --setup --force  Re-download database");
   console.log("  rosetta --refresh    Shortcut for --setup --force");
@@ -155,6 +157,8 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  DB_PATH  Absolute path to ros-help.db (optional)");
   console.log("  PORT     HTTP listen port (lower precedence than --port)");
   console.log("  HOST     HTTP bind address (lower precedence than --host)");
+  console.log("  TLS_CERT_PATH  TLS certificate path (lower precedence than --tls-cert)");
+  console.log("  TLS_KEY_PATH   TLS private key path (lower precedence than --tls-key)");
   console.log();
   console.log(`Quick start:  bunx @tikoci/rosetta --setup`);
   console.log(`Project:      ${link("https://github.com/tikoci/rosetta")}`);

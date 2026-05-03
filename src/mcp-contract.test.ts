@@ -49,23 +49,24 @@ const skipReason = dbIsReal
 // Block A: Frozen tool registry
 // ---------------------------------------------------------------------------
 
+export const EXPECTED_TOOLS = [
+  "routeros_search",
+  "routeros_get_page",
+  "routeros_lookup_property",
+  "routeros_explain_command",
+  "routeros_command_tree",
+  "routeros_stats",
+  "routeros_search_changelogs",
+  "routeros_dude_search",
+  "routeros_dude_get_page",
+  "routeros_command_version_check",
+  "routeros_command_diff",
+  "routeros_device_lookup",
+  "routeros_search_tests",
+  "routeros_current_versions",
+] as const;
+
 describe("Frozen tool registry", () => {
-  const EXPECTED_TOOLS = [
-    "routeros_search",
-    "routeros_get_page",
-    "routeros_lookup_property",
-    "routeros_explain_command",
-    "routeros_command_tree",
-    "routeros_stats",
-    "routeros_search_changelogs",
-    "routeros_dude_search",
-    "routeros_dude_get_page",
-    "routeros_command_version_check",
-    "routeros_command_diff",
-    "routeros_device_lookup",
-    "routeros_search_tests",
-    "routeros_current_versions",
-  ];
 
   test("exactly 14 tools registered", () => {
     const mcpSrc = readFileSync(path.join(ROOT, "src/mcp.ts"), "utf-8");
@@ -74,7 +75,7 @@ describe("Frozen tool registry", () => {
     const foundTools = Array.from(toolMatches, (m) => m[1]);
 
     expect(foundTools.length).toBe(14);
-    expect(foundTools.sort()).toEqual(EXPECTED_TOOLS.sort());
+    expect(foundTools.sort()).toEqual([...EXPECTED_TOOLS].sort());
   });
 
   test("all tools have workflow arrow (→) in description", () => {

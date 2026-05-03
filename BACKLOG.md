@@ -16,6 +16,7 @@
 Drop one-line thoughts here. Promote later — to a task if it gains shape, to a briefing if it needs thinking-first, or delete if it doesn't survive a re-read.
 
 - Keep merging `actions/setup-node`, `actions/upload-artifact`, and Docker action Dependabot bumps before GitHub's forced runtime transitions turn warnings into failures.
+- `src/setup.test.ts` — `probeDb > closes statements so a probed temp DB can be renamed immediately` consistently times out on macOS (~7-8s vs 5000ms timeout); introduced in v0.8.12 Windows-rename fix; passes on CI (Linux). Investigate whether the timeout needs raising or the test needs a macOS skip/guard.
 - TUI longer wishlist: tab completion, persistent history (`~/.rosetta/browse_history`), export (JSON/CSV/Markdown), audit views, bookmarks. None individually picked up — promote one to a task if a real need surfaces.
 
 ## Triggers
