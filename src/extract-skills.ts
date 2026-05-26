@@ -70,9 +70,16 @@ function countWords(text: string): number {
 
 // ── GitHub API fetching ──
 
+export function githubApiHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
 async function getDefaultBranchSha(): Promise<string> {
   const res = await fetch(`${GITHUB_API_BASE}/commits/HEAD`, {
-    headers: { Accept: "application/vnd.github.v3+json" },
+    headers: githubApiHeaders(),
   });
   if (!res.ok) throw new Error(`Failed to get HEAD SHA: HTTP ${res.status}`);
   const data = (await res.json()) as { sha: string };
@@ -81,7 +88,7 @@ async function getDefaultBranchSha(): Promise<string> {
 
 async function listSkillDirs(sha: string): Promise<string[]> {
   const res = await fetch(`${GITHUB_API_BASE}/contents/?ref=${sha}`, {
-    headers: { Accept: "application/vnd.github.v3+json" },
+    headers: githubApiHeaders(),
   });
   if (!res.ok) throw new Error(`Failed to list repo contents: HTTP ${res.status}`);
   const entries = (await res.json()) as Array<{ name: string; type: string }>;
@@ -102,7 +109,7 @@ async function fetchRawFile(sha: string, path: string): Promise<string | null> {
 
 async function listReferences(sha: string, skillName: string): Promise<string[]> {
   const res = await fetch(`${GITHUB_API_BASE}/contents/${skillName}/references?ref=${sha}`, {
-    headers: { Accept: "application/vnd.github.v3+json" },
+    headers: githubApiHeaders(),
   });
   if (!res.ok) {
     if (res.status === 404) return [];
@@ -387,4 +394,6 @@ async function main() {
   populateDb(skills, sha);
 }
 
-await main();
+if (import.meta.main) {
+  await main();
+}

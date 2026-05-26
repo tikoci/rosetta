@@ -212,6 +212,8 @@ jobs:
         run: make extract-dude-from-cache
 
       - name: Extract agent skills from GitHub
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bun run src/extract-skills.ts
 
       - name: Link commands to pages

@@ -20,6 +20,7 @@ uses [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - **Release npm publish now fails fast on missing or unauthorized `NPM_TOKEN`.** The release workflow verifies npm package availability and read-write package access before extraction, artifact publishing, OCI pushes, or GitHub Release creation; partial release retries can update existing GitHub Release assets before publishing to the explicit npm registry.
+- **Release skill extraction now authenticates GitHub API reads.** The `extract-skills.ts` GitHub API calls use `GITHUB_TOKEN`/`GH_TOKEN` when available, and release CI passes `github.token` to avoid unauthenticated API 403s while fetching `tikoci/routeros-skills`.
 
 ## [0.8.13] — 2026-05-03
 

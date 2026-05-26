@@ -411,7 +411,13 @@ describe("release.yml", () => {
 
   test("extracts agent skills in CI", () => {
     const src = readText(".github/workflows/release.yml");
-    expect(src).toContain("extract-skills.ts");
+    const skillsIdx = mustIndex(src, "Extract agent skills from GitHub");
+    const linkIdx = mustIndex(src, "Link commands to pages");
+    const skillsBlock = src.slice(skillsIdx, linkIdx);
+
+    expect(skillsBlock).toContain("extract-skills.ts");
+    expect(skillsBlock).toContain("GITHUB_TOKEN");
+    expect(skillsBlock).toContain("$" + "{{ github.token }}");
   });
 
   test("runs quality gate before release", () => {
