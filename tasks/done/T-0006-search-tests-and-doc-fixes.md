@@ -19,4 +19,4 @@ created: 2026-05-02
 
 # Body
 
-Back-fill: omnibus polish across the tool surface. `routeros_search_tests` device filter, `routeros_stats` and `routeros_current_versions` workflow arrows, changelog compact summary mode, and `related.glossary` doc drift fixes all complete.
+Back-fill: multiple improvements across the tool surface. `routeros_search_tests` device filter, `routeros_stats` and `routeros_current_versions` workflow arrows, changelog compact summary mode, and `related.glossary` doc drift fixes all complete.

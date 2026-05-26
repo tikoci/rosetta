@@ -6,11 +6,13 @@ priority: medium
 area: qa
 depends_on: []
 conflicts_with:
+  # Merge-coordination conflict: both tasks edit release.yml CI gating semantics in the same area
+  # (this task introduces a new self-supervised step as non-blocking while T-0029 flips blocking behavior).
   - T-0029-flip-contract-eval-blocking
 validation:
   - V-retrieval-self
 acceptance:
-  - "release.yml runs `bun run src/eval/self-supervised.ts` against the freshly built DB"
+  - "release.yml runs `bun run src/eval/self-supervised.ts` against the freshly built full DB (all current versions)"
   - "The result is surfaced in the workflow summary and starts non-blocking on first landing"
   - "VALIDATION.md V-retrieval-self flips from GAP to non-blocking with the exact proving step"
 trigger: ""
