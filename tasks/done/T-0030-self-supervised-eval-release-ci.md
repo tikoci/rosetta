@@ -12,7 +12,7 @@ conflicts_with:
 validation:
   - V-retrieval-self
 acceptance:
-  - "release.yml runs `bun run src/eval/self-supervised.ts` against the freshly built full DB (all 46 versions)"
+  - "release.yml runs `bun run src/eval/self-supervised.ts` against the freshly built full DB (all current versions)"
   - "The result is surfaced in the workflow summary and starts non-blocking on first landing"
   - "VALIDATION.md V-retrieval-self flips from GAP to non-blocking with the exact proving step"
 trigger: ""
