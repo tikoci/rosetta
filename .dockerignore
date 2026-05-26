@@ -16,4 +16,3 @@ tsconfig.json
 node_modules/
 *.test.ts
 ros-html-assessment.json
-ros-toc.json

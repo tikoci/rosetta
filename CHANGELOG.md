@@ -21,6 +21,10 @@ uses [Semantic Versioning](https://semver.org/).
 
 - **Schema-mismatch setup guidance now points MCP users at a fresh bunx resolution.** The refresh message tells users to restart the MCP client or run `bunx @tikoci/rosetta@latest --refresh` when their cached package is older than the published DB.
 
+### Removed
+
+- **Stale `ros-toc.json` PDF-era artifact removed.** The current HTML extraction pipeline is the source of RouterOS page metadata, and no runtime code consumed the empty-title TOC file.
+
 ## [0.9.1] — 2026-05-26
 
 ### Fixed

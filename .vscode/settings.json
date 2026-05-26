@@ -12,7 +12,6 @@
   "search.exclude": {
     "ros-help.db": true,
     "ros-html-assessment.json": true,
-    "ros-toc.json": true,
     "box/": true,
     "bun.lock": true
   },
