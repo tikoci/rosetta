@@ -17,6 +17,10 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Schema-mismatch setup guidance now points MCP users at a fresh bunx resolution.** The refresh message tells users to restart the MCP client or run `bunx @tikoci/rosetta@latest --refresh` when their cached package is older than the published DB.
+
 ## [0.9.1] — 2026-05-26
 
 ### Fixed

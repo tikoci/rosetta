@@ -11,6 +11,7 @@ import { execSync } from "node:child_process";
 import {
   closeSync,
   existsSync,
+  fstatSync,
   openSync,
   readdirSync,
   readSync,
@@ -24,6 +25,7 @@ import { gunzipSync } from "bun";
 import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 declare const REPO_URL: string;
+const REPLACE_DB_TIMEOUT_MS = 30_000;
 
 const GITHUB_REPO =
   typeof REPO_URL !== "undefined" ? REPO_URL : "tikoci/rosetta";
@@ -72,14 +74,12 @@ function dbHasData(dbPath: string): boolean {
 }
 
 function looksLikeSqliteFile(dbPath: string): boolean {
-  if (!existsSync(dbPath)) return false;
-
   let fd: number | null = null;
   try {
-    const stats = statSync(dbPath);
+    fd = openSync(dbPath, "r");
+    const stats = fstatSync(fd);
     if (!stats.isFile() || stats.size < SQLITE_MAGIC.length) return false;
 
-    fd = openSync(dbPath, "r");
     const header = Buffer.alloc(SQLITE_MAGIC.length);
     const bytesRead = readSync(fd, header, 0, header.byteLength, 0);
     return bytesRead === header.byteLength && header.toString("utf8") === SQLITE_MAGIC;
@@ -301,7 +301,7 @@ function isReplaceRaceError(e: unknown): boolean {
 }
 
 async function replaceDbFile(tmpPath: string, dbPath: string): Promise<void> {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + REPLACE_DB_TIMEOUT_MS;
   let lastError: unknown = null;
 
   while (Date.now() <= deadline) {
@@ -310,7 +310,6 @@ async function replaceDbFile(tmpPath: string, dbPath: string): Promise<void> {
       return;
     } catch (e) {
       if (!isReplaceRaceError(e)) throw e;
-      lastError = e;
     }
 
     tryUnlink(dbPath);
@@ -475,8 +474,8 @@ export async function downloadDb(
         cleanupDbArtifacts(tmpPath);
         lastError = new Error(
             `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
-            `This usually means the cached package version is older than the published DB. ` +
-            `Run: bunx @tikoci/rosetta@latest --refresh`,
+            `This usually means your MCP client is still using a cached older package version. ` +
+          `Restart the MCP client to let bunx re-resolve the latest package, or run: bunx @tikoci/rosetta@latest --refresh`,
         );
         if (isLast) throw lastError;
         log(`  ${lastError.message}`);
