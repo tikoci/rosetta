@@ -11,6 +11,7 @@ import { execSync } from "node:child_process";
 import {
   closeSync,
   existsSync,
+  fstatSync,
   openSync,
   readdirSync,
   readSync,
@@ -73,14 +74,12 @@ function dbHasData(dbPath: string): boolean {
 }
 
 function looksLikeSqliteFile(dbPath: string): boolean {
-  if (!existsSync(dbPath)) return false;
-
   let fd: number | null = null;
   try {
-    const stats = statSync(dbPath);
+    fd = openSync(dbPath, "r");
+    const stats = fstatSync(fd);
     if (!stats.isFile() || stats.size < SQLITE_MAGIC.length) return false;
 
-    fd = openSync(dbPath, "r");
     const header = Buffer.alloc(SQLITE_MAGIC.length);
     const bytesRead = readSync(fd, header, 0, header.byteLength, 0);
     return bytesRead === header.byteLength && header.toString("utf8") === SQLITE_MAGIC;
@@ -311,7 +310,6 @@ async function replaceDbFile(tmpPath: string, dbPath: string): Promise<void> {
       return;
     } catch (e) {
       if (!isReplaceRaceError(e)) throw e;
-      lastError = e;
     }
 
     tryUnlink(dbPath);
