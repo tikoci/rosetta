@@ -109,7 +109,7 @@ describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
     });
 
     const transportErrors: Error[] = [];
-    let resolveClosed!: () => void;
+    let resolveClosed: () => void = () => {};
     const closeSeen = new Promise<void>((resolve) => {
       resolveClosed = resolve;
     });
