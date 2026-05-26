@@ -109,10 +109,7 @@ describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
     });
 
     const transportErrors: Error[] = [];
-    let resolveClosed!: () => void;
-    const closeSeen = new Promise<void>((resolve) => {
-      resolveClosed = resolve;
-    });
+    const { promise: closeSeen, resolve: resolveClosed } = Promise.withResolvers<void>();
     let closeCount = 0;
 
     client = new Client({ name: "stdio-test-client", version: "1.0.0" });
