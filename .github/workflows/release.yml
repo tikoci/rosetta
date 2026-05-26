@@ -59,6 +59,51 @@ jobs:
 
       - run: bun install
 
+      - name: Verify npm publish access
+        if: inputs.republish_assets != true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::NPM_TOKEN secret is empty or unavailable to this workflow"
+            exit 1
+          fi
+
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          RELEASE_VERSION="${INPUT_VERSION:-v${PKG_VERSION}}"
+          NPM_VERSION="${RELEASE_VERSION#v}"
+
+          if [ "$NPM_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Release version $RELEASE_VERSION does not match package.json version $PKG_VERSION; npm publish uses package.json."
+            exit 1
+          fi
+
+          if npm view "${PKG_NAME}@${PKG_VERSION}" version --registry https://registry.npmjs.org/ >/dev/null 2>&1; then
+            echo "::error::${PKG_NAME}@${PKG_VERSION} is already published; bump package.json before publishing npm."
+            exit 1
+          fi
+
+          NPM_USER=$(npm whoami --registry https://registry.npmjs.org/)
+          COLLABORATORS=$(npm access list collaborators "$PKG_NAME" --json --registry https://registry.npmjs.org/)
+          NPM_USER="$NPM_USER" PKG_NAME="$PKG_NAME" COLLABORATORS="$COLLABORATORS" node <<'NODE'
+          const user = process.env.NPM_USER;
+          const packageName = process.env.PKG_NAME;
+          const collaborators = JSON.parse(process.env.COLLABORATORS ?? "{}");
+          if (collaborators[user] !== "read-write") {
+            const writers = Object.entries(collaborators)
+              .filter(([, access]) => access === "read-write")
+              .map(([name]) => name)
+              .join(", ") || "(none)";
+            console.error(`::error::NPM_TOKEN authenticates as ${user}, but ${user} does not have read-write access to ${packageName}. Read-write collaborators: ${writers}`);
+            process.exit(1);
+          }
+          NODE
+
+          echo "✓ npm publish access verified for $PKG_NAME@$PKG_VERSION as $NPM_USER"
+
       # ── Fast-fail quality gate ──
       # Run before the ~2-minute extraction pipeline so a typecheck/lint
       # regression that slipped past test.yml fails in ~30s, not ~3min.
@@ -425,6 +470,13 @@ jobs:
             gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
             gh release edit "$VERSION" --notes "$NOTES"
             echo "✓ Release $VERSION updated"
+          elif gh release view "$VERSION" >/dev/null 2>&1; then
+            # A previous run may have created the GitHub Release and then failed
+            # at npm publish. The npm preflight above rejects already-published
+            # package versions, so this retry path is safe to clobber assets.
+            gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh release edit "$VERSION" --notes "$NOTES"
+            echo "✓ Release $VERSION updated before npm publish retry"
           else
             gh release create "$VERSION" dist/*.zip dist/ros-help.db.gz \
               --title "$VERSION" --notes "$NOTES"
@@ -436,7 +488,7 @@ jobs:
       # tags, but trying to re-push npm would always 403. Skip npm in that mode.
       - name: Publish to npm
         if: inputs.republish_assets != true
-        run: npm publish --access public
+        run: npm publish --access public --registry https://registry.npmjs.org/
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

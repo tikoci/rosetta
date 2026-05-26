@@ -436,6 +436,26 @@ describe("release.yml", () => {
     expect(earlyTestIdx).toBeLessThan(downloadIdx);
   });
 
+  test("preflights npm publish access before release side effects", () => {
+    const src = readText(".github/workflows/release.yml");
+    const preflightIdx = mustIndex(src, "Verify npm publish access");
+    const downloadIdx = mustIndex(src, "Download HTML export");
+    const ociIdx = mustIndex(src, "Build and push OCI images");
+    const releaseIdx = mustIndex(src, "Create or update GitHub Release");
+    const publishIdx = mustIndex(src, "Publish to npm");
+    const preflightBlock = src.slice(preflightIdx, downloadIdx);
+
+    expect(preflightIdx).toBeLessThan(downloadIdx);
+    expect(preflightIdx).toBeLessThan(ociIdx);
+    expect(preflightIdx).toBeLessThan(releaseIdx);
+    expect(preflightIdx).toBeLessThan(publishIdx);
+    expect(preflightBlock).toContain("NODE_AUTH_TOKEN");
+    expect(preflightBlock).toContain("npm whoami");
+    expect(preflightBlock).toContain("npm access list collaborators");
+    expect(preflightBlock).toContain("read-write access");
+    expect(preflightBlock).toContain("npm view");
+  });
+
   test("keeps post-extraction DB-wipe guard after extraction", () => {
     const src = readText(".github/workflows/release.yml");
     const linkIdx = mustIndex(src, "Link commands to pages");
@@ -510,6 +530,8 @@ describe("release.yml", () => {
     const clobberIdx = mustIndex(src, "gh release upload");
     expect(src.slice(clobberIdx, clobberIdx + 120)).toContain("--clobber");
     expect(republishBranchIdx).toBeLessThan(clobberIdx);
+    expect(src).toContain('elif gh release view "$VERSION"');
+    expect(src).toContain("updated before npm publish retry");
 
     expect(src).toContain("if: inputs.republish_assets != true");
     expect(src).toContain("if: inputs.republish_assets == true");
@@ -542,7 +564,7 @@ describe("release.yml", () => {
 
   test("publishes to npm", () => {
     const src = readText(".github/workflows/release.yml");
-    expect(src).toContain("npm publish");
+    expect(src).toContain("npm publish --access public --registry https://registry.npmjs.org/");
     expect(src).toContain("NPM_TOKEN");
   });
 
@@ -566,7 +588,7 @@ describe("release.yml", () => {
     const validateIdx = src.indexOf("Validate DB has expected content");
     const buildIdx = src.indexOf("Build release artifacts");
     const releaseIdx = src.indexOf("gh release create");
-    const npmIdx = src.indexOf("npm publish");
+    const npmIdx = src.indexOf("Publish to npm");
     expect(validateIdx).toBeGreaterThan(0);
     expect(validateIdx).toBeLessThan(buildIdx);
     expect(validateIdx).toBeLessThan(releaseIdx);
