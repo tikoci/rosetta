@@ -8,7 +8,7 @@ on:
           For box.mikrotik.com Seafile links, append &dl=1 to get the actual file.
         required: true
         type: string
-        default: 'https://box.mikrotik.com/d/df76f0d495284eb1b6a1/files/?p=%2FConfluence-space-export-112800-380.html.zip&dl=1'
+        default: 'https://box.mikrotik.com/d/df76f0d495284eb1b6a1/files/?p=%2FConfluence-space-export-142553-144.html.zip&dl=1'
       version:
         description: 'Optional release version override (e.g. v0.2.0). Default: v + package.json version.'
         required: false
@@ -18,7 +18,7 @@ on:
         description: 'Export date or presumed RouterOS version for traceability (e.g. 2026-03-25)'
         required: false
         type: string
-        default: '2026-03-25'
+        default: '2026-05-26'
       full_versions:
         description: 'Extract all RouterOS versions (true) or single primary only (false)'
         required: false
