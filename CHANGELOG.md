@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-05-26
+
 ### Fixed
 
 - **Release npm publish now fails fast on missing or unauthorized `NPM_TOKEN`.** The release workflow verifies npm package availability and read-write package access before extraction, artifact publishing, OCI pushes, or GitHub Release creation; partial release retries can update existing GitHub Release assets before publishing to the explicit npm registry.
