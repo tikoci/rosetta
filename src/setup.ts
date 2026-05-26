@@ -24,6 +24,7 @@ import { gunzipSync } from "bun";
 import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 declare const REPO_URL: string;
+const REPLACE_DB_TIMEOUT_MS = 30_000;
 
 const GITHUB_REPO =
   typeof REPO_URL !== "undefined" ? REPO_URL : "tikoci/rosetta";
@@ -301,7 +302,7 @@ function isReplaceRaceError(e: unknown): boolean {
 }
 
 async function replaceDbFile(tmpPath: string, dbPath: string): Promise<void> {
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + REPLACE_DB_TIMEOUT_MS;
   let lastError: unknown = null;
 
   while (Date.now() <= deadline) {
