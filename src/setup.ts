@@ -475,7 +475,7 @@ export async function downloadDb(
         lastError = new Error(
             `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
             `This usually means your MCP client is still using a cached older package version. ` +
-            `Restart the MCP client to let bunx re-resolve the latest package, or run: bunx --bun @tikoci/rosetta@latest --refresh`,
+          `Restart the MCP client to let bunx re-resolve the latest package, or run: bunx @tikoci/rosetta@latest --refresh`,
         );
         if (isLast) throw lastError;
         log(`  ${lastError.message}`);
