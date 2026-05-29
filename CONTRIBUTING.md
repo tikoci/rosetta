@@ -5,7 +5,8 @@ Development guide for building, testing, and releasing.
 ## Prerequisites
 
 - [Bun](https://bun.sh/) v1.1+
-- RouterOS HTML documentation export (Confluence space export) — placed in `box/`
+- RouterOS legacy HTML documentation export (Confluence space export) — placed in `box/`
+- For future documentation refreshes, MikroTik's official manual is now Docusaurus at <https://manual.mikrotik.com>; see `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` before changing extraction, MCP, or TUI behavior.
 - Internet access to [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) for command-tree extraction
 
 ### Optional system dependencies
@@ -25,7 +26,7 @@ cd rosetta
 bun install
 ```
 
-Place the Confluence HTML export in `box/documents-export-<date>/ROS/` and symlink `box/latest` to it:
+Place the legacy Confluence HTML export in `box/documents-export-<date>/ROS/` and symlink `box/latest` to it:
 
 ```sh
 ln -s documents-export-<date> box/latest
@@ -144,7 +145,7 @@ src/
 ├── browse.ts               # Interactive terminal browser (REPL)
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
-├── extract-html.ts         # Confluence HTML → pages + callouts
+├── extract-html.ts         # Legacy Confluence HTML → pages + callouts
 ├── extract-properties.ts   # Property table extraction
 ├── extract-commands.ts     # inspect.json → commands (version-aware)
 ├── extract-all-versions.ts # Batch extract all 46 versions
@@ -187,7 +188,7 @@ make gc-versions           # Release retention: prune schema_node_presence to ac
 
 The database combines multiple sources of MikroTik data:
 
-- **HTML Documentation** — Confluence space export from help.mikrotik.com. Pages are broken into sections, callout boxes, and property tables (~515K words).
+- **HTML Documentation** — legacy Confluence space export from help.mikrotik.com. Pages are broken into sections, callout boxes, and property tables (~515K words). Future official docs are on <https://manual.mikrotik.com> and require the Docusaurus migration path.
 
 - **Command Tree** — `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml), which runs `/console/inspect` against RouterOS CHR under QEMU for every version since 7.9 (46 versions tracked).
 
@@ -203,4 +204,4 @@ The database combines multiple sources of MikroTik data:
 
 - **Agent Skills** — Community-created guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills), fetched by CI and cached under `skills/` for offline extraction.
 
-Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at export time.
+Documentation covers RouterOS **v7 only** and aligns with the long-term release (~7.22) at the March 2026 Confluence-export time.

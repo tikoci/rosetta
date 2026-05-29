@@ -17,6 +17,10 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Docs now flag MikroTik's manual.mikrotik.com migration.** Project docs record that future RouterOS manual updates are Docusaurus-based, not Confluence HTML exports, and outline the extraction/MCP/TUI redesign options.
+
 ### Fixed
 
 - **Schema-mismatch setup guidance now points MCP users at a fresh bunx resolution.** The refresh message tells users to restart the MCP client or run `bunx @tikoci/rosetta@latest --refresh` when their cached package is older than the published DB.

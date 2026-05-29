@@ -29,12 +29,13 @@ Items waiting on a specific external event. Not tracked as tasks because the wai
 | `schema_nodes._package` population | When restraml emits package provenance in deep-inspect output. |
 | MCP Registry publish automation | When CI OIDC auth is configured. Add publish step to `release.yml` and sync `server.json` version from tag. |
 | OCI armv7 support | When Bun armv7 target and MikroTik `/app` armv7 support both exist. |
-| Documentation version tracking | When a second HTML export is available. Add `doc_exports` metadata with date/page counts/text hashes; evaluate Confluence page ID stability. |
+| Legacy documentation version tracking | Only if another archival Confluence export appears. Otherwise, use the Docusaurus manual extraction trigger and B-0012 instead of waiting for a second HTML export. |
 | Copilot context provider via `lsp-routeros-ts` | When LSP integration matures enough to provide doc context via MCP or direct DB queries. |
 | Cross-DB federation with forum archive | When forum archive is stable and a classifier/plugin point is ready. |
 | Local usage analytics | When we need real query-shape data. Keep opt-in (`ROSETTA_LOG_USAGE=1`) and local-only. |
 | Video extraction retry | At each scheduled transcript refresh — re-run consistent-fail videos after 48–72h gaps; add to `known-bad.json` after repeated failures. |
 | LSP consumer artifacts | When `lsp-routeros-ts` is ready for static manifests. Publish path→URL/title and verbs manifests as CI artifacts. |
+| Docusaurus manual extraction | When starting the post-Confluence docs refresh. Read B-0012 first; this likely affects extractor schema, command linking, MCP result shapes, and TUI parity together. |
 
 ---
 
@@ -95,6 +96,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0009 | Future ETL pipeline streamlining | open |
 | B-0010 | MCP behavioral testing phases 3+ | open |
 | B-0011 | Audit the 14-tool MCP surface for consolidation | open |
+| B-0012 | Docusaurus manual migration after Confluence retirement | open |
 
 ## Done index
 

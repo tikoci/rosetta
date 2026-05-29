@@ -15,7 +15,8 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 
 | Source | Location | Format | Coverage |
 |--------|----------|--------|----------|
-| Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export |
+| Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export; no longer expected to receive future updates |
+| Docusaurus manual | <https://manual.mikrotik.com> | HTML pages + sitemap + CLI Reference pages | Future official docs source; extractor not implemented yet |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
 | Product matrix | `matrix/2026-03-25/matrix.csv` | CSV, 34 columns | 144 products, March 2026 |
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
@@ -25,15 +26,29 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
-**Version cadence:** HTML docs are pinned to a specific export (currently March 2026 / 7.22). inspect.json versions update automatically via restraml's CI — new versions appear weekly. The primary `commands` table uses the latest stable from inspect.json, which may be newer than the HTML docs export.
+**Version cadence:** The current prose-doc corpus is pinned to the retired Confluence export (March 2026 / 7.22). Future official doc updates are on the Docusaurus site at <https://manual.mikrotik.com>. inspect.json versions update automatically via restraml's CI — new versions appear weekly. The primary `commands` table uses the latest stable from inspect.json, which may be newer than the legacy prose-doc export.
 
-### HTML archive (primary corpus)
+### Legacy Confluence HTML archive (current primary prose corpus)
 
 - **Export:** Confluence space export, March 2026.
 - **Format:** 317 HTML files plus attachments in `box/latest/ROS/` (symlink → `box/documents-export-2026-3-25`).
 - **Structure:** Consistent Confluence classes (`confluenceTable`, `confluenceTh`, `syntaxhighlighter-pre`).
 - **Property tables:** 605 tables with `"Property | Description"` headers across 147 pages.
 - **Code blocks:** `data-syntaxhighlighter-params="brush: ros"` for RouterOS CLI.
+
+This is now a legacy source. MikroTik moved the public manual from Confluence to Docusaurus at <https://manual.mikrotik.com>, and future HTML exports from the old help system are not expected. The current extractor remains useful for rebuilding historical release DBs, but it is not the path for fresh documentation.
+
+### Docusaurus manual migration (future primary prose corpus)
+
+The new manual site changes rosetta's source model, not just its URL base:
+
+- **Entry point:** <https://manual.mikrotik.com> plus `sitemap.xml` for page discovery.
+- **CLI Reference:** <https://manual.mikrotik.com/docs/CLI%20Reference/> exposes RouterOS command menus, flags, argument names, and types from `/console/inspect`-derived data. Example: `/ip/address` is published at <https://manual.mikrotik.com/docs/CLI%20Reference/system/ip/address>.
+- **No Confluence IDs:** page identity, parent/child relationships, anchors, callouts, and property tables must be derived from Docusaurus paths/headings/content hashes instead of Confluence page IDs and CSS classes.
+- **Potentially better command coverage:** the CLI Reference includes package/menu pages that can complement or cross-check restraml `deep-inspect.json`, but live-router `/console/inspect` and restraml versioned artifacts remain the stronger source for version-specific truth.
+- **Surface impact:** MCP and TUI result shapes are currently page-centric (`pages`, `sections`, `properties`, Confluence URLs). A Docusaurus importer should be designed together with MCP/TUI presentation so agents see official manual pages, CLI Reference entries, and command-tree facts as related result types rather than unrelated corpora.
+
+Directional options are recorded in `briefings/B-0012-docusaurus-manual-migration.md`. The likely path is a hybrid: keep restraml/deep-inspect as the versioned command-tree authority, add a Docusaurus prose/CLI-reference extractor, and rework MCP/TUI search around source-typed results with explicit provenance.
 
 ### Command tree (`inspect.json` / `deep-inspect.json`)
 
@@ -72,9 +87,9 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 
 ## Corpus Snapshot
 
-These figures are the March 2026 snapshot shape that the current docs and release process were built around. Use `routeros_stats` for live counts on a built database.
+These figures are the March 2026 legacy Confluence snapshot shape that the current docs and release process were built around. Use `routeros_stats` for live counts on a built database.
 
-- **Pages:** 317 Confluence pages with breadcrumb paths and help.mikrotik.com URLs.
+- **Pages:** 317 Confluence-export pages with breadcrumb paths and legacy help.mikrotik.com URLs.
 - **Text + code:** ~515K words and ~14K RouterOS code lines.
 - **Callouts / sections / properties:** 1,034 callouts, 2,984 sections, 4,860 properties.
 - **Command tree:** ~40K command entries plus 46 tracked RouterOS versions.
@@ -195,9 +210,9 @@ MikroTik publishes ethernet & IPSec benchmark tables and hardware block diagram 
 
 **Block diagram URLs** are stored on the `devices` row as `block_diagram_url` (CDN PNG URL), not downloaded locally.
 
-### HTML doc versioning is simple
+### Manual-site versioning needs a new design
 
-Don't overengineer until there's a second HTML export to compare against. When that arrives, hash-based page diffing is sufficient. See BACKLOG.md for details.
+The old "wait for a second HTML export" plan is obsolete because the Confluence export stream has ended. Docusaurus pages should use stable URL paths plus content hashes for identity/version metadata. CLI Reference pages need separate provenance because they are generated from `/console/inspect`-derived data and may be updated independently from narrative docs. See `briefings/B-0012-docusaurus-manual-migration.md` before changing extractor schema or MCP/TUI result contracts.
 
 ### Changelogs: parsed entries, not blobs
 
@@ -349,7 +364,7 @@ macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 tes
 
 ### CI release workflow for provenance
 
-Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same extraction pipeline from a remote HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance.
+Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same legacy extraction pipeline from a remote Confluence HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance. The Docusaurus migration will need a different source input, but should preserve this CI-built provenance model.
 
 ### OCI image build: Dockerfile + docker buildx
 
@@ -474,7 +489,7 @@ What was built, in rough order (March 2026):
 5. **MCP server** — `mcp.ts` + `query.ts`. 11 tools with compound term recognition, BM25 ranking, AND→OR fallback.
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).
 7. **Distribution** — Compiled single-file binaries via `bun build --compile`, `--setup` mode for DB download + MCP client config, GitHub Releases for assets.
-8. **CI release workflow** — `release.yml` workflow_dispatch: download HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.
+8. **CI release workflow** — `release.yml` workflow_dispatch: download legacy HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.
 9. **HTTP transport** — Streamable HTTP via `--http` flag for remote/LAN MCP clients (ChatGPT Apps, OpenAI platform). Uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport`. Optional TLS.
 10. **MCP Registry metadata** — `server.json` manifest + CI validation for official registry publication.
 11. **North Star (April 2026)** — Regex classifier (`classify.ts`) + `searchAll()` wrapper. Unified `routeros_search` now returns pages + `related` (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + classifier-informed `next_steps`. Folded `routeros_search_callouts` / `routeros_search_videos` into `related`. MCP tool count 15 → 13.

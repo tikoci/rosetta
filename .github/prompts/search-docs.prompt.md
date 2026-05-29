@@ -11,4 +11,4 @@ Use the rosetta MCP tools to find relevant information:
 3. Use `routeros_command_tree` to explore command hierarchy
 4. Use `routeros_get_page` to read full page content when needed
 
-Summarize findings with relevant URLs to help.mikrotik.com.
+Summarize findings with relevant source URLs. Current rosetta releases may still return legacy help.mikrotik.com URLs from the Confluence export; future official docs live at <https://manual.mikrotik.com>.

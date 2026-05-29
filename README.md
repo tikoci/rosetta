@@ -1,6 +1,6 @@
 # rosetta
 
-MCP server that gives AI assistants searchable access to the complete [MikroTik RouterOS documentation](https://help.mikrotik.com/docs/spaces/ROS/overview) — 317 pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, 518 YouTube video transcripts, and direct links to help.mikrotik.com.
+MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation — 317 legacy Confluence-export pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, 518 YouTube video transcripts, and direct links to source docs. MikroTik's current help system is the Docusaurus site at <https://manual.mikrotik.com>; rosetta's prose-doc extraction still needs a major migration away from the retired Confluence export.
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation. **No AI required** — rosetta includes a [terminal browser](#browse-without-ai) for searching the database directly.
 
@@ -12,7 +12,7 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 
 | Data Source | Coverage |
 |-------------|----------|
-| Documentation pages | 317 pages (~515K words) from help.mikrotik.com |
+| Documentation pages | 317 pages (~515K words) from the retired help.mikrotik.com Confluence export |
 | Property definitions | 4,860 with types, defaults, descriptions |
 | Command tree | 5,114 commands, 551 dirs, 34K arguments |
 | Version history | 46 RouterOS versions tracked (7.9–7.23beta2) |
@@ -21,13 +21,13 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 | YouTube transcripts | 518 videos, ~1,890 chapter-level segments |
 | Callout blocks | 1,034 warnings, notes, and tips |
 
-Documentation covers RouterOS **v7 only**, aligned with the long-term release (~7.22) at export time.
+Documentation covers RouterOS **v7 only**, aligned with the long-term release (~7.22) at the March 2026 Confluence-export time. Future official doc updates are expected on <https://manual.mikrotik.com>, including a Docusaurus CLI Reference generated from `/console/inspect` data.
 
 ---
 
 ## Install on MikroTik (/app)
 
-RouterOS 7.22+ includes the [/app](https://help.mikrotik.com/docs/spaces/ROS/pages/328068) feature for running containers directly on the router. This is the simplest way to deploy rosetta — install once, and any AI assistant on your network can connect to the MCP endpoint URL shown in the router UI.
+RouterOS 7.22+ includes the [/app](https://manual.mikrotik.com/docs/CLI%20Reference/container/app) feature for running containers directly on the router. This is the simplest way to deploy rosetta — install once, and any AI assistant on your network can connect to the MCP endpoint URL shown in the router UI.
 
 **Requirements:** RouterOS 7.22+, x86 or ARM64 architecture (CCR, RB5009, hAP ax series, CHR, etc.), container package installed, device-mode enabled.
 
@@ -49,7 +49,7 @@ After reboot:
 /system/device-mode/update mode=advanced container=yes
 ```
 
-See MikroTik's [Container documentation](https://help.mikrotik.com/docs/spaces/ROS/pages/Container) for full prerequisites and troubleshooting.
+See MikroTik's [Container documentation](https://manual.mikrotik.com/docs/Extended%20features/Container/) for full prerequisites and troubleshooting.
 
 ### 2. Add the rosetta app
 

@@ -1,5 +1,5 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
   "editor.defaultFormatter": "biomejs.biome",
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
@@ -15,7 +15,7 @@
     "box/": true,
     "bun.lock": true
   },
-  "biome.lspBin": "node_modules/@biomejs/biome/bin/biome",
+  "biome.lsp.bin": "node_modules/@biomejs/biome/bin/biome",
   "markdown.validate.ignoredLinks": [
     "../CLAUDE.md",
     "../DESIGN.md",

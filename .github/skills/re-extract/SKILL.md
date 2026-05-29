@@ -1,22 +1,24 @@
 ---
 name: re-extract
-description: "Re-extract RouterOS documentation from HTML export into SQLite. Use when: updating docs from new Confluence export, rebuilding database, running extraction pipeline, refreshing documentation data."
-argument-hint: "Path to new HTML export directory (optional)"
+description: "Re-extract the legacy Confluence RouterOS documentation export into SQLite. Use for rebuilding the current DB pipeline, not for the manual.mikrotik.com Docusaurus migration."
+argument-hint: "Path to legacy HTML export directory (optional)"
 ---
-# Re-extract Documentation Pipeline
+# Re-extract Legacy Documentation Pipeline
 
 ## When to Use
-- A new Confluence HTML export is available
+- A legacy Confluence HTML export is available
 - Database needs rebuilding from scratch
 - Schema changes require fresh extraction
 - New RouterOS versions available in restraml GitHub Pages
+
+Do **not** use this skill as the migration path for <https://manual.mikrotik.com>. MikroTik's new Docusaurus manual and CLI Reference require extractor and MCP/TUI result-shape redesign; read `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` first.
 
 ## Procedure
 
 1. **Verify prerequisites**
    - Bun is installed: `bun --version`
    - Dependencies installed: `bun install`
-   - HTML export exists in `box/documents-export-*/ROS/`
+   - Legacy HTML export exists in `box/documents-export-*/ROS/`
    - For commands: internet access to `https://tikoci.github.io/restraml/` (or provide a local docs path explicitly)
 
 2. **Clean existing database**

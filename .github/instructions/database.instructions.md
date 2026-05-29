@@ -11,10 +11,10 @@ applyTo: "src/db.ts"
 - Singleton pattern: one `Database` instance shared across modules
 
 ## Tables
-- `pages` + `pages_fts` — Confluence HTML pages (breadcrumb path, URL, text, code)
+- `pages` + `pages_fts` — legacy Confluence HTML pages (breadcrumb path, URL, text, code); do not assume this identity model works for the future Docusaurus extractor
 - `callouts` + `callouts_fts` — Note/Warning/Info/Tip callouts (FK → pages)
 - `sections` — page sections split by h1–h3 headings with anchor IDs (FK → pages)
-- `properties` + `properties_fts` — property table rows parsed from confluenceTable (FK → pages)
+- `properties` + `properties_fts` — property table rows parsed from Confluence `confluenceTable` markup (FK → pages)
 - `commands` — command tree entries from inspect.json (FK → pages for linked dirs)
 - `ros_versions` — tracked RouterOS versions with channel metadata
 - `command_versions` — junction: command_path × ros_version (full extracted history)
