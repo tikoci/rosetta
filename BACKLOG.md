@@ -17,6 +17,8 @@ Drop one-line thoughts here. Promote later — to a task if it gains shape, to a
 
 - Keep merging `actions/setup-node`, `actions/upload-artifact`, and Docker action Dependabot bumps before GitHub's forced runtime transitions turn warnings into failures.
 - `src/setup.test.ts` — `probeDb > closes statements so a probed temp DB can be renamed immediately` consistently times out on macOS (~7-8s vs 5000ms timeout); introduced in v0.8.12 Windows-rename fix; passes on CI (Linux). Investigate whether the timeout needs raising or the test needs a macOS skip/guard.
+- Benchmark feedback loop: periodically compare retrieval/explain changes against `~/GitHub/bench-routeros-tools`; promote `route-blackhole`, version-new Wi-Fi `ssid=`, and skill-vs-raw-doc packaging into rosetta fixtures when the benchmark corpus stabilizes.
+- Future `routeros_validate_command`: carry explicit static-vs-runtime provenance and include a bare-flag `blackhole` regression fixture because `/console/inspect` can accept forms that RouterOS runtime rejects.
 - TUI longer wishlist: tab completion, persistent history (`~/.rosetta/browse_history`), export (JSON/CSV/Markdown), audit views, bookmarks. None individually picked up — promote one to a task if a real need surfaces.
 
 ## Triggers
@@ -36,6 +38,7 @@ Items waiting on a specific external event. Not tracked as tasks because the wai
 | Video extraction retry | At each scheduled transcript refresh — re-run consistent-fail videos after 48–72h gaps; add to `known-bad.json` after repeated failures. |
 | LSP consumer artifacts | When `lsp-routeros-ts` is ready for static manifests. Publish path→URL/title and verbs manifests as CI artifacts. |
 | Docusaurus manual extraction | When starting the post-Confluence docs refresh. Read B-0012 first; this likely affects extractor schema, command linking, MCP result shapes, and TUI parity together. |
+| bench-routeros-tools merge | When `agents/grounded-data-collection-agents` and the pending Claude matrix work land, review benchmark reports for stable external-eval fixtures and decide whether to promote a rosetta task. |
 
 ---
 

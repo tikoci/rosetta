@@ -55,6 +55,7 @@ Start with `.github/copilot-instructions.md`, then read the narrow files that ma
 - Need **why** something works this way? Read `DESIGN.md`.
 - Need **how to run, release, or rebuild** it? Read `MANUAL.md`.
 - Need **manual-site migration context**? MikroTik moved future docs to Docusaurus at <https://manual.mikrotik.com>; read `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` before touching extraction, MCP, or TUI search.
+- Need **external agent-benchmark context**? `~/GitHub/bench-routeros-tools` tests rosetta as one grounding approach for live RouterOS command generation; read `DESIGN.md` → "External benchmark feedback loop" before changing retrieval, skills, or command-validation surfaces.
 - Need **current corpus counts**? Use `routeros_stats` rather than hard-coded numbers here.
 - Need **task status or open ideas**? Use `tasks/`, `briefings/`, and `BACKLOG.md`.
 

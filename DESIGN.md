@@ -281,6 +281,19 @@ Validator output should carry explicit provenance such as `validated_against: { 
 
 Rosetta may return commands an operator or runner could execute, but it must not execute router-specific commands or connect to a user's router. Network calls inside rosetta stay limited to documented, read-only public endpoints such as MikroTik's version channel files. Anything that needs router credentials or changes router state belongs in tier 3.
 
+### External benchmark feedback loop
+
+`~/GitHub/bench-routeros-tools` is the local benchmark harness that compares agentic RouterOS approaches. It treats rosetta as one grounding source alongside baseline model knowledge, skill-file context, and live-device checks. Its reports are **pilot evidence**, not rosetta's CI contract, but they are useful regression signals when changing retrieval, skills, `routeros_explain_command`, or future validation surfaces.
+
+Durable lessons from the May 2026 live pilots:
+
+- Retrieved rosetta context helped weaker models across vendors (`gpt-4.1`, Claude Haiku), but context was neutral or harmful for stronger/noisier models. Retrieval should stay task-aware and result-budgeted rather than "dump more context".
+- Raw rosetta snippets beat skill-file framing in the Claude pilot. Keep the skill attribution boundary visible and avoid treating community skills as authoritative command truth.
+- `route-blackhole` exposed a validation-tier gap: `/console/inspect` accepted both `blackhole=yes` and bare `blackhole`, while runtime execution on CHR accepted only the bare flag. Future `routeros_validate_command` output must say what was checked (`schema/static` vs runtime/device) and should not imply execution truth from inspect alone.
+- Model price/tier did not monotonically buy RouterOS command correctness. Benchmark feedback should remain model-agnostic and device-grounded instead of optimizing docs for one current frontier model.
+
+Use benchmark findings to seed fixtures and backlog items, not to weaken rosetta's trust boundary: rosetta remains tier-1 read-only documentation and schema context.
+
 ## Deployment strategy and MCP client diversity
 
 MCP-client diversity is the deployment gate for cross-tikoci RouterOS tooling. Claude Desktop, Claude Code, VS Code Copilot, Copilot CLI, Codex, Cursor, and web clients all use different MCP config conventions. `bunx @tikoci/rosetta` collapses the runtime story, but not the config story; adding a separate validator and runner can multiply that burden.
@@ -308,6 +321,7 @@ Current lean:
 | [tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook) | RouterOS script notebook for VSCode. Potential consumer of this DB for Copilot-assisted scripting. |
 | [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) | Consumer: hover help, property docs, command path → URL mapping. |
 | [tikoci/netinstall](https://github.com/tikoci/netinstall) | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |
+| `~/GitHub/bench-routeros-tools` | Local benchmark harness for structural and live-agent RouterOS command-generation tests. Uses rosetta as a grounding source and quickchr/CHR as device truth for selected cases. |
 
 ### restraml GitHub Pages tools
 
