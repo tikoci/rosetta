@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.2] — 2026-06-18
+
 ### Changed
 
 - **Docs now flag MikroTik's manual.mikrotik.com migration.** Project docs record that future RouterOS manual updates are Docusaurus-based, not Confluence HTML exports, and outline the extraction/MCP/TUI redesign options.
