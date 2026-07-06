@@ -294,6 +294,10 @@ Durable lessons from the May 2026 live pilots:
 
 Use benchmark findings to seed fixtures and backlog items, not to weaken rosetta's trust boundary: rosetta remains tier-1 read-only documentation and schema context.
 
+### Rosetta vs prompt steering and skills
+
+Now that the official manual publishes machine-readable copies (`llms.txt`, per-page `.md` — see B-0012), a plain prompt or SKILL.md can steer any web-capable agent at the docs with zero install. That is not a substitute for rosetta; it is the bottom rung of a ladder (prompt steering → skill → rosetta → centrs) where each rung trades per-query cost and structure for ease of adoption. The bench data keeps this honest: the steering workflow cites real pages reliably but costs ~28K tokens just to fetch the `llms.txt` index and still misses every device-truth trap, while rosetta answers in one call from a ~6.3K always-on surface with version-aware, structured results. Since the vendor gives the prose away, rosetta's moat is **structure + versions + linking**, not "has the docs" — so every result should carry its live `manual.mikrotik.com` `.md` URL (rosetta as the best steering engine, not a steering competitor), the MCP surface should consolidate toward what steering can't replicate, and skills should be treated as *distribution* for rosetta's engine (one-shot CLI mode, T-0032) rather than a rival knowledge store. Full argument and grounding: `briefings/B-0013-steering-skills-rosetta-positioning.md`.
+
 ## Deployment strategy and MCP client diversity
 
 MCP-client diversity is the deployment gate for cross-tikoci RouterOS tooling. Claude Desktop, Claude Code, VS Code Copilot, Copilot CLI, Codex, Cursor, and web clients all use different MCP config conventions. `bunx @tikoci/rosetta` collapses the runtime story, but not the config story; adding a separate validator and runner can multiply that burden.

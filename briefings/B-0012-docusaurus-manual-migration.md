@@ -4,7 +4,7 @@ topic: Docusaurus manual migration after Confluence retirement
 status: open
 related_tasks: []
 created: 2026-05-29
-last_revisited: 2026-06-02
+last_revisited: 2026-07-06
 ---
 
 # Question
@@ -44,6 +44,47 @@ The Option D plan stands, but the input layer is much better than assumed:
 2. **CLI Reference `.md` still needs a JSX-aware parser** (`ArgTable`/`ArgTableRow` props), and it lacks enum values / package / version — so restraml `deep-inspect.json` remains rosetta's versioned command authority; treat manual CLI Reference as official current-manual presentation/cross-link material (Option C/D split unchanged).
 3. **`search-doc.json`** is a structural completeness check, not a primary source (it has already lost table/code structure).
 4. `llms-full.txt` is a cheap whole-corpus diff/completeness signal between extractions.
+
+### Verified 2026-07-06 — site search internals and steering economics
+
+Deeper research into the site's search system (forum thread
+[#270916](https://forum.mikrotik.com/t/steering-ai-to-use-new-manual-mikrotik-com/270916),
+post #20: three coding agents were each prompted to build a standalone CLI search
+tool against the site) plus live measurements:
+
+- **There is no server-side search API.** Search is a client-side lunr index
+  published as `search-doc-{hash}.json` + `lunr-index-{hash}.json`. The hash is
+  only discoverable by scraping it out of the HTML/JS chunks or brute-probing
+  epoch-millisecond timestamps — all three agents needed fallback cascades, and
+  one initially failed on a regex detail (unquoted `src` attributes). This
+  confirms the earlier call: `search-doc.json` is a completeness check, **never**
+  a primary ETL input, and "use the site's own search" is not a stable agent
+  workflow. The stable agent workflow is `llms.txt` → per-page `.md`.
+- **The site's tokenizer splits on slashes** (`lunr.tokenizer.separator =
+  /[\s/]+/`), so `ip/dhcp-server/lease` is treated as three tokens. Worth
+  matching in rosetta's classifier expectations when comparing recall, and worth
+  feeding back to MikroTik alongside the Porter-stemming issue above.
+- **Steering cost per query is high.** Measured 2026-07-06: `llms.txt` is
+  112 KB (~28K tokens) — fetching it as "step 1 of every question" costs about
+  what the 166-tool mikrotik-mcp always-on surface costs, the very thing
+  `bench-routeros-tools` flagged. A CLI Reference page `.md` is small (~1.6 KB)
+  but remains JSX-wrapped with no enum values/package/version. rosetta's whole
+  surface is ~6.3K always-on tokens and one call typically answers
+  (89% hit@5, 100% path reconstruction in the bench).
+
+### What the migration is *for* (reframe)
+
+Because the vendor now gives the prose away in machine form, rosetta's
+differentiation is no longer "has the docs" — it is **structure + versions +
+linking**: the command-version matrix, device/chip/spec pivots, weighted
+callouts, changelogs, and the one-call `related` block. The prose import remains
+worth doing for offline//app deployment, one-call token efficiency, and as the
+substrate those links hang off — but it should be built as a *companion* to the
+live site, not a mirror competing with it. Concretely: **every extracted page and
+CLI-reference row must carry its live `manual.mikrotik.com/….md` URL** so any
+result can be escalated to (or verified against) the current official page. That
+makes rosetta the best *steering engine* rather than a steering competitor. Full
+positioning argument: B-0013.
 
 ### Still-open asks to MikroTik (not yet shipped)
 

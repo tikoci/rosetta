@@ -20,6 +20,8 @@ Drop one-line thoughts here. Promote later — to a task if it gains shape, to a
 - Benchmark feedback loop: periodically compare retrieval/explain changes against `~/GitHub/bench-routeros-tools`; promote `route-blackhole`, version-new Wi-Fi `ssid=`, and skill-vs-raw-doc packaging into rosetta fixtures when the benchmark corpus stabilizes.
 - Future `routeros_validate_command`: carry explicit static-vs-runtime provenance and include a bare-flag `blackhole` regression fixture because `/console/inspect` can accept forms that RouterOS runtime rejects.
 - TUI longer wishlist: tab completion, persistent history (`~/.rosetta/browse_history`), export (JSON/CSV/Markdown), audit views, bookmarks. None individually picked up — promote one to a task if a real need surfaces.
+- Rung-1 steering skill: a skill encoding the `llms.txt → .md → cli-reference` workflow (per B-0013), possibly wrapping T-0032's one-shot CLI. Cross-repo (`routeros-skills` or repo-local per the centrs#150 pattern) — promote once centrs#150's onboarding pilot lands.
+- Switch-chip → device resolution is a common need that resolves poorly today. `devices.cpu` conflates the Marvell switch ASIC with the management CPU, so a chip-ID query only matches the ARM32 CRS3xx boxes where the ASIC *is* the CPU (e.g. `98DX8208`→CRS309, `98DX8216`→CRS317); chips on QCA9531/AL73400/AL52400-managed boxes (`98DX8212`, `98DX8332`, `98DX3255`, `98DX3257`, `98DX4310`, `98DX8525`, `98CX8410`) miss entirely. A real session (resolving an l3hw HW-offloaded-VRF release note listing 9 chips) needed ~6 tool calls because the only authoritative chip→model source is the L3 Hardware Offloading doc table (page 62390319), not a queryable field. Candidate fix is two-sided: an extraction-side `switch_chip` column on devices (distinct from `cpu`; could be seeded from that doc table), plus an MCP-side path so `routeros_device_lookup`/`routeros_search` resolve switch-ASIC IDs to product models directly. Relates to B-0006 (device AKA/alias) and B-0007 (special hardware page extraction); promote to a task if the switch_chip column lands or another chip→device question recurs.
 
 ## Triggers
 
@@ -60,6 +62,7 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 ### `area: install`
 
 - `T-0018-bunx-freshness-check` — bunx freshness check + `ROSETTA_OFFLINE`
+- `T-0032-one-shot-cli-query` — One-shot CLI query mode (`--json`) so a SKILL.md can drive rosetta without MCP config
 
 ### `area: extraction`
 
@@ -100,6 +103,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0010 | MCP behavioral testing phases 3+ | open |
 | B-0011 | Audit the 14-tool MCP surface for consolidation | open |
 | B-0012 | Docusaurus manual migration after Confluence retirement | open |
+| B-0013 | Steering / skills / rosetta / centrs positioning ladder | open |
 
 ## Done index
 
