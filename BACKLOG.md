@@ -39,7 +39,9 @@ Items waiting on a specific external event. Not tracked as tasks because the wai
 | Local usage analytics | When we need real query-shape data. Keep opt-in (`ROSETTA_LOG_USAGE=1`) and local-only. |
 | Video extraction retry | At each scheduled transcript refresh — re-run consistent-fail videos after 48–72h gaps; add to `known-bad.json` after repeated failures. |
 | LSP consumer artifacts | When `lsp-routeros-ts` is ready for static manifests. Publish path→URL/title and verbs manifests as CI artifacts. |
-| Docusaurus manual extraction | When starting the post-Confluence docs refresh. Read B-0012 first; this likely affects extractor schema, command linking, MCP result shapes, and TUI parity together. |
+| Docusaurus manual extraction | When starting the post-Confluence docs refresh. Gated twice: T-0033 (B-0012 homework H1–H8) must be resolved, **and** the final-Confluence NPM release below must have shipped. Read B-0012 first; this likely affects extractor schema, command linking, MCP result shapes, and TUI parity together. |
+| Final help.mikrotik.com NPM release | Before any Docusaurus-migration code lands: cut one last release so the final Confluence-corpus DB stays durably installable. Research (T-0033) may run before this; extractor tasks may not. |
+| Manual doc-changes watcher | After Docusaurus extraction lands: CI polls `manual.mikrotik.com/changelog/rss.xml` (verified live 2026-07-07) and opens an issue/PR when the manual changed, making re-extraction event-driven instead of scheduled. |
 | bench-routeros-tools merge | When `agents/grounded-data-collection-agents` and the pending Claude matrix work land, review benchmark reports for stable external-eval fixtures and decide whether to promote a rosetta task. |
 
 ---
@@ -84,6 +86,8 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 - `T-0027-tui-pattern-search` — TUI vi-style `/pattern` search
 
 ### `area: docs`
+
+- `T-0033-docusaurus-premigration-grounding` — Resolve B-0012 homework H1–H8 before cutting migration extractor tasks
 
 ## Briefings index
 
