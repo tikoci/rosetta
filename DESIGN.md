@@ -18,10 +18,10 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export; no longer expected to receive future updates |
 | Docusaurus manual | <https://manual.mikrotik.com> | HTML pages + sitemap + CLI Reference pages | Future official docs source; extractor not implemented yet |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
-| Product matrix | `matrix/2026-03-25/matrix.csv` | CSV, 34 columns | 144 products, March 2026 |
+| Product matrix | `matrix/2026-07-07/matrix.csv` | CSV, 34 columns | 156 products, July 2026 |
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
-| YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 518 videos, ~1,890 chapter-level segments |
+| YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 538 videos, ~1,870 non-empty transcript segments |
 | Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 8 skills, ~30K words (community content) |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
@@ -64,8 +64,8 @@ Directional options are recorded in `briefings/B-0012-docusaurus-manual-migratio
 ### Product matrix CSV
 
 - **Source:** Manual browser export from <https://mikrotik.com/products/matrix>.
-- **Format:** UTF-8 BOM CSV, 34 columns, 144 products in the current snapshot.
-- **Location:** `matrix/2026-03-25/matrix.csv`; snapshots are date-stamped and committed.
+- **Format:** UTF-8 BOM CSV, 34 columns, 156 products in the current snapshot.
+- **Location:** `matrix/2026-07-07/matrix.csv`; snapshots are date-stamped and committed.
 - **Download path:** Use the site's export/download control, choose **All**, and save to `matrix/<ISODATE>/matrix.csv`.
 - **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
 - **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.
@@ -73,7 +73,7 @@ Directional options are recorded in `briefings/B-0012-docusaurus-manual-migratio
 ### Product test results and block diagrams
 
 - **Source:** Individual product pages at `https://mikrotik.com/product/<slug>`, parsed server-side with linkedom.
-- **Coverage:** 125 of 144 devices have benchmark tables; 110 expose block diagram URLs.
+- **Coverage:** 125 of 156 devices have benchmark tables; 110 expose block diagram URLs.
 - **Benchmarks:** Ethernet bridging/routing at 64/512/1518-byte packets and IPSec throughput at 64/512/1400-byte packets with multiple cipher/config combinations.
 - **URL slugs:** Slug discovery is the fragile part. The extractor tries several generated variants per product, including product-code forms, `plus` substitutions, and Unicode superscript normalization.
 - **Storage shape:** Benchmarks live in normalized `device_test_results` rows, not JSON blobs, so cross-device filtering/sorting stays SQL-native.
@@ -94,8 +94,8 @@ These figures are the March 2026 legacy Confluence snapshot shape that the curre
 - **Callouts / sections / properties:** 1,034 callouts, 2,984 sections, 4,860 properties.
 - **Command tree:** ~40K command entries plus 46 tracked RouterOS versions.
 - **Linking coverage:** About 92% of command dirs link to a documentation page.
-- **Hardware corpus:** 144 devices and 2,874 benchmark rows.
-- **Supplemental corpora:** Parsed changelogs, archived Dude pages, and 8 community skill guides.
+- **Hardware corpus:** 156 devices and 2,874 benchmark rows.
+- **Supplemental corpora:** Parsed changelogs, 538 YouTube video records, archived Dude pages, and 8 community skill guides.
 
 ## Key Decisions
 
@@ -146,7 +146,7 @@ Pages, callouts, and properties use FTS5 with `porter unicode61` for natural lan
 
 **Why no Porter for devices:** Product names/codes are model numbers (RB1100AHx4, CCR2216-1G-12XS-2XQ, C53UiG+5HPaxD2HPaxD), not natural language. Porter stemming is unpredictable on alphanumeric identifiers — it could mangle "RB1100AHx4" in ways that break matching. Plain `unicode61` gives case-folding and Unicode normalization without destructive stemming.
 
-**Why LIKE fallback:** FTS5 does whole-token matching, so searching "RB1100" won't find token "RB1100AHx4". FTS5 prefix queries (`RB1100*`) handle the case where the search term is a prefix of a token, but LIKE handles arbitrary substrings. For 144 devices this is instant — no index overhead concerns. The search cascade is: exact match → LIKE substring → FTS prefix → FTS OR fallback → structured filters only.
+**Why LIKE fallback:** FTS5 does whole-token matching, so searching "RB1100" won't find token "RB1100AHx4". FTS5 prefix queries (`RB1100*`) handle the case where the search term is a prefix of a token, but LIKE handles arbitrary substrings. For 156 devices this is instant — no index overhead concerns. The search cascade is: exact match → LIKE substring → FTS prefix → FTS OR fallback → structured filters only.
 
 ### MCP resources complement tools, they do not replace them
 

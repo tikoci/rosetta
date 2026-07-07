@@ -20,10 +20,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Subprocess } from "bun";
 import { SCHEMA_VERSION } from "./paths.ts";
+import { MIN_COMMANDS, MIN_PAGES } from "./setup.ts";
 
 // ── Helpers ──
 
-const BASE_PORT = 19700 + Math.floor(Math.random() * 800);
+const BASE_PORT = 30000 + Math.floor(Math.random() * 20000);
 let portCounter = 0;
 
 function nextPort(): number {
@@ -94,20 +95,33 @@ function createFixtureDb(dbPath: string): void {
     ros_version TEXT
   );`);
 
-  fixture.run(`INSERT INTO pages (
+  // Keep this fixture at setup.ts's minimum health threshold so the server
+  // startup path stays fully offline even before the current package version has
+  // a published release DB.
+  const insertPage = fixture.prepare(`INSERT INTO pages (
     id, slug, title, path, depth, parent_id, url, text, code, code_lang,
     author, last_updated, word_count, code_lines, html_file
-  ) VALUES (
-    1, 'fixture', 'Fixture Page', 'RouterOS > Fixture', 1, NULL,
-    'https://help.mikrotik.com/docs/spaces/ROS/pages/1/Fixture',
-    'fixture text', '', NULL, 'test', NULL, 2, 0, 'fixture.html'
-  );`);
+  ) VALUES (?, ?, ?, ?, 1, NULL, ?, 'fixture text', '', NULL, 'test', NULL, 2, 0, ?);`);
+  for (let i = 1; i <= MIN_PAGES; i++) {
+    insertPage.run(
+      i,
+      `fixture-${i}`,
+      `Fixture Page ${i}`,
+      `RouterOS > Fixture ${i}`,
+      `https://help.mikrotik.com/docs/spaces/ROS/pages/${i}/Fixture`,
+      `fixture-${i}.html`,
+    );
+  }
+  insertPage.finalize();
 
-  fixture.run(`INSERT INTO commands (
+  const insertCommand = fixture.prepare(`INSERT INTO commands (
     id, path, name, type, parent_path, page_id, description, ros_version
-  ) VALUES (
-    1, '/system', 'system', 'dir', NULL, 1, 'fixture command', '7.22'
-  );`);
+  ) VALUES (?, ?, ?, 'dir', NULL, 1, 'fixture command', '7.22');`);
+  insertCommand.run(1, "/system", "system");
+  for (let i = 2; i <= MIN_COMMANDS; i++) {
+    insertCommand.run(i, `/fixture/cmd-${i}`, `cmd-${i}`);
+  }
+  insertCommand.finalize();
 
   // Stamp the current schema version so mcp.ts doesn't try to auto-download
   // a "real" DB. Importing SCHEMA_VERSION here keeps the fixture in sync with
@@ -119,7 +133,22 @@ function createFixtureDb(dbPath: string): void {
 }
 
 async function startServer(dbPath: string): Promise<ServerHandle> {
-  const port = nextPort();
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    try {
+      return await startServerOnPort(dbPath, nextPort());
+    } catch (e) {
+      lastError = e;
+      const message = e instanceof Error ? e.message : String(e);
+      if (!message.includes("Server failed to start") || !message.includes("port")) {
+        throw e;
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
+async function startServerOnPort(dbPath: string, port: number): Promise<ServerHandle> {
   const proc = Bun.spawn(["bun", "run", "src/mcp.ts", "--http", "--port", String(port)], {
     cwd: `${import.meta.dirname}/..`,
     stdout: "pipe",

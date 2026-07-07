@@ -17,6 +17,12 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **YouTube transcript cache refreshed for the final Confluence-corpus release.** The committed transcript cache now covers 538 MikroTik channel videos through June 19, 2026, and remains the source release CI imports via `extract-videos-from-cache`.
+- **Product matrix snapshot refreshed for the final Confluence-corpus release.** The default device extractor now consumes the July 7, 2026 browser-exported matrix snapshot with 156 products.
+- **Release docs now identify local-only source refreshes.** `MANUAL.md` distinguishes cache inputs that CI consumes from live sources CI already refreshes, including the product-matrix browser export caveat.
+
 ## [0.9.2] — 2026-06-18
 
 ### Changed

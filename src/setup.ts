@@ -34,8 +34,8 @@ const RELEASE_VERSION = resolveVersion(import.meta.dirname);
 /** Minimum byte counts for a healthy DB. Validation thresholds — keep loose so
  *  shrinking the dataset doesn't break startup, but tight enough to catch a
  *  redirect-to-login HTML page or a partial transfer. */
-const MIN_PAGES = 100;
-const MIN_COMMANDS = 1000;
+export const MIN_PAGES = 100;
+export const MIN_COMMANDS = 1000;
 const MIN_DECOMPRESSED_BYTES = 50 * 1024 * 1024; // 50 MB
 const SQLITE_MAGIC = "SQLite format 3\0";
 const DOWNLOAD_LOCK_WAIT_MS = 90_000;

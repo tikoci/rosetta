@@ -1,6 +1,6 @@
 # rosetta
 
-MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation — 317 legacy Confluence-export pages, 4,860 properties, 40,000-entry command tree, hardware specs for 144 products, 518 YouTube video transcripts, and direct links to source docs. MikroTik's current help system is the Docusaurus site at <https://manual.mikrotik.com>; rosetta's prose-doc extraction still needs a major migration away from the retired Confluence export.
+MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation — 317 legacy Confluence-export pages, 4,860 properties, 40,000-entry command tree, hardware specs for 156 products, 538 YouTube video transcripts, and direct links to source docs. MikroTik's current help system is the Docusaurus site at <https://manual.mikrotik.com>; rosetta's prose-doc extraction still needs a major migration away from the retired Confluence export.
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation. **No AI required** — rosetta includes a [terminal browser](#browse-without-ai) for searching the database directly.
 
@@ -16,9 +16,9 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 | Property definitions | 4,860 with types, defaults, descriptions |
 | Command tree | 5,114 commands, 551 dirs, 34K arguments |
 | Version history | 46 RouterOS versions tracked (7.9–7.23beta2) |
-| Hardware products | 144 devices — specs, pricing, block diagrams |
+| Hardware products | 156 devices — specs, pricing, block diagrams |
 | Performance benchmarks | 2,874 tests across 125 devices (ethernet + IPSec) |
-| YouTube transcripts | 518 videos, ~1,890 chapter-level segments |
+| YouTube transcripts | 538 videos, ~1,870 transcript segments |
 | Callout blocks | 1,034 warnings, notes, and tips |
 
 Documentation covers RouterOS **v7 only**, aligned with the long-term release (~7.22) at the March 2026 Confluence-export time. Future official doc updates are expected on <https://manual.mikrotik.com>, including a Docusaurus CLI Reference generated from `/console/inspect` data.
