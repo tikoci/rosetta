@@ -333,6 +333,126 @@ columns):
   new discovery needed for the existing RSS/delta-capture plan.
 - `/blog` is the default blog instance (`blogTitle:"Product news"`), already fully described.
 
+#### H7 — Identity / rosetta-id design (broadened landscape audit, 2026-07-07)
+
+Prompted by an explicit request to consider "rosetta ids" across the whole MCP tool surface
+before deciding H7's `/docs` slug scheme, not just prose pages — since whatever shape is chosen
+should sit predictably alongside how rosetta already identifies other entity types (videos,
+devices, commands), and always return a URL.
+
+**Current ID/URL pattern across the MCP surface, verified 2026-07-07 against `src/db.ts` +
+`src/query.ts`:**
+
+| Entity | Surfaced identifier(s) | URL always returned? | Provenance |
+|---|---|---|---|
+| `pages` | `id` (INTEGER, literal Confluence content ID) | Yes — reconstructed `.../pages/{id}/{title-slug}` | Confluence's numeric page ID, parsed from the exported HTML filename |
+| `sections` | anchored under a page, no separate id exposed | Yes — `{page.url}#{anchor_id}` | heading text at extraction time |
+| `commands` / `schema_nodes` | `path` (TEXT, e.g. `/ip/address`) | **No** — no url column exists | RouterOS's own command-tree path (`inspect.json`/`deep-inspect.json`) |
+| `devices` | `id` (INTEGER AUTOINCREMENT, synthetic) + `product_url` | mostly, nullable | product-matrix CSV row order (id) / mikrotik.com product slug (`product_url`) |
+| `videos` | `video_id` (TEXT UNIQUE, YouTube's own ID) | Yes | YouTube's stable external ID — never rosetta-derived |
+| `changelogs` | `id` (INTEGER AUTOINCREMENT, synthetic) | **No** — though per-date changelog pages are individually addressable live (verified: `manual.mikrotik.com/changelog/changelog-YYYY-MM-DD` present in the current sitemap) | synthetic |
+| `dude_pages` | `slug` (TEXT UNIQUE) | Yes (+ `wayback_url`) | derived from the archived wiki page path |
+| `skills` | `name` (TEXT UNIQUE) | `source_url` | GitHub repo path |
+
+Two findings fall out of this table directly:
+
+1. **Option 2 (a separate natural-key column alongside a synthetic integer PK) is not a new
+   pattern here — it's already how `videos` and `dude_pages` work.** `videos.id` is an opaque
+   AUTOINCREMENT FK target; `videos.video_id` is the externally-meaningful, citable identifier
+   actually exposed by queries. `dude_pages` goes further and exposes the natural `slug` directly
+   while keeping a synthetic `id` only for FKs (`dude_images.page_id`). H7 Option 2 for `pages`
+   would extend an established convention, not invent one — a stronger argument than the
+   schema-ripple argument alone (2026-07-07 afternoon).
+2. **URL coverage is inconsistent today, and the migration is a natural point to close the gap,
+   not widen it.** `commands`/`schema_nodes` have never had a `url` — CLI Reference wasn't an
+   addressable page under Confluence. Docusaurus's CLI Reference *does* have real per-command URLs
+   (`/docs/cli-reference/...`, verified live, H3). Whatever `rosetta_id`/URL mechanics land for
+   `/docs` pages (T-0035) should be designed so `schema_nodes` can grow a `url` column the same
+   way later (proposed task #2), not as a one-off. Changelogs have live per-date URLs unused
+   today too — flagged as a related, lower-priority gap, out of scope for T-0034/T-0035.
+
+**Confluence's numeric-ID + auto-redirect precedent (verified against `src/extract-html.ts:329-353`):**
+today's `pages.id` is literally Confluence's content ID, parsed from the exported filename, and
+the reconstructed URL is `https://help.mikrotik.com/docs/spaces/ROS/pages/{id}/{title-slug}`.
+This works even when the title-slug segment is stale because Confluence's own routing treats the
+numeric ID as canonical and redirects any `/pages/{id}/*` request to the page's current
+title-slug — the "latest page" mapping recalled in this session is a real, built-in Confluence
+mechanism, not a rosetta one. **Docusaurus/manual.mikrotik.com has no equivalent numeric
+backing** — the URL path *is* the identifier, with no separate durable ID a slug could go stale
+against. Stated precisely for the first time: the real asymmetry isn't "Confluence IDs vs.
+Docusaurus IDs," it's "Confluence has a redirect-backed durable ID and Docusaurus, as far as
+verified, does not."
+
+**Whether Docusaurus provides its own redirect safety net — checked, inconclusive:** grepped the
+live site's minified `main.js` bundle (2026-07-07 scratch probe) for `client-redirects` /
+`plugin-client-redirects` (the standard Docusaurus plugin for this) — no match. **Qualify as
+verified-but-incomplete:** this rules out that specific plugin, but not server- or CDN-level
+redirect rules invisible to a JS-bundle grep. No historical crawl exists to observe an actual
+page-rename event, so whether old manual.mikrotik.com URLs survive a rename is **unverified
+either way** — exactly the drift the existing `BACKLOG.md` "Manual doc-changes watcher" trigger
+(RSS-polling, post-extraction) would start catching once running; until then rosetta has no way
+to detect it.
+
+**Corroborating slug-instability evidence beyond simple renames (verified 2026-07-07, sitemap
+grep):** a handful of live URLs carry short hash-like suffixes Docusaurus appends to disambiguate
+colliding auto-slugs, e.g. `/docs/cli-reference/routing/nexthop-fe0` alongside
+`/docs/cli-reference/routing/nexthop`, and
+`/docs/user-guides/.../bgp/nexthop-selection-7eb` alongside `.../nexthop-selection`. Slugs aren't
+just at risk from MikroTik renaming a page — **adding an unrelated new page with a colliding
+title could silently reassign an existing page's suffix**, changing its slug without anyone
+touching that page directly. The earlier zero-collision finding (2026-07-07, full 1,322-URL
+sitemap) still holds, but this shows *why* — Docusaurus is already resolving collisions upstream
+— which is a mechanism rosetta's own slug derivation shouldn't assume away long-term, regardless
+of which H7 option is chosen.
+
+**Hypothetical versioning corner (explicitly speculative — MikroTik does not version
+manual.mikrotik.com today; verified 2026-06-02 and reconfirmed 2026-07-07 via sitemap: no
+`/docs/<version>/` segment anywhere on the live site):** researched how Docusaurus versioning
+*would* manifest if it were added later. Per Docusaurus's own versioning docs
+([docusaurus.io/docs/versioning](https://docusaurus.io/docs/versioning), fetched 2026-07-07): a
+versioned site stores snapshots under `versioned_docs/version-<v>/`; by default the *unreleased*
+docs move to `/docs/next/*` while the *latest released* version keeps the unprefixed `/docs/*`
+path (both configurable). Concretely: if MikroTik versioned tomorrow, today's URLs would likely
+remain valid unprefixed paths under "latest," but a new `/docs/next/...` tree would appear
+alongside them, and older releases would live under `/docs/<version>/...`. **Recommendation, not
+a decision:** the slug-derivation function T-0034 writes should parse-and-discard an optional
+leading `/docs/next/` or `/docs/<semver>/` segment rather than assuming it can never exist — cheap
+to build in now, expensive to retrofit into already-minted IDs later. This is guidance for the
+function's shape, not a reason to build real version handling now — there is nothing to version
+against yet.
+
+**Whether `docusaurus-plugin-llms` would emit per-version `llms.txt` output under versioning —
+searched, genuinely uncertain:** found no documentation confirming or ruling this out
+(2026-07-07 web search). H1/H2 already found the plugin's `docsDir` option is unscoped to a
+single docs-plugin instance (why `/hardware` is excluded from `llms.txt` today); a plausible
+guess is it would only process the "current"/default docs instance under versioning too — but
+this is **inference from an adjacent finding, not verified**, not worth chasing further until
+MikroTik actually versions.
+
+**Decided 2026-07-07 — Option 2 confirmed.** `T-0034`'s prototype
+(`src/spike-docusaurus-rosetta-id.ts` + `src/spike-docusaurus-docs-prototype.ts`) validated the
+shape end-to-end against 20 real `/docs` pages: 317 properties parsed (9 correctly flagged
+malformed-emphasis, generalizing H4's single dhcp.md example), 58 admonitions, and 56 relative
+Markdown links resolved to rosetta-ids with zero malformed results. `rosetta_id` values are
+lowercased, trailing-slash-stripped URL paths (e.g. `docs/ip/address`), with an optional
+`/docs/next/` or `/docs/<semver>/` prefix parsed-and-discarded per the versioning-corner research
+above.
+
+**A real bug the prototype caught, not just argued about:** the first cut of `deriveRosettaId()`
+didn't strip a `.md`/`.mdx` suffix, so a page's own id and a relative link resolving to that same
+page's Markdown-source sibling (`./dhcp.md#dhcp-server`) minted two different rosetta-ids for one
+logical page — confirmed via the `dhcp` page's own self-referencing links before the fix. Fixed
+by stripping a trailing `.md`/`.mdx` before returning; re-verified against both the full-sitemap
+collision check (still 0/1,322) and the prototype (links now resolve to exactly the target page's
+own id). This is the concrete justification for why H7 was resolved with a prototype instead of
+in the abstract — this exact failure mode would have silently fragmented every internal-link join
+in a production extractor.
+
+`T-0035` (the real `/docs` extractor) must carry forward: the `.md`-stripping fix, the
+version-prefix-tolerant parsing, and the malformed-emphasis detection heuristic (odd `**` count or
+a `***`-or-longer run) proven against 9 real occurrences across the sample, not just dhcp.md's
+`check-gateway`.
+
 #### H8 — CI cross-check design (concrete proposal)
 
 Building on this briefing's existing lean, concrete `V-*` rows to add to `VALIDATION.md` once
@@ -502,9 +622,10 @@ Research assignments that must resolve before extractor tasks are cut. Each prod
 - **H6 — Non-`/docs` sections plan.** ✅ **Resolved 2026-07-07** — see H6 above; `/hardware` is a
   real docs-plugin instance with two viable extraction paths (HTML parser or
   `search-doc.json` text fallback).
-- **H7 — Identity / rosetta-id design.** ⚠️ **Partly resolved 2026-07-07** — schema-ripple
-  analysis done (see the open question below), but the specific naming scheme is a values-based
-  decision posed to the user rather than guessed.
+- **H7 — Identity / rosetta-id design.** ✅ **Resolved 2026-07-07** — schema-ripple analysis, a
+  full MCP-surface ID/URL audit, and a live 20-page prototype (`T-0034`, now `done`) all done; see
+  "H7" above. **Option 2 confirmed**: separate `rosetta_id TEXT UNIQUE` column, URL-derived path
+  slug, `.md`/`.mdx`-suffix-stripped, version-prefix-tolerant.
 - **H8 — CI cross-check design.** ✅ **Resolved 2026-07-07** — concrete `V-*` row proposals, see
   H8 above.
 
@@ -512,49 +633,81 @@ Research assignments that must resolve before extractor tasks are cut. Each prod
 
 - ~~Does MikroTik publish the Docusaurus source content or a stable generated metadata artifact, or is rendered HTML/sitemap the only reliable public input?~~ **Answered 2026-06-02:** per-page `.md`/`.mdx`, `llms.txt`, `llms-full.txt`, and `sitemap.xml` are all published. No JSON manifest yet, but discovery is solved. **2026-07-07:** machine-readable layer covers `/docs` only — see surface inventory.
 - ~~Are CLI Reference pages versioned anywhere, or are they always "current"?~~ **Answered 2026-06-02:** still a single `"current"` tag; no per-version manual copies yet.
-- **Page/source identity (H7).** Existing `pages.id` values are Confluence IDs; Docusaurus pages are path-based. Observed: agents cling to whatever ID rosetta returns and quote it in prose ("confirmed from rosetta#91931"), so the ID *will* leak into human-facing text regardless. Lean: a cross-source **rosetta-id indirection table** (id → source kind, source path/URL, extraction provenance) covering every surfaced row type, giving one dereference point and a remap seam if MikroTik ever ships versioned pages. Design caution: prefer **derivable/verifiable IDs** (e.g. source-path slugs like `docs/ip/address` or prefixed slugs) over opaque numerics — agents fabricate plausible-looking numbers, and an opaque scheme makes fabricated citations indistinguishable from real ones, while a slug is self-checking against the URL it derives from. Whether `sitemap.xml` permalinks alone suffice is part of H7.
-
-  **Schema grounding added 2026-07-07 (H7 partly resolved, one decision remains — asked of the
-  user rather than guessed):** `src/db.ts` declares `pages.id INTEGER PRIMARY KEY`, and every FK
-  pointing at it (`properties.page_id`, `commands.page_id`, `schema_nodes.page_id`,
-  `pages.parent_id` self-ref) is `INTEGER`. Making the derivable slug *be* `pages.id` itself (the
-  lean as originally written) is therefore not conceptual-only — it's a concrete DDL change
-  rippling through four-plus columns and every join in `query.ts`/`mcp.ts` that assumes an
-  integer page id. By contrast, `devices.id` is already `INTEGER PRIMARY KEY AUTOINCREMENT` — a
-  synthetic, rosetta-native key unrelated to any external source — so devices need no identity
-  migration at all. That contrast suggests a refinement:
-  - **Option 1 (the lean as written):** `pages.id`/FKs become the TEXT slug directly (e.g.
-    `"docs/ip/address"`). Pro: one column, no indirection. Con: the FK/DDL ripple above, and the
-    "rosetta-id" becomes identical to a raw URL path rather than a rosetta-owned identifier — if
-    MikroTik ever restructures URLs, every FK needs rewriting, not just a lookup-table update.
-  - **Option 2 (refinement):** keep `id` columns opaque autoincrement integers everywhere (as
-    `devices` already does — zero schema disruption, joins stay cheap), and add a separate
-    indexed `rosetta_id TEXT UNIQUE` column that MCP/TUI surface instead of the raw integer.
-    Still satisfies the original goal (a self-checking, URL-derivable citation instead of a
-    fabricable opaque number) without an FK-type migration, and gives a clean remap seam
-    (rewrite the `rosetta_id` value; integer joins untouched) — generalizes uniformly across
-    `pages`, the CLI Reference overlay, a future `/hardware` page table, and `changelogs`.
-
-  Either option still needs the actual prefix/naming convention decided (e.g. does a prose page
-  get `docs/ip/address` or `page:docs/ip/address`; does a CLI Reference row reuse
-  `schema_nodes.path` or get its own `cli/...` form). **This is a values-based decision, not a
-  researchable one — see the question posed to the user in the T-0033 session that produced this
-  section rather than a guess recorded here.**
+- **Page/source identity (H7).** See "H7 — Identity / rosetta-id design" above for the full
+  schema-ripple analysis, the broadened MCP-surface ID/URL audit, the Confluence
+  redirect-precedent finding, and the hypothetical-versioning research. Summary: Option 1
+  (`pages.id`/FKs become the TEXT slug directly) vs. Option 2 (keep integer PKs, add a separate
+  indexed `rosetta_id TEXT UNIQUE` column — already precedented by `videos.video_id` and
+  `dude_pages.slug`). The actual prefix/naming convention (e.g. `docs/ip/address` vs.
+  `page:docs/ip/address`) is a values-based decision — `T-0034` resolves it empirically rather
+  than guessing here.
 - **CLI Reference argument data: promote into `schema_nodes` or separate layer?** Lean: separate version-less overlay (Option D sketch). Versioned deep-inspect stays richer where they overlap because it has version provenance and the CLI Reference's build version is unknown — even now that enum values are published, there is no version to file them under. The sharper questions are (a) surfacing the CLI Reference **URL** on command results, and (b) capturing manual-only facts like `Conditions: !smips` / `Syscap: lcd` that inspect never sees. Answer belongs to H3.
 - **What CI changes catch a broken Docusaurus import (H8)?** Scoped cross-checks can be exact (fail on any mismatch) because `/docs` has three independent inventories (sitemap subset, `llms.txt`, `search-doc.json`) to reconcile against extracted pages. Deeper parse-quality checks (long pages, CLI Reference tables, `/hardware` tables) need content-shape fixtures, not just counts. `/changelog` review may also carry clues about what changed when counts drift.
 - **How should old help.mikrotik.com URLs be retained?** Lean: rosetta returns **manual.mikrotik.com URLs** (plus the rosetta-id) on all results going forward; legacy Confluence URLs/IDs are kept only as historical provenance columns for the final Confluence-corpus release — no redirect machinery in rosetta. (A legacy→new link map is only worth building if H4/H5 show consumers actually hold old URLs.)
 
+## Next steps (sequencing decision, 2026-07-07)
+
+The final help.mikrotik.com-corpus NPM release has already shipped — the sequencing gate is
+cleared. No new rosetta release ships until something solid on the Docusaurus migration lands;
+that's a deliberate choice, not a stalled step.
+
+Three candidate next moves were on the table: more B-0012 research/cleanup, lock down H7 (the
+rosetta-id scheme) before writing any code, or start on main `/docs` prose extraction and defer
+CLI Reference/`/hardware`. Decision: **do a small, real, scoped spike that resolves H7
+empirically instead of in the abstract, then follow immediately with a narrowly-scoped
+`/docs`-only extractor** — staged as exactly two tasks (`T-0034`, `T-0035` below), not a task
+per H-item.
+
+- **Why not more B-0012 research first:** H1–H6 and H8 are resolved with live-verified facts.
+  Further digging without a concrete extraction target risks diminishing-returns research
+  (documenting things nobody will hit yet). A light B-0012 housekeeping pass — consolidating the
+  now-large "Verified 2026-XX-XX" log into a cleaner current-state summary — is worth doing, but
+  *after* the next code pass surfaces what actually mattered, not before.
+- **Why not lock H7 in the abstract:** already tried on 2026-07-07 — the user correctly declined
+  to commit without something concrete to validate against. Bonus grounding done the same day
+  instead: **the naive URL-path slug scheme (sitemap path, lowercased, trailing slash stripped)
+  has zero collisions across all 1,322 live sitemap URLs** (`/docs` + `/hardware` +
+  `/changelog` + `/blog` combined), no unexpected characters, max length 97. This significantly
+  de-risks either H7 option — collision risk, the sharpest fear behind "lock it down," is
+  empirically not a problem. What's still un-derisked is the *mechanics*: how slugs interact
+  with relative-link resolution inside descriptions (H4), and how a real extractor mints and
+  stores them. That's what `T-0034` answers.
+- **Why `/docs`-only, not CLI Reference or `/hardware`, for the first real extractor:** `/docs`
+  prose is the one piece all of H1–H8 agrees is both well-understood (H1, H4) and self-contained.
+  CLI Reference needs a JSX-aware parser and an overlay-merge design against
+  `schema_nodes`/restraml (H3), and the identity side of that isn't fully safe until restraml
+  responds to [tikoci/restraml#85](https://github.com/tikoci/restraml/issues/85). `/hardware`
+  still has an open, undecided choice between an HTML parser and the `search-doc.json` fallback
+  (H2/H6). Pulling either in now risks exactly the "code that has to be refactored because we
+  didn't do enough homework" outcome this whole T-0033 pass was meant to prevent.
+
+**Staged as two tasks:**
+
+- [`T-0034`](../tasks/T-0034-rosetta-id-scheme-spike.md) — rosetta-id scheme spike: slug
+  derivation + a minimal end-to-end prototype against ~15-20 representative `/docs` pages, built
+  against the Option-2 shape (separate `rosetta_id` column, existing integer PKs untouched)
+  because it's reversible and lower-risk to build against without foreclosing Option 1 later.
+  Closes by recording a real decision back into this briefing's H7 section — H7 does not stay
+  open a second time.
+- [`T-0035`](../tasks/T-0035-docusaurus-docs-prose-extractor.md) (blocked on `T-0034`) — the real
+  `/docs`-only Docusaurus prose extractor, explicitly deferring CLI Reference and `/hardware`.
+
+CLI Reference, `/hardware`, and the MCP/TUI source-typed-results rework stay as the *proposed,
+not yet created* items #2, #3, #6 below — revisit once `T-0035` lands and restraml has responded
+to #85.
+
 ## Proposed migration task files (T-0033 closeout)
 
-Not yet created as real `tasks/T-*.md` files — proposed here per T-0033's acceptance criteria,
-to be cut once H7's naming-scheme decision lands and, for #5, once the restraml cross-repo
-contract is actually agreed (not just proposed). Rosetta's own convention treats a task file as
-a commitment, not a maybe, so these stay proposals until then. Each cites the B-0012 section(s)
-it depends on:
+Item #1 below is now staged as real tasks (`T-0034` + `T-0035`, see "Next steps" above). Items
+#2–#4 and #6 are **not yet created** as real `tasks/T-*.md` files — proposed here per T-0033's
+acceptance criteria, to be cut once `T-0035` lands. Item #5 is filed as a GitHub issue, not a
+rosetta task, since the code change (if any) lives in restraml. Rosetta's own convention treats
+a task file as a commitment, not a maybe, so items #2–#4/#6 stay proposals until then. Each
+cites the B-0012 section(s) it depends on:
 
-1. **Docusaurus prose extractor** — new `extract-docusaurus.ts` fetching `.md` pages via
-   `sitemap.xml`/`llms.txt`, replacing `extract-html.ts` for `/docs` prose. Depends on: H1 (site
-   internals), H4 (property-table parsing), H7 (identity scheme, once the naming decision lands).
+1. ~~**Docusaurus prose extractor**~~ — **staged as `T-0034` (identity spike) + `T-0035`
+   (extractor)**, see "Next steps" above. Depends on: H1 (site internals), H4 (property-table
+   parsing), H7 (identity scheme — resolved by `T-0034`, not left abstract).
 2. **CLI Reference overlay extractor** — populates a version-less overlay table (or
    `schema_nodes._package`/new columns) keyed by command path, per Option D's overlay sketch.
    Depends on: H3 (full census — `Package`/`Conditions`/`Syscap`/enum findings), H7.

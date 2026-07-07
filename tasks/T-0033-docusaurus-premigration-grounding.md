@@ -45,10 +45,17 @@ H1, H2, H3, H4, H6, H8 are resolved — each has a dated section in B-0012
 proposed cross-repo contract with restraml, filed as
 [tikoci/restraml#85](https://github.com/tikoci/restraml/issues/85) — still
 needs restraml-side agreement before it's a real contract. H7 has the
-schema-ripple analysis done; the user chose (2026-07-07) to leave both
-identity-scheme options recorded in B-0012 rather than commit now — decide
-when the extractor task is actually cut. The proposed extractor/MCP task
-list (this task's closing acceptance criterion) is written up in B-0012
-under "Proposed migration task files" — not yet cut as real `T-*.md` files,
-pending the H7 decision and restraml's response to #85. Status stays
-`ready` (not closed) until those two items land.
+schema-ripple analysis plus a full MCP-surface ID/URL audit done (see
+B-0012 "H7" section); the user chose (2026-07-07) to leave the naming
+scheme/Option 1 vs. 2 call to `T-0034`'s empirical prototype rather than
+commit in the abstract. The proposed extractor/MCP task list is written up
+in B-0012 under "Proposed migration task files"; item #1 is already staged
+as real tasks (`T-0034`, `T-0035`).
+
+**Deliberately not closed yet (2026-07-07):** this task's closing
+acceptance criterion — proposing/finalizing the concrete extractor/MCP
+task files, plus a consolidation pass over B-0012's now-large "Verified
+2026-07-07" log — is deferred until after `T-0034` (and likely `T-0035`)
+land, so closeout reflects what a real spike/extractor pass actually
+needed rather than what looked complete in the abstract. Revisit this task
+after `T-0034` reaches `done`.
