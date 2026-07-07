@@ -23,7 +23,7 @@ function normalizeSuperscripts(s: string): string {
   return s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]/g, (c) => DIGIT_SUPER_SUB[c] ?? c);
 }
 
-const DEFAULT_CSV = "matrix/2026-03-25/matrix.csv";
+const DEFAULT_CSV = "matrix/2026-07-07/matrix.csv";
 const csvPath = process.argv[2] || DEFAULT_CSV;
 
 /** Parse a CSV line respecting quoted fields. */
