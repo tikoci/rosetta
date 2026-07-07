@@ -20,6 +20,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Subprocess } from "bun";
 import { SCHEMA_VERSION } from "./paths.ts";
+import { MIN_COMMANDS, MIN_PAGES } from "./setup.ts";
 
 // ── Helpers ──
 
@@ -94,14 +95,14 @@ function createFixtureDb(dbPath: string): void {
     ros_version TEXT
   );`);
 
-  // Keep this fixture above setup.ts's minimum health threshold so the server
+  // Keep this fixture at setup.ts's minimum health threshold so the server
   // startup path stays fully offline even before the current package version has
   // a published release DB.
   const insertPage = fixture.prepare(`INSERT INTO pages (
     id, slug, title, path, depth, parent_id, url, text, code, code_lang,
     author, last_updated, word_count, code_lines, html_file
   ) VALUES (?, ?, ?, ?, 1, NULL, ?, 'fixture text', '', NULL, 'test', NULL, 2, 0, ?);`);
-  for (let i = 1; i <= 100; i++) {
+  for (let i = 1; i <= MIN_PAGES; i++) {
     insertPage.run(
       i,
       `fixture-${i}`,
@@ -117,7 +118,7 @@ function createFixtureDb(dbPath: string): void {
     id, path, name, type, parent_path, page_id, description, ros_version
   ) VALUES (?, ?, ?, 'dir', NULL, 1, 'fixture command', '7.22');`);
   insertCommand.run(1, "/system", "system");
-  for (let i = 2; i <= 1000; i++) {
+  for (let i = 2; i <= MIN_COMMANDS; i++) {
     insertCommand.run(i, `/fixture/cmd-${i}`, `cmd-${i}`);
   }
   insertCommand.finalize();
@@ -139,7 +140,7 @@ async function startServer(dbPath: string): Promise<ServerHandle> {
     } catch (e) {
       lastError = e;
       const message = e instanceof Error ? e.message : String(e);
-      if (!message.includes("Failed to start server") || !message.includes("port")) {
+      if (!message.includes("Server failed to start") || !message.includes("port")) {
         throw e;
       }
     }

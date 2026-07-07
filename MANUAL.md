@@ -151,7 +151,7 @@ Before cutting a corpus release, check these inputs separately from CI:
 
 | Source | CI behavior | Local action when freshness matters |
 | --- | --- | --- |
-| YouTube transcripts | Imports the latest committed `transcripts/YYYY-MM-DD/videos.ndjson` cache. | Run `make extract-videos` or `bun run src/extract-videos.ts --save-cache`, then commit the new cache. |
+| YouTube transcripts | Imports the latest committed `transcripts/YYYY-MM-DD/videos.ndjson` cache. | Run `make extract-videos` for the live scrape, then `make save-videos-cache` (or `bun run src/extract-videos.ts --save-cache`) to write the committed cache. |
 | Product matrix | Parses the committed matrix CSV path used by `src/extract-devices.ts`. | Export **All** from <https://mikrotik.com/products/matrix>, save `matrix/YYYY-MM-DD/matrix.csv`, and update the extractor default if the release should consume it. |
 | Dude wiki | Imports committed `dude/pages/` HTML with `--skip-images`. | Rerun `make extract-dude` only when intentionally curating archived Wayback snapshots. It is not a routine current-source refresh. |
 | Changelog patch probing | Runs the normal live changelog extractor. | `make extract-changelogs-extended` is exploratory unless the release workflow is changed to use it. |
