@@ -15,5 +15,6 @@ Use one canonical home for each kind of information:
 - **Project orientation and routing map** → `CLAUDE.md`
 - **User-visible shipped behavior** → `CHANGELOG.md`
 - **Load-bearing invariant and proof** → `VALIDATION.md`
+- **Agent-specific entrypoint shim** → `AGENTS.md` or `.github/copilot-instructions.md`, pointing back to `CLAUDE.md`
 
 Other files should point at the canonical home, not restate it.

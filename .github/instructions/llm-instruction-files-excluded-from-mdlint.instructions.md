@@ -1,6 +1,6 @@
 ---
 description: "LLM-targeted instruction files are excluded from markdownlint so authoring rules for human docs do not distort agent-facing guidance."
-applyTo: ".markdownlint.yaml, .markdownlintignore, CLAUDE.md, .github/copilot-instructions.md, .github/instructions/**"
+applyTo: ".markdownlint.yaml, .markdownlintignore, CLAUDE.md, AGENTS.md, .github/copilot-instructions.md, .github/instructions/**"
 ---
 # Exclude LLM instruction files from markdownlint
 

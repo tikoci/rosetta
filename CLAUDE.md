@@ -9,6 +9,7 @@ Each file has one job. Prefer the canonical home instead of inventing a new top-
 | File / dir | Canonical role |
 |------------|----------------|
 | `CLAUDE.md` | Project orientation + routing index for agents |
+| `AGENTS.md` | Short Codex-specific routing note |
 | `DESIGN.md` | Durable rationale, data-source provenance, architecture tradeoffs |
 | `MANUAL.md` | Install, operations, release/re-extraction steps, schema reference |
 | `README.md` | User-facing quick start |
@@ -20,6 +21,8 @@ Each file has one job. Prefer the canonical home instead of inventing a new top-
 | `briefings/B-*.md` | Research notes and decision support |
 | `.github/copilot-instructions.md` | Short Copilot-specific routing note |
 | `.github/instructions/*.instructions.md` | Narrow normative rules matched by `applyTo` |
+| `.github/prompts/*.prompt.md` | Repo-local Copilot prompt workflows |
+| `.github/skills/*/SKILL.md` | Repo-local Copilot skill workflows |
 
 ## Where does this go?
 
@@ -38,7 +41,7 @@ Avoid JIRA-style ticket sprawl: a task file is a real commitment, not a maybe.
 
 ## Instruction Routing
 
-Start with `.github/copilot-instructions.md`, then read the narrow files that match the surface you are touching.
+Agent-specific entrypoints are thin shims: Claude starts here, Codex starts with `AGENTS.md`, and Copilot starts with `.github/copilot-instructions.md`. Then read the narrow files that match the surface you are touching.
 
 | Area | Read these files |
 |------|------------------|

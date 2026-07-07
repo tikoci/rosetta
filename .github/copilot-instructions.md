@@ -11,6 +11,7 @@ GitHub Copilot reads this file plus matching `.github/instructions/*.instruction
 ## Routing map
 
 - `CLAUDE.md` — project orientation and "where does this go?" index.
+- `AGENTS.md` — Codex-specific routing note.
 - `DESIGN.md` — durable rationale, data-source provenance, architecture tradeoffs.
 - `MANUAL.md` — install, release/re-extraction operations, CLI/HTTP reference, schema.
 - `tasks/README.md` / `briefings/README.md` — directory-local workflow rules.
