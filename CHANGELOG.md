@@ -17,6 +17,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.3] — 2026-07-07
+
 ### Changed
 
 - **YouTube transcript cache refreshed for the final Confluence-corpus release.** The committed transcript cache now covers 538 MikroTik channel videos through June 19, 2026, and remains the source release CI imports via `extract-videos-from-cache`.
