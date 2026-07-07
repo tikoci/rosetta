@@ -37,3 +37,18 @@ depend on what H1–H5 find).
 release must be published **before** any migration code lands, so the last
 Confluence-based DB stays durably installable. This research task may run
 before that gate; extractor tasks may not. See BACKLOG.md Triggers.
+
+## 2026-07-07 progress
+
+H1, H2, H3, H4, H6, H8 are resolved — each has a dated section in B-0012
+("Verified 2026-07-07 (afternoon)"). H5 has a grounded write-up and a
+proposed cross-repo contract with restraml, filed as
+[tikoci/restraml#85](https://github.com/tikoci/restraml/issues/85) — still
+needs restraml-side agreement before it's a real contract. H7 has the
+schema-ripple analysis done; the user chose (2026-07-07) to leave both
+identity-scheme options recorded in B-0012 rather than commit now — decide
+when the extractor task is actually cut. The proposed extractor/MCP task
+list (this task's closing acceptance criterion) is written up in B-0012
+under "Proposed migration task files" — not yet cut as real `T-*.md` files,
+pending the H7 decision and restraml's response to #85. Status stays
+`ready` (not closed) until those two items land.
