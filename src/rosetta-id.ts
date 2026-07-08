@@ -92,14 +92,33 @@ export function checkCollisions(urls: string[]): CollisionReport {
   };
 }
 
-/** Extract <loc> entries from a sitemap.xml document. */
+/** Decode the five predefined XML entities. `&amp;` is decoded last so already-decoded `&` isn't re-processed. */
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** Extract <loc> entries from a sitemap.xml document, decoding XML entities in each URL. */
 export function parseSitemapLocs(xml: string): string[] {
-  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => decodeXmlEntities(m[1]));
 }
 
 /** Fetch and parse the live manual.mikrotik.com sitemap, or read a local file if `source` is given. */
 export async function loadSitemapUrls(source?: string): Promise<string[]> {
-  const xml = source ? await Bun.file(source).text() : await (await fetch(SITEMAP_URL)).text();
+  let xml: string;
+  if (source) {
+    xml = await Bun.file(source).text();
+  } else {
+    const res = await fetch(SITEMAP_URL);
+    // Fail loud on a non-2xx: an HTML error page has no <loc> matches, which would
+    // otherwise masquerade as "0 pages in scope" and be diagnosed as a filter bug.
+    if (!res.ok) throw new Error(`Failed to fetch sitemap ${SITEMAP_URL}: HTTP ${res.status} ${res.statusText}`);
+    xml = await res.text();
+  }
   return parseSitemapLocs(xml);
 }
 
@@ -123,5 +142,8 @@ if (import.meta.main) {
       }
       process.exitCode = 1;
     }
-  })();
+  })().catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  });
 }

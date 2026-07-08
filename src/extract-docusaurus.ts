@@ -24,7 +24,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 import { db, initDb } from "./db.ts";
 import { deriveRosettaId, loadSitemapUrls, rosettaIdToUrl } from "./rosetta-id.ts";
 
@@ -61,6 +61,11 @@ export function isInScopeDocsUrl(urlOrPath: string): boolean {
     path = urlOrPath;
   }
   if (!path.startsWith("/docs/")) return false;
+  // Strip an optional Docusaurus version prefix (/docs/next/… or /docs/<semver>/…)
+  // before the exclusion checks so versioned CLI-reference/tag pages are excluded the
+  // same as unversioned ones — mirrors deriveRosettaId()'s version handling.
+  // manual.mikrotik.com is unversioned today, but B-0012 H7 treats this as cheap now.
+  path = path.replace(/^\/docs\/(?:next|v?\d+(?:\.\d+)*(?:-[a-z0-9.]+)?)\//, "/docs/");
   if (path.startsWith("/docs/cli-reference/")) return false;
   // The tag-index root ("/docs/tags", no trailing slash, no real .md content —
   // confirmed live 2026-07-07: 404s) and individual tag pages both excluded.
@@ -395,7 +400,17 @@ export function parsePage(md: string, pageUrl: string): ParsedPage {
 // ── Fetching / caching ──
 
 function cachePathFor(rosettaId: string): string {
-  return join(CACHE_DIR, `${rosettaId}.md`);
+  const target = join(CACHE_DIR, `${rosettaId}.md`);
+  // Defense-in-depth: rosettaId derives from network-fetched sitemap <loc> URLs, so a
+  // malformed/hostile path must never let a cache write escape CACHE_DIR (CodeQL:
+  // "Network data written to file"). URL normalization already collapses `..`, but
+  // validate the resolved target stays contained rather than trusting that.
+  const root = resolve(CACHE_DIR);
+  const full = resolve(target);
+  if (full !== root && !full.startsWith(root + sep)) {
+    throw new Error(`rosetta-id ${JSON.stringify(rosettaId)} resolves outside cache dir ${CACHE_DIR}`);
+  }
+  return target;
 }
 
 /**
@@ -508,6 +523,15 @@ async function main() {
 
   console.log(`Fetched/read: ${parsedPages.length}, errors: ${fetchErrors}`);
 
+  // Guard BEFORE the destructive rebuild below: if every fetch failed (network/sitemap
+  // outage) or the cache was empty, bail without wiping an existing, good DB. Deleting
+  // first and then discovering there's nothing to insert leaves downstream consumers an
+  // empty DB (Copilot/CodeRabbit review, PR #13).
+  if (parsedPages.length === 0) {
+    console.error(`\n::error::extract-docusaurus: 0 pages extracted. Check sitemap/network/cache-dir.`);
+    process.exit(1);
+  }
+
   // Idempotent rebuild — this extractor owns pages/sections/properties/callouts
   // for the Docusaurus era the same way extract-html.ts owned them for Confluence;
   // the two are not meant to populate the same DB together (MANUAL.md).
@@ -548,7 +572,7 @@ async function main() {
   const insertAll = db.transaction(() => {
     for (const page of parsedPages) {
       const cacheRelPath = cachePathFor(page.rosettaId).slice(PROJECT_ROOT.length + 1);
-      insertPage.run(
+      const result = insertPage.run(
         page.rosettaId,
         page.slug,
         page.title,
@@ -562,7 +586,7 @@ async function main() {
         page.codeLines,
         cacheRelPath,
       );
-      const pageId = (db.prepare("SELECT id FROM pages WHERE rosetta_id = ?").get(page.rosettaId) as { id: number }).id;
+      const pageId = Number(result.lastInsertRowid);
 
       for (const s of page.sections) {
         insertSection.run(pageId, s.heading, s.level, s.anchorId, s.text, s.code, s.wordCount, s.sortOrder);
@@ -587,11 +611,6 @@ async function main() {
   console.log(`  Sections:   ${totalSections}`);
   console.log(`  Properties: ${totalProperties} (${malformedProperties} malformed-emphasis)`);
   console.log(`  Callouts:   ${totalCallouts}`);
-
-  if (parsedPages.length === 0) {
-    console.error(`\n::error::extract-docusaurus: 0 pages extracted. Check sitemap/network/cache-dir.`);
-    process.exit(1);
-  }
 
   if (CHECK_COUNTS) {
     const ok = await checkCounts(parsedPages.length);
