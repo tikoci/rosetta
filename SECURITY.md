@@ -29,6 +29,12 @@ The repository's [Security tab](https://github.com/tikoci/rosetta/security) is t
 
 The `src/extract-*.ts` modules (HTML/JSON parsers fed by legacy Confluence exports, MikroTik download server pages, and Wayback Machine snapshots) are dev-time ETL — they download and parse external content but do not run in the distributed MCP server. Both ETL and runtime code are scanned the same way; the distinction matters only when judging whether a finding affects shipped artifacts.
 
+### Dismissed findings
+
+Dismissals are recorded here so the reasoning outlives the GitHub UI audit log.
+
+- **`js/http-to-file-access` ("Network data written to file") in `src/extract-docusaurus.ts`** — dismissed as *won't fix (by design)*. The Docusaurus extractor's purpose is to fetch Markdown from the first-party `manual.mikrotik.com` docs site and cache it to a local `manual/` directory (dev-time ETL, not shipped in the runtime package). Writing fetched content to disk is intentional. The cache path — derived from network-sourced `sitemap.xml` `<loc>` URLs — is containment-guarded in `cachePathFor()`: the resolved target must stay within `CACHE_DIR` or the run throws, so a malformed or hostile path cannot escape the cache directory. CodeQL does not recognize the hand-rolled containment check as a sanitizer, so the alert is dismissed rather than code-suppressed.
+
 ## Supported versions
 
 | Version | Supported |

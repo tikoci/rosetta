@@ -17,17 +17,24 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.10.0] — 2026-07-08
+### Added
 
-## [0.10.0] — 2026-07-07
+- **New Docusaurus `/docs` prose extractor (`extract-docusaurus.ts`) replaces `extract-html.ts` as the default prose source.** Discovers pages via `sitemap.xml`, fetches raw Markdown from manual.mikrotik.com, and populates `pages`/`sections`/`properties`/`callouts` — 360 in-scope `/docs` pages as of 2026-07-07 (CLI Reference and `/hardware` remain out of scope, tracked as follow-up work). `make extract`/`make extract-full` now run it by default; the legacy Confluence pipeline survives as `make extract-legacy-confluence` for rebuilding historical release DBs.
+- **New `pages.rosetta_id` column** (schema v6) gives Docusaurus-sourced pages a stable, URL-derived identifier alongside the existing integer `id` — see `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` "H7 — Identity / rosetta-id design".
 
 ### Changed
 
-- **v0.10.x will be last release(s) based on Confluence HTML doc extraction.** v0.11.x and beyond will use new manual.mikrotik.com as source for MikroTik documentation pages. 
+- **Relative Markdown links inside property descriptions now resolve to live `manual.mikrotik.com` URLs** instead of being left as broken relative paths once extracted out of their source page.
+
+## [0.10.0] — 2026-07-08
+
+### Changed
+
+- **v0.10.x will be last release(s) based on Confluence HTML doc extraction.** v0.11.x and beyond will use new manual.mikrotik.com as source for MikroTik documentation pages.
 
 ### Fixed
 
-- **Only changelog and version bump.** Promote to a even-number release. Otherwise, identical to 0.9.3.
+- **Only changelog and version bump.** Promote to an even-number release. Otherwise, identical to 0.9.3.
 
 ## [0.9.3] — 2026-07-07
 

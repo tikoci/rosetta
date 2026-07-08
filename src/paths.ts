@@ -89,8 +89,11 @@ export function detectMode(srcDir: string): InvocationMode {
  * Bump history:
  *   v5 — added `db_meta` key/value table for release-tag provenance and
  *        atomic-download / version-pinned-URL update flow (2026-04-21).
+ *   v6 — added `pages.rosetta_id` (TEXT, unique-when-not-null) for
+ *        Docusaurus-sourced pages extracted by extract-docusaurus.ts; legacy
+ *        Confluence-sourced rows keep NULL (2026-07-07, T-0035).
  */
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 /**
  * Resolve the version string.

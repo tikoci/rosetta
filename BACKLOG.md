@@ -128,3 +128,5 @@ Greppable history of merged work. See `tasks/done/T-*.md` for full back-fill of 
 - T-0029 Promoted contract test + Phase 0 retrieval eval to blocking in release CI
 - T-0030 Self-supervised retrieval eval wired into release CI
 - T-0031 Split `CLAUDE.md` into narrow instruction files and relocated canonical docs to `MANUAL.md` / `DESIGN.md`
+- T-0034 rosetta-id scheme spike — confirmed H7 Option 2 against a live 20-page `/docs` prototype
+- T-0035 Docusaurus `/docs` prose extractor — replaced `extract-html.ts` as the default prose source; 360/360 pages live-verified against `llms.txt`
