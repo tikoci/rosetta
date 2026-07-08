@@ -108,6 +108,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0011 | Audit the 14-tool MCP surface for consolidation | open |
 | B-0012 | Docusaurus manual migration after Confluence retirement | open |
 | B-0013 | Steering / skills / rosetta / centrs positioning ladder | open |
+| B-0014 | CI is release-workflow-locked, not PR/main-gated — QA cleanup plan | open |
 
 ## Done index
 
