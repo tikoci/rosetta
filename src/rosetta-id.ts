@@ -113,7 +113,9 @@ export async function loadSitemapUrls(source?: string): Promise<string[]> {
   if (source) {
     xml = await Bun.file(source).text();
   } else {
-    const res = await fetch(SITEMAP_URL);
+    // 10s timeout matches the per-page/llms.txt fetches in extract-docusaurus.ts so a
+    // hung connection can't stall the whole extractor indefinitely.
+    const res = await fetch(SITEMAP_URL, { signal: AbortSignal.timeout(10_000) });
     // Fail loud on a non-2xx: an HTML error page has no <loc> matches, which would
     // otherwise masquerade as "0 pages in scope" and be diagnosed as a filter bug.
     if (!res.ok) throw new Error(`Failed to fetch sitemap ${SITEMAP_URL}: HTTP ${res.status} ${res.statusText}`);

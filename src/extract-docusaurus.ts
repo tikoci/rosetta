@@ -459,7 +459,12 @@ export function parseLlmsTxtInScopeCount(llmsTxt: string): number {
 
 async function checkCounts(extractedCount: number): Promise<boolean> {
   try {
-    const llmsTxt = await (await fetch(LLMS_TXT_URL, { signal: AbortSignal.timeout(10_000) })).text();
+    const res = await fetch(LLMS_TXT_URL, { signal: AbortSignal.timeout(10_000) });
+    // Don't parse an error page as if it were llms.txt — a non-2xx here would yield a
+    // bogus expected count (misleading mismatch, or a false match). Route it into the
+    // catch below so the cross-check is reported as skipped rather than wrong.
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${LLMS_TXT_URL}`);
+    const llmsTxt = await res.text();
     const expected = parseLlmsTxtInScopeCount(llmsTxt);
     const ok = expected === extractedCount;
     console.log(`\nCount cross-check (V-docusaurus-docs-count, non-blocking): llms.txt in-scope=${expected}, extracted=${extractedCount} — ${ok ? "MATCH" : "MISMATCH"}`);
@@ -535,6 +540,15 @@ async function main() {
   // Idempotent rebuild — this extractor owns pages/sections/properties/callouts
   // for the Docusaurus era the same way extract-html.ts owned them for Confluence;
   // the two are not meant to populate the same DB together (MANUAL.md).
+  //
+  // Unlike extract-html.ts (which preserves stable explicit page ids via INSERT OR
+  // REPLACE), this extractor re-mints pages.id as fresh rowids each run, so any existing
+  // commands.page_id / schema_nodes.page_id would dangle or point at unrelated new rows
+  // after the wipe. NULL those links first so a STANDALONE run stays internally
+  // consistent; the pipeline's `link` step (link-commands.ts) and extract-schema
+  // re-establish them afterward. Both columns are nullable, so this is safe with FKs on.
+  db.run("UPDATE commands SET page_id = NULL;");
+  db.run("UPDATE schema_nodes SET page_id = NULL;");
   db.run("DELETE FROM sections;");
   db.run("DELETE FROM callouts;");
   db.run("INSERT INTO callouts_fts(callouts_fts) VALUES('rebuild');");
