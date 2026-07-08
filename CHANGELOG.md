@@ -25,6 +25,7 @@ uses [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - **Relative Markdown links inside property descriptions now resolve to live `manual.mikrotik.com` URLs** instead of being left as broken relative paths once extracted out of their source page.
+- **`release.yml` CI now builds the DB from the live Docusaurus extractor, not the legacy Confluence HTML export.** The `html_url` workflow input is gone; a new `extract-docusaurus.ts --check-counts --strict` step proves the docs-count invariant on every release run instead of only in manual/local runs. Rebuilding a historical pre-migration DB remains possible via the local-only `make extract-legacy-confluence` target — it is no longer reachable from CI.
 
 ## [0.10.0] — 2026-07-08
 

@@ -406,28 +406,30 @@ describe("release.yml", () => {
 
   test("has required inputs", () => {
     const src = readText(".github/workflows/release.yml");
-    expect(src).toContain("html_url:");
+    expect(src).not.toContain("html_url:");
     expect(src).toContain("version:");
     expect(src).toContain("republish_assets:");
     expect(src).not.toContain("inputs.force");
   });
 
-  test("tolerates Confluence zip with absolute path root entry", () => {
-    const src = readText(".github/workflows/release.yml");
-    // Confluence exports include a bare "/" entry → unzip exits 2
-    expect(src).toMatch(/unzip.*\|\|.*\$\?.*-eq.*2/);
-  });
-
   test("runs extraction pipeline", () => {
     const src = readText(".github/workflows/release.yml");
-    expect(src).toContain("extract-html.ts");
-    expect(src).toContain("extract-properties.ts");
+    expect(src).toContain("extract-docusaurus.ts");
     expect(src).toContain("extract-commands.ts");
     expect(src).toContain("extract-devices.ts");
     expect(src).toContain("extract-test-results.ts");
     expect(src).toContain("extract-changelogs.ts");
     expect(src).toContain("extract-skills.ts");
     expect(src).toContain("link-commands.ts");
+  });
+
+  test("Docusaurus extraction step proves the docs-count invariant, not just a manual/local run", () => {
+    const src = readText(".github/workflows/release.yml");
+    const extractIdx = mustIndex(src, "Extract Docusaurus pages, properties, callouts");
+    const commandTreeIdx = mustIndex(src, "Extract command tree");
+    const extractBlock = src.slice(extractIdx, commandTreeIdx);
+
+    expect(extractBlock).toContain("extract-docusaurus.ts --check-counts --strict");
   });
 
   test("imports Dude wiki from cache", () => {
@@ -454,30 +456,30 @@ describe("release.yml", () => {
     expect(src).toContain("bun run lint");
   });
 
-  test("runs early quality gate before downloading HTML export", () => {
+  test("runs early quality gate before Docusaurus extraction", () => {
     const src = readText(".github/workflows/release.yml");
     const installIdx = mustIndex(src, "bun install");
     const typecheckIdx = mustIndex(src, "Type check (fast-fail)");
     const lintIdx = mustIndex(src, "Lint (fast-fail)");
     const earlyTestIdx = mustIndex(src, "Run tests (fast-fail)");
-    const downloadIdx = mustIndex(src, "Download HTML export");
+    const extractIdx = mustIndex(src, "Extract Docusaurus pages, properties, callouts");
 
     expect(installIdx).toBeLessThan(typecheckIdx);
     expect(typecheckIdx).toBeLessThan(lintIdx);
     expect(lintIdx).toBeLessThan(earlyTestIdx);
-    expect(earlyTestIdx).toBeLessThan(downloadIdx);
+    expect(earlyTestIdx).toBeLessThan(extractIdx);
   });
 
   test("preflights npm publish access before release side effects", () => {
     const src = readText(".github/workflows/release.yml");
     const preflightIdx = mustIndex(src, "Verify npm publish access");
-    const downloadIdx = mustIndex(src, "Download HTML export");
+    const extractIdx = mustIndex(src, "Extract Docusaurus pages, properties, callouts");
     const ociIdx = mustIndex(src, "Build and push OCI images");
     const releaseIdx = mustIndex(src, "Create or update GitHub Release");
     const publishIdx = mustIndex(src, "Publish to npm");
-    const preflightBlock = src.slice(preflightIdx, downloadIdx);
+    const preflightBlock = src.slice(preflightIdx, extractIdx);
 
-    expect(preflightIdx).toBeLessThan(downloadIdx);
+    expect(preflightIdx).toBeLessThan(extractIdx);
     expect(preflightIdx).toBeLessThan(ociIdx);
     expect(preflightIdx).toBeLessThan(releaseIdx);
     expect(preflightIdx).toBeLessThan(publishIdx);

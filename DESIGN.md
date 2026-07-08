@@ -382,7 +382,7 @@ macOS Gatekeeper and Windows SmartScreen warn on unsigned binaries. For v0.1 tes
 
 ### CI release workflow for provenance
 
-Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow runs the same legacy extraction pipeline from a remote Confluence HTML export URL, creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance. The Docusaurus migration will need a different source input, but should preserve this CI-built provenance model.
+Local `make release` works but builds are only as trustworthy as the laptop. The `release.yml` GitHub Actions workflow live-fetches manual.mikrotik.com's `/docs` tree via `extract-docusaurus.ts --check-counts --strict` (T-0036, cut over 2026-07-08 — the legacy Confluence HTML export pipeline is retired from this workflow entirely, surviving only as the local-only `make extract-legacy-confluence` target), creating a release with a traceable commit SHA, CI log, and DB stats in the release notes. This also prepares for eventual NPM publishing — CI-built artifacts have verifiable provenance.
 
 ### OCI image build: Dockerfile + docker buildx
 
@@ -507,7 +507,7 @@ What was built, in rough order (March 2026):
 5. **MCP server** — `mcp.ts` + `query.ts`. 11 tools with compound term recognition, BM25 ranking, AND→OR fallback.
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).
 7. **Distribution** — Compiled single-file binaries via `bun build --compile`, `--setup` mode for DB download + MCP client config, GitHub Releases for assets.
-8. **CI release workflow** — `release.yml` workflow_dispatch: download legacy HTML export from URL → extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing.
+8. **CI release workflow** — `release.yml` workflow_dispatch: extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing. Originally downloaded a legacy Confluence HTML export by URL; cut over to the live Docusaurus extractor in T-0036 (2026-07-08).
 9. **HTTP transport** — Streamable HTTP via `--http` flag for remote/LAN MCP clients (ChatGPT Apps, OpenAI platform). Uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport`. Optional TLS.
 10. **MCP Registry metadata** — `server.json` manifest + CI validation for official registry publication.
 11. **North Star (April 2026)** — Regex classifier (`classify.ts`) + `searchAll()` wrapper. Unified `routeros_search` now returns pages + `related` (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + classifier-informed `next_steps`. Folded `routeros_search_callouts` / `routeros_search_videos` into `related`. MCP tool count 15 → 13.

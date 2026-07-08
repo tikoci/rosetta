@@ -170,12 +170,12 @@ Before cutting a corpus release, check these inputs separately from CI:
 
 Published artifacts come from the GitHub Actions `Release` workflow (`workflow_dispatch`), not from local ad hoc release commands.
 
-- **Inputs:** `html_url` (required for the legacy Confluence pipeline), `version` (optional override), `docs_date`, `full_versions`, and `republish_assets`.
+- **Inputs:** `version` (optional override), `docs_date`, `full_versions`, and `republish_assets`.
 - **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable.
-- **Traceable pipeline:** early quality gate → download/validate legacy HTML export → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → contract/eval steps → `db_meta` stamping → minimum-content validation → build/publish release assets and OCI images.
+- **Traceable pipeline:** early quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → contract/eval steps → `db_meta` stamping → minimum-content validation → build/publish release assets and OCI images.
 - **Provenance:** release notes include DB stats, and the stamped `db_meta` keys (`release_tag`, `built_at`, `source_commit`, `schema_version`) let runtime surfaces report exactly what shipped.
 
-For Seafile-hosted legacy HTML exports (`box.mikrotik.com`), append `&dl=1` to force direct download in CI. This release input is expected to change when Docusaurus extraction replaces the Confluence pipeline.
+The legacy Confluence pipeline (`extract-html.ts`/`extract-properties.ts`, `html_url` input) has been retired from `release.yml` (T-0036) — it survives only as the local-only `make extract-legacy-confluence` target for rebuilding historical pre-migration DBs; see "Rebuilding a historical (pre-migration) Confluence release DB" above.
 
 ## Database (Standalone)
 

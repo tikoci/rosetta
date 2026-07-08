@@ -2,13 +2,6 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      html_url:
-        description: >
-          Direct download URL for Confluence HTML export (.zip).
-          For box.mikrotik.com Seafile links, append &dl=1 to get the actual file.
-        required: true
-        type: string
-        default: 'https://box.mikrotik.com/d/df76f0d495284eb1b6a1/files/?p=%2FConfluence-space-export-142553-144.html.zip&dl=1'
       version:
         description: 'Optional release version override (e.g. v0.2.0). Default: v + package.json version.'
         required: false
@@ -121,48 +114,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      # ── Download and validate HTML export ──
-
-      - name: Download HTML export
-        run: |
-          echo "Downloading: ${{ inputs.html_url }}"
-          curl -fSL --max-time 600 -o export.zip "${{ inputs.html_url }}"
-          # Validate zip magic bytes (PK = 0x504b)
-          MAGIC=$(xxd -l 2 -p export.zip)
-          if [ "$MAGIC" != "504b" ]; then
-            echo "::error::Downloaded file is not a valid ZIP archive (magic: $MAGIC)"
-            if echo "${{ inputs.html_url }}" | grep -q "box.mikrotik.com"; then
-              echo "::error::Hint: Seafile share links need &dl=1 appended for direct download"
-            fi
-            exit 1
-          fi
-          SIZE=$(du -h export.zip | cut -f1)
-          echo "✓ Downloaded ZIP ($SIZE)"
-
-      - name: Extract HTML and locate ROS directory
-        id: locate
-        run: |
-          # Confluence exports include a bare "/" root entry which causes unzip
-          # to warn ("stripped absolute path spec") and exit with code 2.
-          # The files extract fine — tolerate exit codes 0 and 2.
-          unzip -q export.zip -d html-export || [ $? -eq 2 ]
-          # Find the ROS directory containing Confluence HTML files
-          ROS_DIR=$(find html-export -type d -name "ROS" | head -1)
-          if [ -z "$ROS_DIR" ]; then
-            # Fallback: find any directory with many .html files
-            ROS_DIR=$(find html-export -name "*.html" -type f | head -1 | xargs dirname)
-          fi
-          if [ -z "$ROS_DIR" ] || [ ! -d "$ROS_DIR" ]; then
-            echo "::error::Could not find HTML directory in ZIP archive"
-            exit 1
-          fi
-          HTML_COUNT=$(find "$ROS_DIR" -maxdepth 1 -name "*.html" -type f | wc -l)
-          echo "✓ Found $HTML_COUNT HTML files in $ROS_DIR"
-          if [ "$HTML_COUNT" -lt 50 ]; then
-            echo "::warning::Expected ~317 HTML files but found only $HTML_COUNT"
-          fi
-          echo "ros_dir=$ROS_DIR" >> "$GITHUB_OUTPUT"
-
       - name: Resolve release version
         id: release_version
         run: |
@@ -182,11 +133,13 @@ jobs:
 
       # ── Extraction pipeline ──
 
-      - name: Extract HTML pages
-        run: bun run src/extract-html.ts "${{ steps.locate.outputs.ros_dir }}"
-
-      - name: Extract properties
-        run: bun run src/extract-properties.ts "${{ steps.locate.outputs.ros_dir }}"
+      # Live-fetches manual.mikrotik.com's /docs tree (same live-network risk
+      # class as the retired Confluence download) and populates
+      # pages/sections/properties/callouts. --check-counts --strict proves
+      # V-docusaurus-docs-count on every release run — same invocation T-0035
+      # verified at 360/360 pages, zero fetch errors, live.
+      - name: Extract Docusaurus pages, properties, callouts
+        run: bun run src/extract-docusaurus.ts --check-counts --strict
 
       - name: Extract command tree
         run: |
@@ -322,7 +275,7 @@ jobs:
           set -euo pipefail
           fail=0
           if [ "${PAGES:-0}" -lt 200 ]; then
-            echo "::error::DB has only ${PAGES} pages — expected ≥200 (latest export is 317). Aborting release."
+            echo "::error::DB has only ${PAGES} pages — expected ≥200 (Docusaurus /docs export is ~365). Aborting release."
             fail=1
           fi
           if [ "${COMMANDS:-0}" -lt 1000 ]; then
@@ -334,7 +287,7 @@ jobs:
             fail=1
           fi
           if [ "${PROPERTIES:-0}" -lt 1000 ]; then
-            echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (current export is ~4860). Aborting release."
+            echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (Docusaurus export is ~4,509). Aborting release."
             fail=1
           fi
           if [ "$fail" = "1" ]; then exit 1; fi
