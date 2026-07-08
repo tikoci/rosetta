@@ -17,6 +17,16 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-07-07
+
+### Changed
+
+- **v0.10.x will be last release(s) based on Confluence HTML doc extraction.** v0.11.x and beyond will use new manual.mikrotik.com as source for MikroTik documentation pages. 
+
+### Fixed
+
+- **Only changelog and version bump.** Promote to a even-number release. Otherwise, identical to 0.9.3.
+
 ## [0.9.3] — 2026-07-07
 
 ### Changed
