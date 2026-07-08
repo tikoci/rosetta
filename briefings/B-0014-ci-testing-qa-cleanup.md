@@ -202,12 +202,14 @@ regardless of what else gets picked.
    inputs are only as useful as the menu of decoupled jobs behind them.
 4. **NPM prerelease channel (E)** is real but separate scope, and isn't
    blocking B-0012 testing today since in-repo dev-mode already covers
-   testing changes made directly in this checkout.
+   testing changes made directly in this checkout. **Superseded 2026-07-08**
+   — user chose to pursue E next after all; see "2026-07-08 follow-up" below.
 5. **Most direct lever for "more confidence in #13" specifically:** promote
    `V-docusaurus-docs-count` from GAP/manual-only to at least
    non-blocking-in-CI using `extract-docusaurus.ts --from-cache` — doesn't
    require any of 1–4 first, and directly closes the one gap
-   `VALIDATION.md` already names by itself.
+   `VALIDATION.md` already names by itself. **Folded into `T-0036` below** —
+   turns out it's the same touch-point as the release.yml extractor cutover.
 6. **Old-corpus-vs-new-corpus content-parity check** (help.mikrotik.com HTML
    DB vs. the new Docusaurus DB) doesn't exist in any form today. Needs its
    own design pass first — "equivalent" isn't yet defined at the
@@ -218,6 +220,109 @@ regardless of what else gets picked.
    pieces plausibly don't need a live agent, but this needs a short scoping
    pass in that repo before committing to "incorporate into rosetta CI" —
    flagged as open, not resolved, here.
+
+## 2026-07-08 follow-up — NPM prerelease channel (Option E), reviewed and split into tasks
+
+User's own priority reordering (their words): tags-to-release.yml first, then
+a new dispatch-able `qa.yml` (Option B, "like centrs/quickchr"), then PR
+gates/branch protection, then expanding tests in code and `qa.yml` — each a
+separate, independently-scoped effort. Coverage reporting (D) folds into
+whichever workflow file is being touched anyway, rather than landing as its
+own standalone pass. This section covers the first of those: a concrete
+strawman for `--tag` support, reviewed against the real `release.yml` and
+`package.json` state.
+
+**Load-bearing finding that changes the plan:** `release.yml` was never cut
+over to `extract-docusaurus.ts`. `T-0035`'s own closing note says this
+explicitly — "`release.yml` was deliberately **not** touched... flipping the
+actual release pipeline stays a separate, later decision" — and
+`briefings/B-0012-docusaurus-manual-migration.md` "Next steps" confirms: "No
+new rosetta release ships until something solid on the Docusaurus migration
+lands; that's a deliberate choice, not a stalled step." `release.yml` line
+186–189 still calls `extract-html.ts`/`extract-properties.ts` against the
+live `html_url` Confluence zip — the exact extractor `Makefile`'s
+`extract`/`extract-full` demoted to a manual-only `extract-legacy-confluence`
+path back in `T-0035`. So today, dispatching `release.yml` — tagged
+prerelease or not — would publish the *old* Confluence-sourced DB unchanged.
+Any prerelease-channel work is moot until this is fixed, because there is
+currently no CI path that builds a Docusaurus-sourced DB at all.
+`package.json` is already sitting at bare `0.11.0` (unreleased); npm's
+published `latest` is confirmed still `0.10.0` (the deliberate "final
+Confluence corpus" release per `65fc229`'s commit message) — everything is
+staged for the cutover except the workflow itself.
+
+**Sharp edges found in the `--tag` mechanics** (beyond the extractor gap):
+
+- The "Build and push OCI images" step unconditionally tags+pushes `:latest`
+  to both registries on every run, regardless of npm dist-tag — an
+  unguarded alpha dispatch would silently overwrite the production `/app`
+  container's `:latest` with an unfinished prerelease DB.
+- `npm publish`'s preflight ("Verify npm publish access") hard-fails unless
+  `inputs.version` exactly equals `package.json`'s version — but a
+  `${GITHUB_RUN_NUMBER}`-suffixed prerelease version (per the user's
+  "don't commit the run-number bump" design) can't be predicted ahead of
+  dispatch, so `inputs.version`'s role needs to change for tagged runs.
+- The user's semver-range read (`^0.11.0-alpha` walks alpha→beta→rc, and
+  alphabetical ordering of those identifiers is real per semver's
+  prerelease-precedence rules) is correct but incomplete: npm's
+  caret-with-prerelease matching only spans the *same* `[major,minor,patch]`
+  tuple. The day a `0.11.1-alpha.0` or `0.12.0-alpha.0` ships, that range
+  stops matching anything new — it is not a "follow every future
+  prerelease" mechanism. That's what dist-tags are for
+  (`bunx @tikoci/rosetta@alpha` / `@next`), not semver ranges.
+- Removing the `bump-version` job's auto-commit (necessary — its blind
+  `PATCH + 1` can't reason across three channels) trades away the "CI always
+  advances past what's published" safety net for the `latest` channel; the
+  npm preflight's "already published" check becomes the only backstop —
+  loud failure, not silent, so acceptable, but worth naming.
+
+**Decisions locked in this session** (via direct discussion, not guessed):
+
+- **Two sequenced tasks, not one.** `T-0036` (cut `release.yml` to
+  `extract-docusaurus.ts`, drop `html_url` entirely — independently valuable,
+  already the expected next move per B-0012's "Next steps") lands first;
+  `T-0037` (`--tag`/dist-tag channel, `depends_on: [T-0036]`) builds on it.
+- **Full pipeline runs on every dispatch**, tagged or not — no fast path.
+  Docker/GHCR multi-arch push, GH Release, and the 3-OS `bunx-smoke` matrix
+  all run for alpha/beta/rc the same as for `latest`. OCI tags get aligned
+  with the npm scheme instead: `$VERSION` and `sha-$SHORT_SHA` always push;
+  a floating per-stage tag (`:alpha`/`:beta`/`:rc`) and a floating `:next`
+  push for prerelease runs; the bare `:latest` OCI tag pushes only on
+  non-prerelease runs. User's own caveat: if aligning OCI tags proves more
+  work than it's worth in practice, skipping Docker/GHCR for prerelease runs
+  entirely is an accepted fallback — not required to get right on the first
+  pass.
+- **Both dist-tag shapes**: `npm publish --tag <stage>` (stage parsed from
+  `package.json`'s prerelease identifier: `alpha`/`beta`/`rc`) *and* an
+  `npm dist-tag add ... next` immediately after, so `@next` always resolves
+  to the newest prerelease of *any* stage while `@alpha`/`@beta`/`@rc` each
+  stay pinned to their own stage's latest.
+- **`html_url` drops out of `release.yml` entirely.** A historical-corpus
+  rebuild becomes a local-only `make extract-legacy-confluence` + manual
+  publish, matching how `MANUAL.md` already frames that target.
+
+See `tasks/T-0036-release-yml-docusaurus-cutover.md` and
+`tasks/T-0037-npm-prerelease-dist-tag-channel.md` for the resulting
+commitments — coverage reporting (D) is folded into `T-0037` since it's the
+same `release.yml` touch-point.
+
+**2026-07-08, second pass (independent agent review of both tasks):**
+confirmed the npm mechanics (`npm publish` defaults to `latest`, `--tag`
+targets another dist-tag, `npm dist-tag add` is the right primitive for
+`next`) and the semver-range caveat. Found and fixed four gaps before
+treating `T-0037` as implementation-ready: `T-0037` lacked explicit
+`republish_assets: true` semantics for prerelease versions (now specified —
+no `package.json` rewrite, no dist-tag moves, no floating-OCI-tag moves,
+`inputs.version` must carry the exact already-published run-numbered
+version); `T-0036` didn't call out that it breaks five existing
+`src/release.test.ts` cases anchored on `html_url`/`extract-html.ts`/the
+"Download HTML export" step name (now enumerated); `T-0037`'s stage-name
+validation (`alpha`/`beta`/`rc` only, reject anything else) was left as an
+implementation-time open item instead of a real acceptance criterion (now
+promoted); and `T-0037`'s `status: ready` didn't match its own unresolved
+`depends_on` per `tasks/README.md`'s definition — changed to `status:
+blocked` with a `trigger:` pointing at `T-0036` reaching `done`, matching
+the precedent `T-0035` set for `T-0034`.
 
 ## Open questions
 

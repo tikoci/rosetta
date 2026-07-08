@@ -60,6 +60,8 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 - `T-0014-html-url-supplied-or-discovered` — Make `html_url` intentionally supplied or auto-discovered
 - `T-0015-promote-changelog-into-release-notes` — Promote CHANGELOG.md into release notes
 - `T-0016-shrink-makefile-to-etl` — Shrink Makefile toward ETL only (narrowed: T-0013 removed release targets)
+- `T-0036-release-yml-docusaurus-cutover` — Cut release.yml over to `extract-docusaurus.ts`, retire `html_url`
+- `T-0037-npm-prerelease-dist-tag-channel` — npm prerelease/dist-tag channel (alpha/beta/rc/next) with aligned OCI tags + coverage reporting
 
 ### `area: install`
 
