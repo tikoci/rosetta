@@ -73,7 +73,6 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 - `T-0021-list-format-properties` — List-format properties extraction
 - `T-0022-script-example-demarcation` — Preserve RouterOS code blocks in page text as fenced blocks
 - `T-0023-video-quality-signals` — Video metadata quality signals
-- `T-0035-docusaurus-docs-prose-extractor` — Docusaurus `/docs` prose extractor (main docs only; unblocked, ready)
 
 ### `area: mcp`
 
@@ -130,3 +129,4 @@ Greppable history of merged work. See `tasks/done/T-*.md` for full back-fill of 
 - T-0030 Self-supervised retrieval eval wired into release CI
 - T-0031 Split `CLAUDE.md` into narrow instruction files and relocated canonical docs to `MANUAL.md` / `DESIGN.md`
 - T-0034 rosetta-id scheme spike — confirmed H7 Option 2 against a live 20-page `/docs` prototype
+- T-0035 Docusaurus `/docs` prose extractor — replaced `extract-html.ts` as the default prose source; 360/360 pages live-verified against `llms.txt`

@@ -362,6 +362,32 @@ describe("Makefile", () => {
     expect(makefile).toMatch(/^extract-full:.*extract-dude-from-cache/m);
   });
 
+  test("has extract-docusaurus and extract-docusaurus-from-cache targets", () => {
+    expect(makefile).toContain("extract-docusaurus:");
+    expect(makefile).toContain("extract-docusaurus-from-cache:");
+  });
+
+  test("extract-docusaurus is in PHONY", () => {
+    const phonyStart = makefile.indexOf(".PHONY:");
+    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    expect(phonyBlock).toContain("extract-docusaurus");
+  });
+
+  test("extract/extract-full use extract-docusaurus, not the legacy Confluence pipeline", () => {
+    // T-0035: extract-docusaurus.ts replaces extract-html.ts's role in the default
+    // pipeline. extract-html.ts survives only via extract-legacy-confluence, for
+    // rebuilding historical pre-migration release DBs (DESIGN.md).
+    expect(makefile).toMatch(/^extract: extract-docusaurus\b/m);
+    expect(makefile).toMatch(/^extract-full: extract-docusaurus\b/m);
+    expect(makefile).not.toMatch(/^extract:.*extract-html\b/m);
+    expect(makefile).not.toMatch(/^extract-full:.*extract-html\b/m);
+  });
+
+  test("has extract-legacy-confluence target wrapping extract-html + extract-properties", () => {
+    expect(makefile).toMatch(/^extract-legacy-confluence:.*extract-html.*extract-properties/m);
+  });
+
   test("preflight checks dirty tree", () => {
     expect(makefile).toContain("git diff --quiet");
   });

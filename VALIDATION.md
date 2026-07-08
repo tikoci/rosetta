@@ -40,6 +40,8 @@ Tasks in `tasks/` reference these IDs in their `validation:` frontmatter. When a
 | V-classifier             | `classify.ts` detectors hit table-driven cases including overlap                                                     | `src/classify.test.ts`                                                 | blocking                                     | —          |
 | V-schema-roundtrip       | Schema importer round-trip preserves arch diffs, completion, desc parsing                                            | `src/schema-roundtrip.test.ts`                                         | blocking                                     | —          |
 | V-extract-videos         | yt-dlp extractor handles cache save/import/known-bad correctly                                                       | `src/extract-videos.test.ts`                                           | blocking                                     | —          |
+| V-docusaurus-parse-shape | Docusaurus Markdown parsing (properties incl. malformed-emphasis, admonitions, sections, link resolution) matches fixture-verified expectations | `src/extract-docusaurus.test.ts` against `fixtures/docusaurus/*.md`    | blocking                                     | —          |
+| V-docusaurus-docs-count  | Extracted `/docs` page count exactly matches the scoped `llms.txt` in-scope entry count (B-0012 H8)                  | `extract-docusaurus.ts --check-counts` (`make extract-docusaurus-check-counts`) — live-network, not run in `bun test`/CI yet | non-blocking (manual/local run only) | T-0035 follow-up: wire into CI once a committed full-corpus cache or scheduled live run exists |
 
 ## How to add a row
 

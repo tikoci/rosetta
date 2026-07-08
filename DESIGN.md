@@ -15,8 +15,8 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 
 | Source | Location | Format | Coverage |
 |--------|----------|--------|----------|
-| Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export; no longer expected to receive future updates |
-| Docusaurus manual | <https://manual.mikrotik.com> | HTML pages + sitemap + CLI Reference pages | Future official docs source; extractor not implemented yet |
+| Docusaurus manual `/docs` prose | <https://manual.mikrotik.com>, discovered via `sitemap.xml` | Raw Markdown (`{page}.md` / `{category}/index.md`) | Current default prose source (T-0035); 360 in-scope `/docs` pages as of 2026-07-07, matching `llms.txt` exactly |
+| Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export, frozen; kept only for `make extract-legacy-confluence` historical rebuilds |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
 | Product matrix | `matrix/2026-07-07/matrix.csv` | CSV, 34 columns | 156 products, July 2026 |
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
@@ -26,29 +26,29 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
-**Version cadence:** The current prose-doc corpus is pinned to the retired Confluence export (March 2026 / 7.22). Future official doc updates are on the Docusaurus site at <https://manual.mikrotik.com>. inspect.json versions update automatically via restraml's CI — new versions appear weekly. The primary `commands` table uses the latest stable from inspect.json, which may be newer than the legacy prose-doc export.
+**Version cadence:** MikroTik's Docusaurus manual carries no version tag beyond `"current"` — see B-0012 H3/H7 for the full finding. inspect.json versions update automatically via restraml's CI — new versions appear weekly. The primary `commands` table uses the latest stable from inspect.json, which may be newer than the prose-doc extraction date.
 
-### Legacy Confluence HTML archive (current primary prose corpus)
+### Docusaurus manual (current primary prose corpus)
 
-- **Export:** Confluence space export, March 2026.
+`src/extract-docusaurus.ts` (T-0035, landed 2026-07-07) replaced `extract-html.ts`'s role as the default prose source. It changes rosetta's source model, not just its URL base:
+
+- **Discovery:** `sitemap.xml` (`https://manual.mikrotik.com/sitemap.xml`), filtered to `/docs/**` excluding `/docs/cli-reference/*` and `/docs/tags*` — 360 in-scope pages as of 2026-07-07, exactly matching the equivalently-scoped `llms.txt` entry count (verified live, both via a `--limit` smoke run and a full unthrottled run).
+- **Fetch:** raw Markdown per page, `{url}.md` for leaf pages, `{url}index.md` for category/index pages (URLs ending in `/` in the sitemap — a real 404 otherwise, caught by a live smoke run before landing).
+- **Identity:** `pages.rosetta_id` — a lowercased, trailing-slash-stripped, `.md`/`.mdx`-suffix-stripped, version-prefix-tolerant URL path (e.g. `docs/network-management/dhcp`). See "H7 — Identity / rosetta-id design" in `briefings/B-0012-docusaurus-manual-migration.md` for the full derivation rationale and the T-0034 spike that validated it before T-0035 built on it. Legacy Confluence-sourced `pages` rows keep `rosetta_id = NULL` and their original Confluence-numbered `id`; the two identity shapes coexist in the schema but a single build populates one or the other, never both.
+- **Parsing:** Markdown property tables (`| Property |` or `| Parameter |` header, both seen live), tolerant of the malformed bold/italic collision pattern from dhcp.md's `check-gateway` row (B-0012 H4); `:::type ... :::` admonitions → `callouts`; h1–h3 headings → `sections`, skipping a real quirk where the raw `.md` source repeats the page's H1 title a second time right after the AI-generated summary blockquote; relative Markdown links inside property descriptions rewritten to live `manual.mikrotik.com` URLs (anchor fragment preserved) instead of left as broken relative paths.
+- **CLI Reference:** still out of scope for this extractor — <https://manual.mikrotik.com/docs/cli-reference/> exposes RouterOS command menus, flags, argument names, and types from `/console/inspect`-derived data (plus `Package`/`Conditions`/`Syscap` facts restraml can't produce, B-0012 H3), but needs a JSX-aware `ArgTable` parser and an overlay-merge design against `schema_nodes` — proposed as a separate follow-up task in B-0012.
+- **Surface impact not yet done:** MCP and TUI result shapes are still page-centric (`pages`, `sections`, `properties`). Reworking them around source-typed results (Option F) is deliberately deferred until CLI Reference and `/hardware` extraction land too — see B-0012's "Proposed migration task files."
+
+Directional options and the full research trail are recorded in `briefings/B-0012-docusaurus-manual-migration.md`.
+
+### Legacy Confluence HTML archive (historical rebuilds only)
+
+- **Export:** Confluence space export, March 2026, frozen — no further updates expected.
 - **Format:** 317 HTML files plus attachments in `box/latest/ROS/` (symlink → `box/documents-export-2026-3-25`).
 - **Structure:** Consistent Confluence classes (`confluenceTable`, `confluenceTh`, `syntaxhighlighter-pre`).
 - **Property tables:** 605 tables with `"Property | Description"` headers across 147 pages.
 - **Code blocks:** `data-syntaxhighlighter-params="brush: ros"` for RouterOS CLI.
-
-This is now a legacy source. MikroTik moved the public manual from Confluence to Docusaurus at <https://manual.mikrotik.com>, and future HTML exports from the old help system are not expected. The current extractor remains useful for rebuilding historical release DBs, but it is not the path for fresh documentation.
-
-### Docusaurus manual migration (future primary prose corpus)
-
-The new manual site changes rosetta's source model, not just its URL base:
-
-- **Entry point:** <https://manual.mikrotik.com> plus `sitemap.xml` for page discovery.
-- **CLI Reference:** <https://manual.mikrotik.com/docs/CLI%20Reference/> exposes RouterOS command menus, flags, argument names, and types from `/console/inspect`-derived data. Example: `/ip/address` is published at <https://manual.mikrotik.com/docs/CLI%20Reference/system/ip/address>.
-- **No Confluence IDs:** page identity, parent/child relationships, anchors, callouts, and property tables must be derived from Docusaurus paths/headings/content hashes instead of Confluence page IDs and CSS classes.
-- **Potentially better command coverage:** the CLI Reference includes package/menu pages that can complement or cross-check restraml `deep-inspect.json`, but live-router `/console/inspect` and restraml versioned artifacts remain the stronger source for version-specific truth.
-- **Surface impact:** MCP and TUI result shapes are currently page-centric (`pages`, `sections`, `properties`, Confluence URLs). A Docusaurus importer should be designed together with MCP/TUI presentation so agents see official manual pages, CLI Reference entries, and command-tree facts as related result types rather than unrelated corpora.
-
-Directional options are recorded in `briefings/B-0012-docusaurus-manual-migration.md`. The likely path is a hybrid: keep restraml/deep-inspect as the versioned command-tree authority, add a Docusaurus prose/CLI-reference extractor, and rework MCP/TUI search around source-typed results with explicit provenance.
+- **Usage:** `make extract-legacy-confluence` (runs `extract-html` + `extract-properties`), not part of the default `extract`/`extract-full` pipeline. Kept only for rebuilding historical pre-migration release DBs — see `MANUAL.md` "Re-extracting a Local Database."
 
 ### Command tree (`inspect.json` / `deep-inspect.json`)
 

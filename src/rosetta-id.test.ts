@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { checkCollisions, deriveRosettaId, parseSitemapLocs } from "./spike-docusaurus-rosetta-id.ts";
+import { checkCollisions, deriveRosettaId, parseSitemapLocs, rosettaIdToUrl } from "./rosetta-id.ts";
 
 describe("deriveRosettaId", () => {
   test("strips scheme, host, and leading/trailing slashes", () => {
@@ -43,6 +43,13 @@ describe("deriveRosettaId", () => {
     expect(deriveRosettaId("https://manual.mikrotik.com/changelog/changelog-2026-05-25")).toBe(
       "changelog/changelog-2026-05-25",
     );
+  });
+});
+
+describe("rosettaIdToUrl", () => {
+  test("round-trips with deriveRosettaId for a canonical URL", () => {
+    const url = "https://manual.mikrotik.com/docs/network-management/dhcp";
+    expect(rosettaIdToUrl(deriveRosettaId(url))).toBe(url);
   });
 });
 

@@ -683,18 +683,20 @@ per H-item.
 
 **Staged as two tasks:**
 
-- [`T-0034`](../tasks/T-0034-rosetta-id-scheme-spike.md) — rosetta-id scheme spike: slug
-  derivation + a minimal end-to-end prototype against ~15-20 representative `/docs` pages, built
-  against the Option-2 shape (separate `rosetta_id` column, existing integer PKs untouched)
-  because it's reversible and lower-risk to build against without foreclosing Option 1 later.
-  Closes by recording a real decision back into this briefing's H7 section — H7 does not stay
-  open a second time.
-- [`T-0035`](../tasks/T-0035-docusaurus-docs-prose-extractor.md) (blocked on `T-0034`) — the real
-  `/docs`-only Docusaurus prose extractor, explicitly deferring CLI Reference and `/hardware`.
+- [`T-0034`](../tasks/done/T-0034-rosetta-id-scheme-spike.md) — **done, 2026-07-07.** rosetta-id
+  scheme spike: slug derivation + a minimal end-to-end prototype against ~15-20 representative
+  `/docs` pages, built against the Option-2 shape (separate `rosetta_id` column, existing integer
+  PKs untouched). Recorded the H7 decision (Option 2 confirmed) back into this briefing.
+- [`T-0035`](../tasks/done/T-0035-docusaurus-docs-prose-extractor.md) — **done, 2026-07-07.** the
+  real `/docs`-only Docusaurus prose extractor (`src/extract-docusaurus.ts`), explicitly deferring
+  CLI Reference and `/hardware`. Live-verified at full scale: 360/360 pages, exact `llms.txt`
+  count match, zero fetch errors. Now the default prose source in `make extract`/`extract-full`;
+  `extract-html.ts` survives only as `make extract-legacy-confluence` for historical rebuilds.
 
 CLI Reference, `/hardware`, and the MCP/TUI source-typed-results rework stay as the *proposed,
-not yet created* items #2, #3, #6 below — revisit once `T-0035` lands and restraml has responded
-to #85.
+not yet created* items #2, #3, #6 below — now that `T-0035` has landed, these are ready to be cut
+as real tasks whenever that work is prioritized, and once restraml has responded to #85 for #2's
+identity side.
 
 ## Proposed migration task files (T-0033 closeout)
 
@@ -705,9 +707,10 @@ rosetta task, since the code change (if any) lives in restraml. Rosetta's own co
 a task file as a commitment, not a maybe, so items #2–#4/#6 stay proposals until then. Each
 cites the B-0012 section(s) it depends on:
 
-1. ~~**Docusaurus prose extractor**~~ — **staged as `T-0034` (identity spike) + `T-0035`
-   (extractor)**, see "Next steps" above. Depends on: H1 (site internals), H4 (property-table
-   parsing), H7 (identity scheme — resolved by `T-0034`, not left abstract).
+1. ~~**Docusaurus prose extractor**~~ — **done, staged as `T-0034` (identity spike) + `T-0035`
+   (extractor)**, both closed 2026-07-07, see "Next steps" above. Depended on: H1 (site
+   internals), H4 (property-table parsing), H7 (identity scheme — resolved by `T-0034`, not left
+   abstract).
 2. **CLI Reference overlay extractor** — populates a version-less overlay table (or
    `schema_nodes._package`/new columns) keyed by command path, per Option D's overlay sketch.
    Depends on: H3 (full census — `Package`/`Conditions`/`Syscap`/enum findings), H7.
@@ -725,8 +728,10 @@ cites the B-0012 section(s) it depends on:
    first, per this briefing's existing "alongside the extractor, not an afterthought" framing.
 
 The H8 `V-*` rows are not a standalone task — fold each into the acceptance criteria of the
-task that makes it true (e.g. `V-docusaurus-docs-count` belongs to task #1).
+task that makes it true (e.g. `V-docusaurus-docs-count`, landed non-blocking with task #1/`T-0035`).
 
-**Sequencing gate still applies:** none of the above may start until the final
-help.mikrotik.com-corpus NPM release ships (`BACKLOG.md` Triggers) — this proposal list is
-research output, not a green light to start extractor work.
+**Sequencing gate note (corrected 2026-07-07 — this line previously contradicted the "Next
+steps" section above and was stale):** the final help.mikrotik.com-corpus NPM release already
+shipped before `T-0034`/`T-0035` started (see "Next steps"), clearing the extractor-work gate for
+task #1. Items #2–#4/#6 remain proposals, not commitments — cut them as real tasks when next
+prioritized, same as always; nothing further blocks them.

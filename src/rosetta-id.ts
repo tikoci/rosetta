@@ -1,14 +1,13 @@
 /**
- * spike-docusaurus-rosetta-id.ts — T-0034 spike, not a production extractor.
+ * rosetta-id.ts — URL-path-derived stable identifiers for Docusaurus-sourced content.
  *
- * Validates the H7 Option-2 rosetta-id shape (a derivable, URL-based slug stored
- * alongside opaque integer PKs — see briefings/B-0012-docusaurus-manual-migration.md,
- * "H7 — Identity / rosetta-id design") against real manual.mikrotik.com URLs, before any
- * production schema or extractor code depends on the scheme.
+ * Promoted from the T-0034 spike (src/spike-docusaurus-rosetta-id.ts, now removed) after
+ * its H7 Option-2 shape (separate `rosetta_id TEXT UNIQUE` column, existing INTEGER PKs
+ * untouched) was validated against a live 20-page prototype and confirmed in
+ * briefings/B-0012-docusaurus-manual-migration.md, "H7 — Identity / rosetta-id design".
  *
- * Not wired into the default extract pipeline. Run directly:
- *   bun run src/spike-docusaurus-rosetta-id.ts [path-to-sitemap.xml]
- * With no argument, fetches the live sitemap.xml.
+ * Used by extract-docusaurus.ts to mint `pages.rosetta_id` and to resolve relative
+ * Markdown links inside property descriptions to a canonical id/URL.
  */
 
 const SITEMAP_URL = "https://manual.mikrotik.com/sitemap.xml";
@@ -18,8 +17,8 @@ const SITEMAP_URL = "https://manual.mikrotik.com/sitemap.xml";
  *
  * Strips scheme+host, leading/trailing slashes, and lowercases. Also strips an
  * optional Docusaurus version-prefix segment (/docs/next/... or /docs/<semver>/...)
- * if present, even though manual.mikrotik.com does not version today (2026-07-07) —
- * B-0012 H7 flags this as cheap to build in now, expensive to retrofit later.
+ * if present, even though manual.mikrotik.com does not version today — B-0012 H7
+ * flags this as cheap to build in now, expensive to retrofit later.
  */
 export function deriveRosettaId(urlOrPath: string): string {
   let path: string;
@@ -30,10 +29,10 @@ export function deriveRosettaId(urlOrPath: string): string {
   }
 
   path = path.replace(/^\/+|\/+$/g, "").toLowerCase();
-  // Markdown-source links (and the docusaurus-plugin-llms .md endpoint, H1/H2) point at
-  // the same page's .md/.mdx sibling URL — strip it so a page's own canonical id and an
+  // Markdown-source links (and the docusaurus-plugin-llms .md endpoint) point at the
+  // same page's .md/.mdx sibling URL — strip it so a page's own canonical id and an
   // internal link resolving to it collapse to the same rosetta-id (found empirically
-  // 2026-07-07 while proving link resolution: without this, ./dhcp.md#anchor resolved to
+  // during T-0034: without this, ./dhcp.md#anchor resolved to
   // "docs/network-management/dhcp.md" while the page itself was "docs/.../dhcp").
   path = path.replace(/\.mdx?$/, "");
 
@@ -47,6 +46,11 @@ export function deriveRosettaId(urlOrPath: string): string {
   }
 
   return segments.join("/");
+}
+
+/** Build a live manual.mikrotik.com URL from a rosetta-id (inverse of deriveRosettaId, minus version-prefix). */
+export function rosettaIdToUrl(rosettaId: string): string {
+  return `https://manual.mikrotik.com/${rosettaId}`;
 }
 
 export interface CollisionReport {
@@ -93,37 +97,31 @@ export function parseSitemapLocs(xml: string): string[] {
   return [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 }
 
-async function loadSitemap(source: string | undefined): Promise<string> {
-  if (!source) {
-    const res = await fetch(SITEMAP_URL);
-    if (!res.ok) throw new Error(`Failed to fetch ${SITEMAP_URL}: ${res.status}`);
-    return res.text();
-  }
-  return Bun.file(source).text();
-}
-
-async function main() {
-  const source = process.argv[2];
-  const xml = await loadSitemap(source);
-  const urls = parseSitemapLocs(xml);
-  const report = checkCollisions(urls);
-
-  console.log(`Source: ${source ?? SITEMAP_URL}`);
-  console.log(`Total URLs:       ${report.total}`);
-  console.log(`Unique rosetta-ids: ${report.uniqueIds}`);
-  console.log(`Max id length:    ${report.maxLength}`);
-  console.log(`Unexpected chars: ${report.unexpectedChars.length === 0 ? "none" : report.unexpectedChars.join(" ")}`);
-  console.log(`Collisions:       ${report.collisions.size}`);
-
-  if (report.collisions.size > 0) {
-    for (const [id, sourceUrls] of report.collisions) {
-      console.log(`  ${id}:`);
-      for (const u of sourceUrls) console.log(`    ${u}`);
-    }
-    process.exitCode = 1;
-  }
+/** Fetch and parse the live manual.mikrotik.com sitemap, or read a local file if `source` is given. */
+export async function loadSitemapUrls(source?: string): Promise<string[]> {
+  const xml = source ? await Bun.file(source).text() : await (await fetch(SITEMAP_URL)).text();
+  return parseSitemapLocs(xml);
 }
 
 if (import.meta.main) {
-  main();
+  (async () => {
+    const source = process.argv[2];
+    const urls = await loadSitemapUrls(source);
+    const report = checkCollisions(urls);
+
+    console.log(`Source: ${source ?? SITEMAP_URL}`);
+    console.log(`Total URLs:       ${report.total}`);
+    console.log(`Unique rosetta-ids: ${report.uniqueIds}`);
+    console.log(`Max id length:    ${report.maxLength}`);
+    console.log(`Unexpected chars: ${report.unexpectedChars.length === 0 ? "none" : report.unexpectedChars.join(" ")}`);
+    console.log(`Collisions:       ${report.collisions.size}`);
+
+    if (report.collisions.size > 0) {
+      for (const [id, sourceUrls] of report.collisions) {
+        console.log(`  ${id}:`);
+        for (const u of sourceUrls) console.log(`    ${u}`);
+      }
+      process.exitCode = 1;
+    }
+  })();
 }

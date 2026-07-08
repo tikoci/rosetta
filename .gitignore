@@ -8,6 +8,10 @@ ros-help.db
 # Source data (not distributed — see README for instructions)
 box/
 
+# Docusaurus /docs Markdown cache (live-fetched by extract-docusaurus.ts; not
+# committed — a small curated subset lives in fixtures/docusaurus/ for tests instead).
+manual/
+
 # Dependencies
 node_modules/
 bun.lock

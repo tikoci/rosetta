@@ -1,7 +1,8 @@
 DB         := ros-help.db
 HTML_DIR   := box/latest/ROS
 VERSION    ?=
-.PHONY: extract extract-full extract-html extract-properties extract-commands \
+.PHONY: extract extract-full extract-legacy-confluence extract-html extract-properties extract-commands \
+        extract-docusaurus extract-docusaurus-from-cache extract-docusaurus-check-counts \
         extract-schema extract-all-versions extract-devices extract-test-results extract-changelogs \
         extract-changelogs-extended \
         extract-videos extract-videos-from-cache save-videos-cache \
@@ -72,10 +73,33 @@ verify:
 	@echo "── Verify OK ──"
 
 # ── Extraction pipeline ──
+#
+# extract-docusaurus (Markdown, manual.mikrotik.com) is the current prose source —
+# see DESIGN.md and briefings/B-0012-docusaurus-manual-migration.md. extract-html
+# (Confluence HTML) is kept only for rebuilding historical pre-migration release
+# DBs via `make extract-legacy-confluence`; it is not part of the default pipeline.
 
-extract: extract-html extract-properties extract-commands extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
+extract: extract-docusaurus extract-commands extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
 
-extract-full: extract-html extract-properties extract-all-versions extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
+extract-full: extract-docusaurus extract-all-versions extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
+
+# Live fetch from manual.mikrotik.com's sitemap.xml, caching each page's raw
+# Markdown to manual/pages/ (gitignored — not the full-corpus fixture set).
+extract-docusaurus:
+	bun run src/extract-docusaurus.ts
+
+# Re-extract from a previously-populated manual/pages/ cache — no network dependency.
+extract-docusaurus-from-cache:
+	bun run src/extract-docusaurus.ts --from-cache
+
+# Compare extracted page count against llms.txt (B-0012 H8, V-docusaurus-docs-count).
+# Non-blocking by design — prints a MATCH/MISMATCH line, does not fail the build.
+extract-docusaurus-check-counts:
+	bun run src/extract-docusaurus.ts --from-cache --check-counts
+
+# Historical-rebuild path only (March 2026 Confluence export) — not run by
+# `extract`/`extract-full`. See DESIGN.md "Legacy Confluence HTML archive".
+extract-legacy-confluence: extract-html extract-properties
 
 extract-html:
 	bun run src/extract-html.ts

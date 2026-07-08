@@ -59,3 +59,14 @@ task files, plus a consolidation pass over B-0012's now-large "Verified
 land, so closeout reflects what a real spike/extractor pass actually
 needed rather than what looked complete in the abstract. Revisit this task
 after `T-0034` reaches `done`.
+
+**2026-07-07, later — both `T-0034` and `T-0035` are now `done`.** The
+identity spike and the real `/docs` extractor both landed and were
+live-verified at full scale (360/360 pages, zero fetch errors). This
+task is now ready to revisit for closeout: the remaining acceptance
+work is (a) writing up proposed task files #2–#4/#6 from B-0012's
+"Proposed migration task files" as real `tasks/T-*.md` files (CLI
+Reference overlay, `/hardware` extractor, `/changelog` watcher, MCP/TUI
+source-typed results), and (b) the B-0012 consolidation pass. Not done
+inline here — left for a deliberate pass rather than folded silently
+into `T-0035`'s closeout.

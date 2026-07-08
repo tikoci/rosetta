@@ -81,6 +81,16 @@ export function initDb() {
     html_file    TEXT NOT NULL
   );`);
 
+  // Migration: add rosetta_id (H7 Option 2 — see briefings/B-0012, "Identity / rosetta-id
+  // design"). NULL for legacy Confluence-sourced rows (they keep their numeric `id` as the
+  // only identifier); populated for Docusaurus-sourced rows extracted by extract-docusaurus.ts.
+  // A UNIQUE index (not a column constraint) so multiple NULLs are allowed side by side.
+  const pageCols = db.prepare("PRAGMA table_info(pages)").all() as Array<{ name: string }>;
+  if (!pageCols.some((c) => c.name === "rosetta_id")) {
+    db.run("ALTER TABLE pages ADD COLUMN rosetta_id TEXT;");
+  }
+  db.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_pages_rosetta_id ON pages(rosetta_id) WHERE rosetta_id IS NOT NULL;");
+
   db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS pages_fts USING fts5(
     title, path, text, code,
     content=pages,
