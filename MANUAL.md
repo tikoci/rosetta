@@ -170,12 +170,48 @@ Before cutting a corpus release, check these inputs separately from CI:
 
 Published artifacts come from the GitHub Actions `Release` workflow (`workflow_dispatch`), not from local ad hoc release commands.
 
-- **Inputs:** `version` (optional override), `docs_date`, `full_versions`, and `republish_assets`.
-- **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable.
-- **Traceable pipeline:** early quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → contract/eval steps → `db_meta` stamping → minimum-content validation → build/publish release assets and OCI images.
+- **Inputs:** `version` (optional override — see "npm channel" below for how this interacts with prerelease dispatches), `docs_date`, `full_versions`, and `republish_assets`.
+- **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable. See "Prerelease republish semantics" below for the prerelease-specific caveats.
+- **Traceable pipeline:** npm channel detection → CHANGELOG gate (latest only) → npm publish-access preflight → fast-fail quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → contract/eval steps → `db_meta` stamping → minimum-content validation → build/publish release assets and OCI images.
 - **Provenance:** release notes include DB stats, and the stamped `db_meta` keys (`release_tag`, `built_at`, `source_commit`, `schema_version`) let runtime surfaces report exactly what shipped.
+- **Test coverage:** the fast-fail `bun test` step runs with `--coverage`, prints a per-file table to the workflow's step summary, and uploads `coverage/lcov.info` as a `coverage-lcov` workflow artifact. Informational only — not a gate.
 
 The legacy Confluence pipeline (`extract-html.ts`/`extract-properties.ts`, `html_url` input) has been retired from `release.yml` (T-0036) — it survives only as the local-only `make extract-legacy-confluence` target for rebuilding historical pre-migration DBs; see "Rebuilding a historical (pre-migration) Confluence release DB" above.
+
+### Version bumps are a manual step
+
+CI no longer bumps `package.json` or promotes `CHANGELOG.md` for you, on **any** channel — the old `bump-version` job's blind `PATCH + 1` auto-commit is gone entirely. Before dispatching a release:
+
+1. Edit `package.json`'s `version` by hand to the version you intend to publish (see "npm channel" below for the prerelease vs. latest shape).
+2. For a **latest** (bare-version) release, promote `## [Unreleased]` in `CHANGELOG.md` to `## [<version>] — <date>` by hand, and start a fresh `## [Unreleased]` skeleton above it. The release workflow's "Verify CHANGELOG promotion for latest-channel release" step hard-fails if a matching `## [<version>]` heading isn't already there — this is the backstop for a forgotten promotion.
+3. Commit both files, merge to `main`, then dispatch `Release`.
+
+The existing "already published" npm preflight (`npm view <pkg>@<version>`) remains the backstop against re-dispatching an already-shipped version — loud failure, not silent, same as before.
+
+### npm channel: latest vs. prerelease
+
+`package.json`'s committed version is the **single source of truth for channel** — no separate CI input duplicates this:
+
+- A **bare** version (`0.11.0`) means the **latest** channel: `npm publish` runs with no `--tag` (defaults to the `latest` dist-tag), and the OCI `:latest` tag pushes.
+- A **prerelease** version of the form `MAJOR.MINOR.PATCH-<stage>` or `MAJOR.MINOR.PATCH-<stage>.N` (stage restricted to `alpha`, `beta`, or `rc` — anything else fails the workflow with a clear error) means a **prerelease** channel.
+
+For prerelease dispatches, the workflow's very first extraction-pipeline step rewrites `package.json`'s version **in the workspace only** (never committed) to `MAJOR.MINOR.PATCH-<stage>.${GITHUB_RUN_NUMBER}` before any preflight or publish step reads it. This means:
+
+- Repeated dispatches of the same committed prerelease version never collide on an already-published npm version — each run gets its own run-number suffix.
+- `npm publish --tag <stage>` ships the run, immediately followed by `npm dist-tag add @tikoci/rosetta@<version> next` — so `bunx @tikoci/rosetta@next` always resolves to the newest prerelease of *any* stage, while `bunx @tikoci/rosetta@alpha` / `@beta` / `@rc` each stay pinned to their own stage's latest.
+- **Leave the `version` input blank for prerelease dispatches.** The true published version (with its run-number suffix) can't be predicted ahead of dispatch. Supplying `version` anyway will fail the npm publish-access preflight loudly rather than silently publishing under the wrong version.
+- OCI images get a floating per-stage tag (`:alpha`/`:beta`/`:rc`) and a floating `:next`, alongside the always-on `$VERSION` and `sha-$SHORT_SHA` tags. The bare `:latest` OCI tag **never** pushes on a prerelease run — this is the fix for the OCI-latest-clobber risk (an unguarded alpha dispatch used to silently overwrite the production `/app` container's `:latest`).
+- The GitHub Release is created with `--prerelease` so it doesn't show as "Latest" on the repo's Releases page.
+- `^0.11.0-alpha`-style semver ranges are **not** a substitute for dist-tags — see the caveat in [README.md](README.md#prerelease-channels-optional).
+
+### Prerelease republish semantics
+
+`republish_assets: true` re-uploads GitHub Release assets and OCI tags for an already-published version without touching npm. For a **prerelease** version this has extra rules, since CI cannot recompute a past run's `$GITHUB_RUN_NUMBER`:
+
+- `version` **must** be supplied as the exact already-published run-numbered version (e.g. `v0.11.0-alpha.42`) — the workflow fails fast if it's blank.
+- `package.json` is **not** rewritten in this mode.
+- No `npm dist-tag add` calls happen (npm publish is already fully skipped in `republish_assets` mode).
+- No floating OCI tags move — `:latest`, `:alpha`/`:beta`/`:rc`, and `:next` are all left alone. Only the exact-version and `sha-*` image tags are re-pushed, so a republish of an older run can never regress what a floating tag currently points testers at.
 
 ## Database (Standalone)
 

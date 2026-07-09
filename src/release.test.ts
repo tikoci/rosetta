@@ -28,8 +28,11 @@ function mustIndex(haystack: string, needle: string): number {
 describe("package.json", () => {
   const pkg = JSON.parse(readText("package.json"));
 
-  test("version is valid semver", () => {
-    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+$/);
+  test("version is valid semver, optionally with an alpha/beta/rc prerelease channel suffix", () => {
+    // release.yml's "Determine npm release channel" step reads this committed
+    // value as the single source of truth: a bare MAJOR.MINOR.PATCH means
+    // latest, a -<stage> or -<stage>.N suffix means a prerelease dist-tag.
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+(-(alpha|beta|rc)(\.\d+)?)?$/);
   });
 
   test("name is @tikoci/rosetta", () => {
@@ -414,6 +417,119 @@ describe("release.yml", () => {
     expect(src).not.toContain("inputs.force");
   });
 
+  describe("npm prerelease channel", () => {
+    const src = readText(".github/workflows/release.yml");
+    const channelIdx = mustIndex(src, "Determine npm release channel");
+    const changelogGateIdx = mustIndex(
+      src,
+      "Verify CHANGELOG promotion for latest-channel release",
+    );
+    const preflightIdx = mustIndex(src, "Verify npm publish access");
+    const resolveVersionIdx = mustIndex(src, "Resolve release version");
+    const installIdx = mustIndex(src, "bun install");
+
+    test("channel detection runs before any preflight/publish step reads package.json's version", () => {
+      expect(installIdx).toBeLessThan(channelIdx);
+      expect(channelIdx).toBeLessThan(changelogGateIdx);
+      expect(channelIdx).toBeLessThan(preflightIdx);
+      expect(channelIdx).toBeLessThan(resolveVersionIdx);
+    });
+
+    test("parses a MAJOR.MINOR.PATCH-<stage> or -<stage>.N package.json version into channel/stage outputs", () => {
+      const channelBlock = src.slice(channelIdx, changelogGateIdx);
+      expect(channelBlock).toContain(
+        "^([0-9]+\\.[0-9]+\\.[0-9]+)-([A-Za-z]+)(\\.[0-9]+)?$",
+      );
+      expect(channelBlock).toContain("channel=prerelease");
+      expect(channelBlock).toContain("channel=latest");
+      expect(channelBlock).toContain("stage=$STAGE");
+    });
+
+    test("validates the parsed stage against the alpha/beta/rc allowlist, not arbitrary strings", () => {
+      const channelBlock = src.slice(channelIdx, changelogGateIdx);
+      expect(channelBlock).toContain("alpha|beta|rc) ;;");
+      expect(channelBlock).toMatch(/::error::Unrecognized prerelease stage/);
+      expect(channelBlock).toContain("exit 1");
+    });
+
+    test("rewrites package.json's version in-place with a run-number suffix for prerelease, workspace-only (not committed)", () => {
+      const channelBlock = src.slice(channelIdx, changelogGateIdx);
+      expect(channelBlock).toContain(`\${BASE}-\${STAGE}.\${GITHUB_RUN_NUMBER}`);
+      expect(channelBlock).toContain("fs.writeFileSync('package.json'");
+      expect(channelBlock).not.toContain("git add package.json");
+      expect(channelBlock).not.toContain("git commit");
+    });
+
+    test("republish_assets: true skips the package.json rewrite and requires an exact inputs.version for prerelease republishes", () => {
+      const channelBlock = src.slice(channelIdx, changelogGateIdx);
+      expect(channelBlock).toMatch(
+        /inputs\.republish_assets \}\}" = "true"/,
+      );
+      expect(channelBlock).toMatch(
+        /republish_assets=true with a prerelease package\.json version.*requires inputs\.version/,
+      );
+      expect(channelBlock).toContain(
+        "package.json version left as committed",
+      );
+    });
+
+    test("latest-channel CHANGELOG gate fails without a matching [<version>] heading, skips for prerelease and republish", () => {
+      const gateIdx2 = mustIndex(src, "Verify npm publish access");
+      const gateBlock = src.slice(changelogGateIdx, gateIdx2);
+      expect(gateBlock).toContain('if: inputs.republish_assets != true');
+      expect(gateBlock).toContain('steps.channel.outputs.channel');
+      expect(gateBlock).toContain('grep -qF "## [$PKG_VERSION]" CHANGELOG.md');
+      expect(gateBlock).toMatch(/::error::CHANGELOG\.md has no/);
+    });
+
+    test("npm publish uses --tag <stage> for prerelease and adds a next dist-tag; latest is unchanged bare publish", () => {
+      const publishIdx = mustIndex(src, "Publish to npm");
+      const bunxSmokeIdx = mustIndex(src, "bunx-smoke:");
+      const publishBlock = src.slice(publishIdx, bunxSmokeIdx);
+      expect(publishBlock).toContain(
+        `npm publish --access public --tag "\${{ steps.channel.outputs.stage }}"`,
+      );
+      expect(publishBlock).toContain(
+        `npm dist-tag add "@tikoci/rosetta@\${NPM_VERSION}" next`,
+      );
+      expect(publishBlock).toContain(
+        "npm publish --access public --registry https://registry.npmjs.org/",
+      );
+    });
+
+    test("OCI tags align with npm scheme: version+sha always, floating stage/next for prerelease, latest only for latest channel, republish never moves floating tags", () => {
+      const ociIdx = mustIndex(src, "Build and push OCI images");
+      const smokeIdx = mustIndex(src, "Smoke test published OCI images");
+      const ociBlock = src.slice(ociIdx, smokeIdx);
+      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${VERSION}" --tag "\${registry}:sha-\${SHORT_SHA}")`);
+      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${STAGE}" --tag "\${registry}:next")`);
+      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
+      expect(ociBlock).toMatch(/inputs\.republish_assets \}\}" != "true"/);
+    });
+
+    test("GitHub Release is created with --prerelease for prerelease channel runs", () => {
+      const releaseIdx = mustIndex(src, "Create or update GitHub Release");
+      const publishIdx = mustIndex(src, "Publish to npm");
+      const releaseBlock = src.slice(releaseIdx, publishIdx);
+      expect(releaseBlock).toContain("PRERELEASE_FLAGS=(--prerelease)");
+      expect(releaseBlock).toContain('steps.channel.outputs.channel');
+      expect(releaseBlock).toContain(`"\${PRERELEASE_FLAGS[@]}"`);
+    });
+  });
+
+  test("runs test coverage in release CI and uploads it as a workflow artifact", () => {
+    const src = readText(".github/workflows/release.yml");
+    const fastFailIdx = mustIndex(src, "Run tests (fast-fail)");
+    const buildxIdx = mustIndex(src, "Set up Docker Buildx");
+    const coverageBlock = src.slice(fastFailIdx, buildxIdx);
+
+    expect(coverageBlock).toContain("bun test --coverage");
+    expect(coverageBlock).toContain("--coverage-reporter=lcov");
+    expect(coverageBlock).toContain("## Test coverage");
+    expect(coverageBlock).toContain("Upload coverage artifact");
+    expect(coverageBlock).toContain("coverage/lcov.info");
+  });
+
   test("runs extraction pipeline", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("extract-docusaurus.ts");
@@ -577,25 +693,14 @@ describe("release.yml", () => {
     expect(src).toMatch(
       /bunx-smoke:[\s\S]{0,120}if: inputs\.republish_assets != true/,
     );
-    expect(src).toMatch(
-      /bump-version:[\s\S]{0,120}if: inputs\.republish_assets != true/,
-    );
   });
 
-  test("bump-version fetches and rebases before retrying push", () => {
+  test("bump-version job and its auto-commit are gone entirely — version bumps are a manual step for every channel", () => {
     const src = readText(".github/workflows/release.yml");
-    const bumpIdx = mustIndex(src, "bump-version:");
-    const bumpBlock = src.slice(bumpIdx);
-    const loopIdx = mustIndex(bumpBlock, "for attempt in 1 2 3; do");
-    const fetchIdx = mustIndex(bumpBlock, "git fetch origin main");
-    const rebaseIdx = mustIndex(bumpBlock, "git rebase origin/main");
-    const pushIdx = mustIndex(bumpBlock, "git push origin HEAD:main");
-    const retryIdx = mustIndex(bumpBlock, "Push rejected on attempt");
-
-    expect(loopIdx).toBeLessThan(fetchIdx);
-    expect(fetchIdx).toBeLessThan(rebaseIdx);
-    expect(rebaseIdx).toBeLessThan(pushIdx);
-    expect(pushIdx).toBeLessThan(retryIdx);
+    expect(src).not.toContain("bump-version:");
+    expect(src).not.toContain("git push origin HEAD:main");
+    expect(src).not.toContain("Bumped version:");
+    expect(src).not.toContain("Promoted [Unreleased]");
   });
 
   test("publishes to npm", () => {
@@ -607,8 +712,7 @@ describe("release.yml", () => {
   test("bunx-smoke covers windows with bash steps and a runner temp log", () => {
     const src = readText(".github/workflows/release.yml");
     const bunxIdx = mustIndex(src, "bunx-smoke:");
-    const bumpIdx = mustIndex(src, "bump-version:");
-    const bunxBlock = src.slice(bunxIdx, bumpIdx);
+    const bunxBlock = src.slice(bunxIdx);
 
     expect(bunxBlock).toContain("windows-latest");
     expect(bunxBlock).toContain("shell: bash");

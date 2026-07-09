@@ -121,6 +121,21 @@ Need to force a database reload later? Use:
 bunx @tikoci/rosetta@latest --refresh
 ```
 
+### Prerelease channels (optional)
+
+New corpus builds sometimes ship first under a non-default npm dist-tag so testers can opt in without moving what everyone else gets by default:
+
+```sh
+bunx @tikoci/rosetta@next     # newest prerelease of any stage (alpha/beta/rc)
+bunx @tikoci/rosetta@alpha    # pinned to the alpha stage's latest
+bunx @tikoci/rosetta@beta     # pinned to the beta stage's latest
+bunx @tikoci/rosetta@rc       # pinned to the rc stage's latest
+```
+
+`bunx @tikoci/rosetta` (no tag) and `bunx @tikoci/rosetta@latest` always resolve to the default, non-prerelease channel — publishing a prerelease never moves `latest`.
+
+> **Dist-tags, not semver ranges.** A version range like `^0.11.0-alpha` is **not** equivalent to a dist-tag. npm's prerelease range matching only spans the exact `[major,minor,patch]` tuple written in the range, so it stops tracking new prereleases the moment a patch/minor bump happens. `@next`/`@alpha`/`@beta`/`@rc` are the actual "follow forever" mechanism — use those, not a range, to stay on a moving prerelease channel.
+
 ### Configure your MCP client
 
 <details>
