@@ -467,11 +467,14 @@ async function checkCounts(extractedCount: number): Promise<boolean> {
     const llmsTxt = await res.text();
     const expected = parseLlmsTxtInScopeCount(llmsTxt);
     const ok = expected === extractedCount;
-    console.log(`\nCount cross-check (V-docusaurus-docs-count, non-blocking): llms.txt in-scope=${expected}, extracted=${extractedCount} — ${ok ? "MATCH" : "MISMATCH"}`);
+    console.log(`\nCount cross-check (V-docusaurus-docs-count${STRICT ? "" : ", non-blocking"}): llms.txt in-scope=${expected}, extracted=${extractedCount} — ${ok ? "MATCH" : "MISMATCH"}`);
     return ok;
   } catch (e) {
     console.log(`\nCount cross-check skipped (fetch failed): ${e}`);
-    return true; // don't fail a run just because the cross-check itself couldn't reach the network
+    // Plain --check-counts (local/manual) stays soft: a network blip shouldn't fail
+    // a dev run. But --strict is release.yml's blocking use (V-docusaurus-docs-count) —
+    // there, a skipped cross-check must not silently read as a pass.
+    return !STRICT;
   }
 }
 
