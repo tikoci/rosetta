@@ -12,5 +12,6 @@ The extraction surface now uses narrow rule files. Read the ones that match your
 - `schema-roundtrip-compat.instructions.md`
 - `data-source-naming-product-matrix.instructions.md`
 - `skill-attribution-boundary.instructions.md`
+- `github-api-auth.instructions.md`
 
 Keep this file as a router only. Put new extraction rules in the narrow file that actually owns them.

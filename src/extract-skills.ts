@@ -14,6 +14,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { db, initDb } from "./db.ts";
+import { fetchGitHub, githubApiHeaders } from "./github.ts";
 
 // ── Configuration ──
 
@@ -22,7 +23,6 @@ const CACHE_DIR = join(PROJECT_ROOT, "skills");
 
 const GITHUB_REPO = "tikoci/routeros-skills";
 const GITHUB_API_BASE = `https://api.github.com/repos/${GITHUB_REPO}`;
-const GITHUB_RAW_BASE = `https://raw.githubusercontent.com/${GITHUB_REPO}`;
 
 const FROM_CACHE = process.argv.includes("--from-cache");
 
@@ -70,15 +70,8 @@ function countWords(text: string): number {
 
 // ── GitHub API fetching ──
 
-export function githubApiHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-  if (token) headers.Authorization = `Bearer ${token}`;
-  return headers;
-}
-
 async function getDefaultBranchSha(): Promise<string> {
-  const res = await fetch(`${GITHUB_API_BASE}/commits/HEAD`, {
+  const res = await fetchGitHub(`${GITHUB_API_BASE}/commits/HEAD`, {
     headers: githubApiHeaders(),
   });
   if (!res.ok) throw new Error(`Failed to get HEAD SHA: HTTP ${res.status}`);
@@ -87,7 +80,7 @@ async function getDefaultBranchSha(): Promise<string> {
 }
 
 async function listSkillDirs(sha: string): Promise<string[]> {
-  const res = await fetch(`${GITHUB_API_BASE}/contents/?ref=${sha}`, {
+  const res = await fetchGitHub(`${GITHUB_API_BASE}/contents/?ref=${sha}`, {
     headers: githubApiHeaders(),
   });
   if (!res.ok) throw new Error(`Failed to list repo contents: HTTP ${res.status}`);
@@ -98,8 +91,11 @@ async function listSkillDirs(sha: string): Promise<string[]> {
 }
 
 async function fetchRawFile(sha: string, path: string): Promise<string | null> {
-  const url = `${GITHUB_RAW_BASE}/${sha}/${path}`;
-  const res = await fetch(url);
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  const url = `${GITHUB_API_BASE}/contents/${encodedPath}?ref=${sha}`;
+  const res = await fetchGitHub(url, {
+    headers: githubApiHeaders("application/vnd.github.v3.raw"),
+  });
   if (!res.ok) {
     if (res.status === 404) return null;
     throw new Error(`Failed to fetch ${path}: HTTP ${res.status}`);
@@ -108,7 +104,7 @@ async function fetchRawFile(sha: string, path: string): Promise<string | null> {
 }
 
 async function listReferences(sha: string, skillName: string): Promise<string[]> {
-  const res = await fetch(`${GITHUB_API_BASE}/contents/${skillName}/references?ref=${sha}`, {
+  const res = await fetchGitHub(`${GITHUB_API_BASE}/contents/${skillName}/references?ref=${sha}`, {
     headers: githubApiHeaders(),
   });
   if (!res.ok) {

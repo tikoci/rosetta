@@ -257,6 +257,8 @@ jobs:
         run: bun run src/extract-docusaurus.ts --check-counts --strict
 
       - name: Extract command tree
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ inputs.full_versions }}" = "true" ]; then
             bun run src/extract-all-versions.ts
