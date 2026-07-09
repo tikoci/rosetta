@@ -475,15 +475,20 @@ describe("release.yml", () => {
 
     test("republish_assets: true skips the package.json rewrite and requires an exact inputs.version for prerelease republishes", () => {
       const channelBlock = src.slice(channelIdx, changelogGateIdx);
-      expect(channelBlock).toMatch(
-        /inputs\.republish_assets \}\}" = "true"/,
-      );
+      expect(channelBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" = "true" \]/);
       expect(channelBlock).toMatch(
         /republish_assets=true with a prerelease package\.json version.*requires inputs\.version/,
       );
       expect(channelBlock).toContain(
         "package.json version left as committed",
       );
+    });
+
+    test("republish_assets and version inputs are read via env:, not interpolated directly into the shell script (template-injection guard)", () => {
+      const channelBlock = src.slice(channelIdx, changelogGateIdx);
+      expect(channelBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
+      expect(channelBlock).toContain(`INPUT_VERSION: \${{ inputs.version }}`);
+      expect(channelBlock).not.toMatch(/\[ .*"\$\{\{ inputs\./);
     });
 
     test("latest-channel CHANGELOG gate fails without a matching [<version>] heading, skips for prerelease and republish", () => {
@@ -502,8 +507,13 @@ describe("release.yml", () => {
       expect(publishBlock).toContain(
         `npm publish --access public --tag "\${{ steps.channel.outputs.stage }}"`,
       );
+      // Reads PKG_NAME from package.json dynamically rather than hardcoding
+      // the package name, so a rename can't silently drift out of sync.
       expect(publishBlock).toContain(
-        `npm dist-tag add "@tikoci/rosetta@\${NPM_VERSION}" next`,
+        "PKG_NAME=$(node -p \"require('./package.json').name\")",
+      );
+      expect(publishBlock).toContain(
+        `npm dist-tag add "\${PKG_NAME}@\${NPM_VERSION}" next`,
       );
       expect(publishBlock).toContain(
         "npm publish --access public --registry https://registry.npmjs.org/",
@@ -517,7 +527,10 @@ describe("release.yml", () => {
       expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${VERSION}" --tag "\${registry}:sha-\${SHORT_SHA}")`);
       expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${STAGE}" --tag "\${registry}:next")`);
       expect(ociBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
-      expect(ociBlock).toMatch(/inputs\.republish_assets \}\}" != "true"/);
+      // republish_assets is read via env: (template-injection guard), not
+      // interpolated directly into the `if [ ... ]` shell test.
+      expect(ociBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
+      expect(ociBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" != "true" \]/);
     });
 
     test("GitHub Release is created with --prerelease for prerelease channel runs", () => {
@@ -527,6 +540,16 @@ describe("release.yml", () => {
       expect(releaseBlock).toContain("PRERELEASE_FLAGS=(--prerelease)");
       expect(releaseBlock).toContain('steps.channel.outputs.channel');
       expect(releaseBlock).toContain(`"\${PRERELEASE_FLAGS[@]}"`);
+    });
+
+    test("docs_date and republish_assets inputs are read via env: in the GitHub Release step (template-injection guard)", () => {
+      const releaseIdx = mustIndex(src, "Create or update GitHub Release");
+      const publishIdx = mustIndex(src, "Publish to npm");
+      const releaseBlock = src.slice(releaseIdx, publishIdx);
+      expect(releaseBlock).toContain(`DOCS_DATE: \${{ inputs.docs_date }}`);
+      expect(releaseBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
+      expect(releaseBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" = "true" \]/);
+      expect(releaseBlock).not.toContain(`DOCS_DATE="\${{ inputs.docs_date }}"`);
     });
   });
 
@@ -703,8 +726,10 @@ describe("release.yml", () => {
     expect(src).not.toContain("inputs.force");
     expect(src).not.toContain("force=true");
 
+    // republish_assets is read via an env-mapped $REPUBLISH_ASSETS, not
+    // interpolated directly into the shell script (template-injection guard).
     const republishBranchIdx = src.search(
-      /if \[ "\$\{\{ inputs\.republish_assets \}\}" = "true" \]; then/,
+      /if \[ "\$REPUBLISH_ASSETS" = "true" \]; then/,
     );
     expect(republishBranchIdx).toBeGreaterThanOrEqual(0);
     const clobberIdx = mustIndex(src, "gh release upload");

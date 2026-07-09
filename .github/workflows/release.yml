@@ -70,6 +70,9 @@ jobs:
       # version", publish, OCI tagging, GH Release) sees the rewritten value.
       - name: Determine npm release channel
         id: channel
+        env:
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -88,12 +91,12 @@ jobs:
             echo "channel=prerelease" >> "$GITHUB_OUTPUT"
             echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
 
-            if [ "${{ inputs.republish_assets }}" = "true" ]; then
-              if [ -z "${{ inputs.version }}" ]; then
+            if [ "$REPUBLISH_ASSETS" = "true" ]; then
+              if [ -z "$INPUT_VERSION" ]; then
                 echo "::error::republish_assets=true with a prerelease package.json version ($PKG_VERSION) requires inputs.version set to the exact already-published run-numbered version (e.g. v${BASE}-${STAGE}.42) — package.json's committed version has no run-number suffix and was never itself published."
                 exit 1
               fi
-              echo "republish_assets=true — package.json version left as committed ($PKG_VERSION); inputs.version (${{ inputs.version }}) carries the exact already-published version instead."
+              echo "republish_assets=true — package.json version left as committed ($PKG_VERSION); inputs.version ($INPUT_VERSION) carries the exact already-published version instead."
             else
               NEW_VERSION="${BASE}-${STAGE}.${GITHUB_RUN_NUMBER}"
               node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$NEW_VERSION'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
@@ -218,9 +221,10 @@ jobs:
 
       - name: Resolve release version
         id: release_version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          INPUT_VERSION="${{ inputs.version }}"
           if [ -n "$INPUT_VERSION" ]; then
             VERSION="$INPUT_VERSION"
             SOURCE="workflow input"
@@ -428,6 +432,8 @@ jobs:
       # would otherwise silently overwrite the production /app container's
       # :latest with an unfinished prerelease DB).
       - name: Build and push OCI images (Docker Hub + GHCR)
+        env:
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
         run: |
           set -euo pipefail
           SHORT_SHA="${{ steps.image_meta.outputs.short_sha }}"
@@ -438,7 +444,7 @@ jobs:
           tags=()
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
             tags+=(--tag "${registry}:${VERSION}" --tag "${registry}:sha-${SHORT_SHA}")
-            if [ "${{ inputs.republish_assets }}" != "true" ]; then
+            if [ "$REPUBLISH_ASSETS" != "true" ]; then
               if [ "$CHANNEL" = "prerelease" ]; then
                 tags+=(--tag "${registry}:${STAGE}" --tag "${registry}:next")
               else
@@ -520,10 +526,11 @@ jobs:
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          DOCS_DATE: ${{ inputs.docs_date }}
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
         run: |
           set -euo pipefail
           VERSION="${{ steps.release_version.outputs.version }}"
-          DOCS_DATE="${{ inputs.docs_date }}"
 
           # Prerelease runs (including their republish_assets clobbers) mark
           # the GitHub Release as a prerelease so it doesn't show as "Latest".
@@ -547,7 +554,7 @@ jobs:
           - **Full version extraction:** ${{ inputs.full_versions }}
           - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          if [ "${{ inputs.republish_assets }}" = "true" ]; then
+          if [ "$REPUBLISH_ASSETS" = "true" ]; then
             # Create release if it doesn't exist, then reupload assets with clobber.
             gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}" 2>/dev/null || true
             gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
@@ -580,11 +587,12 @@ jobs:
         if: inputs.republish_assets != true
         run: |
           set -euo pipefail
+          PKG_NAME=$(node -p "require('./package.json').name")
           NPM_VERSION="${{ steps.release_version.outputs.version }}"
           NPM_VERSION="${NPM_VERSION#v}"
           if [ "${{ steps.channel.outputs.channel }}" = "prerelease" ]; then
             npm publish --access public --tag "${{ steps.channel.outputs.stage }}" --registry https://registry.npmjs.org/
-            npm dist-tag add "@tikoci/rosetta@${NPM_VERSION}" next --registry https://registry.npmjs.org/
+            npm dist-tag add "${PKG_NAME}@${NPM_VERSION}" next --registry https://registry.npmjs.org/
           else
             npm publish --access public --registry https://registry.npmjs.org/
           fi
