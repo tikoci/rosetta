@@ -2,14 +2,16 @@
  * restraml.ts — Shared helpers for fetching data from tikoci/restraml.
  *
  * restraml publishes inspect.json files to GitHub Pages. Version discovery
- * uses the GitHub API (1 call), but all inspect.json fetches go through
- * GitHub Pages (no rate limit).
+ * uses the authenticated GitHub API when a token is available (1 call), but
+ * all inspect.json fetches go through GitHub Pages (no rate limit).
  */
+
+import { fetchGitHub, githubApiHeaders } from "./github.ts";
 
 /** GitHub Pages base URL — inspect.json files served here (no rate limit) */
 export const RESTRAML_PAGES_URL = "https://tikoci.github.io/restraml";
 
-/** GitHub API endpoint for version directory listing (60 req/hr unauthenticated) */
+/** GitHub API endpoint for version directory listing. */
 const RESTRAML_API_CONTENTS_URL = "https://api.github.com/repos/tikoci/restraml/contents/docs";
 
 export function isHttpUrl(value: string): boolean {
@@ -30,8 +32,8 @@ interface GitHubContentEntry {
  * Uses 1 GitHub API call to list the docs/ directory, returns version strings.
  */
 export async function discoverRemoteVersions(): Promise<string[]> {
-  const response = await fetch(RESTRAML_API_CONTENTS_URL, {
-    headers: { Accept: "application/vnd.github.v3+json" },
+  const response = await fetchGitHub(RESTRAML_API_CONTENTS_URL, {
+    headers: githubApiHeaders(),
   });
 
   if (!response.ok) {

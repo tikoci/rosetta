@@ -1,0 +1,63 @@
+/**
+ * github.ts — Small helpers for authenticated GitHub HTTP calls.
+ *
+ * Release extraction runs from GitHub Actions shared runner IPs, so every
+ * GitHub API request should use GITHUB_TOKEN/GH_TOKEN when available and retry
+ * transient throttling responses.
+ */
+
+const DEFAULT_ACCEPT = "application/vnd.github.v3+json";
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+
+export function githubApiHeaders(accept = DEFAULT_ACCEPT): Record<string, string> {
+  const headers: Record<string, string> = { Accept: accept };
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+function retryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+  const dateMs = Date.parse(value);
+  if (Number.isFinite(dateMs)) return Math.max(0, dateMs - Date.now());
+  return null;
+}
+
+function defaultRetryDelayMs(response: Response, attempt: number): number {
+  const retryAfter = retryAfterMs(response.headers.get("retry-after"));
+  if (retryAfter !== null) return retryAfter;
+
+  const resetSeconds = Number(response.headers.get("x-ratelimit-reset"));
+  const remaining = response.headers.get("x-ratelimit-remaining");
+  if (remaining === "0" && Number.isFinite(resetSeconds)) {
+    return Math.max(0, resetSeconds * 1000 - Date.now());
+  }
+
+  return 1000 * 2 ** attempt;
+}
+
+function shouldRetry(response: Response): boolean {
+  if (RETRYABLE_STATUSES.has(response.status)) return true;
+  return response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0";
+}
+
+export async function fetchGitHub(
+  url: string,
+  options: RequestInit = {},
+  retries = 3,
+): Promise<Response> {
+  let lastResponse: Response | null = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const response = await fetch(url, options);
+    if (!shouldRetry(response) || attempt === retries) return response;
+
+    lastResponse = response;
+    const delayMs = Math.min(defaultRetryDelayMs(response, attempt), 30_000);
+    console.warn(`GitHub request throttled (HTTP ${response.status}); retrying in ${Math.round(delayMs / 1000)}s`);
+    await Bun.sleep(delayMs);
+  }
+
+  return lastResponse ?? fetch(url, options);
+}

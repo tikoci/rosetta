@@ -158,7 +158,7 @@ extract-dude-from-cache:
 extract-skills:
 	bun run src/extract-skills.ts
 
-# Re-extract from cached skills/ directory — no network dependency (used in CI).
+# Re-extract from cached skills/ directory — no network dependency for local/offline rebuilds.
 extract-skills-from-cache:
 	bun run src/extract-skills.ts --from-cache
 
