@@ -348,8 +348,8 @@ the precedent `T-0035` set for `T-0034`.
   complementary, not overlapping.
 - `briefings/B-0012-docusaurus-manual-migration.md` — the extractor whose
   testing gap motivated this review.
-- `tasks/T-0033-docusaurus-premigration-grounding.md` — already flagged
-  itself as ready for a closeout pass; the B-0012 consolidation work
-  mentioned there is separate from this CI-specific angle.
+- `tasks/done/T-0033-docusaurus-premigration-grounding.md` — closed
+  2026-07-08; the B-0012 consolidation work mentioned there is separate from
+  this CI-specific angle and remains deferred.
 - `VALIDATION.md` — source of truth for the blocking/non-blocking/GAP
   inventory used throughout this briefing.

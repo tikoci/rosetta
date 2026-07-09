@@ -1,7 +1,7 @@
 ---
 id: T-0033-docusaurus-premigration-grounding
 title: Pre-migration grounding pack — resolve B-0012 homework H1–H8 before cutting extractor tasks
-status: ready
+status: done
 priority: high
 area: docs
 depends_on: []
@@ -70,3 +70,47 @@ Reference overlay, `/hardware` extractor, `/changelog` watcher, MCP/TUI
 source-typed results), and (b) the B-0012 consolidation pass. Not done
 inline here — left for a deliberate pass rather than folded silently
 into `T-0035`'s closeout.
+
+## 2026-07-08 — closed
+
+Revisited per the user's request to check whether T-0033/B-0012 can close
+for the `/docs`-prose migration scope (explicitly excluding CLI Reference,
+`/hardware`, `/changelog` — those stay future work per B-0012). Since the
+note above, `release.yml` itself has also been cut over to the Docusaurus
+extractor (`T-0036`, done) and an npm prerelease dist-tag channel landed
+(`T-0037`, in-progress) — full write-up in B-0012's new "2026-07-08" section.
+
+All acceptance criteria satisfied for this task's actual scope:
+
+- H1–H8 all resolved with dated B-0012 sections (2026-07-07).
+- H5 produced the required cross-repo artifact — filed as
+  [tikoci/restraml#85](https://github.com/tikoci/restraml/issues/85). Still
+  open/no response as of 2026-07-08 (checked via `gh issue view`), but that's
+  restraml's decision to make, not something this research task can force —
+  it stays tracked as proposed task #5, not a blocker to closing T-0033.
+- H7 decided (Option 2) and promoted into `DESIGN.md`.
+- Concrete extractor/MCP task files proposed in B-0012's "Proposed migration
+  task files"; item #1 fully landed (`T-0034`, `T-0035`, and the
+  `T-0036`/`T-0037` release-pipeline cutover that followed). Items #2–#4/#6
+  remain deliberate proposals, not yet cut as real tasks.
+- No production code changed by this task itself — all code landed via
+  `T-0034`/`T-0035`/`T-0036`/`T-0037`.
+
+**One actionable, not-yet-done gotcha surfaced during this closeout review**
+(recorded in full in B-0012's "2026-07-08" section): `package.json`'s
+committed version is still a bare `0.11.0` (latest-channel shape) with no
+matching `## [0.11.0]` `CHANGELOG.md` heading. Dispatching `release.yml`
+as-is would fail the "Verify CHANGELOG promotion for latest-channel release"
+gate immediately. To ship the intended first Docusaurus-sourced test build
+under the `alpha` npm dist-tag, `package.json`'s version needs to be edited
+to a prerelease identifier (e.g. `0.11.0-alpha`) and committed before
+dispatch — `release.yml` appends the run-number suffix itself, and
+`npm view @tikoci/rosetta dist-tags` (checked 2026-07-08) confirms `latest`
+is still `0.10.0` with `0.11.0` never published, so there's no collision
+risk. Everything else in the pipeline (Docusaurus extraction, count-check,
+channel detection, OCI/npm tagging, `bunx-smoke`) is wired and verified
+structurally (`bun run typecheck` clean, full `bun test` 651 pass / 0 fail,
+`src/release.test.ts` green) — this version bump is the only outstanding
+step before dispatching.
+
+Status: `done`.

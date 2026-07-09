@@ -33,14 +33,12 @@ Items waiting on a specific external event. Not tracked as tasks because the wai
 | `schema_nodes._package` population | When restraml emits package provenance in deep-inspect output. |
 | MCP Registry publish automation | When CI OIDC auth is configured. Add publish step to `release.yml` and sync `server.json` version from tag. |
 | OCI armv7 support | When Bun armv7 target and MikroTik `/app` armv7 support both exist. |
-| Legacy documentation version tracking | Only if another archival Confluence export appears. Otherwise, use the Docusaurus manual extraction trigger and B-0012 instead of waiting for a second HTML export. |
+| Legacy documentation version tracking | Only if another archival Confluence export appears. Otherwise, use B-0012 instead of waiting for a second HTML export. |
 | Copilot context provider via `lsp-routeros-ts` | When LSP integration matures enough to provide doc context via MCP or direct DB queries. |
 | Cross-DB federation with forum archive | When forum archive is stable and a classifier/plugin point is ready. |
 | Local usage analytics | When we need real query-shape data. Keep opt-in (`ROSETTA_LOG_USAGE=1`) and local-only. |
 | Video extraction retry | At each scheduled transcript refresh — re-run consistent-fail videos after 48–72h gaps; add to `known-bad.json` after repeated failures. |
 | LSP consumer artifacts | When `lsp-routeros-ts` is ready for static manifests. Publish path→URL/title and verbs manifests as CI artifacts. |
-| Docusaurus manual extraction | When starting the post-Confluence docs refresh. Gated twice: T-0033 (B-0012 homework H1–H8) must be resolved, **and** the final-Confluence NPM release below must have shipped. Read B-0012 first; this likely affects extractor schema, command linking, MCP result shapes, and TUI parity together. |
-| Final help.mikrotik.com NPM release | Before any Docusaurus-migration code lands: cut one last release so the final Confluence-corpus DB stays durably installable. Research (T-0033) may run before this; extractor tasks may not. |
 | Manual doc-changes watcher | After Docusaurus extraction lands: CI polls `manual.mikrotik.com/changelog/rss.xml` (verified live 2026-07-07) and opens an issue/PR when the manual changed, making re-extraction event-driven instead of scheduled. |
 | bench-routeros-tools merge | When `agents/grounded-data-collection-agents` and the pending Claude matrix work land, review benchmark reports for stable external-eval fixtures and decide whether to promote a rosetta task. |
 
@@ -60,7 +58,6 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 - `T-0014-html-url-supplied-or-discovered` — Make `html_url` intentionally supplied or auto-discovered
 - `T-0015-promote-changelog-into-release-notes` — Promote CHANGELOG.md into release notes
 - `T-0016-shrink-makefile-to-etl` — Shrink Makefile toward ETL only (narrowed: T-0013 removed release targets)
-- `T-0036-release-yml-docusaurus-cutover` — Cut release.yml over to `extract-docusaurus.ts`, retire `html_url`
 - `T-0037-npm-prerelease-dist-tag-channel` — npm prerelease/dist-tag channel (alpha/beta/rc/next) with aligned OCI tags + coverage reporting
 
 ### `area: install`
@@ -86,10 +83,6 @@ Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen scrip
 
 - `T-0026-tui-flag-passthrough` — TUI pass-through flag parsing
 - `T-0027-tui-pattern-search` — TUI vi-style `/pattern` search
-
-### `area: docs`
-
-- `T-0033-docusaurus-premigration-grounding` — Resolve B-0012 homework H1–H8 before cutting migration extractor tasks
 
 ## Briefings index
 
@@ -131,5 +124,7 @@ Greppable history of merged work. See `tasks/done/T-*.md` for full back-fill of 
 - T-0029 Promoted contract test + Phase 0 retrieval eval to blocking in release CI
 - T-0030 Self-supervised retrieval eval wired into release CI
 - T-0031 Split `CLAUDE.md` into narrow instruction files and relocated canonical docs to `MANUAL.md` / `DESIGN.md`
+- T-0033 Docusaurus pre-migration grounding pack — B-0012 homework H1–H8 resolved, follow-up tasks proposed
 - T-0034 rosetta-id scheme spike — confirmed H7 Option 2 against a live 20-page `/docs` prototype
 - T-0035 Docusaurus `/docs` prose extractor — replaced `extract-html.ts` as the default prose source; 360/360 pages live-verified against `llms.txt`
+- T-0036 Cut `release.yml` over to `extract-docusaurus.ts`, retired `html_url` and the legacy Confluence release pipeline

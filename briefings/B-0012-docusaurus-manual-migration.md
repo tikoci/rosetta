@@ -4,8 +4,10 @@ topic: Docusaurus manual migration after Confluence retirement
 status: open
 related_tasks:
   - T-0033-docusaurus-premigration-grounding
+  - T-0036-release-yml-docusaurus-cutover
+  - T-0037-npm-prerelease-dist-tag-channel
 created: 2026-05-29
-last_revisited: 2026-07-07
+last_revisited: 2026-07-08
 ---
 
 # Question
@@ -735,3 +737,63 @@ steps" section above and was stale):** the final help.mikrotik.com-corpus NPM re
 shipped before `T-0034`/`T-0035` started (see "Next steps"), clearing the extractor-work gate for
 task #1. Items #2–#4/#6 remain proposals, not commitments — cut them as real tasks when next
 prioritized, same as always; nothing further blocks them.
+
+## 2026-07-08 — release pipeline cutover landed; T-0033 closed
+
+Two more tasks landed against item #1's tail since the section above was written:
+
+- **`T-0036`** (done) — cut `release.yml` over from the legacy Confluence
+  `extract-html.ts`/`extract-properties.ts` pair to the live
+  `extract-docusaurus.ts` extractor. The `html_url` workflow input is gone;
+  every release build now live-fetches `manual.mikrotik.com`'s `/docs` tree
+  and proves `V-docusaurus-docs-count` on every run
+  (`extract-docusaurus.ts --check-counts --strict`), promoted from
+  non-blocking to blocking in `VALIDATION.md`. The legacy pipeline survives
+  only as the local-only `make extract-legacy-confluence` target.
+- **`T-0037`** (in-progress, structurally complete) — an npm prerelease
+  dist-tag channel (`alpha`/`beta`/`rc`/`next`) so a Docusaurus-sourced test
+  build can ship without moving the default `latest` dist-tag (still
+  `0.10.0`, the final Confluence-corpus release — confirmed live via
+  `npm view @tikoci/rosetta dist-tags` 2026-07-08). Channel is driven
+  entirely by `package.json`'s committed version; OCI tags and GitHub
+  Releases mirror the same scheme, and `:latest` never moves on a
+  prerelease run. Deliberately left `in-progress` rather than `done`: the
+  structural code and tests are green (`bun run typecheck` clean, full
+  `bun test` 651 pass / 0 fail, `src/release.test.ts` green, all verified
+  2026-07-08), but `VALIDATION.md`'s `V-npm-channel-tags`/`V-oci-latest-guard`
+  rows are explicit that the *functional* behavior — an actual `npm publish
+  --tag alpha`, an actual floating OCI tag push — is only proven by a real
+  `release.yml` dispatch, which hasn't happened yet.
+
+**Actionable gotcha found during this review, not yet done:** `package.json`'s
+committed version today is a bare `0.11.0` (latest-channel shape), but
+`CHANGELOG.md` only has an `## [Unreleased]` heading, no `## [0.11.0]`.
+Dispatching `release.yml` as-is would hit the "Verify CHANGELOG promotion for
+latest-channel release" gate and fail immediately. `npm view
+@tikoci/rosetta dist-tags` confirms `latest` is still `0.10.0` and `0.11.0`
+has never been published, so there's no version-collision risk either way.
+**To ship the intended first Docusaurus-sourced test build under the `alpha`
+dist-tag: edit `package.json`'s `version` to a prerelease identifier (e.g.
+`0.11.0-alpha`, no run-number suffix needed — `release.yml` appends
+`.${GITHUB_RUN_NUMBER}` itself) and commit it before dispatching.** That
+single edit is the only outstanding step; everything else in the pipeline
+(Docusaurus extraction, count-check, channel detection, OCI/npm tagging,
+`bunx-smoke`) is wired and passing structurally.
+
+**T-0033 closed 2026-07-08.** All acceptance criteria satisfied for the
+`/docs`-only scope this briefing and task were scoped to: H1–H8 resolved
+(2026-07-07), H7 decided and promoted to `DESIGN.md`, concrete follow-up
+tasks proposed above with item #1 fully landed (`T-0034`, `T-0035`, plus the
+`T-0036`/`T-0037` release-pipeline cutover noted here). Items #2–#4/#6
+remain deliberate proposals, not yet cut as real tasks — CLI Reference,
+`/hardware`, `/changelog`, and the MCP/TUI source-typed rework are still
+future work, cut whenever next prioritized. H5's restraml contract
+([tikoci/restraml#85](https://github.com/tikoci/restraml/issues/85)) is
+still open with no response as of 2026-07-08 — an external dependency,
+tracked under proposed task #5, not a blocker to closing T-0033.
+
+The large "Verified 2026-07-XX" research log above (H1–H8 write-ups) stays
+as the durable record and has **not** been consolidated/shortened in this
+pass — that housekeeping is still deliberately deferred, same as the
+2026-07-07 "Next steps" section already called out, until a later pass
+with nothing more urgent to do.
