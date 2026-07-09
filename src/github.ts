@@ -51,16 +51,17 @@ export async function fetchGitHub(
   options: RequestInit = {},
   retries = 3,
 ): Promise<Response> {
-  let lastResponse: Response | null = null;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const response = await fetch(url, options);
     if (!shouldRetry(response) || attempt === retries) return response;
 
-    lastResponse = response;
     const delayMs = Math.min(defaultRetryDelayMs(response, attempt), 30_000);
     console.warn(`GitHub request throttled (HTTP ${response.status}); retrying in ${Math.round(delayMs / 1000)}s`);
     await Bun.sleep(delayMs);
   }
 
-  return lastResponse ?? fetch(url, options);
+  // Unreachable in practice: every caller uses the default `retries`, and the
+  // loop always returns on its `attempt === retries` iteration. `fetch` is
+  // called once more here only so TypeScript sees every path return a Response.
+  return fetch(url, options);
 }
