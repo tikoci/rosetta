@@ -47,8 +47,8 @@ describe("extract-skills GitHub API headers", () => {
   test("supports GitHub raw content API accept header while preserving auth", () => {
     process.env.GITHUB_TOKEN = "raw-token";
 
-    expect(githubApiHeaders("application/vnd.github.raw")).toEqual({
-      Accept: "application/vnd.github.raw",
+    expect(githubApiHeaders("application/vnd.github.v3.raw")).toEqual({
+      Accept: "application/vnd.github.v3.raw",
       Authorization: "Bearer raw-token",
     });
   });
@@ -60,7 +60,7 @@ describe("extract-skills GitHub fetch shape", () => {
 
     expect(src).not.toContain("raw.githubusercontent.com");
     expect(src).toContain("/contents/");
-    expect(src).toContain('githubApiHeaders("application/vnd.github.raw")');
+    expect(src).toContain('githubApiHeaders("application/vnd.github.v3.raw")');
     expect(src).toContain("fetchGitHub");
   });
 

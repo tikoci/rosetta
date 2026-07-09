@@ -25,11 +25,11 @@ function retryAfterMs(value: string | null): number | null {
   return null;
 }
 
-function defaultRetryDelayMs(response: Response, attempt: number): number {
+export function defaultRetryDelayMs(response: Response, attempt: number): number {
   const retryAfter = retryAfterMs(response.headers.get("retry-after"));
   if (retryAfter !== null) return retryAfter;
 
-  const resetSeconds = Number(response.headers.get("x-ratelimit-reset"));
+  const resetSeconds = Number(response.headers.get("x-ratelimit-reset") ?? NaN);
   const remaining = response.headers.get("x-ratelimit-remaining");
   if (remaining === "0" && Number.isFinite(resetSeconds)) {
     return Math.max(0, resetSeconds * 1000 - Date.now());
@@ -38,9 +38,12 @@ function defaultRetryDelayMs(response: Response, attempt: number): number {
   return 1000 * 2 ** attempt;
 }
 
-function shouldRetry(response: Response): boolean {
+export function shouldRetry(response: Response): boolean {
   if (RETRYABLE_STATUSES.has(response.status)) return true;
-  return response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0";
+  if (response.status !== 403) return false;
+  // Primary rate limit (remaining=0) or secondary/abuse-detection limit
+  // (Retry-After present even with quota remaining) are both retryable.
+  return response.headers.get("x-ratelimit-remaining") === "0" || response.headers.get("retry-after") !== null;
 }
 
 export async function fetchGitHub(

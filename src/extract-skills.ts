@@ -94,7 +94,7 @@ async function fetchRawFile(sha: string, path: string): Promise<string | null> {
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
   const url = `${GITHUB_API_BASE}/contents/${encodedPath}?ref=${sha}`;
   const res = await fetchGitHub(url, {
-    headers: githubApiHeaders("application/vnd.github.raw"),
+    headers: githubApiHeaders("application/vnd.github.v3.raw"),
   });
   if (!res.ok) {
     if (res.status === 404) return null;
