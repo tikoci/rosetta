@@ -1,7 +1,7 @@
 ---
 id: T-0036-release-yml-docusaurus-cutover
 title: Cut release.yml over to extract-docusaurus.ts, retire html_url
-status: in-progress
+status: done 
 priority: high
 area: release
 depends_on: []
