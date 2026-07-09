@@ -452,6 +452,19 @@ describe("release.yml", () => {
       expect(channelBlock).toContain("exit 1");
     });
 
+    test("a version matching neither the prerelease nor the bare-semver shape fails loudly instead of silently falling through to latest", () => {
+      const channelBlock = src.slice(channelIdx, changelogGateIdx);
+      // Bare-latest branch must be gated on a strict semver regex, not a bare `else`
+      // catch-all — otherwise a typo'd prerelease shape (e.g. "0.11.0-alpha1" with
+      // no separator, or a 4-part version) would silently publish as `latest`.
+      expect(channelBlock).toMatch(
+        /elif \[\[ "\$PKG_VERSION" =~ \^\[0-9\]\+\\\.\[0-9\]\+\\\.\[0-9\]\+\$ \]\]; then/,
+      );
+      expect(channelBlock).toMatch(
+        /::error::package\.json version '\$PKG_VERSION' doesn't match a recognized shape/,
+      );
+    });
+
     test("rewrites package.json's version in-place with a run-number suffix for prerelease, workspace-only (not committed)", () => {
       const channelBlock = src.slice(channelIdx, changelogGateIdx);
       expect(channelBlock).toContain(`\${BASE}-\${STAGE}.\${GITHUB_RUN_NUMBER}`);
@@ -528,6 +541,21 @@ describe("release.yml", () => {
     expect(coverageBlock).toContain("## Test coverage");
     expect(coverageBlock).toContain("Upload coverage artifact");
     expect(coverageBlock).toContain("coverage/lcov.info");
+  });
+
+  test("coverage step always closes its summary code fence, even when bun test fails (PIPESTATUS, not implicit pipefail)", () => {
+    const src = readText(".github/workflows/release.yml");
+    const fastFailIdx = mustIndex(src, "Run tests (fast-fail)");
+    const uploadIdx = mustIndex(src, "Upload coverage artifact");
+    const coverageBlock = src.slice(fastFailIdx, uploadIdx);
+
+    expect(coverageBlock).toContain("set +e");
+    const statusIdx = mustIndex(coverageBlock, `status=\${PIPESTATUS[0]}`);
+    const closeFenceIdx = coverageBlock.lastIndexOf("echo '```'");
+    const exitIdx = mustIndex(coverageBlock, 'exit "$status"');
+
+    expect(statusIdx).toBeLessThan(closeFenceIdx);
+    expect(closeFenceIdx).toBeLessThan(exitIdx);
   });
 
   test("runs extraction pipeline", () => {

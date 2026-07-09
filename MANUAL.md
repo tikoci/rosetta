@@ -171,7 +171,7 @@ Before cutting a corpus release, check these inputs separately from CI:
 Published artifacts come from the GitHub Actions `Release` workflow (`workflow_dispatch`), not from local ad hoc release commands.
 
 - **Inputs:** `version` (optional override — see "npm channel" below for how this interacts with prerelease dispatches), `docs_date`, `full_versions`, and `republish_assets`.
-- **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable. See "Prerelease republish semantics" below for the prerelease-specific caveats.
+- **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable, and it never moves a floating OCI tag (`:latest`/`:alpha`/`:beta`/`:rc`/`:next`) on any channel. See "Prerelease republish semantics" below for prerelease-specific caveats.
 - **Traceable pipeline:** npm channel detection → CHANGELOG gate (latest only) → npm publish-access preflight → fast-fail quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → contract/eval steps → `db_meta` stamping → minimum-content validation → build/publish release assets and OCI images.
 - **Provenance:** release notes include DB stats, and the stamped `db_meta` keys (`release_tag`, `built_at`, `source_commit`, `schema_version`) let runtime surfaces report exactly what shipped.
 - **Test coverage:** the fast-fail `bun test` step runs with `--coverage`, prints a per-file table to the workflow's step summary, and uploads `coverage/lcov.info` as a `coverage-lcov` workflow artifact. Informational only — not a gate.
@@ -206,12 +206,15 @@ For prerelease dispatches, the workflow's very first extraction-pipeline step re
 
 ### Prerelease republish semantics
 
-`republish_assets: true` re-uploads GitHub Release assets and OCI tags for an already-published version without touching npm. For a **prerelease** version this has extra rules, since CI cannot recompute a past run's `$GITHUB_RUN_NUMBER`:
+`republish_assets: true` re-uploads GitHub Release assets and OCI tags for an already-published version without touching npm.
+
+**On any channel**, no floating OCI tags move during a republish — `:latest`, `:alpha`/`:beta`/`:rc`, and `:next` are all left alone; only the exact-version and `sha-*` image tags are re-pushed. This applies regardless of whether the republished version is `latest` or a prerelease, so a republish of an older run (of either channel) can never regress what a floating tag currently points testers at.
+
+For a **prerelease** version specifically, `republish_assets: true` has extra rules, since CI cannot recompute a past run's `$GITHUB_RUN_NUMBER`:
 
 - `version` **must** be supplied as the exact already-published run-numbered version (e.g. `v0.11.0-alpha.42`) — the workflow fails fast if it's blank.
 - `package.json` is **not** rewritten in this mode.
 - No `npm dist-tag add` calls happen (npm publish is already fully skipped in `republish_assets` mode).
-- No floating OCI tags move — `:latest`, `:alpha`/`:beta`/`:rc`, and `:next` are all left alone. Only the exact-version and `sha-*` image tags are re-pushed, so a republish of an older run can never regress what a floating tag currently points testers at.
 
 ## Database (Standalone)
 
