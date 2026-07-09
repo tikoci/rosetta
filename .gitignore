@@ -39,3 +39,6 @@ ros-help.db.gz
 # Claude Code local settings
 .claude/
 .mcp.json
+
+# Coverage output should not be .git; CI saves as artifact
+coverage/lcov.info

@@ -1,2 +1,11 @@
+# [test] intentionally carries no coverageThreshold. release.yml's "Run
+# tests (fast-fail)" step runs `bun test --coverage`, and Bun treats
+# below-threshold coverage as a nonzero exit — which would silently fail
+# every release even when every test passes. Root-caused 2026-07-09: this
+# file's prior lines=0.70/functions=0.80 threshold sat dormant (test.yml
+# never ran with --coverage) until T-0037 added --coverage to release.yml,
+# which then failed a real release dispatch at 55.64%/62.78% actual
+# coverage despite 0 failing tests. Coverage is meant to be informational
+# only here — see VALIDATION.md V-coverage-reported and MANUAL.md
+# "Test coverage".
 [test]
-coverageThreshold = { lines = 0.70, functions = 0.80 }

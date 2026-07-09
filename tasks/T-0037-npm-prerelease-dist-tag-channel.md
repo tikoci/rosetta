@@ -96,3 +96,45 @@ review is genuinely easier that way.
   cut — wasn't asked directly in the 2026-07-08 review; default to keeping
   the single group (it protects shared npm-collaborator-check state) unless
   it becomes real friction.
+
+## 2026-07-09 — first live dispatch caught a real bug
+
+The user bumped `package.json` to `0.11.0-alpha.0` and dispatched `Release`
+via the GitHub web UI with default inputs — exactly the validation this
+task was left `in-progress` waiting for. It failed at "Run tests
+(fast-fail)" (run
+[28987919958](https://github.com/tikoci/rosetta/actions/runs/28987919958))
+despite `649 pass / 0 fail`. Root cause: `bunfig.toml` had a dormant
+`[test].coverageThreshold = { lines: 0.70, functions: 0.80 }` (present since
+April 2026) that had never actually been exercised in CI — `test.yml` never
+ran `bun test --coverage`, so nothing tripped it until this task's own new
+coverage step did, for the first time, in a real release run. Real coverage
+(55.64% lines / 62.78% functions) was below the dormant threshold, so `bun
+test --coverage` exited nonzero even though every test passed — directly
+contradicting this task's own acceptance bullet and `VALIDATION.md`'s
+`V-coverage-reported` row ("informational only, not a gate").
+
+Fixed: removed the threshold from `bunfig.toml` (documented with a comment
+explaining why, so it isn't silently reintroduced). Also hardened the
+"Run tests (fast-fail)", "MCP contract tests (real DB)", and "MCP retrieval
+eval (Phase 0)" steps to emit an explicit `::error::` annotation on failure
+instead of relying on GitHub's generic "Process completed with exit code 1"
+— the original failure gave no clue it was a coverage threshold and not an
+actual test regression. See `CHANGELOG.md` `[Unreleased]` "Fixed" for the
+user-facing entry.
+
+The channel-detection, CHANGELOG-gate, and npm-publish-access preflight
+steps all passed correctly in that same run before hitting this bug —
+`0.11.0-alpha.0` was correctly detected as the `prerelease`/`alpha` channel.
+One harmless observation: the manual `.0` suffix the user added is silently
+discarded — `release.yml` always rewrites the version to
+`<base>-<stage>.${GITHUB_RUN_NUMBER}` regardless of any trailing `.N` already
+in the committed version, so `0.11.0-alpha` (no `.0`) would have worked
+identically. Not a bug, just unnecessary — `MANUAL.md` already recommends
+the no-suffix form.
+
+Still not yet proven by a real dispatch: the extraction pipeline onward
+(Docusaurus extraction, DB validation, OCI build/push, npm publish,
+`bunx-smoke`) — the run never got that far. Re-dispatch after this fix to
+continue validating; this task stays `in-progress` until a full green run
+happens.

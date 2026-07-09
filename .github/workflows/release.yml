@@ -200,13 +200,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          LOG=$(mktemp)
           echo "## Test coverage" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           set +e
-          bun test --coverage --coverage-reporter=text --coverage-reporter=lcov 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          bun test --coverage --coverage-reporter=text --coverage-reporter=lcov 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" "$LOG"
           status=${PIPESTATUS[0]}
           set -e
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            FAIL_LINE=$(grep -E '^ *[0-9]+ fail' "$LOG" || true)
+            if [ -n "$FAIL_LINE" ] && ! echo "$FAIL_LINE" | grep -qE '^ *0 fail'; then
+              echo "::error::bun test reported failing tests (${FAIL_LINE# }) — see the 'Test coverage' step summary above for which ones."
+            else
+              echo "::error::bun test exited $status but reported no failing tests (${FAIL_LINE:-no summary line found} — this is NOT a test failure. Likely a coverage threshold in bunfig.toml's [test].coverageThreshold (should be unset — coverage here is meant to be informational only, see VALIDATION.md V-coverage-reported) or a runner crash. Check the coverage table above."
+            fi
+          fi
           exit "$status"
 
       - name: Upload coverage artifact
@@ -295,11 +304,20 @@ jobs:
       # stays on `:memory:`; this step exercises Blocks B/C against the freshly
       # built DB before eval/release.
       - name: MCP contract tests (real DB)
+        shell: bash
         run: |
+          set -euo pipefail
           echo "## MCP contract test (Phase 2, real DB)" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
           ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::MCP contract tests (real DB) failed (exit $status) — see the 'MCP contract test (Phase 2, real DB)' step summary above for which test(s) failed."
+          fi
+          exit "$status"
 
       # ── MCP retrieval eval (Phase 0) ──
       # Runs the 20-query golden set against the freshly built full DB.
@@ -307,11 +325,20 @@ jobs:
       # fails the release.
 
       - name: MCP retrieval eval (Phase 0)
+        shell: bash
         run: |
+          set -euo pipefail
           echo "## Phase 0 retrieval eval" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
           bun run src/eval/retrieval.ts | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Phase 0 retrieval eval failed (exit $status) — recall@10 or classifier accuracy likely regressed >2pp vs. baseline (or the eval script errored). See the 'Phase 0 retrieval eval' step summary above for details."
+          fi
+          exit "$status"
 
       # ── MCP retrieval eval (Phase 1, self-supervised, non-blocking) ──
       # Runs the auto-generated query set against the freshly built full DB and
