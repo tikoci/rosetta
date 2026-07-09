@@ -1,5 +1,4 @@
 {
-  "$schema": "./queries.schema.json",
   "_doc": "Curated golden-query set for the rosetta MCP `routeros_search` surface. See src/eval/retrieval.ts for the runner. Each entry asserts what an agent SHOULD see when it asks this question. `expected_rosetta_ids` lists page rosetta-ids (see src/rosetta-id.ts) that are acceptable as a 'correct' top-N hit (any match counts) — NOT the numeric `pages.id`, which is a fresh rowid re-minted on every extract-docusaurus.ts run and is not a stable identity. `expected_classified` asserts the regex classifier's detection. Keep this set small and high-signal — quality over quantity. Add new entries when you fix a real bug, not speculatively.",
   "_thresholds": {
     "recall_at_5": 0.85,

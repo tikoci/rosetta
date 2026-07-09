@@ -1,7 +1,7 @@
 ---
 id: T-0038-docusaurus-retrieval-ranking-regressions
 title: Fix two real retrieval-ranking regressions surfaced by the Docusaurus corpus swap
-status: ready
+status: blocked
 priority: high
 area: mcp
 depends_on: []
@@ -16,11 +16,21 @@ acceptance:
   - "fixtures/eval/queries.json's nl-firewall-filter/nl-bgp expected_rosetta_ids reviewed once the fix lands — they were set to the real current-corpus pages during this task's discovery (not the old Confluence ids), so they may already be correctly scoped; confirm rather than assume"
   - "fixtures/eval/baseline.json regenerated (--update-baseline) once these two queries pass, so recall@5/recall@3/MRR climb back toward 100% and the regression-tolerance gate in release.yml reflects the improved reality"
   - "No regression introduced to the other 19 already-passing golden queries in the same fixture"
-trigger: ""
+trigger: "Review pass by the user or another agent confirming priority and root-cause diagnosis — see 'Status note' below."
 created: 2026-07-09
 ---
 
 # Body
+
+## Status note (PR #17, 2026-07-08)
+
+Flagged during PR #17 review: `status: ready` read as "fully resolved, pick this up now,"
+which overstated things. The root-cause diagnosis below was reached by a single coding
+agent during triage, not yet reviewed by the user or another agent, and its priority
+hasn't been weighed against the broader CI/QA testing-regime review `B-0014` is tracking.
+Downgraded to `status: blocked` pending that review pass — not because the diagnosis is
+believed wrong, just not yet confirmed as truly next-up. No change to the acceptance
+criteria or repro below; re-promote to `ready` once reviewed.
 
 Discovered while diagnosing the `release.yml` "MCP retrieval eval (Phase 0)" CI failure on run
 [28990846508](https://github.com/tikoci/rosetta/actions/runs/28990846508/job/86030039482), which
