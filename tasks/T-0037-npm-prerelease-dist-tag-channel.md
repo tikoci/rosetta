@@ -1,7 +1,7 @@
 ---
 id: T-0037-npm-prerelease-dist-tag-channel
 title: npm prerelease/dist-tag channel (alpha/beta/rc/next) with aligned OCI tags + coverage reporting
-status: blocked
+status: in-progress
 priority: high
 area: release
 depends_on:
@@ -13,6 +13,10 @@ validation:
   - V-bunx-macos
   - V-bunx-linux
   - V-bunx-windows
+  - V-npm-channel-tags
+  - V-oci-latest-guard
+  - V-changelog-gate
+  - V-coverage-reported
 acceptance:
   - "package.json's version is the single source of truth for channel: a prerelease identifier (e.g. 0.11.0-alpha) means non-latest; a bare version (0.11.0) means latest. No CI-side flag duplicates this."
   - "A new early release.yml step parses package.json's committed version for a -<stage> suffix and sets NPM_TAG; if present, rewrites package.json's version in-place (uncommitted, workspace-only) to MAJOR.MINOR.PATCH-<stage>.${GITHUB_RUN_NUMBER} before any preflight/publish step reads it, so repeated dispatches never collide on an already-published version without needing a git commit"
@@ -27,7 +31,7 @@ acceptance:
   - "VALIDATION.md reviewed for any new blocking rows this introduces (e.g. an invariant that :latest OCI never moves on a prerelease run) and updated"
   - "Stage identifiers are validated, not accepted as arbitrary strings: package.json versions of the form MAJOR.MINOR.PATCH-<stage> or MAJOR.MINOR.PATCH-<stage>.N are accepted; <stage> is normalized/checked against the allowlist {alpha, beta, rc}; anything else (typo'd stage, unexpected prerelease shape) fails the workflow with a clear error instead of silently becoming an npm dist-tag and an OCI tag"
   - "republish_assets: true has explicit, documented semantics for prerelease versions: inputs.version must be supplied as the exact already-published version (including its run-number suffix, e.g. 0.11.0-alpha.42 — CI cannot recompute a past run's GITHUB_RUN_NUMBER); package.json is NOT rewritten in this mode; no npm dist-tag add calls happen (npm publish is already fully skipped in this mode, per the existing 'does NOT re-publish npm' input description — dist-tags follow the same rule); no floating OCI tags (:latest, :alpha/:beta/:rc, :next) are moved — only the exact-version and sha-* image tags are re-pushed, so a republish of an older run can never regress what a floating tag currently points testers at"
-trigger: "T-0036-release-yml-docusaurus-cutover reaches status: done"
+trigger: ""
 created: 2026-07-08
 ---
 

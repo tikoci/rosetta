@@ -6,9 +6,14 @@ uses [Semantic Versioning](https://semver.org/).
 
 > **Agentic rule.** Any change with a user-visible effect (CLI, MCP tool shape,
 > DB schema, CI behaviour, install flow) adds an entry under **[Unreleased]**
-> in the same PR / commit. The release workflow promotes `[Unreleased]` to a
-> dated version header. CI-only auto-bumps and pure refactors with no external
-> effect are intentionally omitted — git history is authoritative for those.
+> in the same PR / commit. Promoting `[Unreleased]` to a dated version header
+> is a manual step, done by hand alongside the `package.json` version bump
+> before dispatching a latest-channel release (see `MANUAL.md` "Release
+> Workflow") — CI no longer auto-bumps versions or auto-promotes CHANGELOG on
+> any channel. Prerelease (`alpha`/`beta`/`rc`) release runs never promote
+> `[Unreleased]` either, since they don't represent the next stable version.
+> CI-only auto-bumps and pure refactors with no external effect are
+> intentionally omitted — git history is authoritative for those.
 >
 > **Not a git log.** Don't list every commit. One bullet per behaviour change,
 > grouped under `Added` / `Changed` / `Fixed` / `Removed` / `Deprecated` /
@@ -21,11 +26,18 @@ uses [Semantic Versioning](https://semver.org/).
 
 - **New Docusaurus `/docs` prose extractor (`extract-docusaurus.ts`) replaces `extract-html.ts` as the default prose source.** Discovers pages via `sitemap.xml`, fetches raw Markdown from manual.mikrotik.com, and populates `pages`/`sections`/`properties`/`callouts` — 360 in-scope `/docs` pages as of 2026-07-07 (CLI Reference and `/hardware` remain out of scope, tracked as follow-up work). `make extract`/`make extract-full` now run it by default; the legacy Confluence pipeline survives as `make extract-legacy-confluence` for rebuilding historical release DBs.
 - **New `pages.rosetta_id` column** (schema v6) gives Docusaurus-sourced pages a stable, URL-derived identifier alongside the existing integer `id` — see `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` "H7 — Identity / rosetta-id design".
+- **npm prerelease dist-tag channel.** Testers can now opt into an in-progress build via `bunx @tikoci/rosetta@next` (newest prerelease of any stage) or `@alpha`/`@beta`/`@rc` (pinned to one stage), without moving the default `latest` channel. Channel is driven entirely by `package.json`'s committed version (a `-alpha`/`-beta`/`-rc` suffix means prerelease); OCI image tags (`:alpha`/`:beta`/`:rc`/`:next`) mirror the same scheme, and the bare `:latest` OCI tag now never moves on a prerelease release run. See `README.md` "Prerelease channels" and `MANUAL.md` "Release Workflow".
+- **`bun test --coverage` now runs on every release build**, summarized in the workflow's step summary and uploaded as a `coverage-lcov` artifact — informational only, not a gate.
 
 ### Changed
 
 - **Relative Markdown links inside property descriptions now resolve to live `manual.mikrotik.com` URLs** instead of being left as broken relative paths once extracted out of their source page.
 - **`release.yml` CI now builds the DB from the live Docusaurus extractor, not the legacy Confluence HTML export.** The `html_url` workflow input is gone; a new `extract-docusaurus.ts --check-counts --strict` step proves the docs-count invariant on every release run instead of only in manual/local runs. Rebuilding a historical pre-migration DB remains possible via the local-only `make extract-legacy-confluence` target — it is no longer reachable from CI.
+- **Release version bumps are now a manual step for every channel, including `latest`.** CI's old `bump-version` job (blind `PATCH + 1`, auto-committed straight to `main`) is gone entirely — it couldn't reason across the new prerelease channels. A new preflight fails a latest-channel release if `CHANGELOG.md` lacks a `## [<version>]` heading for the bare `package.json` version being released, so CHANGELOG promotion can't be skipped by accident. See `MANUAL.md` "Version bumps are a manual step".
+
+### Removed
+
+- **CI's automatic `package.json`/`CHANGELOG.md` version-bump commit** (the `bump-version` job in `release.yml`) — superseded by the manual version-bump step above.
 
 ## [0.10.0] — 2026-07-08
 

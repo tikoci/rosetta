@@ -3,7 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Optional release version override (e.g. v0.2.0). Default: v + package.json version.'
+        description: >
+          Optional release version override (e.g. v0.2.0). Default: v + package.json version.
+          Latest-channel runs only — leave blank for prerelease (package.json has a -alpha/-beta/-rc
+          suffix) dispatches, since the true published version gets a run-number suffix computed
+          during the run and can't be predicted ahead of dispatch. Exception: republish_assets: true
+          on a prerelease version requires this to be set to the exact already-published
+          run-numbered version (e.g. v0.11.0-alpha.42), since CI cannot recompute a past run's number.
         required: false
         type: string
         default: ''
@@ -52,6 +58,88 @@ jobs:
 
       - run: bun install
 
+      # ── npm channel detection ──
+      # package.json's committed version is the single source of truth for
+      # channel: a prerelease identifier (MAJOR.MINOR.PATCH-<stage> or
+      # -<stage>.N) means non-latest; a bare version means latest. No CI-side
+      # flag duplicates this. For prerelease channels, package.json's version
+      # is rewritten in-place (workspace-only, never committed) to append
+      # $GITHUB_RUN_NUMBER, so repeated dispatches of the same stage never
+      # collide on an already-published npm version. Every later step in this
+      # job that reads package.json's version (preflight, "Resolve release
+      # version", publish, OCI tagging, GH Release) sees the rewritten value.
+      - name: Determine npm release channel
+        id: channel
+        env:
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          PKG_VERSION=$(node -p "require('./package.json').version")
+
+          if [[ "$PKG_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([A-Za-z]+)(\.[0-9]+)?$ ]]; then
+            BASE="${BASH_REMATCH[1]}"
+            STAGE="$(echo "${BASH_REMATCH[2]}" | tr '[:upper:]' '[:lower:]')"
+            case "$STAGE" in
+              alpha|beta|rc) ;;
+              *)
+                echo "::error::Unrecognized prerelease stage '$STAGE' in package.json version '$PKG_VERSION' — allowed stages: alpha, beta, rc"
+                exit 1
+                ;;
+            esac
+
+            echo "channel=prerelease" >> "$GITHUB_OUTPUT"
+            echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
+
+            if [ "$REPUBLISH_ASSETS" = "true" ]; then
+              if [ -z "$INPUT_VERSION" ]; then
+                echo "::error::republish_assets=true with a prerelease package.json version ($PKG_VERSION) requires inputs.version set to the exact already-published run-numbered version (e.g. v${BASE}-${STAGE}.42) — package.json's committed version has no run-number suffix and was never itself published."
+                exit 1
+              fi
+              echo "republish_assets=true — package.json version left as committed ($PKG_VERSION); inputs.version ($INPUT_VERSION) carries the exact already-published version instead."
+            else
+              NEW_VERSION="${BASE}-${STAGE}.${GITHUB_RUN_NUMBER}"
+              node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$NEW_VERSION'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+              echo "✓ Rewrote package.json version (workspace-only, not committed): $PKG_VERSION → $NEW_VERSION"
+            fi
+          elif [[ "$PKG_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "channel=latest" >> "$GITHUB_OUTPUT"
+            echo "stage=" >> "$GITHUB_OUTPUT"
+            echo "✓ Bare version $PKG_VERSION — latest channel, no rewrite"
+          else
+            echo "::error::package.json version '$PKG_VERSION' doesn't match a recognized shape — expected MAJOR.MINOR.PATCH (latest) or MAJOR.MINOR.PATCH-<stage>[.N] with <stage> one of alpha/beta/rc (prerelease). Fix the committed version before dispatching."
+            exit 1
+          fi
+
+      # ── Latest-channel CHANGELOG gate ──
+      # No channel auto-promotes [Unreleased] anymore (bump-version's
+      # auto-commit is gone entirely). A bare-version release can't ship
+      # without a human having already promoted [Unreleased] -> [<version>]
+      # by hand, so this fails loudly instead of shipping undocumented
+      # user-visible changes under an unheaded version.
+      - name: Verify CHANGELOG promotion for latest-channel release
+        if: inputs.republish_assets != true
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.channel.outputs.channel }}" != "latest" ]; then
+            echo "Prerelease channel (${{ steps.channel.outputs.channel }}/${{ steps.channel.outputs.stage }}) — CHANGELOG promotion gate not applicable."
+            exit 0
+          fi
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if ! grep -qF "## [$PKG_VERSION]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [$PKG_VERSION]' heading — promote [Unreleased] to [$PKG_VERSION] by hand before releasing latest. CI no longer auto-bumps versions or promotes CHANGELOG (see MANUAL.md 'Release Workflow')."
+            exit 1
+          fi
+          echo "✓ CHANGELOG.md has a [$PKG_VERSION] heading"
+
+      # inputs.version's equality check below only applies cleanly to
+      # latest-channel runs. For prerelease runs, package.json's version was
+      # already rewritten above to include $GITHUB_RUN_NUMBER — a value that
+      # can't be predicted ahead of dispatch — so leave inputs.version blank
+      # for prerelease dispatches; the check then compares package.json
+      # against itself and passes. Supplying inputs.version for a prerelease
+      # run will (correctly, loudly) fail this check rather than silently
+      # publishing under a version nobody asked for.
       - name: Verify npm publish access
         if: inputs.republish_assets != true
         env:
@@ -109,16 +197,34 @@ jobs:
         run: bun run lint
 
       - name: Run tests (fast-fail)
-        run: bun test
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Test coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          bun test --coverage --coverage-reporter=text --coverage-reporter=lcov 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 30
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
       - name: Resolve release version
         id: release_version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          INPUT_VERSION="${{ inputs.version }}"
           if [ -n "$INPUT_VERSION" ]; then
             VERSION="$INPUT_VERSION"
             SOURCE="workflow input"
@@ -315,17 +421,36 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      # OCI tags mirror the npm dist-tag scheme: $VERSION and sha-$SHORT_SHA
+      # always push. republish_assets: true pushes ONLY those two — no
+      # floating tag ever moves during a republish, so a re-run of an older
+      # version can't regress what a floating tag currently points testers
+      # at. Otherwise: prerelease runs get a floating per-stage tag
+      # (:alpha/:beta/:rc) and a floating :next; latest-channel runs get the
+      # bare :latest tag. :latest never pushes on a prerelease run — this is
+      # the fix for the OCI-latest-clobber risk (an unguarded alpha dispatch
+      # would otherwise silently overwrite the production /app container's
+      # :latest with an unfinished prerelease DB).
       - name: Build and push OCI images (Docker Hub + GHCR)
+        env:
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
         run: |
           set -euo pipefail
           SHORT_SHA="${{ steps.image_meta.outputs.short_sha }}"
           VERSION="${{ steps.release_version.outputs.version }}"
+          CHANNEL="${{ steps.channel.outputs.channel }}"
+          STAGE="${{ steps.channel.outputs.stage }}"
 
           tags=()
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
-            for tag in "$VERSION" latest "sha-${SHORT_SHA}"; do
-              tags+=(--tag "${registry}:${tag}")
-            done
+            tags+=(--tag "${registry}:${VERSION}" --tag "${registry}:sha-${SHORT_SHA}")
+            if [ "$REPUBLISH_ASSETS" != "true" ]; then
+              if [ "$CHANNEL" = "prerelease" ]; then
+                tags+=(--tag "${registry}:${STAGE}" --tag "${registry}:next")
+              else
+                tags+=(--tag "${registry}:latest")
+              fi
+            fi
           done
 
           # Inject DB into the build context so it gets baked into the image
@@ -401,9 +526,19 @@ jobs:
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          DOCS_DATE: ${{ inputs.docs_date }}
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
         run: |
+          set -euo pipefail
           VERSION="${{ steps.release_version.outputs.version }}"
-          DOCS_DATE="${{ inputs.docs_date }}"
+
+          # Prerelease runs (including their republish_assets clobbers) mark
+          # the GitHub Release as a prerelease so it doesn't show as "Latest".
+          PRERELEASE_FLAGS=()
+          if [ "${{ steps.channel.outputs.channel }}" = "prerelease" ]; then
+            PRERELEASE_FLAGS=(--prerelease)
+          fi
+
           NOTES="## Database Stats
           - **Pages:** ${{ steps.stats.outputs.pages }}
           - **Commands:** ${{ steps.stats.outputs.commands }}
@@ -419,31 +554,48 @@ jobs:
           - **Full version extraction:** ${{ inputs.full_versions }}
           - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
-          if [ "${{ inputs.republish_assets }}" = "true" ]; then
+          if [ "$REPUBLISH_ASSETS" = "true" ]; then
             # Create release if it doesn't exist, then reupload assets with clobber.
-            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" 2>/dev/null || true
+            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}" 2>/dev/null || true
             gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
-            gh release edit "$VERSION" --notes "$NOTES"
+            gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION updated"
           elif gh release view "$VERSION" >/dev/null 2>&1; then
             # A previous run may have created the GitHub Release and then failed
             # at npm publish. The npm preflight above rejects already-published
             # package versions, so this retry path is safe to clobber assets.
             gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
-            gh release edit "$VERSION" --notes "$NOTES"
+            gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION updated before npm publish retry"
           else
             gh release create "$VERSION" dist/*.zip dist/ros-help.db.gz \
-              --title "$VERSION" --notes "$NOTES"
+              --title "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION created"
           fi
 
       # npm is immutable — you cannot republish the same version with different
       # contents. `republish_assets: true` re-clobbers GH release assets and OCI
       # tags, but trying to re-push npm would always 403. Skip npm in that mode.
+      #
+      # Prerelease runs publish under their stage's dist-tag (--tag alpha/beta/rc)
+      # instead of the default `latest`, then move the `next` dist-tag to point at
+      # this version too, so `next` always resolves to the newest prerelease of
+      # any stage while `alpha`/`beta`/`rc` each stay pinned to their own stage's
+      # latest. Bare (latest-channel) publishes are unchanged: no --tag, defaults
+      # to the `latest` dist-tag.
       - name: Publish to npm
         if: inputs.republish_assets != true
-        run: npm publish --access public --registry https://registry.npmjs.org/
+        run: |
+          set -euo pipefail
+          PKG_NAME=$(node -p "require('./package.json').name")
+          NPM_VERSION="${{ steps.release_version.outputs.version }}"
+          NPM_VERSION="${NPM_VERSION#v}"
+          if [ "${{ steps.channel.outputs.channel }}" = "prerelease" ]; then
+            npm publish --access public --tag "${{ steps.channel.outputs.stage }}" --registry https://registry.npmjs.org/
+            npm dist-tag add "${PKG_NAME}@${NPM_VERSION}" next --registry https://registry.npmjs.org/
+          else
+            npm publish --access public --registry https://registry.npmjs.org/
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -457,8 +609,10 @@ jobs:
   # the v0.8.x Windows EBUSY / temp-artifact class and the macOS readonly-WAL
   # class are both exercised on the release path.
   #
-  # Failure here fails the overall workflow (red X, notifications) but does
-  # NOT gate bump-version — see comment on bump-version for the reasoning.
+  # Consumes needs.build-and-release.outputs.version rather than assuming it
+  # equals package.json's committed value — prerelease runs rewrite the
+  # version in-workspace (with a run-number suffix) before npm publish, so
+  # this job output is the only reliable source for "what actually published."
   bunx-smoke:
     needs: build-and-release
     if: inputs.republish_assets != true  # republish_assets skips npm publish, so nothing to smoke
@@ -549,89 +703,3 @@ jobs:
           echo "✓ MCP server answered (HTTP $code)"
           echo "── server log (first 40 lines) ──"
           head -40 "$LOG"
-
-  # Always bump after a successful npm publish, even if bunx-smoke fails.
-  #
-  # Rationale: npm versions are immutable. If bunx-smoke exposes a bug in the
-  # just-published version, the fix ships as the NEXT version — we can't
-  # republish the broken one. Auto-bumping here means the fix-up release
-  # starts from a clean version number with no manual intervention needed.
-  #
-  # If npm publish itself fails (e.g. network, auth), build-and-release fails
-  # and this job is skipped via `needs:`. If republish_assets=true was used,
-  # npm wasn't touched at all, so keep the existing version.
-  bump-version:
-    needs: build-and-release
-    if: inputs.republish_assets != true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-
-      - name: Bump patch version and promote CHANGELOG for next release
-        env:
-          RELEASE_VERSION: ${{ needs.build-and-release.outputs.version }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Strip leading 'v' for CHANGELOG heading (e.g. "v0.8.5" → "0.8.5")
-          RELEASE_VER_NUM="${RELEASE_VERSION#v}"
-          RELEASE_DATE=$(date -u +%Y-%m-%d)
-
-          # Rebase-retry loop: back-to-back release runs can race because each
-          # checkout pins the SHA at workflow start. Both package.json and
-          # CHANGELOG.md are idempotent here, so a rebase is always safe.
-          for attempt in 1 2 3; do
-            git fetch origin main
-            git rebase origin/main || { git rebase --abort; exit 1; }
-
-            CURRENT=$(node -p "require('./package.json').version")
-            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-            NEXT="$MAJOR.$MINOR.$((PATCH + 1))"
-            node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$NEXT'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
-            echo "✓ (attempt $attempt) Bumped version: $CURRENT → $NEXT"
-
-            # Promote [Unreleased] → [VERSION] — DATE and prepend a fresh
-            # [Unreleased] skeleton so agents can write the next batch of
-            # changes to the matching version heading without manual fixups.
-            RELEASE_VER_NUM="$RELEASE_VER_NUM" RELEASE_DATE="$RELEASE_DATE" node -e '
-              const fs = require("fs");
-              const v = process.env.RELEASE_VER_NUM;
-              const d = process.env.RELEASE_DATE;
-              if (!v || !d) { console.error("RELEASE_VER_NUM or RELEASE_DATE not set"); process.exit(1); }
-              let c = fs.readFileSync("CHANGELOG.md", "utf8");
-              const unreleased = "## [Unreleased]";
-              if (c.includes(unreleased)) {
-                const versioned = "## [" + v + "] \u2014 " + d;
-                c = c.replace(unreleased, versioned);
-                c = c.replace(versioned, unreleased + "\n\n" + versioned);
-                fs.writeFileSync("CHANGELOG.md", c);
-                console.log("\u2713 Promoted [Unreleased] \u2192 [" + v + "] \u2014 " + d);
-              } else {
-                console.log("! [Unreleased] not found \u2014 already promoted or CHANGELOG out of sync");
-              }
-            '
-
-            git add package.json CHANGELOG.md
-            # If another bump already landed at our target version, the working
-            # tree is clean after rebase; skip the commit.
-            if git diff --cached --quiet; then
-              echo "✓ package.json already at expected version; nothing to commit"
-              exit 0
-            fi
-            git commit -m "chore: bump to v$NEXT and promote CHANGELOG for next release [skip ci]"
-
-            if git push origin HEAD:main; then
-              echo "✓ (attempt $attempt) Version bump pushed"
-              exit 0
-            fi
-            echo "Push rejected on attempt $attempt; rewinding commit and retrying"
-            git reset --hard HEAD~1
-          done
-          echo "::error::Failed to push version bump after 3 attempts"
-          exit 1
