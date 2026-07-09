@@ -136,8 +136,8 @@ jobs:
       # Live-fetches manual.mikrotik.com's /docs tree (same live-network risk
       # class as the retired Confluence download) and populates
       # pages/sections/properties/callouts. --check-counts --strict proves
-      # V-docusaurus-docs-count on every release run — same invocation T-0035
-      # verified at 360/360 pages, zero fetch errors, live.
+      # V-docusaurus-docs-count on every release run, failing the release on
+      # either a count mismatch or a skipped (network-unreachable) check.
       - name: Extract Docusaurus pages, properties, callouts
         run: bun run src/extract-docusaurus.ts --check-counts --strict
 

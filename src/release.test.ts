@@ -407,6 +407,8 @@ describe("release.yml", () => {
   test("has required inputs", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).not.toContain("html_url:");
+    expect(src).not.toContain("extract-html.ts");
+    expect(src).not.toContain("extract-properties.ts");
     expect(src).toContain("version:");
     expect(src).toContain("republish_assets:");
     expect(src).not.toContain("inputs.force");

@@ -507,7 +507,7 @@ What was built, in rough order (March 2026):
 5. **MCP server** — `mcp.ts` + `query.ts`. 11 tools with compound term recognition, BM25 ranking, AND→OR fallback.
 6. **Knowledge boundaries** — Tool descriptions document data currency (March 2026 export, 7.9–7.23beta2 versions, no v6).
 7. **Distribution** — Compiled single-file binaries via `bun build --compile`, `--setup` mode for DB download + MCP client config, GitHub Releases for assets.
-8. **CI release workflow** — `release.yml` workflow_dispatch: extraction pipeline → quality gate → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing. Originally downloaded a legacy Confluence HTML export by URL; cut over to the live Docusaurus extractor in T-0036 (2026-07-08).
+8. **CI release workflow** — `release.yml` workflow_dispatch: quality gate → extraction pipeline → build artifacts → create GitHub Release. Establishes provenance for eventual NPM publishing. Originally downloaded a legacy Confluence HTML export by URL; cut over to the live Docusaurus extractor in T-0036 (2026-07-08).
 9. **HTTP transport** — Streamable HTTP via `--http` flag for remote/LAN MCP clients (ChatGPT Apps, OpenAI platform). Uses `Bun.serve()` + `WebStandardStreamableHTTPServerTransport`. Optional TLS.
 10. **MCP Registry metadata** — `server.json` manifest + CI validation for official registry publication.
 11. **North Star (April 2026)** — Regex classifier (`classify.ts`) + `searchAll()` wrapper. Unified `routeros_search` now returns pages + `related` (command_node, properties, devices, callouts, videos, changelogs, skills, glossary) + classifier-informed `next_steps`. Folded `routeros_search_callouts` / `routeros_search_videos` into `related`. MCP tool count 15 → 13.
