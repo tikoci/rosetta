@@ -25,6 +25,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { searchAll } from "../query.ts";
+import { deriveRosettaId } from "../rosetta-id.ts";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -49,7 +50,10 @@ type GoldenQuery = {
   id: string;
   query: string;
   shape: Shape;
-  expected_pages?: number[];
+  /** Stable identity for Docusaurus-sourced pages — see src/rosetta-id.ts. `pages.id` is NOT
+   * stable across extraction runs (extract-docusaurus.ts re-mints it as a fresh rowid every
+   * time), so golden-set expectations must pin to rosetta_id, not the numeric id. */
+  expected_rosetta_ids?: string[];
   /** "any" (default): top-k contains ≥1 expected page → recall=1. "all": classical subset recall. */
   match_mode?: MatchMode;
   expected_classified?: ExpectedClassified;
@@ -85,7 +89,7 @@ type QueryResult = {
   topics_ok: boolean;
   skipped: boolean;
   skip_reason?: string;
-  top_pages: { id: number; title: string }[];
+  top_pages: { id: number; title: string; rosetta_id: string }[];
   classified_actual: Record<string, unknown>;
   notes: string[];
 };
@@ -152,15 +156,15 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
   }
 
   const resp = searchAll(q.query, k * 2);
-  const topIds = resp.pages.slice(0, k).map((p) => p.id);
-  const top3Ids = resp.pages.slice(0, 3).map((p) => p.id);
+  const topRosettaIds = resp.pages.slice(0, k).map((p) => deriveRosettaId(p.url));
+  const top3RosettaIds = resp.pages.slice(0, 3).map((p) => deriveRosettaId(p.url));
 
   // Recall semantics — default "any" (≥1 expected page in top-k counts as full recall).
   // For QA-style retrieval we usually only need ONE good answer; classical subset recall
   // ("all" mode) is opt-in for cases where coverage actually matters.
-  const expected = q.expected_pages ?? [];
+  const expected = q.expected_rosetta_ids ?? [];
   const mode: MatchMode = q.match_mode ?? "any";
-  const recallFor = (ids: number[]): number => {
+  const recallFor = (ids: string[]): number => {
     if (expected.length === 0) return 1;
     if (mode === "any") {
       return expected.some((id) => ids.includes(id)) ? 1 : 0;
@@ -168,14 +172,14 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
     // "all" mode: classical subset recall
     return expected.filter((id) => ids.includes(id)).length / expected.length;
   };
-  const recall_at_5 = recallFor(topIds);
-  const recall_at_3 = recallFor(top3Ids);
+  const recall_at_5 = recallFor(topRosettaIds);
+  const recall_at_3 = recallFor(top3RosettaIds);
 
   // Reciprocal rank: 1/rank of first expected page in top-k. 0 if none found.
   let rr = 0;
   if (expected.length > 0) {
-    for (let i = 0; i < topIds.length; i++) {
-      if (expected.includes(topIds[i] as number)) {
+    for (let i = 0; i < topRosettaIds.length; i++) {
+      if (expected.includes(topRosettaIds[i] as string)) {
         rr = 1 / (i + 1);
         break;
       }
@@ -220,7 +224,7 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
   }
 
   if (expected.length > 0 && recall_at_5 === 0) {
-    notes.push(`top-${k} pages: ${topIds.join(", ")} (none of expected ${expected.join(", ")})`);
+    notes.push(`top-${k} pages: ${topRosettaIds.join(", ")} (none of expected ${expected.join(", ")})`);
   }
 
   return {
@@ -234,7 +238,7 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
     related_ok,
     topics_ok,
     skipped: false,
-    top_pages: resp.pages.slice(0, 5).map((p) => ({ id: p.id, title: p.title })),
+    top_pages: resp.pages.slice(0, 5).map((p) => ({ id: p.id, title: p.title, rosetta_id: deriveRosettaId(p.url) })),
     classified_actual: { ...resp.classified },
     notes,
   };
