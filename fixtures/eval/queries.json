@@ -1,6 +1,5 @@
 {
-  "$schema": "./queries.schema.json",
-  "_doc": "Curated golden-query set for the rosetta MCP `routeros_search` surface. See src/eval/retrieval.ts for the runner. Each entry asserts what an agent SHOULD see when it asks this question. `expected_pages` lists page IDs that are acceptable as a 'correct' top-N hit (any match counts). `expected_classified` asserts the regex classifier's detection. Keep this set small and high-signal — quality over quantity. Add new entries when you fix a real bug, not speculatively.",
+  "_doc": "Curated golden-query set for the rosetta MCP `routeros_search` surface. See src/eval/retrieval.ts for the runner. Each entry asserts what an agent SHOULD see when it asks this question. `expected_rosetta_ids` lists page rosetta-ids (see src/rosetta-id.ts) that are acceptable as a 'correct' top-N hit (any match counts) — NOT the numeric `pages.id`, which is a fresh rowid re-minted on every extract-docusaurus.ts run and is not a stable identity. `expected_classified` asserts the regex classifier's detection. Keep this set small and high-signal — quality over quantity. Add new entries when you fix a real bug, not speculatively.",
   "_thresholds": {
     "recall_at_5": 0.85,
     "recall_at_3": 0.70,
@@ -12,22 +11,34 @@
       "id": "nl-dhcp-server",
       "query": "how do I set up a DHCP server",
       "shape": "nl-question",
-      "expected_pages": [24805500],
-      "notes": "Bread-and-butter NL question. Page id 24805500 = DHCP."
+      "expected_rosetta_ids": ["docs/network-management/dhcp"],
+      "notes": "Bread-and-butter NL question."
     },
     {
       "id": "nl-firewall-filter",
       "query": "block traffic from a specific IP address",
       "shape": "nl-question",
-      "expected_pages": [48660574, 328513, 328151, 47579229, 56459266, 259031065, 16351619],
+      "expected_rosetta_ids": [
+        "docs/firewall-and-quality-of-service/firewall/filter",
+        "docs/firewall-and-quality-of-service/firewall/address-lists",
+        "docs/firewall-and-quality-of-service/firewall/common-firewall-matchers-and-actions",
+        "docs/firewall-and-quality-of-service/firewall/nat",
+        "docs/firewall-and-quality-of-service/firewall/mangle"
+      ],
       "match_mode": "any",
-      "notes": "Any firewall-related page in top-5 is acceptable. Topic 'ip' is detected before 'firewall' — that's fine, both are present in the query."
+      "notes": "KNOWN REGRESSION, tracked by T-0038: the real Filter page currently ranks 6th of 10, beaten by incidental short unrelated pages (BM25 length bias and/or AND-fallback fragility — see T-0038). Left pointed at the correct pages deliberately, not loosened, so this keeps failing visibly until fixed."
     },
     {
       "id": "nl-bridge-vlan",
       "query": "bridge vlan filtering on a switch",
       "shape": "nl-question",
-      "expected_pages": [28606465, 103841826, 19136718, 30474317, 328068, 122388482],
+      "expected_rosetta_ids": [
+        "docs/bridging-and-switching/user-guides/bridge-vlan-table",
+        "docs/bridging-and-switching/user-guides/basic-vlan-switching",
+        "docs/bridging-and-switching/vlan",
+        "docs/wireless/abgn/vlans-on-wireless",
+        "docs/bridging-and-switching/user-guides/wireless-vlan-trunk"
+      ],
       "match_mode": "any",
       "notes": "Any bridging/VLAN case-study page satisfies."
     },
@@ -35,60 +46,76 @@
       "id": "nl-wireguard",
       "query": "configure wireguard peer with preshared key",
       "shape": "nl-question",
-      "expected_pages": [69664792]
+      "expected_rosetta_ids": ["docs/virtual-private-networks/wireguard"]
     },
     {
       "id": "nl-container",
       "query": "run a docker container on RouterOS",
       "shape": "nl-question",
-      "expected_pages": [84901929],
+      "expected_rosetta_ids": ["docs/containers"],
       "expected_topics_any": ["container"]
     },
     {
       "id": "nl-bgp",
       "query": "establish a BGP peer with my upstream",
       "shape": "nl-question",
-      "expected_pages": [328220, 331612228, 28606515],
+      "expected_rosetta_ids": [
+        "docs/user-guides/routing-and-networking-protocols/unicast/bgp",
+        "docs/user-guides/routing-and-networking-protocols/unicast/bgp/understanding-bgp",
+        "docs/user-guides/routing-and-networking-protocols/unicast/bgp/peering-sessions"
+      ],
       "match_mode": "any",
-      "notes": "BGP page (328220), /routing/bgp ref (331612228), or Routing Protocol Overview (28606515)."
+      "notes": "KNOWN REGRESSION, tracked by T-0038: the AND-query candidate pool is only 2 pages (VRF, DHCP), neither BGP-related — the real BGP pages never enter the candidate set. Left pointed at the correct pages deliberately, not loosened, so this keeps failing visibly until fixed."
     },
     {
       "id": "nl-ospf",
       "query": "ospf area type stub",
       "shape": "nl-question",
-      "expected_pages": [9863229, 331612216]
+      "expected_rosetta_ids": [
+        "docs/user-guides/routing-and-networking-protocols/unicast/ospf",
+        "docs/user-guides/routing-and-networking-protocols/unicast/ospf/areas-and-virtual-links"
+      ],
+      "match_mode": "any"
     },
     {
       "id": "nl-scheduler",
       "query": "run a script every hour",
       "shape": "nl-question",
-      "expected_pages": [40992881]
+      "expected_rosetta_ids": ["docs/system-information-and-utilities/scheduler"]
     },
     {
       "id": "nl-routerboot",
       "query": "reset device to factory defaults from routerboot",
       "shape": "nl-question",
-      "expected_pages": [136839241]
+      "expected_rosetta_ids": ["docs/getting-started/installation-and-upgrade/routerboot"]
     },
     {
       "id": "nl-capsman",
       "query": "centrally manage wifi access points",
       "shape": "nl-question",
-      "expected_pages": [1409149, 7962638, 137986075, 224559120],
+      "expected_rosetta_ids": [
+        "docs/wireless/wifi/capsman",
+        "docs/wireless/abgn/capsman",
+        "docs/wireless/abgn/capsman/capsman-with-vlans"
+      ],
       "match_mode": "any",
-      "notes": "CAPsMAN page, the family page, a CAPsMAN case study, or the WiFi parent page all reasonably answer."
+      "notes": "WiFi CAPsMAN page, the classic CAPsMAN page, or a CAPsMAN case study all reasonably answer."
     },
     {
       "id": "nl-ipsec",
       "query": "site-to-site IPsec tunnel between two routers",
       "shape": "nl-question",
-      "expected_pages": [11993097]
+      "expected_rosetta_ids": ["docs/virtual-private-networks/ipsec"]
     },
     {
       "id": "nl-vlan",
       "query": "tag vlan on an ethernet interface",
       "shape": "nl-question",
-      "expected_pages": [88014957, 28606465, 103841826, 103841836, 15302988],
+      "expected_rosetta_ids": [
+        "docs/bridging-and-switching/user-guides/basic-vlan-switching",
+        "docs/bridging-and-switching/vlan",
+        "docs/bridging-and-switching/user-guides/bridge-vlan-table"
+      ],
       "match_mode": "any",
       "notes": "Any switch/VLAN/bridge page satisfies."
     },

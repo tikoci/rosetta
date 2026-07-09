@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-04-26T16:33:57.329Z",
+  "generated_at": "2026-07-09T03:33:23.963Z",
   "total_queries": 21,
   "metrics": {
-    "recall_at_5": 1,
-    "recall_at_3": 1,
-    "mrr": 0.9629629629629631,
+    "recall_at_5": 0.9047619047619048,
+    "recall_at_3": 0.9047619047619048,
+    "mrr": 0.8492063492063492,
     "classifier_accuracy": 1,
     "related_block_accuracy": 1,
     "topics_accuracy": 1
@@ -12,8 +12,13 @@
   "per_shape": {
     "nl-question": {
       "count": 12,
+      "recall_at_5": 0.8333333333333334,
+      "mrr": 0.736111111111111
+    },
+    "command-path": {
+      "count": 3,
       "recall_at_5": 1,
-      "mrr": 0.9444444444444445
+      "mrr": 1
     },
     "version-question": {
       "count": 2,
@@ -50,24 +55,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 24805500,
-          "title": "DHCP"
+          "id": 235,
+          "title": "DHCP",
+          "rosetta_id": "docs/network-management/dhcp"
         },
         {
-          "id": 132350040,
-          "title": "IPv6 PD over PPP"
+          "id": 135,
+          "title": "Manual Network Setup (No Default Configuration)",
+          "rosetta_id": "docs/getting-started/manual-network-setup"
         },
         {
-          "id": 313262119,
-          "title": "Configuring outdoor CPE to AP links"
+          "id": 362,
+          "title": "Configuring outdoor CPE to AP links",
+          "rosetta_id": "docs/wireless/wifi/configuring-outdoor-cpe-to-ap-links"
         },
         {
-          "id": 137986075,
-          "title": "CAPsMAN with VLANs"
+          "id": 327,
+          "title": "IPv6 PD over PPP",
+          "rosetta_id": "docs/virtual-private-networks/pppoe/ipv6-pd-over-ppp"
         },
         {
-          "id": 328151,
-          "title": "First Time Configuration"
+          "id": 364,
+          "title": "Configuring standalone access point",
+          "rosetta_id": "docs/wireless/wifi/configuring-standalone-access-point"
         }
       ],
       "classified_actual": {
@@ -88,33 +98,38 @@
       "id": "nl-firewall-filter",
       "query": "block traffic from a specific IP address",
       "shape": "nl-question",
-      "recall_at_5": 1,
-      "recall_at_3": 1,
-      "reciprocal_rank": 1,
+      "recall_at_5": 0,
+      "recall_at_3": 0,
+      "reciprocal_rank": 0,
       "classifier_ok": true,
       "related_ok": true,
       "topics_ok": true,
       "skipped": false,
       "top_pages": [
         {
-          "id": 259031065,
-          "title": "ROSE-storage"
+          "id": 251,
+          "title": "NVMe over TCP",
+          "rosetta_id": "docs/storage/nvme-over-tcp"
         },
         {
-          "id": 16351619,
-          "title": "General Properties"
+          "id": 190,
+          "title": "General Properties",
+          "rosetta_id": "docs/internet-of-things/lora/general-properties"
         },
         {
-          "id": 328151,
-          "title": "First Time Configuration"
+          "id": 52,
+          "title": "Scripting",
+          "rosetta_id": "docs/developer-guides/scripting"
         },
         {
-          "id": 47579229,
-          "title": "Scripting"
+          "id": 19,
+          "title": "CRS3xx and CSS3xx Series Manual",
+          "rosetta_id": "docs/bridging-and-switching/swos/crs3"
         },
         {
-          "id": 56459266,
-          "title": "HotSpot - Captive portal"
+          "id": 30,
+          "title": "Layer2 misconfiguration",
+          "rosetta_id": "docs/bridging-and-switching/user-guides/layer2-misconfiguration"
         }
       ],
       "classified_actual": {
@@ -123,7 +138,9 @@
           "ip"
         ]
       },
-      "notes": []
+      "notes": [
+        "top-5 pages: docs/storage/nvme-over-tcp, docs/internet-of-things/lora/general-properties, docs/developer-guides/scripting, docs/bridging-and-switching/swos/crs3, docs/bridging-and-switching/user-guides/layer2-misconfiguration (none of expected docs/firewall-and-quality-of-service/firewall/filter, docs/firewall-and-quality-of-service/firewall/address-lists, docs/firewall-and-quality-of-service/firewall/common-firewall-matchers-and-actions, docs/firewall-and-quality-of-service/firewall/nat, docs/firewall-and-quality-of-service/firewall/mangle)"
+      ]
     },
     {
       "id": "nl-bridge-vlan",
@@ -138,24 +155,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 28606465,
-          "title": "Bridge VLAN Table"
+          "id": 27,
+          "title": "Bridge VLAN Table",
+          "rosetta_id": "docs/bridging-and-switching/user-guides/bridge-vlan-table"
         },
         {
-          "id": 122388482,
-          "title": "Wireless VLAN Trunk"
+          "id": 33,
+          "title": "Wireless VLAN Trunk",
+          "rosetta_id": "docs/bridging-and-switching/user-guides/wireless-vlan-trunk"
         },
         {
-          "id": 103841826,
-          "title": "Basic VLAN switching"
+          "id": 346,
+          "title": "VLANs on Wireless",
+          "rosetta_id": "docs/wireless/abgn/vlans-on-wireless"
         },
         {
-          "id": 122388507,
-          "title": "VLANs on Wireless"
+          "id": 25,
+          "title": "Basic VLAN switching",
+          "rosetta_id": "docs/bridging-and-switching/user-guides/basic-vlan-switching"
         },
         {
-          "id": 19136718,
-          "title": "Layer2 misconfiguration"
+          "id": 30,
+          "title": "Layer2 misconfiguration",
+          "rosetta_id": "docs/bridging-and-switching/user-guides/layer2-misconfiguration"
         }
       ],
       "classified_actual": {
@@ -176,15 +198,21 @@
       "shape": "nl-question",
       "recall_at_5": 1,
       "recall_at_3": 1,
-      "reciprocal_rank": 1,
+      "reciprocal_rank": 0.5,
       "classifier_ok": true,
       "related_ok": true,
       "topics_ok": true,
       "skipped": false,
       "top_pages": [
         {
-          "id": 69664792,
-          "title": "WireGuard"
+          "id": 113,
+          "title": "List of menus with sensitive parameters",
+          "rosetta_id": "docs/getting-started/configuration-management/list-of-menus-with-sensitive-parameters"
+        },
+        {
+          "id": 331,
+          "title": "WireGuard",
+          "rosetta_id": "docs/virtual-private-networks/wireguard"
         }
       ],
       "classified_actual": {
@@ -208,24 +236,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 84901929,
-          "title": "Container"
+          "id": 37,
+          "title": "Container",
+          "rosetta_id": "docs/containers"
         },
         {
-          "id": 343244823,
-          "title": "Containerized App management"
+          "id": 42,
+          "title": "Container - HomeAssistant",
+          "rosetta_id": "docs/containers/user-guides/container-homeassistant"
         },
         {
-          "id": 204341276,
-          "title": "Container - HomeAssistant"
+          "id": 45,
+          "title": "Container - Postgres",
+          "rosetta_id": "docs/containers/user-guides/container-postgres"
         },
         {
-          "id": 169246787,
-          "title": "Container - mosquitto MQTT server"
+          "id": 39,
+          "title": "List of available Apps",
+          "rosetta_id": "docs/containers/apps/available-apps"
         },
         {
-          "id": 166920348,
-          "title": "Container - ThingsBoard MQTT/HTTP server"
+          "id": 38,
+          "title": "Apps",
+          "rosetta_id": "docs/containers/apps"
         }
       ],
       "classified_actual": {
@@ -246,25 +279,23 @@
       "id": "nl-bgp",
       "query": "establish a BGP peer with my upstream",
       "shape": "nl-question",
-      "recall_at_5": 1,
-      "recall_at_3": 1,
-      "reciprocal_rank": 1,
+      "recall_at_5": 0,
+      "recall_at_3": 0,
+      "reciprocal_rank": 0,
       "classifier_ok": true,
       "related_ok": true,
       "topics_ok": true,
       "skipped": false,
       "top_pages": [
         {
-          "id": 28606515,
-          "title": "Routing Protocol Overview"
+          "id": 314,
+          "title": "VRF",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/vrf"
         },
         {
-          "id": 328206,
-          "title": "Virtual Routing and Forwarding - VRF"
-        },
-        {
-          "id": 24805500,
-          "title": "DHCP"
+          "id": 235,
+          "title": "DHCP",
+          "rosetta_id": "docs/network-management/dhcp"
         }
       ],
       "classified_actual": {
@@ -273,7 +304,9 @@
           "bgp"
         ]
       },
-      "notes": []
+      "notes": [
+        "top-5 pages: docs/user-guides/routing-and-networking-protocols/vrf, docs/network-management/dhcp (none of expected docs/user-guides/routing-and-networking-protocols/unicast/bgp, docs/user-guides/routing-and-networking-protocols/unicast/bgp/understanding-bgp, docs/user-guides/routing-and-networking-protocols/unicast/bgp/peering-sessions)"
+      ]
     },
     {
       "id": "nl-ospf",
@@ -288,12 +321,9 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 9863229,
-          "title": "OSPF"
-        },
-        {
-          "id": 331612216,
-          "title": "/routing/ospf"
+          "id": 307,
+          "title": "Areas and Virtual Links",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/ospf/areas-and-virtual-links"
         }
       ],
       "classified_actual": {
@@ -317,24 +347,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 40992881,
-          "title": "Scheduler"
+          "id": 274,
+          "title": "Scheduler",
+          "rosetta_id": "docs/system-information-and-utilities/scheduler"
         },
         {
-          "id": 9863195,
-          "title": "TR-069"
+          "id": 263,
+          "title": "E-mail",
+          "rosetta_id": "docs/system-information-and-utilities/e-mail"
         },
         {
-          "id": 176914435,
-          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard"
+          "id": 182,
+          "title": "HTTPS post and Azure configuration",
+          "rosetta_id": "docs/internet-of-things/bluetooth/user-guides/https-post-and-azure-configuration"
         },
         {
-          "id": 18350234,
-          "title": "Cloud Hosted Router, CHR"
+          "id": 220,
+          "title": "WWAN and GNSS priority automatization",
+          "rosetta_id": "docs/mobile-networking/bg77-modem-at-commands/wwan-and-gnss-priority-automatization"
         },
         {
-          "id": 3211299,
-          "title": "NAT"
+          "id": 179,
+          "title": "MikroTik Tag advertisement formats",
+          "rosetta_id": "docs/internet-of-things/bluetooth/mikrotik-beacon-manager/mikrotik-tag-advertisement-formats"
         }
       ],
       "classified_actual": {
@@ -362,24 +397,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 40992878,
-          "title": "RouterBOARD"
+          "id": 160,
+          "title": "RouterBOARD",
+          "rosetta_id": "docs/hardware/routerboard"
         },
         {
-          "id": 139526145,
-          "title": "FlashFig"
+          "id": 114,
+          "title": "RouterOS configuration reset",
+          "rosetta_id": "docs/getting-started/configuration-management/routeros-configuration-reset"
         },
         {
-          "id": 136839241,
-          "title": "RouterBOOT"
+          "id": 132,
+          "title": "RouterBOOT",
+          "rosetta_id": "docs/getting-started/installation-and-upgrade/routerboot"
         },
         {
-          "id": 24805498,
-          "title": "RouterOS configuration reset"
+          "id": 208,
+          "title": "FlashFig",
+          "rosetta_id": "docs/management-tools/flashfig"
         },
         {
-          "id": 24805390,
-          "title": "Netinstall"
+          "id": 130,
+          "title": "Netinstall for Windows",
+          "rosetta_id": "docs/getting-started/installation-and-upgrade/netinstall/netinstall-windows"
         }
       ],
       "classified_actual": {
@@ -407,16 +447,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 137986075,
-          "title": "CAPsMAN with VLANs"
+          "id": 361,
+          "title": "WiFi CAPsMAN",
+          "rosetta_id": "docs/wireless/wifi/capsman"
         },
         {
-          "id": 328060,
-          "title": "Quick Set"
+          "id": 341,
+          "title": "CAPsMAN with VLANs",
+          "rosetta_id": "docs/wireless/abgn/capsman/capsman-with-vlans"
         },
         {
-          "id": 224559120,
-          "title": "WiFi"
+          "id": 211,
+          "title": "Quick Set",
+          "rosetta_id": "docs/management-tools/quick-set"
+        },
+        {
+          "id": 359,
+          "title": "Wi-Fi 6 / 7 (802.11ax/be)",
+          "rosetta_id": "docs/wireless/wifi"
+        },
+        {
+          "id": 339,
+          "title": "CAPsMAN",
+          "rosetta_id": "docs/wireless/abgn/capsman"
         }
       ],
       "classified_actual": {
@@ -440,12 +493,14 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 11993097,
-          "title": "IPsec"
+          "id": 320,
+          "title": "IPsec",
+          "rosetta_id": "docs/virtual-private-networks/ipsec"
         },
         {
-          "id": 69664792,
-          "title": "WireGuard"
+          "id": 331,
+          "title": "WireGuard",
+          "rosetta_id": "docs/virtual-private-networks/wireguard"
         }
       ],
       "classified_actual": {
@@ -469,24 +524,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 103841836,
-          "title": "CRS1xx/2xx series switches examples"
+          "id": 25,
+          "title": "Basic VLAN switching",
+          "rosetta_id": "docs/bridging-and-switching/user-guides/basic-vlan-switching"
         },
         {
-          "id": 103841826,
-          "title": "Basic VLAN switching"
+          "id": 29,
+          "title": "CRS1xx/2xx series switches examples",
+          "rosetta_id": "docs/bridging-and-switching/user-guides/crs1xx-2xx-series-switches-examples"
         },
         {
-          "id": 15302988,
-          "title": "Switch Chip Features"
+          "id": 17,
+          "title": "Switch Chip Features",
+          "rosetta_id": "docs/bridging-and-switching/switch-chip-features"
         },
         {
-          "id": 30474317,
-          "title": "Marvell Prestera switch chip features"
+          "id": 15,
+          "title": "Marvell Prestera switch chip features",
+          "rosetta_id": "docs/bridging-and-switching/marvell-prestera-switch-chip-features"
         },
         {
-          "id": 19136718,
-          "title": "Layer2 misconfiguration"
+          "id": 35,
+          "title": "VLAN",
+          "rosetta_id": "docs/bridging-and-switching/vlan"
         }
       ],
       "classified_actual": {
@@ -509,11 +569,45 @@
       "classifier_ok": true,
       "related_ok": true,
       "topics_ok": true,
-      "skipped": true,
-      "top_pages": [],
-      "classified_actual": {},
-      "notes": [],
-      "skip_reason": "requires commands ≥ 1000, DB has 36"
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 86,
+          "title": "Filter",
+          "rosetta_id": "docs/firewall-and-quality-of-service/firewall/filter"
+        },
+        {
+          "id": 103,
+          "title": "Bruteforce prevention",
+          "rosetta_id": "docs/firewall-and-quality-of-service/user-guides/bruteforce-prevention"
+        },
+        {
+          "id": 107,
+          "title": "Port knocking",
+          "rosetta_id": "docs/firewall-and-quality-of-service/user-guides/port-knocking"
+        },
+        {
+          "id": 109,
+          "title": "Configuration Management",
+          "rosetta_id": "docs/getting-started/configuration-management"
+        },
+        {
+          "id": 106,
+          "title": "DDoS Protection",
+          "rosetta_id": "docs/firewall-and-quality-of-service/user-guides/ddos-protection"
+        }
+      ],
+      "classified_actual": {
+        "input": "/ip/firewall/filter",
+        "topics": [
+          "ip",
+          "firewall",
+          "filter"
+        ],
+        "command_path": "/ip/firewall/filter",
+        "command_path_confidence": "medium"
+      },
+      "notes": []
     },
     {
       "id": "cmd-path-routing-bgp",
@@ -525,11 +619,44 @@
       "classifier_ok": true,
       "related_ok": true,
       "topics_ok": true,
-      "skipped": true,
-      "top_pages": [],
-      "classified_actual": {},
-      "notes": [],
-      "skip_reason": "requires commands ≥ 1000, DB has 36"
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 302,
+          "title": "Peering Sessions",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/bgp/peering-sessions"
+        },
+        {
+          "id": 300,
+          "title": "FAQ",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/bgp/faq"
+        },
+        {
+          "id": 303,
+          "title": "Understanding BGP",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/bgp/understanding-bgp"
+        },
+        {
+          "id": 304,
+          "title": "EVPN",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/evpn"
+        },
+        {
+          "id": 281,
+          "title": "Moving from ROSv6 to ROSv7",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/moving-from-rosv6-to-rosv7"
+        }
+      ],
+      "classified_actual": {
+        "input": "/routing/bgp",
+        "topics": [
+          "routing",
+          "bgp"
+        ],
+        "command_path": "/routing/bgp",
+        "command_path_confidence": "medium"
+      },
+      "notes": []
     },
     {
       "id": "cmd-path-container",
@@ -541,11 +668,43 @@
       "classifier_ok": true,
       "related_ok": true,
       "topics_ok": true,
-      "skipped": true,
-      "top_pages": [],
-      "classified_actual": {},
-      "notes": [],
-      "skip_reason": "requires commands ≥ 1000, DB has 36"
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 37,
+          "title": "Container",
+          "rosetta_id": "docs/containers"
+        },
+        {
+          "id": 43,
+          "title": "Container - Matrix (Synapse)",
+          "rosetta_id": "docs/containers/user-guides/container-matrix-synapse"
+        },
+        {
+          "id": 45,
+          "title": "Container - Postgres",
+          "rosetta_id": "docs/containers/user-guides/container-postgres"
+        },
+        {
+          "id": 42,
+          "title": "Container - HomeAssistant",
+          "rosetta_id": "docs/containers/user-guides/container-homeassistant"
+        },
+        {
+          "id": 44,
+          "title": "Container - mosquitto MQTT server",
+          "rosetta_id": "docs/containers/user-guides/container-mosquitto-mqtt-server"
+        }
+      ],
+      "classified_actual": {
+        "input": "/container",
+        "topics": [
+          "container"
+        ],
+        "command_path": "/container",
+        "command_path_confidence": "medium"
+      },
+      "notes": []
     },
     {
       "id": "version-7-22-1",
@@ -560,24 +719,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 47579173,
-          "title": "IPIP"
+          "id": 319,
+          "title": "IPIP",
+          "rosetta_id": "docs/virtual-private-networks/ipip"
         },
         {
-          "id": 119144661,
-          "title": "IPv4 and IPv6 Fundamentals"
+          "id": 136,
+          "title": "Networking Fundamentals",
+          "rosetta_id": "docs/getting-started/networking-fundamentals"
         },
         {
-          "id": 78086201,
-          "title": "Bluetooth"
+          "id": 174,
+          "title": "Bluetooth",
+          "rosetta_id": "docs/internet-of-things/bluetooth"
         },
         {
-          "id": 88014957,
-          "title": "VLAN"
+          "id": 35,
+          "title": "VLAN",
+          "rosetta_id": "docs/bridging-and-switching/vlan"
         },
         {
-          "id": 176914435,
-          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard"
+          "id": 180,
+          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard",
+          "rosetta_id": "docs/internet-of-things/bluetooth/user-guides/bluetooth-tag-tracking-mqtt-thingsboard"
         }
       ],
       "classified_actual": {
@@ -600,24 +764,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 47579173,
-          "title": "IPIP"
+          "id": 319,
+          "title": "IPIP",
+          "rosetta_id": "docs/virtual-private-networks/ipip"
         },
         {
-          "id": 119144661,
-          "title": "IPv4 and IPv6 Fundamentals"
+          "id": 136,
+          "title": "Networking Fundamentals",
+          "rosetta_id": "docs/getting-started/networking-fundamentals"
         },
         {
-          "id": 78086201,
-          "title": "Bluetooth"
+          "id": 174,
+          "title": "Bluetooth",
+          "rosetta_id": "docs/internet-of-things/bluetooth"
         },
         {
-          "id": 88014957,
-          "title": "VLAN"
+          "id": 35,
+          "title": "VLAN",
+          "rosetta_id": "docs/bridging-and-switching/vlan"
         },
         {
-          "id": 176914435,
-          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard"
+          "id": 180,
+          "title": "Bluetooth tag-tracking using MQTT and ThingsBoard",
+          "rosetta_id": "docs/internet-of-things/bluetooth/user-guides/bluetooth-tag-tracking-mqtt-thingsboard"
         }
       ],
       "classified_actual": {
@@ -640,8 +809,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 28606515,
-          "title": "Routing Protocol Overview"
+          "id": 42,
+          "title": "Container - HomeAssistant",
+          "rosetta_id": "docs/containers/user-guides/container-homeassistant"
+        },
+        {
+          "id": 237,
+          "title": "Openflow",
+          "rosetta_id": "docs/network-management/openflow"
+        },
+        {
+          "id": 335,
+          "title": "MikroTik wired interface compatibility",
+          "rosetta_id": "docs/wired-connections/mikrotik-wired-interface-compatibility"
+        },
+        {
+          "id": 269,
+          "title": "Neighbor discovery",
+          "rosetta_id": "docs/system-information-and-utilities/neighbor-discovery"
+        },
+        {
+          "id": 273,
+          "title": "Precision Time Protocol",
+          "rosetta_id": "docs/system-information-and-utilities/precision-time-protocol"
         }
       ],
       "classified_actual": {
@@ -664,24 +854,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 1409138,
-          "title": "Wireless"
+          "id": 111,
+          "title": "Default Configuration Passwords",
+          "rosetta_id": "docs/getting-started/configuration-management/default-configuration-passwords"
         },
         {
-          "id": 224559120,
-          "title": "WiFi"
+          "id": 337,
+          "title": "Wireless",
+          "rosetta_id": "docs/wireless"
         },
         {
-          "id": 40992878,
-          "title": "RouterBOARD"
+          "id": 360,
+          "title": "Wi-Fi 5 (802.11ac)",
+          "rosetta_id": "docs/wireless/wifi-ac"
         },
         {
-          "id": 334168086,
-          "title": "Interworking for WiFi6"
+          "id": 359,
+          "title": "Wi-Fi 6 / 7 (802.11ax/be)",
+          "rosetta_id": "docs/wireless/wifi"
         },
         {
-          "id": 40992872,
-          "title": "Packages"
+          "id": 361,
+          "title": "WiFi CAPsMAN",
+          "rosetta_id": "docs/wireless/wifi/capsman"
         }
       ],
       "classified_actual": {
@@ -706,24 +901,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 152600617,
-          "title": "Per connection classifier"
+          "id": 168,
+          "title": "Per connection classifier",
+          "rosetta_id": "docs/high-availability-solutions/load-balancing/per-connection-classifier"
         },
         {
-          "id": 131366985,
-          "title": "Connection rate"
+          "id": 88,
+          "title": "Mangle",
+          "rosetta_id": "docs/firewall-and-quality-of-service/firewall/mangle"
         },
         {
-          "id": 48660587,
-          "title": "Mangle"
+          "id": 105,
+          "title": "Connection rate",
+          "rosetta_id": "docs/firewall-and-quality-of-service/user-guides/connection-rate"
         },
         {
-          "id": 125992982,
-          "title": "IKEv2 EAP between NordVPN and RouterOS"
+          "id": 321,
+          "title": "IKEv2 EAP between NordVPN and RouterOS",
+          "rosetta_id": "docs/virtual-private-networks/ipsec/ikev2-eap-between-nordvpn-and-routeros"
         },
         {
-          "id": 137986076,
-          "title": "HTB (Hierarchical Token Bucket)"
+          "id": 94,
+          "title": "HTB (Hierarchical Token Bucket)",
+          "rosetta_id": "docs/firewall-and-quality-of-service/queues/htb-hierarchical-token-bucket"
         }
       ],
       "classified_actual": {
@@ -748,24 +948,29 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 331612234,
-          "title": "/routing/filter"
+          "id": 72,
+          "title": "Resource",
+          "rosetta_id": "docs/diagnostics-monitoring-and-troubleshooting/resource"
         },
         {
-          "id": 103841835,
-          "title": "CRS1xx and 2xx series switches"
+          "id": 294,
+          "title": "Route Selection and Filtering",
+          "rosetta_id": "docs/user-guides/routing-and-networking-protocols/route-selection-and-filtering"
         },
         {
-          "id": 40992798,
-          "title": "VPLS"
+          "id": 8,
+          "title": "User",
+          "rosetta_id": "docs/authentication-authorization-accounting/user"
         },
         {
-          "id": 2031625,
-          "title": "PPPoE"
+          "id": 158,
+          "title": "Ports",
+          "rosetta_id": "docs/hardware/ports"
         },
         {
-          "id": 2031631,
-          "title": "L2TP"
+          "id": 347,
+          "title": "Wireless Interface",
+          "rosetta_id": "docs/wireless/abgn/wireless-interface"
         }
       ],
       "classified_actual": {
