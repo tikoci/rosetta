@@ -11,6 +11,17 @@ import { classifyQuery, type QueryClassification } from "./classify.ts";
 import { db } from "./db.ts";
 
 /**
+ * Sentinel markers for FTS5 snippet() highlighting. Indexed prose is raw
+ * Markdown/MDX (since T-0035) and can already contain native `**bold**`, so
+ * wrapping matches in the same `**` markers collides (`****hAP****`). `>>>`/
+ * `<<<` are corpus-safe: the only literal occurrences in the 365 in-scope
+ * pages are fenced-code API wire-protocol notation (api.md), which lives in
+ * the separate `code` FTS column that snippet() never targets.
+ */
+export const EXCERPT_MARK_START = ">>>";
+export const EXCERPT_MARK_END = "<<<";
+
+/**
  * Lazy DB-backed verb resolver for the classifier. Built on first use so
  * tests that import query.ts but never call searchAll don't pay the cost,
  * and it inherits the same `db` singleton everything else uses.
@@ -712,7 +723,7 @@ function runFtsQuery(ftsQuery: string, limit: number): SearchResult[] {
     return db
       .prepare(
         `SELECT s.id, s.title, s.path, s.url, s.word_count, s.code_lines,
-                snippet(pages_fts, 2, '**', '**', '...', 30) as excerpt
+                snippet(pages_fts, 2, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 30) as excerpt
          FROM pages_fts fts
          JOIN pages s ON s.id = fts.rowid
          WHERE pages_fts MATCH ?
@@ -1174,7 +1185,7 @@ function runPropertiesFtsQuery(
       .prepare(
         `SELECT p.name, p.type, p.default_val, p.description, p.section,
                 pg.id as page_id, pg.title as page_title, pg.url as page_url,
-                snippet(properties_fts, 1, '**', '**', '...', 20) as excerpt
+                snippet(properties_fts, 1, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 20) as excerpt
          FROM properties_fts fts
          JOIN properties p ON p.id = fts.rowid
          JOIN pages pg ON pg.id = p.page_id
@@ -1300,14 +1311,14 @@ function runCalloutsFtsQuery(
   try {
     const sql = type
       ? `SELECT c.type, c.content, pg.title as page_title, pg.url as page_url, pg.id as page_id,
-                snippet(callouts_fts, 0, '**', '**', '...', 25) as excerpt
+                snippet(callouts_fts, 0, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) as excerpt
          FROM callouts_fts fts
          JOIN callouts c ON c.id = fts.rowid
          JOIN pages pg ON pg.id = c.page_id
          WHERE callouts_fts MATCH ? AND c.type = ?
          ORDER BY rank LIMIT ?`
       : `SELECT c.type, c.content, pg.title as page_title, pg.url as page_url, pg.id as page_id,
-                snippet(callouts_fts, 0, '**', '**', '...', 25) as excerpt
+                snippet(callouts_fts, 0, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) as excerpt
          FROM callouts_fts fts
          JOIN callouts c ON c.id = fts.rowid
          JOIN pages pg ON pg.id = c.page_id
@@ -2286,7 +2297,7 @@ function runChangelogFtsQuery(
 
     const sql = `SELECT c.version, c.released, c.category, c.is_breaking,
         c.description, c.sort_order,
-        snippet(changelogs_fts, 1, '**', '**', '...', 25) as excerpt
+        snippet(changelogs_fts, 1, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) as excerpt
       FROM changelogs_fts fts
       JOIN changelogs c ON c.id = fts.rowid
       WHERE ${where.join(" AND ")}
@@ -2336,7 +2347,7 @@ function runVideosFtsQuery(ftsQuery: string, limit: number): VideoSearchResult[]
       .prepare(
         `SELECT v.video_id, v.title, v.url, v.upload_date,
                 vs.chapter_title, vs.start_s,
-                snippet(video_segments_fts, 1, '**', '**', '...', 25) as excerpt
+                snippet(video_segments_fts, 1, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) as excerpt
          FROM video_segments_fts fts
          JOIN video_segments vs ON vs.id = fts.rowid
          JOIN videos v ON v.id = vs.video_id
@@ -2415,7 +2426,7 @@ function runDudeFtsQuery(ftsQuery: string, limit: number): DudeSearchResult[] {
       .prepare(
         `SELECT dp.id, dp.title, dp.path, dp.version, dp.url, dp.word_count,
                 (SELECT COUNT(*) FROM dude_images di WHERE di.page_id = dp.id) as image_count,
-                snippet(dude_pages_fts, 2, '**', '**', '...', 25) as excerpt
+                snippet(dude_pages_fts, 2, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) as excerpt
          FROM dude_pages_fts fts
          JOIN dude_pages dp ON dp.id = fts.rowid
          WHERE dude_pages_fts MATCH ?

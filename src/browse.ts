@@ -33,6 +33,8 @@ import {
   checkCommandVersions,
   compareVersions,
   diffCommandVersions,
+  EXCERPT_MARK_END,
+  EXCERPT_MARK_START,
   explainCommand,
   fetchCurrentVersions,
   getDudePage,
@@ -73,6 +75,21 @@ const _bgDim = (s: string) => `${ESC}[48;5;236m${s}${ESC}[0m`;
 /** OSC 8 clickable hyperlink (iTerm2, macOS Terminal, Windows Terminal, etc.) */
 function link(url: string, display?: string): string {
   return `${ESC}]8;;${url}\x07${display ?? url}${ESC}]8;;\x07`;
+}
+
+/**
+ * Convert FTS snippet() sentinel markers (`>>>`/`<<<`) into paired bold-on/bold-off ANSI
+ * codes. `resumeCode` (e.g. `dim`'s `ESC[2m`) is reapplied after each highlight's reset
+ * so an outer SGR wrapper isn't cancelled early by the highlight's own `ESC[0m`. Always
+ * ends with a full reset so a `>>>` left unmatched by truncation can't bleed bold styling
+ * into whatever prints next.
+ */
+function highlightExcerpt(excerpt: string, resumeCode = ""): string {
+  return `${excerpt
+    .split(EXCERPT_MARK_START)
+    .join(`${ESC}[1m`)
+    .split(EXCERPT_MARK_END)
+    .join(`${ESC}[0m${resumeCode}`)}${ESC}[0m`;
 }
 
 /**
@@ -416,9 +433,11 @@ function renderSearchResults(resp: SearchAllResponse): string {
     if (r.best_section) {
       out.push(`       ${dim("§")} ${r.best_section.heading}`);
     }
-    // Show excerpt with highlight markers converted to bold
-    const excerpt = r.excerpt.replace(/>>>/g, `${ESC}[1m`).replace(/<<</g, `${ESC}[0m`);
-    out.push(`       ${dim(truncate(excerpt, w - 8))}`);
+    // Truncate the raw sentinel-marked excerpt before converting to ANSI bold —
+    // truncate() isn't ANSI-aware and would otherwise count/slice escape bytes. Pass
+    // dim's resume code so a highlight's internal reset doesn't cancel the outer dim().
+    const excerpt = highlightExcerpt(truncate(r.excerpt, w - 8), `${ESC}[2m`);
+    out.push(`       ${dim(excerpt)}`);
     out.push("");
   }
 
@@ -621,7 +640,9 @@ function renderProperties(results: Array<{
     const p = results[i];
     const num = dim(`${String(i + 1).padStart(3)}  `);
     out.push(`${num}${bold(p.name)}  ${dim(p.type ?? "")}  ${p.default_val ? dim(`default: ${p.default_val}`) : ""}`);
-    const desc = truncate(p.description, w - 8);
+    const desc = p.excerpt?.includes(EXCERPT_MARK_START)
+      ? highlightExcerpt(truncate(p.excerpt, w - 8))
+      : truncate(p.description, w - 8);
     out.push(`       ${desc}`);
     out.push(`       ${dim(p.page_title)}  ${cyan(link(p.page_url, dim("→")))}`);
     out.push("");
@@ -848,9 +869,10 @@ function renderCallouts(results: Array<{
     const c = results[i];
     const num = dim(`${String(i + 1).padStart(3)}  `);
     const prefix = calloutPrefix(c.type);
-    // Use excerpt if it has highlights, otherwise truncate content
-    const text = c.excerpt.includes("**")
-      ? c.excerpt.replace(/\*\*/g, `${ESC}[1m`)
+    // Use excerpt if it has highlights, otherwise truncate content. Truncate the raw
+    // sentinel-marked excerpt before converting to ANSI (truncate() isn't ANSI-aware).
+    const text = c.excerpt.includes(EXCERPT_MARK_START)
+      ? highlightExcerpt(truncate(c.excerpt, w - 12))
       : truncate(c.content, w - 12);
     out.push(`${num}${prefix}`);
     out.push(`       ${text}`);
@@ -880,8 +902,8 @@ function renderChangelogs(results: ChangelogResult[]): string {
     const num = dim(`${String(i + 1).padStart(3)}  `);
     const breaking = c.is_breaking ? red("⚠ ") : "";
     const cat = dim(pad(c.category, 14));
-    const desc = c.excerpt.includes("**")
-      ? c.excerpt.replace(/\*\*/g, `${ESC}[1m`)
+    const desc = c.excerpt.includes(EXCERPT_MARK_START)
+      ? highlightExcerpt(truncate(c.excerpt, termWidth() - 26))
       : truncate(c.description, termWidth() - 26);
     out.push(`${num}${breaking}${cat} ${desc}`);
   }
@@ -910,8 +932,8 @@ function renderVideos(results: VideoSearchResult[]): string {
     }
     const timeUrl = v.start_s > 0 ? `${v.url}&t=${v.start_s}` : v.url;
     out.push(`       ${cyan(link(timeUrl))}`);
-    const excerpt = v.excerpt.replace(/\*\*/g, `${ESC}[1m`);
-    out.push(`       ${dim(truncate(excerpt, termWidth() - 8))}`);
+    const excerpt = highlightExcerpt(truncate(v.excerpt, termWidth() - 8), `${ESC}[2m`);
+    out.push(`       ${dim(excerpt)}`);
     out.push("");
   }
 
@@ -934,8 +956,8 @@ function renderDudeResults(results: DudeSearchResult[]): string {
     const imgs = d.image_count > 0 ? dim(`📷 ${d.image_count}`) : "";
     out.push(`${num}${title}  ${ver}  ${imgs}`);
     out.push(`       ${dim(d.path)}`);
-    const excerpt = d.excerpt.replace(/\*\*/g, `${ESC}[1m`);
-    out.push(`       ${dim(truncate(excerpt, termWidth() - 8))}`);
+    const excerpt = highlightExcerpt(truncate(d.excerpt, termWidth() - 8), `${ESC}[2m`);
+    out.push(`       ${dim(excerpt)}`);
     out.push("");
   }
 

@@ -3,8 +3,9 @@
 process.env.DB_PATH = ":memory:";
 
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { EXCERPT_MARK_END, EXCERPT_MARK_START } from "./query.ts";
 
 const {
   isInScopeDocsUrl,
@@ -317,5 +318,38 @@ describe("parseLlmsTxtInScopeCount (B-0012 H8, V-docusaurus-docs-count)", () => 
       "- [Dot1X](https://manual.mikrotik.com/docs/authentication-authorization-accounting/dot1x.md): desc",
     ].join("\n");
     expect(parseLlmsTxtInScopeCount(llmsTxt)).toBe(2);
+  });
+});
+
+describe("indexed prose never contains FTS snippet sentinel markers (issue #24 corpus safety)", () => {
+  // The '>>>'/'<<<' excerpt-highlight markers were chosen because a grep of all
+  // 365 in-scope manual.mikrotik.com pages found the literal strings only inside
+  // fenced code blocks (api.md's wire-protocol notation) — never in prose. Every
+  // real page fixture checked into fixtures/docusaurus/ re-proves that invariant
+  // on each run: none of parsePage's prose-bearing fields (text, section text,
+  // callout content, property descriptions) may contain the sentinel — only the
+  // separate `code` field is allowed to.
+  const fixturesDir = join(import.meta.dirname, "..", "fixtures", "docusaurus");
+  const fixtureFiles = readdirSync(fixturesDir).filter((f) => f.endsWith(".md"));
+
+  test.each(fixtureFiles)("%s: no sentinel marker in any prose field", (filename) => {
+    const md = readFileSync(join(fixturesDir, filename), "utf-8");
+    const url = `https://manual.mikrotik.com/docs/test/${filename.replace(/\.md$/, "")}`;
+    const page = parsePage(md, url);
+
+    expect(page.text).not.toContain(EXCERPT_MARK_START);
+    expect(page.text).not.toContain(EXCERPT_MARK_END);
+    for (const section of page.sections) {
+      expect(section.text).not.toContain(EXCERPT_MARK_START);
+      expect(section.text).not.toContain(EXCERPT_MARK_END);
+    }
+    for (const callout of page.callouts) {
+      expect(callout.content).not.toContain(EXCERPT_MARK_START);
+      expect(callout.content).not.toContain(EXCERPT_MARK_END);
+    }
+    for (const property of page.properties) {
+      expect(property.description).not.toContain(EXCERPT_MARK_START);
+      expect(property.description).not.toContain(EXCERPT_MARK_END);
+    }
   });
 });

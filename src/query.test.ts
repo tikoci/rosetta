@@ -55,6 +55,8 @@ const {
   KNOWN_TOPICS,
   searchAll,
   explainCommand,
+  EXCERPT_MARK_START,
+  EXCERPT_MARK_END,
 } = await import("./query.ts");
 const { parseChangelog } = await import("./extract-changelogs.ts");
 const { parseVtt, segmentTranscript } = await import("./extract-videos.ts");
@@ -361,6 +363,18 @@ beforeAll(() => {
      'Bridging overview text that is moderately long for testing purposes. It covers bridge setup and VLAN configuration and STP protocol details.',
      '/interface bridge add name=bridge1', NULL, NULL, NULL, 25, 1, 'test3.html')`);
 
+  // Native Markdown bold around the match term itself — regression fixture for
+  // the snippet-marker collision (issue #24): raw Docusaurus prose can already
+  // contain **bold**, so the FTS excerpt marker must not reuse '**'.
+  db.run(`INSERT INTO pages
+    (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+     author, last_updated, word_count, code_lines, html_file)
+    VALUES
+    (4, 'hAP-Series', 'hAP Series', 'RouterOS > Devices > hAP', 2, NULL,
+     'https://manual.mikrotik.com/docs/devices/hap',
+     'The **hAP** series is a popular home access point lineup with wireless and Ethernet ports.',
+     '', NULL, NULL, NULL, 16, 0, 'test4.html')`);
+
   db.run(`INSERT INTO sections
     (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
     VALUES
@@ -606,6 +620,18 @@ describe("searchPages", () => {
     const res = searchPages("dhcp lease");
     expect(res.results.length).toBeGreaterThan(0);
     expect(res.results[0].best_section).toBeUndefined();
+  });
+
+  test("excerpt uses sentinel markers, not collided '**', when the match term is already Markdown-bold (issue #24)", () => {
+    // Page 4's text is 'The **hAP** series is a popular home access point...' —
+    // native Markdown bold already wraps the match term. Before the fix, snippet()
+    // wrapped it in the same '**' marker, producing '****hAP****'.
+    const res = searchPages("hAP");
+    const hapPage = res.results.find((r) => r.id === 4);
+    expect(hapPage).toBeDefined();
+    expect(hapPage?.excerpt).not.toContain("****");
+    expect(hapPage?.excerpt).toContain(EXCERPT_MARK_START);
+    expect(hapPage?.excerpt).toContain(EXCERPT_MARK_END);
   });
 });
 
