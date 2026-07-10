@@ -1,14 +1,14 @@
 ---
 name: verify-task
-description: "Verify a work item is actually done by running the V-* validation rows its acceptance criteria cite. Maps V-* IDs to the CI step / test command via VALIDATION.md, runs them, reports pass/fail per row."
+description: "Verify a work item is actually done by running the V-* validation rows its issue cites. Maps V-* IDs to the CI step / test command via VALIDATION.md, runs them, reports pass/fail per row."
 argument-hint: "Issue number (e.g. #19), or T-0037 for the in-flight archived task. If omitted, lists open agent-ready issues and asks."
 ---
 
 # Verify Task
 
 Closes the loop between a work item's claimed acceptance and what's actually proven. Reads
-the `V-*` rows cited in the issue's acceptance criteria, looks each up in `VALIDATION.md`,
-runs the proof, reports green/red.
+the `V-*` rows cited in the issue's `## Validation` section (per the work-item template),
+looks each up in `VALIDATION.md`, runs the proof, reports green/red.
 
 ## When to use
 
@@ -18,15 +18,17 @@ runs the proof, reports green/red.
 
 ## When NOT to use
 
-- For an issue whose acceptance cites no `V-*` rows (pure-doc work). There's nothing to run.
+- For an issue that cites no `V-*` rows (pure-doc work). There's nothing to run.
 - As a substitute for code review.
 
 ## Procedure
 
 1. **Resolve the work item.** An issue number → `gh issue view <n>` and pull the `V-*` IDs
-   from its acceptance section (also check any archived `tasks/done/T-*.md` file the issue
-   names as its full spec). `T-0037` → read `tasks/T-0037-npm-prerelease-dist-tag-channel.md`
-   frontmatter directly (the one still-in-flight file-based task).
+   from its `## Validation` section — falling back to scanning acceptance bullets for older
+   issues that predate the template (also check any archived `tasks/done/T-*.md` file the
+   issue names as its full spec). `T-0037` → read
+   `tasks/T-0037-npm-prerelease-dist-tag-channel.md` frontmatter directly (the one
+   still-in-flight file-based task).
 
 2. **Look up each `V-*` in `VALIDATION.md`.** Pull the `Proven by`, `Status`, and
    `Tracked by` columns. This tells you whether the invariant is already enforced,
@@ -34,7 +36,7 @@ runs the proof, reports green/red.
 
 3. **Run the proof.**
 
-   Run `make verify` — it covers V-typecheck, V-lint, V-unit, V-tool-registry, V-tool-shapes, V-tool-budget, V-retrieval-floor in one command (requires a populated DB). For CI-only invariants (V-db-min-content, V-bunx-*) there is no local equivalent; those are only proven by a release run.
+   Run `make verify` — it covers V-typecheck, V-lint, V-unit, V-tool-registry, and V-retrieval-floor in one command (requires a populated DB). It runs `bun test src/mcp-contract.test.ts` *without* `ROSETTA_REAL_DB_TESTS=1`, so the real-DB blocks behind V-tool-shapes and V-tool-budget are **skipped** — run those separately with `ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts` against a populated DB. For CI-only invariants (V-db-min-content, V-bunx-*) there is no local equivalent; those are only proven by a release run.
 
    For more targeted checks, map common `V-*` IDs to commands:
 
@@ -43,9 +45,9 @@ runs the proof, reports green/red.
    | V-typecheck            | `bun run typecheck` |
    | V-lint                 | `bun run lint` |
    | V-unit                 | `bun test` |
-   | V-tool-registry        | `bun test src/mcp-contract.test.ts` |
-   | V-tool-shapes          | `bun test src/mcp-contract.test.ts` (Block C) |
-   | V-tool-budget          | `bun test src/mcp-contract.test.ts` (Block B) |
+   | V-tool-registry        | `bun test src/mcp-contract.test.ts` (Block A, always runs) |
+   | V-tool-shapes          | `ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts` (Block C, needs populated DB) |
+   | V-tool-budget          | `ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts` (Block B, needs populated DB) |
    | V-retrieval-floor      | `bun run src/eval/retrieval.ts` |
    | V-retrieval-self       | `bun run src/eval/self-supervised.ts` |
    | V-canonicalize         | `bun test src/canonicalize.test.ts src/canonicalize.fuzz.test.ts` |

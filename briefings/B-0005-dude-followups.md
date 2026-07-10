@@ -9,7 +9,7 @@ last_revisited: 2026-05-02
 
 # Open items
 
-These are wait-and-see; the Dude pipeline is shipped and stable. If user-visible misses appear, they get promoted to tasks individually.
+These are wait-and-see; the Dude pipeline is shipped and stable. If user-visible misses appear, they get promoted to GitHub issues individually.
 
 - **Wayback recovery for missing pages.** `The_Dude`, `v3_Device_map`, `v3_Device_list` did not extract cleanly. Worth a one-off check whether recoverable snapshots exist.
 - **/dude command linking.** The command-tree has `/dude` paths; they're not linked to `dude_pages` today. Low priority — the surfaces are separate (`routeros_dude_search` vs `routeros_search`).

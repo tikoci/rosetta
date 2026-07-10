@@ -33,10 +33,12 @@ An issue is pickable when:
 
    If a filter argument was supplied, match it against titles and labels.
 
-2. **If none are agent-ready**, widen with `gh issue list --state open` and report what
-   exists instead: discussion-stage issues (unlabeled — could be settled into readiness),
-   `blocked` issues (say what each waits on), and `umbrella` issues (their child checklists
-   show what could be spawned next). Also point at `BACKLOG.md` Inbox and open `briefings/`.
+2. **If none are agent-ready**, widen with
+   `gh issue list --state open --json number,title,labels,body` (the `body` field is what
+   holds "blocked on" references and umbrella checklists) and report what exists instead:
+   discussion-stage issues (unlabeled — could be settled into readiness), `blocked` issues
+   (say what each waits on), and `umbrella` issues (their child checklists show what could
+   be spawned next). Also point at `BACKLOG.md` Inbox and open `briefings/`.
 
 3. **Surface the top pick.** `gh issue view <n> --comments`, then present: number, title,
    acceptance criteria, `V-*` validation rows, and linked briefings or archived

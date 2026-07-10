@@ -19,6 +19,6 @@ created: 2026-05-02
 
 # Body
 
-> **Closed 2026-07-10** — migrated to [#22](https://github.com/tikoci/rosetta/issues/22) as part of the tasks→issues migration ([#18](https://github.com/tikoci/rosetta/issues/18)). The goal survives but this spec predates `T-0037`'s removal of CI-driven CHANGELOG promotion — respec happens on the issue.
+> **Closed 2026-07-10** — migrated to [#22](https://github.com/tikoci/rosetta/issues/22) as part of the tasks→issues migration ([#18](https://github.com/tikoci/rosetta/issues/18)). The goal survives but this spec predates `T-0037`'s removal of CI-driven CHANGELOG promotion — the spec is being reworked on the issue.
 
 Today the `bump-version` job auto-promotes `[Unreleased]` → `[VERSION] — DATE` and prepends a fresh `[Unreleased]` skeleton. But the release body itself is still hand-written. Lift the `[Unreleased]` block into the GitHub Release body so the changelog is the single source of truth for what shipped.

@@ -11,11 +11,11 @@ A briefing is **not** a work item. It might inform a future task. It might land 
 - You hit a research-shaped question whose answer is "do an experiment, see what happens."
 - You're about to make a non-obvious decision and want the reasoning recorded so future-you (or a future agent) doesn't have to redo it.
 
-If the conclusion of a briefing is "yes, do this codebase work," **then** create a `tasks/T-*.md` and cite the briefing in its body. The briefing stays as the rationale.
+If the conclusion of a briefing is "yes, do this codebase work," **then** open a GitHub issue and cite the briefing from it. The briefing stays as the rationale. (Before 2026-07-10 this meant creating a `tasks/T-*.md`; that queue is now a frozen archive — see `tasks/README.md`.)
 
 ## When **not** to write a briefing
 
-- You already know the work needed → `tasks/T-*.md` directly.
+- You already know the work needed → open a GitHub issue directly.
 - The thought is half-formed, no grounding yet → `BACKLOG.md` Inbox (one line).
 - The decision rationale is durable, project-wide, and load-bearing → it belongs in `DESIGN.md`. A briefing might *become* a `DESIGN.md` section if it stabilises.
 
@@ -49,8 +49,8 @@ Free-form. Sections that tend to be useful:
 
 - **id** — `B-NNNN-<slug>`. Pad to 4 digits. Independent numbering from `T-*` tasks.
 - **topic** — one-line description, useful for the BACKLOG.md index.
-- **status** — `open` (still thinking, or watching for triggers) or `resolved` (decision recorded; no further work expected unless something changes). A briefing that turns into one or more tasks stays `resolved` once the decision is made; the tasks track the work.
-- **related_tasks** — populated as briefings spawn (or get cited by) `T-*.md` files.
+- **status** — `open` (still thinking, or watching for triggers) or `resolved` (decision recorded; no further work expected unless something changes). A briefing that turns into one or more issues stays `resolved` once the decision is made; the issues track the work.
+- **related_tasks** — historical `T-*` IDs and/or issue numbers (`#N`) this briefing informs, populated as work spawns from (or cites) the briefing.
 - **created** / **last_revisited** — both ISO dates. `last_revisited` is the freshness signal.
 
 ## Lifecycle
@@ -60,7 +60,7 @@ B-NNNN-*.md  status: open
        │  decision made or research concluded
        ▼
 status: resolved
-       │  (optional) spawns tasks/T-*.md, tasks cite this briefing
+       │  (optional) spawns GitHub issue(s), issues cite this briefing
        ▼
 stays in briefings/ forever as the rationale record
 ```
@@ -69,7 +69,7 @@ There is no `briefings/done/`. Resolved briefings stay in place — they're the 
 
 ## What does **not** belong here
 
-- Codebase work commitments → `tasks/T-*.md`.
+- Codebase work commitments → GitHub Issues (`tasks/` is a frozen archive).
 - One-line ideas → `BACKLOG.md` Inbox.
 - Project-wide architectural rationale → `DESIGN.md`.
 - Status updates on in-progress tasks → those go in PR descriptions or task body edits.
