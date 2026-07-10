@@ -1,7 +1,7 @@
 ---
 id: T-0016-shrink-makefile-to-etl
 title: Shrink Makefile toward ETL only
-status: ready
+status: done
 priority: low
 area: release
 depends_on: []
@@ -18,5 +18,7 @@ created: 2026-05-02
 ---
 
 # Body
+
+> **Closed 2026-07-10** — won't-fix, as part of the tasks→issues migration ([#18](https://github.com/tikoci/rosetta/issues/18)). The bun-scripts-for-JS-lifecycle / Makefile-for-ETL-orchestration split is deliberate and learnable; further shrinking buys nothing. The split rule is documented in `CONTRIBUTING.md`.
 
 T-0013 already removed `make release`, `make build-release`, and `make bump-version`. The Makefile is now ETL + dev checks only. Remaining scope (if any): trim additional pure `bun` passthroughs that add no orchestration value. Low priority — the current state is already clean.

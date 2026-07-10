@@ -1,12 +1,12 @@
 ---
-description: "Canonical routing rule for where information belongs: task, briefing, backlog, DESIGN, MANUAL, CHANGELOG, VALIDATION, or CLAUDE."
+description: "Canonical routing rule for where information belongs: GitHub issue, briefing, backlog, DESIGN, MANUAL, CHANGELOG, VALIDATION, or CLAUDE."
 applyTo: "*.md, .github/instructions/**"
 ---
 # Where does this go?
 
 Use one canonical home for each kind of information:
 
-- **Committed codebase work** → `tasks/T-*.md`
+- **Committed codebase work** → a GitHub issue. Issues start as discussion; add the `agent-ready` label only once acceptance criteria are settled. `umbrella` = theme tracking issue, `blocked` = waiting on a named event. PRs close issues via `Closes #N` (see `issue-pr-linking.instructions.md`). `tasks/` is a frozen archive — never add new `T-*.md` files.
 - **Grounded research or decision support** → `briefings/B-*.md`
 - **Loose thought with no shape yet** → `BACKLOG.md` Inbox
 - **Waiting on a specific external event** → `BACKLOG.md` Triggers

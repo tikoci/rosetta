@@ -1,7 +1,7 @@
 ---
 id: T-0032-one-shot-cli-query
 title: One-shot CLI query mode so a SKILL.md can drive rosetta without MCP config
-status: ready
+status: done
 priority: medium
 area: install
 depends_on: []
@@ -21,6 +21,8 @@ created: 2026-07-06
 ---
 
 # Body
+
+> **Closed 2026-07-10** — rolled into `briefings/B-0015-explain-static-live-trilogy.md` and umbrella [#27](https://github.com/tikoci/rosetta/issues/27) as part of the tasks→issues migration ([#18](https://github.com/tikoci/rosetta/issues/18)). centrs is the guinea-pig for the hosted-SKILL.md onboarding pattern (centrs#150); resurface as an issue when that lands.
 
 B-0013 argues skills/prompt steering vs the rosetta MCP is a distribution
 question, not an either/or: MCP's adoption blocker is per-client config, while

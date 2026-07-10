@@ -1,7 +1,7 @@
 ---
 id: T-0014-html-url-supplied-or-discovered
 title: Make `html_url` intentionally supplied or auto-discovered
-status: ready
+status: done
 priority: medium
 area: release
 depends_on: []
@@ -16,6 +16,8 @@ created: 2026-05-02
 ---
 
 # Body
+
+> **Closed 2026-07-10** — superseded by `T-0036` (the Docusaurus cutover removed `html_url` from `release.yml` entirely), as part of the tasks→issues migration ([#18](https://github.com/tikoci/rosetta/issues/18)).
 
 The default Seafile direct link in `release.yml` can rotate. Either:
 1. Remove the default so dispatchers must supply the export URL each run, or

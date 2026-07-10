@@ -1,13 +1,14 @@
 ---
-description: "Pointer for the work-tracking split: tasks are commitments, briefings are research, backlog is the loose/thinking-first layer."
+description: "Pointer for the work-tracking split: GitHub issues are commitments, briefings are research, backlog is the loose/thinking-first layer, tasks/ is a frozen archive."
 applyTo: "tasks/**, briefings/**, BACKLOG.md, VALIDATION.md, CLAUDE.md"
 ---
-# Tasks vs briefings
+# Issues vs briefings (tasks/ is archived)
 
-The canonical detailed rules live in `tasks/README.md` and `briefings/README.md`.
+The canonical detailed rules live in `tasks/README.md` (archive note + issue-queue summary) and `briefings/README.md`.
 
-- `tasks/T-*.md` are real work commitments with acceptance criteria and, usually, validation rows.
-- `briefings/B-*.md` are research or decision-support notes that may conclude with "do nothing."
-- `BACKLOG.md` is the loose-thought / trigger layer, not a substitute task tracker.
+- **GitHub Issues** are the work commitments — discussion first, `agent-ready` label once the spec is settled. Acceptance criteria still cite `V-*` rows from `VALIDATION.md`.
+- `briefings/B-*.md` are research or decision-support notes that may conclude with "do nothing" or "opened issue #N."
+- `BACKLOG.md` is the loose-thought / trigger layer, not a substitute tracker.
+- `tasks/T-*.md` is a **frozen archive** (migration: issue #18). Never create new task files; `tasks/done/` files stay for grep-able history. Sole in-flight exception: `T-0037`.
 
 If you need the fine print, read the directory README that owns the file you are editing.

@@ -1,7 +1,7 @@
 ---
 id: T-0022-script-example-demarcation
 title: Preserve RouterOS code blocks in page text as fenced blocks
-status: ready
+status: done
 priority: low
 area: extraction
 depends_on: []
@@ -16,5 +16,7 @@ created: 2026-05-02
 ---
 
 # Body
+
+> **Closed 2026-07-10** — superseded by the Docusaurus migration as part of the tasks→issues migration ([#18](https://github.com/tikoci/rosetta/issues/18)). `extract-docusaurus.ts` keeps section/page text as raw Markdown, so fenced ```routeros blocks already sit in-place in the prose — exactly what this task wanted. The flat `page.code` field remains separate, as specified.
 
 Today the extractor flattens RouterOS code blocks to a separate `page.code` field, losing their position in the surrounding prose. Preserve them as fenced `routeros` blocks in `page.text` so context is intact for the LLM, while keeping the plain-text path for consumers (TUI, FTS) that prefer the flat form.

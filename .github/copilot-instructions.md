@@ -14,12 +14,13 @@ GitHub Copilot reads this file plus matching `.github/instructions/*.instruction
 - `AGENTS.md` — Codex-specific routing note.
 - `DESIGN.md` — durable rationale, data-source provenance, architecture tradeoffs.
 - `MANUAL.md` — install, release/re-extraction operations, CLI/HTTP reference, schema.
-- `tasks/README.md` / `briefings/README.md` — directory-local workflow rules.
+- GitHub Issues — the active work queue (`agent-ready` / `umbrella` / `blocked` labels). `tasks/` is a frozen archive; `tasks/README.md` / `briefings/README.md` hold the directory-local rules.
 - `.github/instructions/*.instructions.md` — narrow normative rules selected by `applyTo`.
 
 ## Start with these broad rules
 
 - `where-does-this-go.instructions.md`
+- `issue-pr-linking.instructions.md`
 - `changelog-discipline.instructions.md`
 - `capture-undone-work.instructions.md`
 - `ci-pickup-verification.instructions.md`
