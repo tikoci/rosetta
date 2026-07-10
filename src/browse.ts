@@ -423,9 +423,10 @@ function renderSearchResults(resp: SearchAllResponse): string {
     if (r.best_section) {
       out.push(`       ${dim("§")} ${r.best_section.heading}`);
     }
-    // Show excerpt with highlight markers converted to bold
-    const excerpt = highlightExcerpt(r.excerpt);
-    out.push(`       ${dim(truncate(excerpt, w - 8))}`);
+    // Truncate the raw sentinel-marked excerpt before converting to ANSI bold —
+    // truncate() isn't ANSI-aware and would otherwise count/slice escape bytes.
+    const excerpt = highlightExcerpt(truncate(r.excerpt, w - 8));
+    out.push(`       ${dim(excerpt)}`);
     out.push("");
   }
 
@@ -629,7 +630,7 @@ function renderProperties(results: Array<{
     const num = dim(`${String(i + 1).padStart(3)}  `);
     out.push(`${num}${bold(p.name)}  ${dim(p.type ?? "")}  ${p.default_val ? dim(`default: ${p.default_val}`) : ""}`);
     const desc = p.excerpt?.includes(EXCERPT_MARK_START)
-      ? truncate(highlightExcerpt(p.excerpt), w - 8)
+      ? highlightExcerpt(truncate(p.excerpt, w - 8))
       : truncate(p.description, w - 8);
     out.push(`       ${desc}`);
     out.push(`       ${dim(p.page_title)}  ${cyan(link(p.page_url, dim("→")))}`);
@@ -857,8 +858,11 @@ function renderCallouts(results: Array<{
     const c = results[i];
     const num = dim(`${String(i + 1).padStart(3)}  `);
     const prefix = calloutPrefix(c.type);
-    // Use excerpt if it has highlights, otherwise truncate content
-    const text = c.excerpt.includes(EXCERPT_MARK_START) ? highlightExcerpt(c.excerpt) : truncate(c.content, w - 12);
+    // Use excerpt if it has highlights, otherwise truncate content. Truncate the raw
+    // sentinel-marked excerpt before converting to ANSI (truncate() isn't ANSI-aware).
+    const text = c.excerpt.includes(EXCERPT_MARK_START)
+      ? highlightExcerpt(truncate(c.excerpt, w - 12))
+      : truncate(c.content, w - 12);
     out.push(`${num}${prefix}`);
     out.push(`       ${text}`);
     out.push(`       ${dim(c.page_title)} ${cyan(link(c.page_url, dim(`[${c.page_id}]`)))}`);
@@ -888,7 +892,7 @@ function renderChangelogs(results: ChangelogResult[]): string {
     const breaking = c.is_breaking ? red("⚠ ") : "";
     const cat = dim(pad(c.category, 14));
     const desc = c.excerpt.includes(EXCERPT_MARK_START)
-      ? highlightExcerpt(c.excerpt)
+      ? highlightExcerpt(truncate(c.excerpt, termWidth() - 26))
       : truncate(c.description, termWidth() - 26);
     out.push(`${num}${breaking}${cat} ${desc}`);
   }
@@ -917,8 +921,8 @@ function renderVideos(results: VideoSearchResult[]): string {
     }
     const timeUrl = v.start_s > 0 ? `${v.url}&t=${v.start_s}` : v.url;
     out.push(`       ${cyan(link(timeUrl))}`);
-    const excerpt = highlightExcerpt(v.excerpt);
-    out.push(`       ${dim(truncate(excerpt, termWidth() - 8))}`);
+    const excerpt = highlightExcerpt(truncate(v.excerpt, termWidth() - 8));
+    out.push(`       ${dim(excerpt)}`);
     out.push("");
   }
 
@@ -941,8 +945,8 @@ function renderDudeResults(results: DudeSearchResult[]): string {
     const imgs = d.image_count > 0 ? dim(`📷 ${d.image_count}`) : "";
     out.push(`${num}${title}  ${ver}  ${imgs}`);
     out.push(`       ${dim(d.path)}`);
-    const excerpt = highlightExcerpt(d.excerpt);
-    out.push(`       ${dim(truncate(excerpt, termWidth() - 8))}`);
+    const excerpt = highlightExcerpt(truncate(d.excerpt, termWidth() - 8));
+    out.push(`       ${dim(excerpt)}`);
     out.push("");
   }
 
