@@ -709,6 +709,14 @@ rosetta task, since the code change (if any) lives in restraml. Rosetta's own co
 a task file as a commitment, not a maybe, so items #2–#4/#6 stay proposals until then. Each
 cites the B-0012 section(s) it depends on:
 
+> **2026-07-10 note:** the tasks→issues migration
+> ([#18](https://github.com/tikoci/rosetta/issues/18)) changed the mechanism — proposals
+> below get cut as GitHub issues now, never as `tasks/T-*.md` files. Items #2 (CLI
+> Reference) and #3 (`/hardware`) are already tracked as overlays under umbrella
+> [#28](https://github.com/tikoci/rosetta/issues/28) (with
+> [#25](https://github.com/tikoci/rosetta/issues/25)); item #6's MCP/TUI rework falls under
+> umbrella [#27](https://github.com/tikoci/rosetta/issues/27).
+
 1. ~~**Docusaurus prose extractor**~~ — **done, staged as `T-0034` (identity spike) + `T-0035`
    (extractor)**, both closed 2026-07-07, see "Next steps" above. Depended on: H1 (site
    internals), H4 (property-table parsing), H7 (identity scheme — resolved by `T-0034`, not left

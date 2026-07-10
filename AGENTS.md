@@ -14,10 +14,13 @@ operator/reference material lives in `MANUAL.md`; narrow normative rules live in
   Copilot, but do not duplicate its rules here.
 - Manually read the matching `.github/instructions/*.instructions.md` files.
   Codex does not get Copilot's `applyTo` selection automatically.
-- For task or briefing work, read `tasks/README.md` or `briefings/README.md`.
+- Active work is tracked in GitHub Issues (`agent-ready` / `umbrella` / `blocked`
+  labels); PRs close issues via `Closes #N` — read
+  `.github/instructions/issue-pr-linking.instructions.md`. `tasks/` is a frozen
+  archive (see `tasks/README.md`); briefing rules are in `briefings/README.md`.
 - Repo-local Copilot skills live in `.github/skills/*/SKILL.md`; read the
-  relevant file when a user asks for that workflow, such as picking a task,
-  promoting an idea, re-extracting, or verifying a task.
+  relevant file when a user asks for that workflow, such as picking the next
+  issue, promoting an idea, re-extracting, or verifying acceptance criteria.
 
 ## Development defaults
 

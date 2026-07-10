@@ -15,9 +15,9 @@ Each file has one job. Prefer the canonical home instead of inventing a new top-
 | `README.md` | User-facing quick start |
 | `CHANGELOG.md` | User-visible shipped changes under `[Unreleased]` / releases |
 | `VALIDATION.md` | Load-bearing invariants and how CI proves them |
-| `BACKLOG.md` | Lightweight inbox, triggers, and task/briefing indexes |
-| `tasks/T-*.md` | Active committed work items |
-| `tasks/done/T-*.md` | Closed work kept for grep-able history |
+| `BACKLOG.md` | Lightweight inbox, triggers, and briefing index |
+| GitHub Issues | Active committed work items (`agent-ready` / `umbrella` / `blocked` labels) |
+| `tasks/` | **Frozen archive** of the pre-2026-07 file-based queue; `tasks/done/T-*.md` kept for grep-able history. No new task files |
 | `briefings/B-*.md` | Research notes and decision support |
 | `.github/copilot-instructions.md` | Short Copilot-specific routing note |
 | `.github/instructions/*.instructions.md` | Narrow normative rules matched by `applyTo` |
@@ -28,7 +28,7 @@ Each file has one job. Prefer the canonical home instead of inventing a new top-
 
 The canonical routing rule lives in `.github/instructions/where-does-this-go.instructions.md`. Short version:
 
-- **Committed codebase work** → `tasks/T-*.md`
+- **Committed codebase work** → a GitHub issue (`agent-ready` once the spec is settled; PRs close issues via `Closes #N`)
 - **Grounded research / decision support** → `briefings/B-*.md`
 - **Loose thought with no shape yet** → `BACKLOG.md` Inbox
 - **Waiting on a named external event** → `BACKLOG.md` Triggers
@@ -37,7 +37,7 @@ The canonical routing rule lives in `.github/instructions/where-does-this-go.ins
 - **User-visible shipped behavior** → `CHANGELOG.md`
 - **Load-bearing invariant + proof** → `VALIDATION.md`
 
-Avoid JIRA-style ticket sprawl: a task file is a real commitment, not a maybe.
+Avoid ticket sprawl: an issue starts as discussion; the `agent-ready` label is a promotion earned once acceptance criteria are settled, not a default.
 
 ## Instruction Routing
 
@@ -51,7 +51,7 @@ Agent-specific entrypoints are thin shims: Claude starts here, Codex starts with
 | Extraction and data-shape work | `extraction.instructions.md` plus `extractor-idempotent.instructions.md`, `extractor-import-side-effects.instructions.md`, `command-versions-vs-presence.instructions.md`, `schema-roundtrip-compat.instructions.md`, `data-source-naming-product-matrix.instructions.md`, `skill-attribution-boundary.instructions.md` |
 | Release / install / provenance | `release-via-ci.instructions.md`, `republish-assets-not-npm.instructions.md`, `db-meta-stamping.instructions.md` |
 | Markdown / doc-authoring rules | `markdownlint-fenced-code.instructions.md`, `llm-instruction-files-excluded-from-mdlint.instructions.md` |
-| Task / briefing workflow | `tasks-vs-briefings.instructions.md`, `tasks/README.md`, `briefings/README.md` |
+| Issue / briefing workflow | `tasks-vs-briefings.instructions.md`, `issue-pr-linking.instructions.md`, `tasks/README.md`, `briefings/README.md` |
 
 ## Fast pointers
 
@@ -60,6 +60,6 @@ Agent-specific entrypoints are thin shims: Claude starts here, Codex starts with
 - Need **manual-site migration context**? MikroTik moved future docs to Docusaurus at <https://manual.mikrotik.com>; read `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` before touching extraction, MCP, or TUI search.
 - Need **external agent-benchmark context**? `~/GitHub/bench-routeros-tools` tests rosetta as one grounding approach for live RouterOS command generation; read `DESIGN.md` → "External benchmark feedback loop" before changing retrieval, skills, or command-validation surfaces.
 - Need **current corpus counts**? Use `routeros_stats` rather than hard-coded numbers here.
-- Need **task status or open ideas**? Use `tasks/`, `briefings/`, and `BACKLOG.md`.
+- Need **work status or open ideas**? Use `gh issue list` (active work), `briefings/`, and `BACKLOG.md`; `tasks/` is a frozen archive.
 
 Nothing else should be duplicated here. If this file starts growing operational detail, schema blocks, or long rule lists again, move that content back into its canonical home instead.

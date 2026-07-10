@@ -301,7 +301,7 @@ staged for the cutover except the workflow itself.
   rebuild becomes a local-only `make extract-legacy-confluence` + manual
   publish, matching how `MANUAL.md` already frames that target.
 
-See `tasks/T-0036-release-yml-docusaurus-cutover.md` and
+See `tasks/done/T-0036-release-yml-docusaurus-cutover.md` and
 `tasks/T-0037-npm-prerelease-dist-tag-channel.md` for the resulting
 commitments — coverage reporting (D) is folded into `T-0037` since it's the
 same `release.yml` touch-point.

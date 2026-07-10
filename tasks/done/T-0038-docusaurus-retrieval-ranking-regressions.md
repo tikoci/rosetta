@@ -1,7 +1,7 @@
 ---
 id: T-0038-docusaurus-retrieval-ranking-regressions
 title: Fix two real retrieval-ranking regressions surfaced by the Docusaurus corpus swap
-status: blocked
+status: done
 priority: high
 area: mcp
 depends_on: []
@@ -21,6 +21,8 @@ created: 2026-07-09
 ---
 
 # Body
+
+> **Closed 2026-07-10** — migrated to [#26](https://github.com/tikoci/rosetta/issues/26) as part of the tasks→issues migration ([#18](https://github.com/tikoci/rosetta/issues/18)). This file remains the full spec (repro, candidate root causes); the issue is blocked until the CLI-Reference/hardware overlays (umbrella [#28](https://github.com/tikoci/rosetta/issues/28)) land, then re-run the repro.
 
 ## Status note (PR #17, 2026-07-08)
 

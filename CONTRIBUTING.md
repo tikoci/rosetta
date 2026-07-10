@@ -97,6 +97,28 @@ Three ways to exercise MCP tools during development:
 
 Run `bun test` and `bun run lint` before any commit.
 
+## Work tracking
+
+Active work is tracked in [GitHub Issues](https://github.com/tikoci/rosetta/issues).
+An issue starts as discussion; the `agent-ready` label means acceptance criteria are
+settled and it can be picked up now. `umbrella` marks a theme-tracking issue (work
+happens in its child issues); `blocked` marks issues waiting on a named event.
+
+Two PR rules (details in `.github/instructions/issue-pr-linking.instructions.md`):
+
+1. A PR that implements an issue says `Closes #N` in its **body**, so merging closes
+   the issue automatically.
+2. If a PR delivers only part of an issue, open follow-up issues for the remainder
+   *before* merging and reference them from the PR.
+
+Research and decision notes live in `briefings/B-*.md`; loose ideas and wait-on-event
+triggers in `BACKLOG.md`. The old file-based queue under `tasks/` is a frozen archive
+(see `tasks/README.md`).
+
+Build tooling note: `package.json` scripts cover the JS/TS lifecycle (`bun run` /
+`bun test`); the `Makefile` exists for ETL orchestration and multi-step checks
+(`make verify`). That split is deliberate — don't fold one into the other.
+
 ## Changelog discipline
 
 Any change with a user-visible effect (CLI flag, MCP tool shape, DB schema,
@@ -110,11 +132,12 @@ Pure refactors, test churn, and CI auto-bumps with no external effect are
 omitted (git history is authoritative). Details and rationale go in
 `DESIGN.md`; future work goes in `BACKLOG.md`.
 
-The `bump-version` CI job (runs automatically after every release) promotes
-`[Unreleased]` to `[VERSION] — DATE` and prepends a fresh `## [Unreleased]`
-skeleton — no manual fixup needed. Agents and developers only ever write
-to the current `[Unreleased]` section; the version heading is filled in
-automatically at release time.
+Version bumps and CHANGELOG promotion are **manual** (the old `bump-version`
+CI auto-promotion was removed by T-0037): before a latest-channel release, a
+human edits `package.json` and promotes `[Unreleased]` to `[VERSION] — DATE`
+by hand; a release-workflow preflight gate fails the run if the heading is
+missing. Agents and developers only ever write to the current `[Unreleased]`
+section. Prerelease (alpha/beta/rc) runs don't promote `[Unreleased]` at all.
 
 ## Creating a Release
 

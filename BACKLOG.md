@@ -1,31 +1,31 @@
 # Backlog — rosetta
 
-> Lightweight inbox + watch list. Real work lives in [`tasks/`](tasks/), grounded design notes in [`briefings/`](briefings/). See `tasks/README.md` and `briefings/README.md` for the full convention.
+> Lightweight inbox + watch list. Real work lives in [GitHub Issues](https://github.com/tikoci/rosetta/issues), grounded design notes in [`briefings/`](briefings/). See `tasks/README.md` (now an archive note) and `briefings/README.md` for the full convention.
 >
 > **Decision rule:**
 >
 > - Loose thought, no shape yet → **Inbox** below (one line).
 > - Waiting on a specific external event → **Triggers** below (one line + condition).
 > - Need to think out loud, ground claims, or record a decision → `briefings/B-NNNN-<slug>.md`.
-> - Codebase work you'd commit to → `tasks/T-NNNN-<slug>.md` with `status: ready`.
+> - Codebase work you'd commit to → open a **GitHub issue**; label it `agent-ready` only once the spec is settled (see `.github/instructions/where-does-this-go.instructions.md`).
 
 ---
 
 ## Inbox
 
-Drop one-line thoughts here. Promote later — to a task if it gains shape, to a briefing if it needs thinking-first, or delete if it doesn't survive a re-read.
+Drop one-line thoughts here. Promote later — to an issue if it gains shape, to a briefing if it needs thinking-first, or delete if it doesn't survive a re-read.
 
 - Keep merging `actions/setup-node`, `actions/upload-artifact`, and Docker action Dependabot bumps before GitHub's forced runtime transitions turn warnings into failures.
 - `src/setup.test.ts` — `probeDb > closes statements so a probed temp DB can be renamed immediately` consistently times out on macOS (~7-8s vs 5000ms timeout); introduced in v0.8.12 Windows-rename fix; passes on CI (Linux). Investigate whether the timeout needs raising or the test needs a macOS skip/guard.
 - Benchmark feedback loop: periodically compare retrieval/explain changes against `~/GitHub/bench-routeros-tools`; promote `route-blackhole`, version-new Wi-Fi `ssid=`, and skill-vs-raw-doc packaging into rosetta fixtures when the benchmark corpus stabilizes.
 - Future `routeros_validate_command`: carry explicit static-vs-runtime provenance and include a bare-flag `blackhole` regression fixture because `/console/inspect` can accept forms that RouterOS runtime rejects.
-- TUI longer wishlist: tab completion, persistent history (`~/.rosetta/browse_history`), export (JSON/CSV/Markdown), audit views, bookmarks. None individually picked up — promote one to a task if a real need surfaces.
-- Rung-1 steering skill: a skill encoding the `llms.txt → .md → cli-reference` workflow (per B-0013), possibly wrapping T-0032's one-shot CLI. Cross-repo (`routeros-skills` or repo-local per the centrs#150 pattern) — promote once centrs#150's onboarding pilot lands.
-- Switch-chip → device resolution is a common need that resolves poorly today. `devices.cpu` conflates the Marvell switch ASIC with the management CPU, so a chip-ID query only matches the ARM32 CRS3xx boxes where the ASIC *is* the CPU (e.g. `98DX8208`→CRS309, `98DX8216`→CRS317); chips on QCA9531/AL73400/AL52400-managed boxes (`98DX8212`, `98DX8332`, `98DX3255`, `98DX3257`, `98DX4310`, `98DX8525`, `98CX8410`) miss entirely. A real session (resolving an l3hw HW-offloaded-VRF release note listing 9 chips) needed ~6 tool calls because the only authoritative chip→model source is the L3 Hardware Offloading doc table (page 62390319), not a queryable field. Candidate fix is two-sided: an extraction-side `switch_chip` column on devices (distinct from `cpu`; could be seeded from that doc table), plus an MCP-side path so `routeros_device_lookup`/`routeros_search` resolve switch-ASIC IDs to product models directly. Relates to B-0006 (device AKA/alias) and B-0007 (special hardware page extraction); promote to a task if the switch_chip column lands or another chip→device question recurs.
+- TUI longer wishlist: tab completion, persistent history (`~/.rosetta/browse_history`), export (JSON/CSV/Markdown), audit views, bookmarks. None individually picked up — promote one to an issue if a real need surfaces (umbrella [#27](https://github.com/tikoci/rosetta/issues/27) is the home for TUI work).
+- Rung-1 steering skill: a skill encoding the `llms.txt → .md → cli-reference` workflow (per B-0013), possibly wrapping the one-shot CLI idea now tracked in B-0015 / umbrella [#27](https://github.com/tikoci/rosetta/issues/27). Cross-repo (`routeros-skills` or repo-local per the centrs#150 pattern) — promote once centrs#150's onboarding pilot lands.
+- Switch-chip → device resolution is a common need that resolves poorly today. `devices.cpu` conflates the Marvell switch ASIC with the management CPU, so a chip-ID query only matches the ARM32 CRS3xx boxes where the ASIC *is* the CPU (e.g. `98DX8208`→CRS309, `98DX8216`→CRS317); chips on QCA9531/AL73400/AL52400-managed boxes (`98DX8212`, `98DX8332`, `98DX3255`, `98DX3257`, `98DX4310`, `98DX8525`, `98CX8410`) miss entirely. A real session (resolving an l3hw HW-offloaded-VRF release note listing 9 chips) needed ~6 tool calls because the only authoritative chip→model source is the L3 Hardware Offloading doc table (page 62390319), not a queryable field. Candidate fix is two-sided: an extraction-side `switch_chip` column on devices (distinct from `cpu`; could be seeded from that doc table), plus an MCP-side path so `routeros_device_lookup`/`routeros_search` resolve switch-ASIC IDs to product models directly. Relates to B-0006 (device AKA/alias) and B-0007 (special hardware page extraction); promote to an issue (likely under umbrella [#28](https://github.com/tikoci/rosetta/issues/28)'s hardware overlay) if the switch_chip column lands or another chip→device question recurs.
 
 ## Triggers
 
-Items waiting on a specific external event. Not tracked as tasks because the wait is indeterminate. When the trigger fires, promote to a `T-*.md`.
+Items waiting on a specific external event. Not tracked as issues because the wait is indeterminate. When the trigger fires, open an issue.
 
 | Trigger | Item |
 |---------|------|
@@ -44,45 +44,17 @@ Items waiting on a specific external event. Not tracked as tasks because the wai
 
 ---
 
-## Active task index
+## Active work
 
-Auto-listable: `ls tasks/T-*.md`. Hand-maintained pointer for now; a regen script is itself a low-priority follow-up (don't write it until this index gets annoying to maintain).
+Tracked in [GitHub Issues](https://github.com/tikoci/rosetta/issues) since 2026-07-10 (migration: [#18](https://github.com/tikoci/rosetta/issues/18)). The commands below need an authenticated [`gh` CLI](https://cli.github.com/); without it, the [Issues tab](https://github.com/tikoci/rosetta/issues) shows the same thing. List it live:
 
-### `area: qa`
+```sh
+gh issue list                        # everything open
+gh issue list --label agent-ready    # pick-up-now queue
+gh issue list --label umbrella       # theme tracking issues
+```
 
-- `T-0011-tui-mcp-parity-test` — Enforce TUI ↔ MCP tool parity
-- `T-0012-cli-flag-uniformity-test` — CLI flag documentation parity test
-
-### `area: release`
-
-- `T-0014-html-url-supplied-or-discovered` — Make `html_url` intentionally supplied or auto-discovered
-- `T-0015-promote-changelog-into-release-notes` — Promote CHANGELOG.md into release notes
-- `T-0016-shrink-makefile-to-etl` — Shrink Makefile toward ETL only (narrowed: T-0013 removed release targets)
-- `T-0037-npm-prerelease-dist-tag-channel` — npm prerelease/dist-tag channel (alpha/beta/rc/next) with aligned OCI tags + coverage reporting
-
-### `area: install`
-
-- `T-0018-bunx-freshness-check` — bunx freshness check + `ROSETTA_OFFLINE`
-- `T-0032-one-shot-cli-query` — One-shot CLI query mode (`--json`) so a SKILL.md can drive rosetta without MCP config
-
-### `area: extraction`
-
-- `T-0017-extractor-import-side-effects` — Convert remaining extractor entrypoints to safe import pattern
-- `T-0019-completion-data-promotion` — Promote `schema_nodes._attrs.completion` to structured columns
-- `T-0021-list-format-properties` — List-format properties extraction
-- `T-0022-script-example-demarcation` — Preserve RouterOS code blocks in page text as fenced blocks
-- `T-0023-video-quality-signals` — Video metadata quality signals
-
-### `area: mcp`
-
-- `T-0020-arch-as-advisory` — Treat arch as advisory, not exclusion
-- `T-0024-structured-highlights` — Return structured highlights instead of literal `**` markers
-- `T-0025-current-versions-enrichment` — `routeros_current_versions` enrichment with download URLs
-
-### `area: tui`
-
-- `T-0026-tui-flag-passthrough` — TUI pass-through flag parsing
-- `T-0027-tui-pattern-search` — TUI vi-style `/pattern` search
+One exception still tracked as a file: `tasks/T-0037-npm-prerelease-dist-tag-channel.md` (`in-progress`, finishing under the old scheme — its PR closes it).
 
 ## Briefings index
 
@@ -104,6 +76,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0012 | Docusaurus manual migration after Confluence retirement | open |
 | B-0013 | Steering / skills / rosetta / centrs positioning ladder | open |
 | B-0014 | CI is release-workflow-locked, not PR/main-gated — QA cleanup plan | open |
+| B-0015 | Unified "explain" static + live across the tikoci trilogy (rosetta/centrs/lsp) | open |
 
 ## Done index
 
