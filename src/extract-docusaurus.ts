@@ -198,8 +198,56 @@ function parsePropertyCell(
 }
 
 /**
+ * Parse a bullet-list property definition: `- **name** (type[; default: x]) : description`
+ * (bare parens, e.g. queues.md) or `- **name** *(type[; default: x])* - description`
+ * (italicized parens, e.g. scheduler.md).
+ *
+ * Gated on a lowercase kebab-case name immediately followed by a parenthetical annotation —
+ * this is the discriminator that separates real RouterOS property bullets from the far more
+ * common non-property bold-bulleted prose found across the corpus (command menus in console.md,
+ * chain/enum-value lists in filter.md/nat.md, JSON API fields in hotspot-captive-portal.md,
+ * naming-convention lists in product-naming.md). Those all lack a parenthetical right after the
+ * bold term, so they correctly fall through as non-matches (issue #20's false-positive guard).
+ * Requiring lowercase specifically (unlike parsePropertyCell's case-insensitive table-cell
+ * match) also excludes prose bullets that bold an uppercase acronym rather than an actual
+ * property name, e.g. queues.md's "**CIR** (Committed Information Rate) – (**limit-at** in
+ * RouterOS) ...", which explains a concept rather than defining a property named "CIR".
+ */
+function parseBulletProperty(
+  line: string,
+): { name: string; rawType: string | null; defaultVal: string | null; description: string; malformed: boolean } | null {
+  const m = line.match(/^[-*]\s+\*\*([a-z0-9][a-z0-9-]*)\*\*(.*)$/);
+  if (!m) return null;
+  const [, name, rest] = m;
+
+  const wellFormed = rest.match(/^\s*\*?\(([^)]*)\)\*?\s*[:\-–—]\s*(.+)$/);
+  if (wellFormed) {
+    const [, annotation, description] = wellFormed;
+    const defaultMatch = annotation.match(/;?\s*default:\s*(.*)$/i);
+    const rawType =
+      (defaultMatch ? annotation.slice(0, defaultMatch.index) : annotation).replace(/;$/, "").trim() || null;
+    const defaultVal = defaultMatch ? defaultMatch[1].trim() || null : null;
+    return { name, rawType, defaultVal, description: description.trim(), malformed: false };
+  }
+
+  // Malformed fallback: an italicized annotation missing its opening paren, e.g.
+  // scheduler.md's real upstream typo "**name** *name)*" (should have been "*(name)*") —
+  // same B-0012 H4 malformed-emphasis territory as parsePropertyCell's check-gateway case.
+  // Recover the description, flag it, and don't trust the garbled type text.
+  const malformed = rest.match(/^\s*\*[^*()]*\)\*\s*[:\-–—]\s*(.+)$/);
+  if (malformed) {
+    return { name, rawType: null, defaultVal: null, description: malformed[1].trim(), malformed: true };
+  }
+
+  return null;
+}
+
+/**
  * Parse Markdown property tables: `| Property | Description |` or `| Parameter | Description |`
- * (both header spellings observed live — sms.md uses "Parameter", dhcp.md uses "Property").
+ * (both header spellings observed live — sms.md uses "Parameter", dhcp.md uses "Property"),
+ * plus bullet-list property definitions (issue #20 — 32 pages use bullets instead of tables,
+ * though characterizing them showed most of those pages are non-property prose; see
+ * parseBulletProperty's doc comment for the false-positive guard that follows from that).
  * Section attribution is the nearest preceding heading of any level, matching extract-html.ts's
  * "nearest preceding heading" behavior for the Confluence corpus.
  */
@@ -243,6 +291,19 @@ export function parseProperties(md: string): ParsedProperty[] {
         i++;
       }
       i--; // outer loop will increment
+      continue;
+    }
+
+    const bulletProperty = parseBulletProperty(line);
+    if (bulletProperty) {
+      properties.push({
+        name: bulletProperty.name,
+        rawType: bulletProperty.rawType,
+        defaultVal: bulletProperty.defaultVal,
+        description: bulletProperty.description,
+        section: currentSection,
+        malformedEmphasis: bulletProperty.malformed,
+      });
     }
   }
 

@@ -26,6 +26,9 @@ const dhcpMd = read("dhcp.md");
 const smsMd = read("sms.md");
 const dot1xMd = read("dot1x.md");
 const addressListsMd = read("address-lists.md");
+const queuesMd = read("queues.md");
+const schedulerMd = read("scheduler.md");
+const productNamingMd = read("product-naming.md");
 
 const DHCP_URL = "https://manual.mikrotik.com/docs/network-management/dhcp";
 const SMS_URL = "https://manual.mikrotik.com/docs/mobile-networking/sms";
@@ -127,6 +130,73 @@ describe("parseProperties — sms.md (real 'Parameter' header spelling, not 'Pro
 describe("parseProperties — address-lists.md (no property table at all)", () => {
   test("returns an empty array rather than a false-positive match", () => {
     expect(parseProperties(addressListsMd)).toEqual([]);
+  });
+});
+
+describe("parseProperties — queues.md (bullet-list properties, issue #20)", () => {
+  const properties = parseProperties(queuesMd);
+
+  test("extracts bullet-list properties across multiple sections, not just tables", () => {
+    // Real gain for issue #20: Flow Identifiers, Other properties, HTB Properties,
+    // Statistics, and PCQ are all bullet-list-only sections with zero table rows.
+    expect(properties.filter((p) => p.section === "Other properties").length).toBeGreaterThanOrEqual(5);
+    expect(properties.filter((p) => p.section === "HTB Properties").length).toBeGreaterThanOrEqual(14);
+    expect(properties.filter((p) => p.section === "Statistics").length).toBeGreaterThanOrEqual(20);
+    expect(properties.filter((p) => p.section === "PCQ").length).toBeGreaterThanOrEqual(11);
+  });
+
+  test("parses a well-formed bare-paren bullet (queue direction)", () => {
+    const direction = properties.find((p) => p.name === "direction");
+    expect(direction).toBeDefined();
+    expect(direction?.malformedEmphasis).toBeFalse();
+    expect(direction?.rawType).toContain("upload");
+  });
+
+  test("splits type and default out of a bullet with an inline default", () => {
+    const classifier = properties.find((p) => p.name === "pcq-classifier");
+    expect(classifier).toBeDefined();
+    expect(classifier?.defaultVal).toBe('""');
+    expect(classifier?.rawType).toContain("dst-address");
+  });
+
+  test("does not mint a fake property from an uppercase-acronym concept bullet (CIR/MIR)", () => {
+    // "**CIR** (Committed Information Rate) – (**limit-at** in RouterOS) ..." explains a
+    // concept and points at the real property (limit-at), it does not define a property
+    // named CIR. Real RouterOS property names are always lowercase kebab-case.
+    expect(properties.some((p) => p.name === "CIR" || p.name === "MIR")).toBeFalse();
+  });
+});
+
+describe("parseProperties — scheduler.md (bullet-list properties, italicized-paren shape)", () => {
+  const properties = parseProperties(schedulerMd);
+
+  test("extracts all Properties-section bullets", () => {
+    expect(properties.length).toBe(6);
+    expect(properties.every((p) => p.section === "Properties")).toBeTrue();
+  });
+
+  test("flags the real upstream typo (missing opening paren) as malformed, not silently dropped", () => {
+    const name = properties.find((p) => p.name === "name");
+    expect(name).toBeDefined();
+    expect(name?.malformedEmphasis).toBeTrue();
+    expect(name?.rawType).toBeNull();
+    expect(name?.description).toBe("Name of the task.");
+  });
+
+  test("parses a well-formed italicized-paren bullet with an inline default", () => {
+    const interval = properties.find((p) => p.name === "interval");
+    expect(interval).toBeDefined();
+    expect(interval?.malformedEmphasis).toBeFalse();
+    expect(interval?.rawType).toBe("time");
+    expect(interval?.defaultVal).toBe("0s");
+  });
+});
+
+describe("parseProperties — product-naming.md (false-positive guard, issue #20)", () => {
+  test("mints no properties from ordinary bold-lead bullets with no parenthetical annotation", () => {
+    // "- **band**:" / "- **protocol**:" / nested "- **ac** - For cards with ..." are naming
+    // explanations, not property definitions — none carry a `(type)` right after the bold term.
+    expect(parseProperties(productNamingMd)).toEqual([]);
   });
 });
 
