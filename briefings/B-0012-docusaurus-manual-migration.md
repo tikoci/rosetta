@@ -716,6 +716,17 @@ cites the B-0012 section(s) it depends on:
 > [#28](https://github.com/tikoci/rosetta/issues/28) (with
 > [#25](https://github.com/tikoci/rosetta/issues/25)); item #6's MCP/TUI rework falls under
 > umbrella [#27](https://github.com/tikoci/rosetta/issues/27).
+>
+> **2026-07-10 later same day:** both #2 and #3 turned out to need their own precursor
+> research/design pass before ETL work on them is spec-settled — this briefing's H3 (CLI
+> Reference) and H1/H2/H6 (`/hardware`) sections are the grounding, but the concrete design
+> questions they raise are now tracked in dedicated briefings so they don't keep growing this
+> already-long one: `briefings/B-0016-cli-reference-overlay-design.md` (issue
+> [#33](https://github.com/tikoci/rosetta/issues/33)) and
+> `briefings/B-0017-hardware-overlay-device-resolution.md` (issue
+> [#34](https://github.com/tikoci/rosetta/issues/34), which also absorbs `B-0006`/`B-0007` and
+> the BACKLOG switch-chip device-resolution item). Treat items #2/#3 below as superseded by
+> those two briefings/issues rather than editing them further here.
 
 1. ~~**Docusaurus prose extractor**~~ — **done, staged as `T-0034` (identity spike) + `T-0035`
    (extractor)**, both closed 2026-07-07, see "Next steps" above. Depended on: H1 (site

@@ -21,7 +21,7 @@ Drop one-line thoughts here. Promote later — to an issue if it gains shape, to
 - Future `routeros_validate_command`: carry explicit static-vs-runtime provenance and include a bare-flag `blackhole` regression fixture because `/console/inspect` can accept forms that RouterOS runtime rejects.
 - TUI longer wishlist: tab completion, persistent history (`~/.rosetta/browse_history`), export (JSON/CSV/Markdown), audit views, bookmarks. None individually picked up — promote one to an issue if a real need surfaces (umbrella [#27](https://github.com/tikoci/rosetta/issues/27) is the home for TUI work).
 - Rung-1 steering skill: a skill encoding the `llms.txt → .md → cli-reference` workflow (per B-0013), possibly wrapping the one-shot CLI idea now tracked in B-0015 / umbrella [#27](https://github.com/tikoci/rosetta/issues/27). Cross-repo (`routeros-skills` or repo-local per the centrs#150 pattern) — promote once centrs#150's onboarding pilot lands.
-- Switch-chip → device resolution is a common need that resolves poorly today. `devices.cpu` conflates the Marvell switch ASIC with the management CPU, so a chip-ID query only matches the ARM32 CRS3xx boxes where the ASIC *is* the CPU (e.g. `98DX8208`→CRS309, `98DX8216`→CRS317); chips on QCA9531/AL73400/AL52400-managed boxes (`98DX8212`, `98DX8332`, `98DX3255`, `98DX3257`, `98DX4310`, `98DX8525`, `98CX8410`) miss entirely. A real session (resolving an l3hw HW-offloaded-VRF release note listing 9 chips) needed ~6 tool calls because the only authoritative chip→model source is the L3 Hardware Offloading doc table (page 62390319), not a queryable field. Candidate fix is two-sided: an extraction-side `switch_chip` column on devices (distinct from `cpu`; could be seeded from that doc table), plus an MCP-side path so `routeros_device_lookup`/`routeros_search` resolve switch-ASIC IDs to product models directly. Relates to B-0006 (device AKA/alias) and B-0007 (special hardware page extraction); promote to an issue (likely under umbrella [#28](https://github.com/tikoci/rosetta/issues/28)'s hardware overlay) if the switch_chip column lands or another chip→device question recurs.
+- Switch-chip → device resolution: **promoted 2026-07-10** to issue [#34](https://github.com/tikoci/rosetta/issues/34) / `briefings/B-0017-hardware-overlay-device-resolution.md`, which reframes the chip→model gap (`devices.cpu` conflating the switch ASIC with the management CPU) as one instance of a broader three-way device-identity problem across `matrix.csv`, www product pages, and the new `/hardware` Docusaurus source. See that briefing for the original chip-ID case detail.
 
 ## Triggers
 
@@ -77,6 +77,8 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0013 | Steering / skills / rosetta / centrs positioning ladder | open |
 | B-0014 | CI is release-workflow-locked, not PR/main-gated — QA cleanup plan | open |
 | B-0015 | Unified "explain" static + live across the tikoci trilogy (rosetta/centrs/lsp) | open |
+| B-0016 | CLI-Reference overlay: precursor ETL design (issue [#33](https://github.com/tikoci/rosetta/issues/33)) | open |
+| B-0017 | `/hardware` overlay: device-resolution research (issue [#34](https://github.com/tikoci/rosetta/issues/34); absorbs B-0006/B-0007) | open |
 
 ## Done index
 

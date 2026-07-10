@@ -7,6 +7,11 @@ created: 2026-05-02
 last_revisited: 2026-05-02
 ---
 
+> **2026-07-10:** superseded in scope by `briefings/B-0017-hardware-overlay-device-resolution.md`
+> (issue [#34](https://github.com/tikoci/rosetta/issues/34)), which reframes this as a three-way
+> identity problem once `manual.mikrotik.com/hardware` is added as a source. This briefing stays
+> `open` as historical record until B-0017's research pass concludes.
+
 # Question
 
 Should rosetta build an alias table for renamed device models (e.g. `hex 2024` → `hEX refresh`), and if so, when?

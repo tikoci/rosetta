@@ -7,6 +7,12 @@ created: 2026-05-02
 last_revisited: 2026-05-02
 ---
 
+> **2026-07-10:** superseded in scope by `briefings/B-0017-hardware-overlay-device-resolution.md`
+> (issue [#34](https://github.com/tikoci/rosetta/issues/34)), which asks whether
+> `manual.mikrotik.com/hardware`'s per-device pages supersede these Confluence-era pages or are a
+> genuinely separate concern (open question there, not yet resolved). This briefing stays `open`
+> as historical record until B-0017's research pass concludes.
+
 # Question
 
 Several hardware-specific HTML pages (Switch Chip Features, Marvell Prestera, Bridging and Switching, Peripherals) contain device-specific tables that aren't surfaced in `properties` or `devices`. Worth extracting?
