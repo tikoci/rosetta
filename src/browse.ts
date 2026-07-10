@@ -33,6 +33,8 @@ import {
   checkCommandVersions,
   compareVersions,
   diffCommandVersions,
+  EXCERPT_MARK_END,
+  EXCERPT_MARK_START,
   explainCommand,
   fetchCurrentVersions,
   getDudePage,
@@ -73,6 +75,11 @@ const _bgDim = (s: string) => `${ESC}[48;5;236m${s}${ESC}[0m`;
 /** OSC 8 clickable hyperlink (iTerm2, macOS Terminal, Windows Terminal, etc.) */
 function link(url: string, display?: string): string {
   return `${ESC}]8;;${url}\x07${display ?? url}${ESC}]8;;\x07`;
+}
+
+/** Convert FTS snippet() sentinel markers (`>>>`/`<<<`) into paired bold-on/bold-off ANSI codes. */
+function highlightExcerpt(excerpt: string): string {
+  return excerpt.split(EXCERPT_MARK_START).join(`${ESC}[1m`).split(EXCERPT_MARK_END).join(`${ESC}[0m`);
 }
 
 /**
@@ -417,7 +424,7 @@ function renderSearchResults(resp: SearchAllResponse): string {
       out.push(`       ${dim("§")} ${r.best_section.heading}`);
     }
     // Show excerpt with highlight markers converted to bold
-    const excerpt = r.excerpt.replace(/>>>/g, `${ESC}[1m`).replace(/<<</g, `${ESC}[0m`);
+    const excerpt = highlightExcerpt(r.excerpt);
     out.push(`       ${dim(truncate(excerpt, w - 8))}`);
     out.push("");
   }
@@ -621,7 +628,9 @@ function renderProperties(results: Array<{
     const p = results[i];
     const num = dim(`${String(i + 1).padStart(3)}  `);
     out.push(`${num}${bold(p.name)}  ${dim(p.type ?? "")}  ${p.default_val ? dim(`default: ${p.default_val}`) : ""}`);
-    const desc = truncate(p.description, w - 8);
+    const desc = p.excerpt?.includes(EXCERPT_MARK_START)
+      ? truncate(highlightExcerpt(p.excerpt), w - 8)
+      : truncate(p.description, w - 8);
     out.push(`       ${desc}`);
     out.push(`       ${dim(p.page_title)}  ${cyan(link(p.page_url, dim("→")))}`);
     out.push("");
@@ -849,9 +858,7 @@ function renderCallouts(results: Array<{
     const num = dim(`${String(i + 1).padStart(3)}  `);
     const prefix = calloutPrefix(c.type);
     // Use excerpt if it has highlights, otherwise truncate content
-    const text = c.excerpt.includes("**")
-      ? c.excerpt.replace(/\*\*/g, `${ESC}[1m`)
-      : truncate(c.content, w - 12);
+    const text = c.excerpt.includes(EXCERPT_MARK_START) ? highlightExcerpt(c.excerpt) : truncate(c.content, w - 12);
     out.push(`${num}${prefix}`);
     out.push(`       ${text}`);
     out.push(`       ${dim(c.page_title)} ${cyan(link(c.page_url, dim(`[${c.page_id}]`)))}`);
@@ -880,8 +887,8 @@ function renderChangelogs(results: ChangelogResult[]): string {
     const num = dim(`${String(i + 1).padStart(3)}  `);
     const breaking = c.is_breaking ? red("⚠ ") : "";
     const cat = dim(pad(c.category, 14));
-    const desc = c.excerpt.includes("**")
-      ? c.excerpt.replace(/\*\*/g, `${ESC}[1m`)
+    const desc = c.excerpt.includes(EXCERPT_MARK_START)
+      ? highlightExcerpt(c.excerpt)
       : truncate(c.description, termWidth() - 26);
     out.push(`${num}${breaking}${cat} ${desc}`);
   }
@@ -910,7 +917,7 @@ function renderVideos(results: VideoSearchResult[]): string {
     }
     const timeUrl = v.start_s > 0 ? `${v.url}&t=${v.start_s}` : v.url;
     out.push(`       ${cyan(link(timeUrl))}`);
-    const excerpt = v.excerpt.replace(/\*\*/g, `${ESC}[1m`);
+    const excerpt = highlightExcerpt(v.excerpt);
     out.push(`       ${dim(truncate(excerpt, termWidth() - 8))}`);
     out.push("");
   }
@@ -934,7 +941,7 @@ function renderDudeResults(results: DudeSearchResult[]): string {
     const imgs = d.image_count > 0 ? dim(`📷 ${d.image_count}`) : "";
     out.push(`${num}${title}  ${ver}  ${imgs}`);
     out.push(`       ${dim(d.path)}`);
-    const excerpt = d.excerpt.replace(/\*\*/g, `${ESC}[1m`);
+    const excerpt = highlightExcerpt(d.excerpt);
     out.push(`       ${dim(truncate(excerpt, termWidth() - 8))}`);
     out.push("");
   }
