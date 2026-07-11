@@ -178,6 +178,52 @@ interface PageInfo {
   isSeries: boolean;
   /** Raw article text, kept for the cross-mention pass — not written to the JSON summary. */
   bodyText: string;
+  /** Docusaurus sidebar category this page's own page belongs to (see extractSidebarCategory). */
+  category: string | null;
+  /** Full sibling membership of `category`, read off this same page's expanded sidebar subtree. */
+  categoryMembers: string[];
+}
+
+/**
+ * Docusaurus server-renders the *whole* sidebar on every page, but only auto-expands the
+ * category containing the current page — every other category collapses to just its own
+ * link, no children in the DOM. That means a single page's HTML only discloses its own
+ * category's full membership, not the other 11. But since every page is a member of exactly
+ * one category, and we cache all 239 pages, the union of each page's own expanded-category
+ * block reconstructs the *complete* 12-category taxonomy with zero hand-curation — confirmed
+ * live 2026-07-10: 239/239 pages resolve to exactly one of 12 categories (Switches, LTE
+ * products, Ethernet routers, Wireless systems, Indoor wireless, IoT products, Accessories,
+ * 60 GHz products, RouterBOARD, Data over Powerlines, Interfaces, Antennas), no leftovers.
+ * This is MikroTik's own maintained product taxonomy, not a documentation-only artifact —
+ * www.mikrotik.com's global nav groups products under matching category names.
+ *
+ * Category titles are HTML-attribute text, sometimes quoted ("60 GHz products", contains a
+ * space) and sometimes bare (title=Switches, single word) — both forms must be matched.
+ */
+function extractSidebarCategory(html: string): { name: string; members: Array<{ slug: string; title: string }> } | null {
+  const sidebarStart = html.indexOf("theme-doc-sidebar");
+  if (sidebarStart === -1) return null;
+  const sidebarEnd = html.indexOf("</nav>", sidebarStart);
+  const sidebar = html.slice(sidebarStart, sidebarEnd === -1 ? undefined : sidebarEnd);
+
+  const titleRe = 'title=(?:"([^"]*)"|([^ >]+))';
+  const activeRe = new RegExp(`aria-expanded=true[^>]*href=([^ >]+)><span ${titleRe}`);
+  const active = activeRe.exec(sidebar);
+  if (!active) return null;
+  const name = active[2] || active[3];
+
+  const ulStart = sidebar.indexOf("<ul class=menu__list>", active.index + active[0].length);
+  const ulEnd = sidebar.indexOf("</ul>", ulStart);
+  if (ulStart === -1 || ulEnd === -1) return { name, members: [] };
+  const membersHtml = sidebar.slice(ulStart, ulEnd);
+
+  const memberRe = new RegExp(`href=([^ >]+)><span ${titleRe}`, "g");
+  const members: Array<{ slug: string; title: string }> = [];
+  for (const m of membersHtml.matchAll(memberRe)) {
+    const slug = m[1].replace(/^\/hardware\//, "").replace(/\/$/, "");
+    if (slug) members.push({ slug, title: m[2] || m[3] });
+  }
+  return { name, members };
 }
 
 function parsePage(slug: string, url: string, html: string): PageInfo {
@@ -208,6 +254,8 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
   const ipMatches = text.match(/192\.168\.\d{1,3}\.\d{1,3}/g) ?? [];
   const nonDefaultIps = [...new Set(ipMatches)].filter((ip) => ip !== "192.168.88.1");
 
+  const categoryInfo = extractSidebarCategory(html);
+
   return {
     slug,
     url,
@@ -219,6 +267,8 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
     nonDefaultIps,
     isSeries: slug.endsWith("-series"),
     bodyText: text,
+    category: categoryInfo?.name ?? null,
+    categoryMembers: categoryInfo?.members.map((m) => m.slug) ?? [],
   };
 }
 
@@ -397,6 +447,23 @@ async function main() {
 
   const lifecyclePages = pages.filter((p) => LIFECYCLE_KEYWORDS.test(p.bodyText));
 
+  // ── Sidebar category taxonomy (union of each page's own expanded-category block) ──
+  const categories = new Map<string, Set<string>>();
+  const uncategorizedPages: string[] = [];
+  for (const p of pages) {
+    if (!p.category) {
+      uncategorizedPages.push(p.slug);
+      continue;
+    }
+    const set = categories.get(p.category) ?? new Set<string>();
+    for (const m of p.categoryMembers) set.add(m);
+    set.add(p.slug);
+    categories.set(p.category, set);
+  }
+  const categorySummary = [...categories.entries()]
+    .map(([name, members]) => ({ name, memberCount: members.size, members: [...members].sort() }))
+    .sort((a, b) => b.memberCount - a.memberCount);
+
   // ── Heading frequency (boilerplate detection) ──
   const headingFreq: Record<string, number> = {};
   for (const p of pages) {
@@ -450,6 +517,14 @@ async function main() {
     console.log(`  ${p.slug} — ${p.nonDefaultIps.join(", ")}`);
   }
 
+  console.log(`\n--- Sidebar category taxonomy (${categorySummary.length} categories, ${uncategorizedPages.length} uncategorized pages) ---`);
+  for (const c of categorySummary) {
+    console.log(`  ${c.name}: ${c.memberCount} members`);
+  }
+  if (uncategorizedPages.length > 0) {
+    console.log(`  uncategorized: ${uncategorizedPages.join(", ")}`);
+  }
+
   console.log(`\n--- Linkless series pages (0 product links) — inferred members via body-text mention ---`);
   for (const s of linklessSeriesInferred) {
     console.log(`  ${s.slug} — inferred: ${s.inferredMatrixNames.join(", ") || "(none found)"}`);
@@ -476,6 +551,8 @@ async function main() {
     pagesWithNonDefaultIp: pagesWithNonDefaultIp.map((p) => ({ slug: p.slug, ips: p.nonDefaultIps })),
     linklessSeriesInferredMembers: linklessSeriesInferred,
     lifecycleKeywordPages: lifecyclePages.map((p) => p.slug),
+    categories: categorySummary,
+    uncategorizedPages,
     pages: pages.map((p) => {
       const c = classifications.find((cl) => cl.slug === p.slug);
       const mention = mentionedBySlug.get(p.slug);
@@ -488,6 +565,7 @@ async function main() {
         isSeries: p.isSeries,
         productLinks: p.productLinks,
         nonDefaultIps: p.nonDefaultIps,
+        category: p.category,
         cause: c?.cause,
         matchedMatrixNames: c?.matchedMatrixNames ?? [],
         // Cross-mention pass (2026-07-10): codes/names found in body prose that aren't

@@ -657,6 +657,320 @@
     "wap-r",
     "wap-series"
   ],
+  "categories": [
+    {
+      "name": "Switches",
+      "memberCount": 43,
+      "members": [
+        "crs-series",
+        "crs106-1c-5s",
+        "crs112-8g-4s-in",
+        "crs112-8p-4s-in",
+        "crs125-24g-1s-series",
+        "crs304-4xg-in",
+        "crs305-1g-4s-plus-in",
+        "crs309-1g-8s-plus-in",
+        "crs310-1g-5s-4s-plus-in",
+        "crs310-8g-plus-2s-plus-in",
+        "crs312-4c-plus-8xg-rm",
+        "crs317-1g-16s-plus-rm",
+        "crs320-8p-8b-4s-plus-rm",
+        "crs326-24g-2s-plus-in",
+        "crs326-24g-2s-plus-rm",
+        "crs326-24s-plus-2q-plus-rm",
+        "crs326-4c-plus-20g-plus-2q-plus-rm",
+        "crs328-24p-4s-plus-rm",
+        "crs328-4c-20s-4s-plus-rm",
+        "crs354-48g-4s-plus-2q-plus-rm",
+        "crs354-48p-4s-plus-2q-plus-rm",
+        "crs418-8p-8g-2s-plus-5axq2axq-rm",
+        "crs418-8p-8g-2s-plus-rm",
+        "crs504-4xq-in",
+        "crs504-4xq-out",
+        "crs510-8xs-2xq-in",
+        "crs518-16xs-2xq-rm",
+        "crs520-4xs-16xq-rm",
+        "crs804-4ddq-hrm",
+        "crs812-8ds-2dq-2ddq-rm",
+        "css318-16g-2s-plus-in",
+        "css326-24g-2s-plus-rm",
+        "css610-8g-2s-plus-in",
+        "css610-8p-2s-plus-in",
+        "fiberbox",
+        "fiberbox-plus",
+        "gperx6",
+        "netfiber-9",
+        "netpower-15fr",
+        "netpower-16p",
+        "netpower-lite-7r",
+        "netpower-lite-8p",
+        "rb260-series"
+      ]
+    },
+    {
+      "name": "LTE products",
+      "memberCount": 36,
+      "members": [
+        "atlgm-and-eg18-ea",
+        "atlgm-and-rg520f-eu",
+        "audience-lte6-kit",
+        "cap-lte12-ax",
+        "chateau-5g",
+        "chateau-5g-ax",
+        "chateau-5g-r16",
+        "chateau-5g-r17-ax",
+        "chateau-lte12",
+        "chateau-lte18-ax",
+        "chateau-lte6",
+        "chateau-lte6-ax",
+        "chateau-lte6-us",
+        "chateau-lte7",
+        "chateau-lte7-ax",
+        "hap-ac3-lte6-kit",
+        "intercell",
+        "ldf-lte6-kit",
+        "lhg-kit-series",
+        "lhg-lte18-kit",
+        "lhg-r",
+        "lhgg-lte6-kit",
+        "ltap",
+        "ltap-kit-series",
+        "ltap-mini",
+        "ltap-mini-kit-series",
+        "r11e-series",
+        "sxt-kit-series",
+        "sxt-r",
+        "sxtsq-embedded-lte4",
+        "wap-ac-kit-series",
+        "wap-ax-lte7-kit",
+        "wap-kit-series",
+        "wap-lte-kit-2024",
+        "wap-r",
+        "wap-r-ac"
+      ]
+    },
+    {
+      "name": "Ethernet routers",
+      "memberCount": 36,
+      "members": [
+        "ccr1009-7g-1c-1s-plus",
+        "ccr1009-7g-1c-1s-plus-pc",
+        "ccr1009-7g-1c-pc",
+        "ccr1016-12g",
+        "ccr1016-12s-1s-plus",
+        "ccr1036-12g-4s-series",
+        "ccr1036-8g-2s-plus-series",
+        "ccr1072-1g-8s-plus",
+        "ccr2004-16g-2s-plus",
+        "ccr2004-16g-2s-plus-pc",
+        "ccr2004-1g-12s-plus-2xs",
+        "ccr2004-1g-2xs-pcie",
+        "ccr2116-12g-4s-plus",
+        "ccr2216-1g-12xs-2xq",
+        "hex",
+        "hex-lite",
+        "hex-poe",
+        "hex-poe-lite",
+        "hex-refresh",
+        "hex-s",
+        "hex-s-2025",
+        "l009uigs-rm",
+        "powerbox",
+        "powerbox-pro",
+        "rb1100-series",
+        "rb2011il-in",
+        "rb2011il-rm",
+        "rb2011ils-in",
+        "rb2011uias-in",
+        "rb2011uias-rm",
+        "rb3011uias-rm",
+        "rb4011igs-plus-rm",
+        "rb5009ug-plus-s-plus-in",
+        "rb5009upr-plus-s-plus-in",
+        "rb5009upr-plus-s-plus-out",
+        "rose-data-server"
+      ]
+    },
+    {
+      "name": "Wireless systems",
+      "memberCount": 35,
+      "members": [
+        "basebox-series",
+        "compliance",
+        "disc-lite5",
+        "disc-lite5-ac",
+        "dynadish-5",
+        "dynadish-6",
+        "groove-series",
+        "ldf-2",
+        "ldf-5-series",
+        "lhg-5axd",
+        "lhg-series",
+        "lhg-xl-2",
+        "lhg-xl-5-ac",
+        "lhg-xl-5-ax",
+        "lhg-xl-52-ac",
+        "lhg-xl-hp5",
+        "mantbox-52-15s",
+        "mantbox-ax-15s",
+        "mantbox-series",
+        "metal-52-ac",
+        "netbox-5",
+        "netbox-5-ax",
+        "netmetal-ac",
+        "netmetal-ax",
+        "netmetal-series",
+        "omnitik-series",
+        "qrt-2",
+        "qrt-5",
+        "qrt-5-ac",
+        "sextant-g",
+        "sxt-2",
+        "sxt-6",
+        "sxtsa-series",
+        "sxtsq-5axd",
+        "sxtsq-series"
+      ]
+    },
+    {
+      "name": "Indoor wireless",
+      "memberCount": 33,
+      "members": [
+        "audience",
+        "cap",
+        "cap-ac",
+        "cap-ax",
+        "cap-lite",
+        "cap-xl-ac",
+        "chateau-pro-ax",
+        "hap",
+        "hap-ac",
+        "hap-ac-2",
+        "hap-ac-lite",
+        "hap-ac-lite-tc",
+        "hap-ac3",
+        "hap-ax",
+        "hap-ax-2",
+        "hap-ax-lite",
+        "hap-ax-lite-lte6",
+        "hap-ax-s",
+        "hap-be-lite",
+        "hap-be-media",
+        "hap-lite",
+        "hap-lite-tc",
+        "hap-mini",
+        "l009uigs-2haxd-in",
+        "map",
+        "map-lite",
+        "rb2011uias-2hnd-in",
+        "rb4011igs-plus-5hacq2hnd-in",
+        "rb951-series",
+        "wap-ac",
+        "wap-ax",
+        "wap-series",
+        "wsap-ac-lite"
+      ]
+    },
+    {
+      "name": "IoT products",
+      "memberCount": 20,
+      "members": [
+        "cme22-2n-bg77",
+        "knot-embedded-lte4-ec25-eu-and-kne",
+        "knot-embedded-lte4-global-eg25-g-and-kne",
+        "ltap-lr8-lte-kit",
+        "ltap-lr8-lte6-kit",
+        "ltap-lr8g-lte6-kit",
+        "r11e-lr2",
+        "r11e-lr8",
+        "r11e-lr8g",
+        "r11e-lr9",
+        "r11e-lr9g",
+        "rb924i-2nd-bt5-and-bg77",
+        "tg-bt5-in",
+        "tg-bt5-out",
+        "tg-lr82",
+        "tg-lr92",
+        "wap-lr2-kit",
+        "wap-lr8g-kit",
+        "wap-lr9-kit",
+        "wap-lr9g-kit"
+      ]
+    },
+    {
+      "name": "Accessories",
+      "memberCount": 14,
+      "members": [
+        "apa-1",
+        "ftc11xg",
+        "ftc21",
+        "g1040a-60wn",
+        "gesp-plus-poe-in",
+        "gpen11",
+        "gpen21",
+        "gper",
+        "gperx4",
+        "mqs",
+        "mtp250-series",
+        "rbftc11",
+        "up1302c-12",
+        "woobm-usb"
+      ]
+    },
+    {
+      "name": "60 GHz products",
+      "memberCount": 9,
+      "members": [
+        "cube-60g-ac",
+        "cube-lite60",
+        "lhg-60g",
+        "lhg-lite60",
+        "nray-series",
+        "wap-60g-series",
+        "wireless-wire-cube",
+        "wireless-wire-cube-pro-cube-60pro-ac",
+        "wireless-wire-dish"
+      ]
+    },
+    {
+      "name": "RouterBOARD",
+      "memberCount": 8,
+      "members": [
+        "l11ug-5haxd",
+        "l23ugsr-5haxd2haxd",
+        "rb450gx4",
+        "rb911-series",
+        "rb912uag-series",
+        "rb922uags-5hpacd",
+        "rbm11g",
+        "rbm33g"
+      ]
+    },
+    {
+      "name": "Data over Powerlines",
+      "memberCount": 3,
+      "members": [
+        "pwr-line",
+        "pwr-line-ap",
+        "pwr-line-pro"
+      ]
+    },
+    {
+      "name": "Antennas",
+      "memberCount": 1,
+      "members": [
+        "mant-series"
+      ]
+    },
+    {
+      "name": "Interfaces",
+      "memberCount": 1,
+      "members": [
+        "s-3553lc20d"
+      ]
+    }
+  ],
+  "uncategorizedPages": [],
   "pages": [
     {
       "slug": "apa-1",
@@ -669,6 +983,7 @@
         "apa_1"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -688,6 +1003,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -713,6 +1029,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "ATL 5G R16"
@@ -738,6 +1055,7 @@
         "audience"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -755,6 +1073,7 @@
         "audience_lte6_kit"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -772,6 +1091,7 @@
         "RB912UAG-5HPnD-OUT"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "BaseBox 5"
@@ -797,6 +1117,7 @@
         "RBcAP2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "cAP"
@@ -816,6 +1137,7 @@
         "cap_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP ac"
@@ -839,6 +1161,7 @@
         "cap_ax"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP ax"
@@ -862,6 +1185,7 @@
         "RBcAPL-2nD-307"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP lite"
@@ -885,6 +1209,7 @@
         "cap_lte12_ax"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP LTE12 ax"
@@ -909,6 +1234,7 @@
         "cap_xl_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP XL ac"
@@ -932,6 +1258,7 @@
         "CCR1009-7G-1C-1Splus"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -949,6 +1276,7 @@
         "CCR1009-7G-1C-1SplusPC"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -966,6 +1294,7 @@
         "CCR1009-7G-1C-PC"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -983,6 +1312,7 @@
         "CCR1016-12G"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1000,6 +1330,7 @@
         "CCR1016-12S-1Splus"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1015,6 +1346,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1030,6 +1362,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1047,6 +1380,7 @@
         "CCR1072-1G-8Splus"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1066,6 +1400,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-16G-2S+"
@@ -1085,6 +1420,7 @@
         "ccr2004_16g_2s_pc"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-16G-2S+PC"
@@ -1108,6 +1444,7 @@
         "ccr2004_1g_12s_2xs"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-1G-12S+2XS"
@@ -1131,6 +1468,7 @@
         "ccr2004_1g_2xs_pcie"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-1G-2XS-PCIe"
@@ -1156,6 +1494,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2116-12G-4S+"
@@ -1181,6 +1520,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2216-1G-12XS-2XQ"
@@ -1204,6 +1544,7 @@
         "chateau_5g"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -1225,6 +1566,7 @@
         "chateau_5g_ax"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1242,6 +1584,7 @@
         "chateau5gr16"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -1265,6 +1608,7 @@
         "chateau_5g_r17_ax"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau 5G R17 ax"
@@ -1290,6 +1634,7 @@
         "mant_lte_5o"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -1311,6 +1656,7 @@
         "chateaulte18_ax"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE18 ax"
@@ -1336,6 +1682,7 @@
         "mant_lte_5o"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -1357,6 +1704,7 @@
         "chateau_lte6_ax"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -1378,6 +1726,7 @@
         "chateau_lte6_us"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE6-US"
@@ -1403,6 +1752,7 @@
         "chateau_lte7"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE7"
@@ -1428,6 +1778,7 @@
         "chateau_lte7_ax"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE7 ax"
@@ -1453,6 +1804,7 @@
         "chateau_pro_ax"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau PRO ax"
@@ -1476,6 +1828,7 @@
         "cme_gateway"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CME Gateway"
@@ -1497,6 +1850,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1512,6 +1866,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Switches",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1529,6 +1884,7 @@
         "CRS106-1C-5S"
       ],
       "nonDefaultIps": [],
+      "category": "Switches",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS106-1C-5S"
@@ -1550,6 +1906,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1569,6 +1926,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS112-8P-4S-IN"
@@ -1590,6 +1948,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Switches",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -1609,6 +1968,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS304-4XG-IN"
@@ -1634,6 +1994,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS305-1G-4S+IN"
@@ -1659,6 +2020,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS309-1G-8S+IN"
@@ -1684,6 +2046,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS310-1G-5S-4S+IN"
@@ -1709,6 +2072,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS310-8G+2S+IN"
@@ -1734,6 +2098,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS312-4C+8XG-RM"
@@ -1759,6 +2124,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS317-1G-16S+RM"
@@ -1784,6 +2150,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS320-8P-8B-4S+RM"
@@ -1817,6 +2184,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-24G-2S+IN"
@@ -1838,6 +2206,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-24G-2S+RM"
@@ -1863,6 +2232,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-24S+2Q+RM"
@@ -1888,6 +2258,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-4C+20G+2Q+RM"
@@ -1913,6 +2284,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS328-24P-4S+RM"
@@ -1938,6 +2310,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS328-4C-20S-4S+RM"
@@ -1963,6 +2336,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS354-48G-4S+2Q+RM"
@@ -1988,6 +2362,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS354-48P-4S+2Q+RM"
@@ -2011,6 +2386,7 @@
         "crs418_8p_8g_2s_wifi"
       ],
       "nonDefaultIps": [],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS418-8P-8G-2S+5axQ2axQ-RM"
@@ -2038,6 +2414,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS418-8P-8G-2S+RM"
@@ -2063,6 +2440,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS504-4XQ-IN"
@@ -2088,6 +2466,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS504-4XQ-OUT"
@@ -2113,6 +2492,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS510-8XS-2XQ-IN"
@@ -2138,6 +2518,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS518-16XS-2XQ-RM"
@@ -2163,6 +2544,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS520-4XS-16XQ-RM"
@@ -2188,6 +2570,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS804 DDQ"
@@ -2213,6 +2596,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS812 DDQ"
@@ -2238,6 +2622,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS318-16G-2S+IN"
@@ -2263,6 +2648,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS326-24G-2S+RM"
@@ -2289,6 +2675,7 @@
         "192.168.88.3",
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS610-8G-2S+IN"
@@ -2314,6 +2701,7 @@
       "nonDefaultIps": [
         "192.168.88.3"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS610-8P-2S+IN"
@@ -2337,6 +2725,7 @@
         "qm_x"
       ],
       "nonDefaultIps": [],
+      "category": "60 GHz products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2355,6 +2744,7 @@
         "cube_lite60"
       ],
       "nonDefaultIps": [],
+      "category": "60 GHz products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2372,6 +2762,7 @@
         "rbdisc_5nd"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2389,6 +2780,7 @@
         "disc_lite5_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2406,6 +2798,7 @@
         "RBDynaDishG-5HacDr3"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2421,6 +2814,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2438,6 +2832,7 @@
         "fiberbox"
       ],
       "nonDefaultIps": [],
+      "category": "Switches",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2457,6 +2852,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "FiberBox Plus"
@@ -2478,6 +2874,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Accessories",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "FTC11XG"
@@ -2499,6 +2896,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2514,6 +2912,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2531,6 +2930,7 @@
         "gesp_poe_in"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2548,6 +2948,7 @@
         "gpen11"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2565,6 +2966,7 @@
         "gpen21"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "GPEN21"
@@ -2585,6 +2987,7 @@
         "gper_ip67_case"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2604,6 +3007,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2623,6 +3027,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "GPERx6"
@@ -2648,6 +3053,7 @@
         "RBGrooveGA-52HPacn"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "Groove 52",
@@ -2669,6 +3075,7 @@
         "RB951Ui-2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP"
@@ -2688,6 +3095,7 @@
         "RB962UiGS-5HacT2HnT"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP ac"
@@ -2707,6 +3115,7 @@
         "hap_ac2"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ac2"
@@ -2726,6 +3135,7 @@
         "RB952Ui-5ac2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP ac lite"
@@ -2745,6 +3155,7 @@
         "RB952Ui-5ac2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP ac lite",
@@ -2769,6 +3180,7 @@
         "hap_ac3"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ac3"
@@ -2792,6 +3204,7 @@
         "hap_ac3_lte6_kit"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -2809,6 +3222,7 @@
         "hap_ax2"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax2"
@@ -2832,6 +3246,7 @@
         "hap_ax3"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax3"
@@ -2855,6 +3270,7 @@
         "hap_ax_lite"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax lite"
@@ -2878,6 +3294,7 @@
         "hap_ax_lite_lte6"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -2899,6 +3316,7 @@
         "hap_ax_s"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax S"
@@ -2922,6 +3340,7 @@
         "hap_be_lite"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP be lite"
@@ -2945,6 +3364,7 @@
         "hap_be3_media"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP be3 Media"
@@ -2968,6 +3388,7 @@
         "RB941-2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP lite"
@@ -2987,6 +3408,7 @@
         "RB941-2nD-TC"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP lite TC"
@@ -3010,6 +3432,7 @@
         "RB931-2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3027,6 +3450,7 @@
         "RB750Gr3"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX"
@@ -3046,6 +3470,7 @@
         "RB750r2"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX lite"
@@ -3065,6 +3490,7 @@
         "RB960PGS"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX PoE"
@@ -3084,6 +3510,7 @@
         "RB750UPr2"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX PoE lite"
@@ -3103,6 +3530,7 @@
         "hex_2024"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hEX refresh"
@@ -3126,6 +3554,7 @@
         "hex_s"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hEX S"
@@ -3149,6 +3578,7 @@
         "hex_s_2025"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hEX S (2025)"
@@ -3176,6 +3606,7 @@
         "192.168.200.200",
         "192.168.200.100"
       ],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3195,6 +3626,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -3218,6 +3650,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -3239,6 +3672,7 @@
         "l009uigs_2haxd_in"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L009UiGS-2HaxD-IN"
@@ -3262,6 +3696,7 @@
         "l009uigs_rm"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L009UiGS-RM"
@@ -3285,6 +3720,7 @@
         "l11ug_5haxd"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L11UG-5HaxD"
@@ -3308,6 +3744,7 @@
         "l23ugsr_5haxd2haxd"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L23UGSR-5HaxD2HaxD"
@@ -3331,6 +3768,7 @@
         "ldf_2"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3349,6 +3787,7 @@
         "ldf_5_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LDF 5"
@@ -3368,6 +3807,7 @@
         "ldf_lte6_kit"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3385,6 +3825,7 @@
         "lhg_5_ax"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG 5 ax"
@@ -3408,6 +3849,7 @@
         "lhg_60g"
       ],
       "nonDefaultIps": [],
+      "category": "60 GHz products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3428,6 +3870,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3445,6 +3888,7 @@
       "nonDefaultIps": [
         "192.168.88.0"
       ],
+      "category": "60 GHz products",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3464,6 +3908,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG LTE18 kit"
@@ -3488,6 +3933,7 @@
         "rblhgr"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3508,6 +3954,7 @@
         "lhg_5_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "LHG 5"
@@ -3525,6 +3972,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3542,6 +3990,7 @@
         "lhg_xl_5_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG XL 5 ac"
@@ -3565,6 +4014,7 @@
         "lhg_5_ax_xl"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG XL 5 ax"
@@ -3584,6 +4034,7 @@
         "lhg_xl_52_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3601,6 +4052,7 @@
         "RBLHG-5HPnD-XL"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "LHG XL HP5"
@@ -3622,6 +4074,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -3643,6 +4096,7 @@
         "ltap"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3658,6 +4112,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3675,6 +4130,7 @@
         "lora_antenna_kit"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3690,6 +4146,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -3711,6 +4168,7 @@
         "ltap_lr8g_lte6_kit"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -3737,6 +4195,7 @@
         "ltap_mini"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LtAP mini"
@@ -3764,6 +4223,7 @@
         "ltap_mini_lte_kit"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LtAP mini LTE kit"
@@ -3785,6 +4245,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Antennas",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3802,6 +4263,7 @@
         "mantbox_52_15s"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3819,6 +4281,7 @@
         "mantbox_ax_15s"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "mANTBox ax 15s"
@@ -3842,6 +4305,7 @@
         "mantbox_2_12s"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "mANTBox 2 12s"
@@ -3861,6 +4325,7 @@
         "RBmAP2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "mAP"
@@ -3880,6 +4345,7 @@
         "RBmAPL-2nD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "mAP lite"
@@ -3899,6 +4365,7 @@
         "RBMetalG-52SHPacn"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "Metal 52 ac"
@@ -3920,6 +4387,7 @@
       "nonDefaultIps": [
         "192.168.88.3"
       ],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3938,6 +4406,7 @@
         "mtp250_26v94_od"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3956,6 +4425,7 @@
         "RB911G-5HPacD-NB"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -3974,6 +4444,7 @@
         "ACRPSMA"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "NetBox 5 ax"
@@ -4001,6 +4472,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netFiber 9"
@@ -4024,6 +4496,7 @@
         "netmetal_ax"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "NetMetal ax"
@@ -4043,6 +4516,7 @@
         "netmetal_ax"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "NetMetal ax"
@@ -4062,6 +4536,7 @@
         "RB922UAGS-5HPacD-NM"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "NetMetal 5"
@@ -4083,6 +4558,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower 15FR"
@@ -4108,6 +4584,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower 16P"
@@ -4133,6 +4610,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower Lite 7R"
@@ -4158,6 +4636,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower Lite 8P"
@@ -4184,6 +4663,7 @@
         "192.168.88.2",
         "192.168.88.3"
       ],
+      "category": "60 GHz products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4201,6 +4681,7 @@
         "rbomnitikpg_5hacd"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "OmniTIK 5 PoE ac"
@@ -4224,6 +4705,7 @@
         "RB750P-PBr2"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4241,6 +4723,7 @@
         "RB960PGS-PB"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "PowerBox Pro"
@@ -4262,6 +4745,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Data over Powerlines",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4277,6 +4761,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Data over Powerlines",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4294,6 +4779,7 @@
         "pl7510gi"
       ],
       "nonDefaultIps": [],
+      "category": "Data over Powerlines",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4311,6 +4797,7 @@
         "RBQRTG-2SHPnDr2"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4328,6 +4815,7 @@
         "RB911G-5HPnD-QRT"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "QRT 5"
@@ -4351,6 +4839,7 @@
         "RB911G-5HPacD-QRT"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4368,6 +4857,7 @@
         "acsmaufl"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR2 kit"
@@ -4391,6 +4881,7 @@
         "acsmaufl"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4408,6 +4899,7 @@
         "acsmaufl"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "KNOT LR8G kit",
@@ -4432,6 +4924,7 @@
         "acsmaufl"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4449,6 +4942,7 @@
         "acsmaufl"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "KNOT LR9G kit",
@@ -4471,6 +4965,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4489,6 +4984,7 @@
         "RB1100Dx4"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB1100AHx4 Dude Edition",
@@ -4510,6 +5006,7 @@
         "RB2011iL-IN"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4527,6 +5024,7 @@
         "RB2011iL-RM"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4545,6 +5043,7 @@
         "RB2011iLS-IN"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4562,6 +5061,7 @@
         "RB2011UiAS-2HnD-IN"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4580,6 +5080,7 @@
         "RB2011UiAS-IN"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4597,6 +5098,7 @@
         "RB2011UiAS-RM"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4617,6 +5119,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Switches",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB260GS",
@@ -4641,6 +5144,7 @@
         "RB3011UiAS-RM"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4658,6 +5162,7 @@
         "rb4011igs_5hacq2hnd_in"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB4011iGS+5HacQ2HnD-IN"
@@ -4681,6 +5186,7 @@
         "rb4011igs_rm"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB4011iGS+RM"
@@ -4704,6 +5210,7 @@
         "rb450gx4"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB450Gx4"
@@ -4723,6 +5230,7 @@
         "rb5009ug_s_in"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB5009UG+S+IN"
@@ -4746,6 +5254,7 @@
         "rb5009upr_s_in"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB5009UPr+S+IN"
@@ -4769,6 +5278,7 @@
         "rb5009_out"
       ],
       "nonDefaultIps": [],
+      "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB5009UPr+S+OUT"
@@ -4792,6 +5302,7 @@
         "RB911G-5HPnD"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB911G-5HPnD"
@@ -4812,6 +5323,7 @@
         "RB912UAG-2HPnD"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB912UAG-2HPnD",
@@ -4832,6 +5344,7 @@
         "RB922UAGS-5HPacD"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB922UAGS-5HPacD"
@@ -4853,6 +5366,7 @@
         "knot_lr9g_kit"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "KNOT",
@@ -4885,6 +5399,7 @@
         "RB951Ui-2HnD"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB951Ui-2HnD"
@@ -4904,6 +5419,7 @@
         "RBFTC11"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4921,6 +5437,7 @@
         "m11g"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4938,6 +5455,7 @@
         "rbm33g"
       ],
       "nonDefaultIps": [],
+      "category": "RouterBOARD",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RBM33G"
@@ -4959,6 +5477,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -4980,6 +5499,7 @@
         "S-3553LC20D"
       ],
       "nonDefaultIps": [],
+      "category": "Interfaces",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -4997,6 +5517,7 @@
         "RBSEXTANTG-5HPnD"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5012,6 +5533,7 @@
       "isSeries": false,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5029,6 +5551,7 @@
         "rbsxtg_6hpnd"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5046,6 +5569,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "LTE products",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5063,6 +5587,7 @@
         "sxt_r"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5078,6 +5603,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -5099,6 +5625,7 @@
         "qm_x"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "SXTsq 5 ax"
@@ -5126,6 +5653,7 @@
       "nonDefaultIps": [
         "192.168.188.1"
       ],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "SXTsq Embedded LTE4"
@@ -5156,6 +5684,7 @@
         "sxtsq_5_high_power"
       ],
       "nonDefaultIps": [],
+      "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "SXTsq Lite5",
@@ -5181,6 +5710,7 @@
         "tg_bt5_in"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5198,6 +5728,7 @@
         "tg_bt5_out"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5215,6 +5746,7 @@
         "tg_lr82"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5232,6 +5764,7 @@
         "tg_lr92"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5249,6 +5782,7 @@
         "up1302c_12"
       ],
       "nonDefaultIps": [],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5270,6 +5804,7 @@
       "nonDefaultIps": [
         "192.168.88.2"
       ],
+      "category": "60 GHz products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5287,6 +5822,7 @@
         "wap_ac"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5304,6 +5840,7 @@
         "wap_ac_lte_kit"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5321,6 +5858,7 @@
         "wap_ax"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP ax"
@@ -5344,6 +5882,7 @@
         "wap_ax_lte7"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP ax LTE7 kit"
@@ -5368,6 +5907,7 @@
         "wap_lte_kit_2024"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5385,6 +5925,7 @@
         "tof_2400_8v_4"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR2 kit"
@@ -5410,6 +5951,7 @@
         "868_omni_antenna"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR8G kit"
@@ -5429,6 +5971,7 @@
         "lora_antenna_kit"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -5450,6 +5993,7 @@
         "915_omni_antenna"
       ],
       "nonDefaultIps": [],
+      "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR9G kit"
@@ -5469,6 +6013,7 @@
         "wap_lte_kit"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LTE kit"
@@ -5488,6 +6033,7 @@
         "RBwAPR-2nD"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "wAP LR2 kit",
@@ -5510,6 +6056,7 @@
         "wap_r_ac"
       ],
       "nonDefaultIps": [],
+      "category": "LTE products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5525,6 +6072,7 @@
       "isSeries": true,
       "productLinks": [],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [
@@ -5549,6 +6097,7 @@
         "192.168.88.2",
         "192.168.88.3"
       ],
+      "category": "60 GHz products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5570,6 +6119,7 @@
         "192.168.88.2",
         "192.168.88.3"
       ],
+      "category": "60 GHz products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Cube 60Pro ac",
@@ -5601,6 +6151,7 @@
         "192.168.88.2",
         "192.168.88.3"
       ],
+      "category": "60 GHz products",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5622,6 +6173,7 @@
         "192.168.4.2",
         "192.168.4.5"
       ],
+      "category": "Accessories",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
@@ -5639,6 +6191,7 @@
         "wsap_ac_lite"
       ],
       "nonDefaultIps": [],
+      "category": "Indoor wireless",
       "cause": "unmatched",
       "matchedMatrixNames": [],
       "mentionedCodes": [
