@@ -184,6 +184,15 @@ interface PageInfo {
   categoryMembers: string[];
   /** Product codes read from a table's "Model" column (see extractModelColumnCodes). */
   tableModelCodes: string[];
+  /** Regulatory identifiers (FCC ID / IC / CE) per model, from Model-column tables. */
+  regulatoryIds: RegulatoryId[];
+}
+
+/** A regulatory identifier tied to a specific product model on a /hardware page. */
+export interface RegulatoryId {
+  model: string;
+  type: string; // "FCC ID" | "IC" | "CE"
+  id: string;
 }
 
 /**
@@ -258,6 +267,7 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
 
   const categoryInfo = extractSidebarCategory(html);
   const tableModelCodes = extractModelColumnCodes(article);
+  const regulatoryIds = extractRegulatoryIds(article);
 
   return {
     slug,
@@ -273,7 +283,50 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
     category: categoryInfo?.name ?? null,
     categoryMembers: categoryInfo?.members.map((m) => m.slug) ?? [],
     tableModelCodes,
+    regulatoryIds,
   };
+}
+
+/** Leading FCC ID / IC / CE label of a regulatory table's non-model column header. */
+function classifyRegulatoryColumn(header: string): string | null {
+  const h = header.trim();
+  if (/^fcc\s*id/i.test(h)) return "FCC ID";
+  if (/^ic\b/i.test(h) || /^ic[A-Z0-9]/.test(h)) return "IC";
+  if (/^ce\b/i.test(h) || /^ce[A-Z0-9]/.test(h)) return "CE";
+  return null;
+}
+
+/**
+ * The same Model-column regulatory tables extractModelColumnCodes() reads for matching
+ * also carry FCC ID / IC / CE columns, one identifier per model row. Issue #35 asked
+ * whether those regulatory IDs could serve as device identity; capturing them here lets
+ * extract-hardware-catalog.ts land them on catalog rows and answer that with counts
+ * instead of discarding them. Model + id-type are read from the header; the id is the
+ * clean cell value (the header cell text is DOM-mangled, but tbody cells are clean).
+ */
+function extractRegulatoryIds(article: Element | null): RegulatoryId[] {
+  const out: RegulatoryId[] = [];
+  for (const table of article?.querySelectorAll("table") ?? []) {
+    const headerRow = table.querySelector("thead tr") ?? table.querySelector("tr");
+    if (!headerRow) continue;
+    const headers = [...headerRow.children].map((c) => c.textContent?.trim() ?? "");
+    const modelIdx = headers.findIndex((h) => h.toLowerCase() === "model" || /^model[A-Z0-9]/.test(h));
+    if (modelIdx === -1) continue;
+    const idCols = headers
+      .map((h, i) => ({ i, type: i === modelIdx ? null : classifyRegulatoryColumn(h) }))
+      .filter((c): c is { i: number; type: string } => c.type !== null);
+    if (idCols.length === 0) continue;
+    for (const row of table.querySelector("tbody")?.children ?? []) {
+      const cells = [...row.children].map((c) => c.textContent?.trim() ?? "");
+      const model = cells[modelIdx];
+      if (!model || model === "-") continue;
+      for (const col of idCols) {
+        const id = cells[col.i];
+        if (id && id !== "-" && id.toLowerCase() !== "none") out.push({ model, type: col.type, id });
+      }
+    }
+  }
+  return out;
 }
 
 /**
@@ -610,6 +663,7 @@ async function main() {
         isSeries: p.isSeries,
         productLinks: p.productLinks,
         tableModelCodes: p.tableModelCodes,
+        regulatoryIds: p.regulatoryIds,
         nonDefaultIps: p.nonDefaultIps,
         category: p.category,
         cause: c?.cause,
