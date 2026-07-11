@@ -17,6 +17,8 @@
  *   schema_node_presence — junction: which schema_nodes exist in which versions
  *   devices          — MikroTik product hardware specs from product matrix CSV
  *   devices_fts      — FTS5 over product name, code, architecture, CPU
+ *   hardware_catalog — /hardware + mikrotik.com/product device overlay (superset of devices)
+ *   device_aliases   — alias/slug/code variant -> hardware_catalog.rosetta_device_id
  *   changelogs       — parsed changelog entries per RouterOS version
  *   changelogs_fts   — FTS5 over category, description
  *   videos           — MikroTik YouTube video metadata (title, description, duration, chapters)
@@ -466,6 +468,45 @@ export function initDb() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_device_tests_device ON device_test_results(device_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_device_tests_type ON device_test_results(test_type);`);
 
+  // -- Hardware catalog (manual.mikrotik.com/hardware + mikrotik.com/product overlay) --
+  //
+  // Superset of `devices` — covers accessories and legacy/EOL SKUs `devices` doesn't carry,
+  // in addition to every device `devices` already has. `devices` itself is untouched (no
+  // schema change, no risk to routeros_device_lookup); `devices_id` links back for the
+  // rows matrix.csv also tracks. See briefings/B-0017-hardware-overlay-device-resolution.md
+  // "Phased implementation plan" for the full rationale (specs_json over ~40 sparse columns
+  // — spec-field coverage falls off sharply outside a small universal core).
+  //
+  // rosetta_device_id is a rosetta-curated stable key (slugified matrix product name for
+  // devices-linked rows, `hw-<hardware-slug>` for hardware/www-only rows) — not any one
+  // source's own slug, since MikroTik does rename products (`hEX` -> `hEX refresh`) and
+  // www/`/hardware` carry independently-drifting slugs (see extract-hardware-catalog.ts).
+
+  db.run(`CREATE TABLE IF NOT EXISTS hardware_catalog (
+    id                   INTEGER PRIMARY KEY,
+    rosetta_device_id    TEXT NOT NULL UNIQUE,
+    devices_id           INTEGER REFERENCES devices(id),
+    category             TEXT,
+    discontinued         INTEGER,
+    specs_json           TEXT,
+    source_hardware_slug TEXT,
+    source_www_code      TEXT
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_hwcat_devices ON hardware_catalog(devices_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_hwcat_category ON hardware_catalog(category);`);
+
+  // device_aliases.alias is stored normalized (trim + lowercase, see normCode() in
+  // assess-hardware.ts) so case/whitespace variants of the same code collapse to one
+  // row — display-cased forms live in hardware_catalog.specs_json / devices.product_name.
+  db.run(`CREATE TABLE IF NOT EXISTS device_aliases (
+    alias              TEXT PRIMARY KEY,
+    rosetta_device_id  TEXT NOT NULL REFERENCES hardware_catalog(rosetta_device_id),
+    source             TEXT NOT NULL
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_device_aliases_device ON device_aliases(rosetta_device_id);`);
+
   // -- Changelogs (parsed per-entry from MikroTik download server) --
 
   db.run(`CREATE TABLE IF NOT EXISTS changelogs (
@@ -840,6 +881,9 @@ export function getDbStats() {
     devices: count("SELECT COUNT(*) AS c FROM devices"),
     device_test_results: count("SELECT COUNT(*) AS c FROM device_test_results"),
     devices_with_tests: count("SELECT COUNT(DISTINCT device_id) AS c FROM device_test_results"),
+    hardware_catalog: count("SELECT COUNT(*) AS c FROM hardware_catalog"),
+    hardware_catalog_linked: count("SELECT COUNT(*) AS c FROM hardware_catalog WHERE devices_id IS NOT NULL"),
+    device_aliases: count("SELECT COUNT(*) AS c FROM device_aliases"),
     changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
     changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
     ros_versions: count("SELECT COUNT(DISTINCT version) AS c FROM ros_versions"),

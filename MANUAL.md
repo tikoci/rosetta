@@ -154,6 +154,25 @@ git commit -m "refresh transcript cache YYYY-MM-DD"
 
 Release CI consumes committed NDJSON via `make extract-videos-from-cache`; it does not run a live YouTube scrape.
 
+### Hardware catalog refresh
+
+`extract-hardware-catalog` is not part of the default `extract`/`extract-full` pipeline yet — it's a
+standalone build on top of the committed `ros-hardware-assessment.json` / `ros-www-assessment.json`
+research artifacts (see `briefings/B-0017-hardware-overlay-device-resolution.md`):
+
+```sh
+make assess-hardware   # refresh ros-hardware-assessment.json (live fetch)
+make assess-www        # refresh ros-www-assessment.json (live fetch)
+make extract-devices   # devices must be populated first for devices_id linking
+make extract-hardware-catalog
+```
+
+It validates against `fixtures/hardware-catalog/baseline.json` before writing anything — a category-count
+drift, a www spec-field template change, matrix.csv coverage dropping below the floor, a previously-resolved
+device disappearing, or a sharp www 404-rate swing all fail the run loudly (DB untouched) rather than write
+silently-degraded data. If a flagged drift is a confirmed, legitimate change to the source (not a silent
+breakage), re-run with `--update-baseline` to accept the new numbers.
+
 ### Local-only source refreshes
 
 Before cutting a corpus release, check these inputs separately from CI:
@@ -253,6 +272,8 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `ros_versions` | 46 | Tracked RouterOS versions with channel (stable/development) |
 | `devices` | 156 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
 | `device_test_results` | 2,874 | Ethernet and IPSec throughput benchmarks for 125 devices — packet sizes, modes, Mbps/Kpps |
+| `hardware_catalog` | ~257 | `/hardware` + `mikrotik.com/product` device overlay — superset of `devices` (accessories, legacy/EOL SKUs included), `category` from the `/hardware` sidebar taxonomy, raw www spec fields as JSON |
+| `device_aliases` | ~800 | Every observed device slug/code/name variant (matrix.csv, `/hardware` slug/link/table code, www requested/declared/compare code) resolved to one `hardware_catalog.rosetta_device_id` |
 | `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
 | `videos` | 538 | MikroTik YouTube video metadata — title, description, duration, chapters |
 | `video_segments` | ~1,870 non-empty | Chapter-level transcript segments with timestamps for deep linking |
@@ -416,6 +437,35 @@ device_test_results (
     throughput_kpps REAL,
     throughput_mbps REAL,
     UNIQUE(device_id, test_type, mode, configuration, packet_size)
+)
+
+-- Hardware catalog: /hardware + mikrotik.com/product device overlay, superset of
+-- `devices` (accessories, legacy/EOL SKUs included). `devices` itself is untouched.
+-- See briefings/B-0017-hardware-overlay-device-resolution.md and src/extract-hardware-catalog.ts.
+hardware_catalog (
+    id INTEGER PRIMARY KEY,
+    rosetta_device_id TEXT NOT NULL UNIQUE,  -- rosetta-curated stable key, not any one
+                                              -- source's own slug (MikroTik does rename
+                                              -- products, e.g. hEX -> hEX refresh)
+    devices_id INTEGER REFERENCES devices(id),  -- NULL for accessory/legacy-only rows
+    category TEXT,               -- from /hardware sidebar taxonomy (12 values today)
+    discontinued INTEGER,        -- 0/1/NULL, from www's Discontinued badge
+    specs_json TEXT,             -- raw www key/value spec fields as JSON (coverage
+                                  -- drops off sharply outside a small universal core —
+                                  -- see B-0017 field-frequency census — so this is a
+                                  -- blob, not ~40 mostly-null columns)
+    source_hardware_slug TEXT,   -- provenance: /hardware page this row came from
+    source_www_code TEXT         -- provenance: mikrotik.com/product/<code> this row came from
+)
+
+-- Every observed slug/code/name variant -> one hardware_catalog.rosetta_device_id.
+-- alias is stored normalized (trim + lowercase); source values: 'matrix.csv',
+-- 'hardware-slug', 'hardware-link', 'hardware-table', 'www-code',
+-- 'www-declared-code', 'www-compare-id'.
+device_aliases (
+    alias TEXT PRIMARY KEY,
+    rosetta_device_id TEXT NOT NULL REFERENCES hardware_catalog(rosetta_device_id),
+    source TEXT NOT NULL
 )
 
 -- Changelogs (parsed per-entry from MikroTik download server)

@@ -92,8 +92,12 @@ export function detectMode(srcDir: string): InvocationMode {
  *   v6 — added `pages.rosetta_id` (TEXT, unique-when-not-null) for
  *        Docusaurus-sourced pages extracted by extract-docusaurus.ts; legacy
  *        Confluence-sourced rows keep NULL (2026-07-07, T-0035).
+ *   v7 — added `hardware_catalog` + `device_aliases` tables (B-0017 Track A,
+ *        issue #35): the full /hardware + www.mikrotik.com device universe,
+ *        superset of `devices` (which is untouched), with an optional link
+ *        back for the rows matrix.csv also tracks.
  */
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 /**
  * Resolve the version string.
