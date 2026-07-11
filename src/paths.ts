@@ -96,8 +96,14 @@ export function detectMode(srcDir: string): InvocationMode {
  *        issue #35): the full /hardware + www.mikrotik.com device universe,
  *        superset of `devices` (which is untouched), with an optional link
  *        back for the rows matrix.csv also tracks.
+ *   v8 — hardware_catalog gains a `name` column and renames `devices_id` ->
+ *        `device_id` (matching device_test_results.device_id); adds the
+ *        `device_overview` VIEW as the documented catalog read surface
+ *        (B-0017 Phase 1.5, PR #36 design review). v7 never shipped in a
+ *        release, so initDb() drops the pre-rename tables and the extractor
+ *        rebuilds them.
  */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 /**
  * Resolve the version string.

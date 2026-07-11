@@ -726,6 +726,50 @@ multi-slug devices; `resolvedDeviceNames` holds ids, not names — rename `resol
 5. Land `nonDefaultIps`; capture + store FCC/CE IDs and answer #35's open question with counts.
 6. Fix the three Copilot nits; stamp `db_meta`; decide the `devices_id` staleness story.
 
+### Rework completed (2026-07-10, PR #36 Phase 1.5)
+
+All six items landed. Built against the committed artifacts (`make extract-devices && make
+extract-hardware-catalog`) and re-checked with the review's own SQL probes. Result: **253 catalog rows,
+787 aliases, 99 counted alias collisions, 31 drop-ledger entries; 148 resolved devices (was 144, +4, zero
+regressions).**
+
+What each invariant now catches (all three probes return **0** rows, were 18 / 6 / 22):
+
+- **Declared code ∈ own aliases** (`checkInvariants` #1) — a row's `specs_json` "Product code" must be an
+  alias pointing back to that row (allowlist-exempt). Catches every cross-sell misattribution: the agreement
+  gate now rejects `qm_x`/`mant_lte_5o`/`ACRPSMA`/`RBWMK`/`gper`/`acsmaufl` on the cube/chateau/netbox/rb2011/
+  gperx4/r11e pages, and the multi-key www index + declared-code lookup attach the *correct* products
+  instead (`hw-cube-lite60` → Cube Lite60, `hw-netbox-5` → NetBox 5, `hw-rb2011ils-in` → RB2011iLS-IN);
+  legacy SKUs with no own www product (`hw-chateau-lte6`, `hw-gperx4`, `hw-r11e-lr8`) now get NULL specs
+  instead of an accessory's.
+- **One www product → at most one row** (`checkInvariants` #2) — outside `SHARED_WWW_ALLOWLIST`, which has
+  exactly two justified entries (wAP R base radio across the wAP LR kits; LtAP mini base across its LTE kit).
+  The invariant *found* the LtAP mini case itself during rework — proof it works.
+- **Every input entity accounted for** (`checkInvariants` #3 + drop ledger) — 205 attached + 31 dropped = 236
+  www products, disjoint and exhaustive; each dropped product carries a reason (all 31 are "referenced but
+  identity disagreed" — the rejected cross-sell accessories).
+- **Alias collisions counted** (`BuildResult.aliasCollisions`, baselined) — 99 collisions surfaced instead of
+  silently swallowed; priority ranking makes the owning device win (`rbdisc-5nd` → `hw-disc-lite5`, not
+  netbox-5's stray table code; `rbwapr-2nd` → `wap-r`, not a kit).
+
+Declared-code tier resolved the duplicate identities: `rose-data-server-rds` (via link → www declared full
+code), `knot-embedded-lte4` + `knot-embedded-lte4-global` (via page slug-suffix, ignoring the shared
+mislabelled link), and `atl-lte18-kit` (bonus) — the corresponding `hw-*` rows are gone.
+
+The build now emits `fixtures/hardware-catalog/catalog.json` (sorted rows + aliases + drop ledger +
+collisions) as the diffable review gate; schema is v8 (`name` column, `devices_id` → `device_id`,
+`device_overview` view); `nonDefaultIps` and FCC/IC IDs land in `specs_json`; `db_meta` carries
+`hardware_catalog_source`/`hardware_catalog_built_at`; `initDb()` is deferred past validation so
+`--check-only`/failed runs leave the DB untouched; and the write fails loud on a stale `device_id`.
+
+**Issue #35 FCC-as-identity question, answered with data:** of 253 catalog rows, **51 carry an FCC ID** and
+6 carry an IC number (`assess-hardware.ts` now captures both from the Model-column regulatory tables — 87
+FCC / 15 IC IDs across 48 `/hardware` pages). Across those 51 rows there are 55 distinct FCC IDs, but **12
+FCC IDs are shared across more than one catalog row** (a single grant covers hardware/regional variants —
+e.g. `TV7RB912G-2HPND`, `TV7D25-5HPQ2HP`). Conclusion: **FCC ID is not a viable primary device identity** —
+coverage is only ~20% of rows and the IDs are not 1:1 with devices. Kept as a searchable secondary
+attribute in `specs_json`, not promoted to an identity key.
+
 ## Open questions
 
 See "Open research questions" above. `B-0006` and `B-0007` stay `open` for now as historical record but

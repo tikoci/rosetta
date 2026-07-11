@@ -19,6 +19,7 @@
  *   devices_fts      — FTS5 over product name, code, architecture, CPU
  *   hardware_catalog — /hardware + mikrotik.com/product device overlay (superset of devices)
  *   device_aliases   — alias/slug/code variant -> hardware_catalog.rosetta_device_id
+ *   device_overview  — VIEW: catalog + devices spec columns + alias counts (read surface)
  *   changelogs       — parsed changelog entries per RouterOS version
  *   changelogs_fts   — FTS5 over category, description
  *   videos           — MikroTik YouTube video metadata (title, description, duration, chapters)
@@ -481,11 +482,25 @@ export function initDb() {
   // devices-linked rows, `hw-<hardware-slug>` for hardware/www-only rows) — not any one
   // source's own slug, since MikroTik does rename products (`hEX` -> `hEX refresh`) and
   // www/`/hardware` carry independently-drifting slugs (see extract-hardware-catalog.ts).
+  //
+  // `name` is the human-readable display name (COALESCE of www title, /hardware page title,
+  // matrix product name — never NULL). `device_id` (not `devices_id`) links back to
+  // devices(id), matching device_test_results.device_id's naming so both FKs to devices read
+  // the same. B-0017 Phase 1.5 (PR #36 review) renamed the column and added `name`; the
+  // migration below drops the pre-rename shape so a dev DB rebuilds cleanly (both tables are
+  // fully repopulated every run by extract-hardware-catalog.ts, so a drop loses nothing).
+  const hwcatCols = db.prepare("PRAGMA table_info(hardware_catalog)").all() as Array<{ name: string }>;
+  if (hwcatCols.some((c) => c.name === "devices_id")) {
+    db.run("DROP VIEW IF EXISTS device_overview;");
+    db.run("DROP TABLE IF EXISTS device_aliases;");
+    db.run("DROP TABLE IF EXISTS hardware_catalog;");
+  }
 
   db.run(`CREATE TABLE IF NOT EXISTS hardware_catalog (
     id                   INTEGER PRIMARY KEY,
     rosetta_device_id    TEXT NOT NULL UNIQUE,
-    devices_id           INTEGER REFERENCES devices(id),
+    device_id            INTEGER REFERENCES devices(id),
+    name                 TEXT NOT NULL,
     category             TEXT,
     discontinued         INTEGER,
     specs_json           TEXT,
@@ -493,7 +508,7 @@ export function initDb() {
     source_www_code      TEXT
   );`);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_hwcat_devices ON hardware_catalog(devices_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_hwcat_device ON hardware_catalog(device_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_hwcat_category ON hardware_catalog(category);`);
 
   // device_aliases.alias is stored normalized (trim + lowercase, see normCode() in
@@ -506,6 +521,33 @@ export function initDb() {
   );`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_device_aliases_device ON device_aliases(rosetta_device_id);`);
+
+  // device_overview — the documented read surface for the catalog: one row per catalog
+  // device, its display name, category/discontinued overlay, the matrix-derived structured
+  // spec columns where the row links to `devices`, and its alias count. Every future
+  // consumer (MCP, TUI, ad-hoc SQL) should read this instead of re-deriving the
+  // catalog<->devices<->aliases join. Recreated (not IF NOT EXISTS) so definition changes
+  // always take effect. The join is on device_id (the FK devices_id captured fresh at build
+  // time); extract-hardware-catalog.ts validates that FK against devices.product_name — the
+  // UNIQUE, rename-stable key — on every write so a stale AUTOINCREMENT link fails loud.
+  db.run("DROP VIEW IF EXISTS device_overview;");
+  db.run(`CREATE VIEW device_overview AS
+    SELECT
+      hc.rosetta_device_id,
+      hc.name,
+      hc.category,
+      hc.discontinued,
+      hc.device_id,
+      d.product_name,
+      d.product_code,
+      d.architecture,
+      d.cpu,
+      hc.source_hardware_slug,
+      hc.source_www_code,
+      hc.specs_json,
+      (SELECT COUNT(*) FROM device_aliases da WHERE da.rosetta_device_id = hc.rosetta_device_id) AS alias_count
+    FROM hardware_catalog hc
+    LEFT JOIN devices d ON d.id = hc.device_id;`);
 
   // -- Changelogs (parsed per-entry from MikroTik download server) --
 
@@ -882,7 +924,7 @@ export function getDbStats() {
     device_test_results: count("SELECT COUNT(*) AS c FROM device_test_results"),
     devices_with_tests: count("SELECT COUNT(DISTINCT device_id) AS c FROM device_test_results"),
     hardware_catalog: count("SELECT COUNT(*) AS c FROM hardware_catalog"),
-    hardware_catalog_linked: count("SELECT COUNT(*) AS c FROM hardware_catalog WHERE devices_id IS NOT NULL"),
+    hardware_catalog_linked: count("SELECT COUNT(*) AS c FROM hardware_catalog WHERE device_id IS NOT NULL"),
     device_aliases: count("SELECT COUNT(*) AS c FROM device_aliases"),
     changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
     changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
