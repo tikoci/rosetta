@@ -823,6 +823,60 @@ gaps the Phase 1.6 tests/baseline did not catch. Two were blocking; all verified
 Baseline moved (once, deliberately): `aliasCollisions` 99 → 82 (fewer aliases), `droppedWwwProducts`
 31 → 30, `resolvedDeviceIds` 148 → 147 (only `chateau-lte12-2025`, the honest un-resolution above).
 
+## Phase 1 wrap-up (2026-07-11, PR #36 final verification)
+
+Independent re-verification after the Phase 1.5/1.6/1.7 rework rounds: fresh temp-DB rebuild
+(`extract-devices` → `extract-hardware-catalog`) reproduces the committed `catalog.json` byte-identically
+and matches the baseline (253 rows / 765 aliases / 82 collisions / 30-entry drop ledger); typecheck, lint,
+and the full test suite (721 pass / 0 fail) are green; all original review probes return clean (0
+misattributed spec rows outside the 3 allowlist-exempt wAP LR kits, 0 nameless rows, 0 duplicate
+identities, 0 HTML-entity aliases, only the allowlisted `RBwAPR-2nD` multi-attach). CodeRabbit's one
+remaining "Major" thread (rowspan/colspan corruption in `extractRegulatoryIds`) was **verified false**:
+zero tables anywhere in the 239 cached `/hardware` pages carry `rowspan`/`colspan`; the anomalies it
+pointed at are MikroTik's own source-data errors, faithfully extracted and corrected by the value-shape
+canonicalizer. Phase 1 (schema + ETL + validation) is done.
+
+### Lingering data-quality items (non-blocking, carry to Phase 2)
+
+- **Cross-sell alias pollution.** 27 of the 30 drop-ledger www products' codes still exist as
+  `hardware-link` aliases pointing at the device whose page merely *linked* them. Roughly half are
+  defensible (series-page rows claiming member/kit codes: `wap_60g` → `hw-wap-60g-series`,
+  `mtp250_*` → `hw-mtp250-series`) but the rest are genuinely wrong as lookups: `qm_x` (mounting
+  bracket) → `sxtsq-5-ax`, `mant_lte_5o` → `hw-chateau-lte12`, `868_omni_antenna` → `wap-lr8g-kit`,
+  `acrpsma` → `netbox-5-ax`, `rbwmk` → `hw-rb2011il-in`, `ldf_5_ac` → `ldf-5` (sibling-variant
+  misdirect). The `source='hardware-link'` column lets a consumer rank these below exact-identity
+  sources, but Phase 2's alias-aware lookup should either drop link-tokens that name a known dropped
+  www product (except onto series rows) or expose the source ranking.
+- **`_non_default_ips` is over-inclusive.** 63 rows carry the field but 52 of them are the same-subnet
+  secondary addresses (`192.168.88.2`/`.88.3`/`.88.0`) this briefing explicitly classified as *not*
+  surface-worthy. Only the 9 `192.168.188.1` embedded-LTE rows plus `intercell`/`woobm-usb` are genuine
+  deviations. Filter at assess or extract time before any surface says "non-default IP."
+- 9 current matrix rows still have no `/hardware`/www identity at all (`chateau-lte12-2025` — see the
+  MikroTik list below — plus `cubesa-60pro-ac`, `ftc21-ups`, `lamp-5g-r16`, `lhgg-lte7-kit`,
+  `ltap-lte7-kit`, `r11e-lte7`, `sxt-lte7-kit`, `sxtsq-embedded-lte4-global`; down from 14 pre-rework).
+- The 30 dropped www products are real MikroTik products (accessories/EOL SKUs with live www pages) that
+  are *not* catalog rows — the "full /hardware + www universe" claim holds for pages, not for www-only
+  products. Adding them as rows is a scope decision for Phase 2, not a bug; the drop ledger accounts for
+  every one.
+
+### Items worth reporting to MikroTik (defects in their sources, evidenced by this extraction)
+
+1. **`manual.mikrotik.com/hardware/chateau-lte12` links the wrong product**: its only
+   `mikrotik.com/product/*` link is `mant_lte_5o` (an antenna), so the Chateau LTE12 / LTE12 (2025) is
+   unresolvable from its own manual page.
+2. **7 series pages enumerate no members at all** — no product links, no Model-column table, no prose
+   listing: `ccr1036-12g-4s-series`, `ccr1036-8g-2s-plus-series`, `crs-series`, `crs125-24g-1s-series`,
+   `ltap-kit-series`, `mant-series`, `wap-series`.
+3. **Mislabelled regulatory-table headers**: ~10 tables carry ISED/IC numbers (`7442A-…`) under an
+   "FCC ID" header and 2 the reverse (e.g. `lhg-lite60`, `ltap`).
+4. **`ltap-mini-kit-series` IC table data error**: the base kit row has the FCC ID
+   (`TV7RB912R-2NDLTM`) pasted in the IC column.
+5. **`wap-series` CE Declaration boilerplate names the wrong product**: contains cAP lite's code
+   (`RBcAPL-2nD`) in copy-pasted DoC text.
+6. **`/hardware` is excluded from the machine-readable endpoints** (`llms.txt` / `.md` — the
+   docusaurus-plugin-llms walk only covers `docs/`; see B-0012 H1/H2).
+7. **9 current product-matrix entries have no `/hardware` page** (list above) — mostly recent LTE kits.
+
 ## Open questions
 
 See "Open research questions" above. `B-0006` and `B-0007` stay `open` for now as historical record but
