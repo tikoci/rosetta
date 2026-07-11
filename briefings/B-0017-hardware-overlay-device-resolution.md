@@ -286,6 +286,7 @@ coverage drops off sharply outside the universal core.
 status: **58 are confirmed discontinued** (the legacy/EOL hypothesis holds), but **26 resolve to a www page
 that is *not* discontinued** — active current products `matrix.csv` simply doesn't carry. Reading that list
 by hand splits it further:
+
 - The clear majority are genuine accessories outside `devices`' router/switch shape — SFP/media
   converters (`S-31DLC20D`, `S-3553LC20D`), GPS/LoRa/antenna hardware (`GPeR`, `TG-BT5-IN/OUT`,
   `TG-LR82/92`, `mtp250-*`), PoE adapters (`GESP+POE-IN`, `UP1302C-12`), an Ethernet extender (`GPEN11`),
@@ -403,7 +404,7 @@ Research/explore phase, not actionable as a build task yet — consistent with h
 migration was staged (T-0033 research pass before T-0034/T-0035 build), and consistent with the
 maintainer's explicit 2026-07-10 steer that mapping/data-gathering should continue before any schema
 "decision" gets made. Question 1 (inventory diff) is **exhaustively answered** by `src/assess-hardware.ts`
-+ `ros-hardware-assessment.json`: the 240-vs-156 gap is real, understood in kind and in exact count, which
+and `ros-hardware-assessment.json`: the 240-vs-156 gap is real, understood in kind and in exact count, which
 **overturns** the original "largely accessories" working assumption. Question 5 (extraction mechanism) is
 now **answered with a correction**: `linkedom`-based HTML parsing is right, but the target for spec/
 capability data is `mikrotik.com/product/<code>` (`src/assess-www.ts` + `ros-www-assessment.json`, 236
@@ -431,6 +432,103 @@ options for whoever picks up the schema/ETL work, not commitments):
 Run the rest of **Track A** to a decision before **Track B** (capability surfacing), which needs the
 stable device key Track A produces and remains the strongest candidate for its own scoped build issue
 rather than riding the same extractor.
+
+## Decision summary and recommendations (2026-07-10, third pass)
+
+The maintainer asked to stop digging and instead get a clear list of what actually needs their judgment,
+plus a recommendation to react to rather than an open question. One more concrete finding came out of
+answering that, folded in below: **`/hardware`'s sidebar taxonomy answers the "device class/category"
+question directly, with zero hand-curation.** Docusaurus server-renders the sidebar on every page but only
+auto-expands the category containing the current page; since every page belongs to exactly one category
+and all 239 are cached, unioning each page's own expanded block reconstructs the complete taxonomy.
+Confirmed live: **239/239 pages resolve cleanly to one of 12 categories** — Switches (43), LTE products
+(36), Ethernet routers (36), Wireless systems (35), Indoor wireless (33), IoT products (20), Accessories
+(14), 60 GHz products (9), RouterBOARD (8), Data over Powerlines (3), Antennas (1), Interfaces (1) — zero
+uncategorized, zero drift needed. This is MikroTik's own maintained product taxonomy, not a documentation
+artifact: www's global product-group nav (`mikrotik.com/products/group/<slug>`) groups products under
+matching category names. `category` is now a field in every page's `ros-hardware-assessment.json` entry,
+plus a `categories` rollup with full membership — the "known category, minimal hand-curated map" the
+maintainer asked for is done. (Cross-tabbing category against match cause also shows the legacy/EOL
+concentration is uneven — LTE products, 60 GHz products, and Accessories skew heavily `unmatched`, Switches
+and RouterBOARD barely at all — consistent with product-cycle speed per category, not investigated further.)
+
+### Recommended schema shape (not built — a proposal to react to)
+
+Grouped, not flat — the field-frequency census (`ros-www-assessment.json`) showed coverage drops off
+sharply outside a small universal core (Product code, price, MTBF, certification ~90-100%; CPU/RAM/
+architecture ~82%; switch chip ~52%; wireless fields ~30%; SFP ~14%). A single flat `devices` row with 40
+mostly-null columns fights that shape; per-family JSON groups don't:
+
+```text
+devices (
+  id                  INTEGER PRIMARY KEY,      -- internal only, never exposed (per Q3's existing rule)
+  rosetta_device_id   TEXT UNIQUE,               -- stable, rosetta-curated key — see Q3 below
+  canonical_name      TEXT,
+  category            TEXT,                      -- from /hardware sidebar taxonomy, 12 values, free
+  product_code        TEXT,                       -- from www's own declared "Product code" (most authoritative — see Q7)
+  discontinued        BOOLEAN,
+  cpu, cpu_arch, cpu_cores, cpu_freq_mhz,          -- present ~82% of devices; null for pure accessories
+  ram_mb, storage_mb, storage_type,
+  switch_chip         TEXT,                       -- nullable, ~52%
+  ports_json          TEXT,                        -- ethernet/SFP/USB counts — variable shape by family
+  wireless_json        TEXT,                        -- nullable, wireless-only fields grouped
+  poe_json            TEXT,                        -- nullable
+  certification, mtbf, price, ...
+  source_hardware_slug TEXT,                       -- provenance
+  source_www_code      TEXT                         -- provenance
+)
+
+device_aliases (
+  alias               TEXT PRIMARY KEY,             -- any observed slug/code/name variant
+  rosetta_device_id    TEXT REFERENCES devices,
+  source               TEXT                          -- 'matrix.csv' | 'hardware-slug' | 'hardware-link' | 'www-declared-code' | ...
+)
+```
+
+This is a proposal, not a build — exact column list is an implementation detail once the shape is agreed.
+
+### Recommended "when to fail" / validation strategy
+
+This project already has a non-blocking baseline-diff pattern (`eval`/`eval-update`,
+`extract-docusaurus-check-counts`) — the same shape fits here better than a hard CI gate, since the source
+is a live external site that can legitimately change. Recommended canaries for a future `--check-baseline`
+mode on `assess-hardware.ts`/`assess-www.ts`:
+
+- Category count drifts from 12, or `uncategorizedPages` becomes non-empty (was 0/239) — sidebar template
+  or taxonomy changed, re-verify the extraction regex.
+- Core field frequency (`Product code`, `CPU`, `Architecture`) drops more than ~10 points from today's
+  baseline — www's page template changed.
+- `matched-by-code` + `matched-by-slug` coverage of current `matrix.csv` rows drops below ~85% (today: 91%,
+  142/156) — either `matrix.csv` grew faster than `/hardware`, or the link/slug convention changed.
+- www 404 rate on the candidate-code fetch swings sharply from today's baseline (165/401) — site
+  restructured, or we're being rate-limited/blocked, not actually seeing real 404s.
+Not built this pass — flagged as the concrete next engineering step once a schema is agreed, not before.
+
+### What's a decision now, not more research
+
+Q3 (identity model), Q6 (alias-table trigger), and Q7 (provenance) all have enough grounding to recommend a
+specific answer rather than dig further:
+
+- **Q6 (alias table):** build it now. The original B-0006 trigger ("5+ documented false-empty lookups") is
+  moot — this pass already found 122 systemic www-slug-vs-declared-code mismatches, far past that bar, and
+  the data to build the table already exists in `ros-www-assessment.json`'s `codeMismatches`.
+- **Q3 (identity key):** a rosetta-curated stable key (not any one source's slug) with every observed
+  form — matrix name, `/hardware` slug, www requested code, www declared code — as an alias row. Slugs
+  aren't safe alone (`hEX` → `hEX refresh` is a real rename, not an alias) and www's declared code is the
+  single most reliable natural key seen across this research, but still needs curation for the ~52% of
+  resolved www pages (122/236) where the initially-requested code and declared code genuinely disagree.
+- **Q7 (provenance):** www is authoritative for spec/capability fields and category; `/hardware` is
+  authoritative for install/quick-start/compliance content. Simple source-per-field default, consistent
+  with `db-meta-stamping`'s existing per-field provenance convention elsewhere in the project.
+
+Q4 (accessory fit) is *mostly* answered — accessories clearly don't fit `devices`' router/switch shape (no
+CPU/architecture) — but scoping them in or out of v1 is a genuine judgment call, not something more digging
+resolves (see questions below).
+
+The one item that's still genuinely open research, not a decision: **the 10 linkless series pages' member
+enumeration** (no working signal found — body-text scanning came back empty). Recommend deprioritizing it
+rather than digging further — it's a 10-page edge case against a 239-page corpus, and doesn't block a first
+schema/build pass.
 
 ## Open questions
 
