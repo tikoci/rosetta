@@ -3,14 +3,14 @@
   "seriesPageCount": 30,
   "medianWordCount": 1656,
   "matrixRowCount": 156,
-  "matchedByCode": 33,
-  "matchedByTable": 8,
-  "matchedBySlug": 97,
-  "unmatched": 87,
-  "noProductLink": 14,
-  "seriesWithMultipleMatches": 6,
+  "matchedByCode": 55,
+  "matchedByTable": 1,
+  "matchedBySlug": 83,
+  "unmatched": 81,
+  "noProductLink": 19,
+  "seriesWithMultipleMatches": 5,
   "matrixRowsWithNoHardwarePage": [
-    "ATL LTE18 kit",
+    "Chateau LTE12 (2025)",
     "CubeSA 60Pro ac",
     "FTC21-ups",
     "KNOT Embedded LTE4",
@@ -20,7 +20,6 @@
     "LtAP LTE7 kit",
     "R11e-LTE7",
     "ROSE Data server (RDS)",
-    "SXT LTE7 kit",
     "SXTsq Embedded LTE4 Global"
   ],
   "headingFrequency": {
@@ -1005,8 +1004,10 @@
         "192.168.188.1"
       ],
       "category": "LTE products",
-      "cause": "unmatched",
-      "matchedMatrixNames": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "ATL LTE18 kit"
+      ],
       "mentionedCodes": [
         "ATLGM",
         "EG18-EA"
@@ -1203,7 +1204,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "cAP lite"
       ],
@@ -1431,7 +1432,7 @@
         "192.168.88.2"
       ],
       "category": "Ethernet routers",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CCR2004-16G-2S+"
       ],
@@ -1502,7 +1503,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CCR2004-1G-2XS-PCIe"
       ],
@@ -1529,7 +1530,7 @@
         "192.168.88.2"
       ],
       "category": "Ethernet routers",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CCR2116-12G-4S+"
       ],
@@ -1556,7 +1557,7 @@
         "192.168.88.2"
       ],
       "category": "Ethernet routers",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CCR2216-1G-12XS-2XQ"
       ],
@@ -1675,7 +1676,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "LTE products",
-      "cause": "unmatched",
+      "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [
         "EG12-EA"
@@ -1725,7 +1726,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "LTE products",
-      "cause": "unmatched",
+      "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [
         "D53G-5HacD2HnD-TC"
@@ -1773,11 +1774,9 @@
       ],
       "nonDefaultIps": [],
       "category": "LTE products",
-      "cause": "matched-by-table",
+      "cause": "matched-by-slug",
       "matchedMatrixNames": [
-        "Chateau LTE6-US",
-        "Chateau LTE7",
-        "Chateau LTE12 (2025)"
+        "Chateau LTE6-US"
       ],
       "mentionedCodes": [
         "D53G-5HacD2HnD-TC",
@@ -1984,7 +1983,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS112-8P-4S-IN"
       ],
@@ -2028,7 +2027,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS304-4XG-IN"
       ],
@@ -2275,7 +2274,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS326-24G-2S+RM"
       ],
@@ -2410,7 +2409,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS354-48G-4S+2Q+RM"
       ],
@@ -2518,7 +2517,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS504-4XQ-IN"
       ],
@@ -2545,7 +2544,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS504-4XQ-OUT"
       ],
@@ -2572,7 +2571,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS510-8XS-2XQ-IN"
       ],
@@ -2626,7 +2625,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS520-4XS-16XQ-RM"
       ],
@@ -2734,7 +2733,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CSS326-24G-2S+RM"
       ],
@@ -3381,6 +3380,7 @@
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
+        "hAP ax2",
         "hAP ax3"
       ],
       "mentionedCodes": [
@@ -3824,7 +3824,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "L009UiGS-2HaxD-IN"
       ],
@@ -3849,7 +3849,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "L009UiGS-RM"
       ],
@@ -3874,7 +3874,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "L11UG-5HaxD"
       ],
@@ -3899,7 +3899,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "L23UGSR-5HaxD2HaxD"
       ],
@@ -3949,7 +3949,7 @@
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "LDF 5"
       ],
@@ -4180,7 +4180,7 @@
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
-      "cause": "matched-by-table",
+      "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG XL 5 ac"
       ],
@@ -4335,7 +4335,7 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "unmatched",
+      "cause": "no-product-link",
       "matchedMatrixNames": [],
       "mentionedCodes": [],
       "inferredMatrixNames": [],
@@ -4405,10 +4405,9 @@
       ],
       "nonDefaultIps": [],
       "category": "LTE products",
-      "cause": "matched-by-table",
+      "cause": "matched-by-slug",
       "matchedMatrixNames": [
-        "LtAP mini",
-        "LtAP mini LTE kit"
+        "LtAP mini"
       ],
       "mentionedCodes": [
         "RB912R-2nD-LTm"
@@ -4439,9 +4438,8 @@
       ],
       "nonDefaultIps": [],
       "category": "LTE products",
-      "cause": "matched-by-table",
+      "cause": "matched-by-slug",
       "matchedMatrixNames": [
-        "LtAP mini",
         "LtAP mini LTE kit"
       ],
       "mentionedCodes": [
@@ -4805,7 +4803,7 @@
         "192.168.88.2"
       ],
       "category": "Switches",
-      "cause": "matched-by-slug",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "netPower 15FR"
       ],
@@ -4938,7 +4936,7 @@
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
-      "cause": "matched-by-table",
+      "cause": "matched-by-code",
       "matchedMatrixNames": [
         "OmniTIK 5 PoE ac"
       ],
@@ -5148,8 +5146,10 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "unmatched",
-      "matchedMatrixNames": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP LR2 kit"
+      ],
       "mentionedCodes": [],
       "inferredMatrixNames": [],
       "mentionsLifecycleKeyword": false
@@ -5167,11 +5167,8 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "matched-by-slug",
-      "matchedMatrixNames": [
-        "KNOT LR8G kit",
-        "wAP LR8G kit"
-      ],
+      "cause": "no-product-link",
+      "matchedMatrixNames": [],
       "mentionedCodes": [
         "R11e-LR8G"
       ],
@@ -5193,8 +5190,10 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "unmatched",
-      "matchedMatrixNames": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP LR2 kit"
+      ],
       "mentionedCodes": [],
       "inferredMatrixNames": [],
       "mentionsLifecycleKeyword": true
@@ -5212,11 +5211,8 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "matched-by-slug",
-      "matchedMatrixNames": [
-        "KNOT LR9G kit",
-        "wAP LR9G kit"
-      ],
+      "cause": "no-product-link",
+      "matchedMatrixNames": [],
       "mentionedCodes": [
         "R11e-LR9G"
       ],
@@ -5263,8 +5259,8 @@
       "category": "Ethernet routers",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
-        "RB1100AHx4 Dude Edition",
-        "RB1100AHx4"
+        "RB1100AHx4",
+        "RB1100AHx4 Dude Edition"
       ],
       "mentionedCodes": [],
       "inferredMatrixNames": [],
@@ -5450,7 +5446,7 @@
       ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
-      "cause": "matched-by-table",
+      "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB4011iGS+5HacQ2HnD-IN"
       ],
@@ -5906,8 +5902,10 @@
       "tableModelCodes": [],
       "nonDefaultIps": [],
       "category": "LTE products",
-      "cause": "unmatched",
-      "matchedMatrixNames": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "SXT LTE7 kit"
+      ],
       "mentionedCodes": [],
       "inferredMatrixNames": [],
       "mentionsLifecycleKeyword": false
@@ -6019,9 +6017,9 @@
       "category": "Wireless systems",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
-        "SXTsq Lite5",
         "SXTsq 5 ac",
-        "SXTsq Lite2"
+        "SXTsq Lite2",
+        "SXTsq Lite5"
       ],
       "mentionedCodes": [
         "SXTsq"
@@ -6341,13 +6339,8 @@
       ],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "matched-by-table",
-      "matchedMatrixNames": [
-        "wAP LR2 kit",
-        "wAP LR8G kit",
-        "wAP LR9G kit",
-        "wAP R"
-      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": [],
       "mentionedCodes": [
         "RB912R-2nD-LTm"
       ],
@@ -6413,9 +6406,6 @@
       "category": "LTE products",
       "cause": "matched-by-code",
       "matchedMatrixNames": [
-        "wAP LR2 kit",
-        "wAP LR8G kit",
-        "wAP LR9G kit",
         "wAP R"
       ],
       "mentionedCodes": [],
