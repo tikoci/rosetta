@@ -119,8 +119,9 @@ source-data gaps:
 | `no-www-product` | No `mikrotik.com/product` page could be located. `hardware_slug` given if `/hardware` exists. | `www_url` |
 | `accessory` | A user-installable module (LTE/LoRa/wireless miniPCIe), not a standalone device. | usually `hw_url` |
 
-As of 2026-07-11: 12 exceptions — 4 `curated-alias`, 6 `no-hardware-page`, 1 `no-www-product`
-(`SXTsq 5 ax`, www slug still unknown), 1 `accessory` (`R11e-LTE7`).
+As of 2026-07-11: 12 exceptions — 5 `curated-alias`, 6 `no-hardware-page`, 1 `accessory` (`R11e-LTE7`).
+(`no-www-product` remains a valid class but is currently unused — `SXTsq 5 ax` moved to `curated-alias`
+once its www slug `sxtsq_5ax` was confirmed.)
 
 ### hardware-unmatched.tsv — /hardware pages with no matrix device
 
@@ -194,27 +195,36 @@ B-0017 doesn't keep absorbing scope.
 1. **Wire the drift gate + assessments into CI.** `make assess-hardware assess-www device-map-check` should
    run on PRs touching matrix/assessment data (B-0014 notes CI is currently release-locked, not PR-gated).
    This is the "loose end" of CI building `/hardware`.
-2. **`hardware_catalog` schema + ETL (B-0017 Phase 1).** Fold `device-map.tsv` into the DB as a queryable
-   overlay on `devices`, so the MCP can answer "where are this device's pages / what category is it".
+2. **✅ `hardware_catalog` + `device_aliases` schema/ETL — shipped in PR #36** (`src/extract-hardware-catalog.ts`).
+   `device-map.tsv` stays as the human-reviewable artifact; the DB overlay answers the same joins for the MCP.
 3. **Matrix gaps — devices in `/hardware` but not matrix.csv.** Audit `hardware-unmatched.tsv`'s
    device-category rows (e.g. `ltap-lr8-lte6-kit`, various CCR/CRS/Chateau/Cube slugs) and decide which are
    real current products the matrix export dropped. Also the **`R11e-*` module family** has ~12 www
    products (`R11e-2HPnD`, `R11e-5HacD`, `r11e_lr8g`, `r11e_lte6`, …) with no matrix rows — a `matrix-gap`.
-4. **Model "base device" + installed-module metadata for `&` codes.** Make the base/module split of
-   `RBLtAP-2HnD&R11e-LTE7` queryable — "which devices ship (or *can* ship) an `R11e-LTE7`?" The "can ship"
-   case is largely derivable from matrix miniPCIe-port columns; the "does ship" case is the `&` compound.
-   MikroTik overloads "series"/"kit" (LTE/5G/LoRa and non-radio), so pick rosetta's own clear terms.
-   `routeros_search()` should account for `&` so a modem query finds the kits that contain it.
-5. **Capture LTE/5G bands & LoRa frequencies in the www scrape.** `assess-www.ts` already pulls a specs
-   table; adding supported bands to `ros-www-assessment.json` would let an agent ground region-specific
-   modem questions early ("Verizon won't connect" → this EU/APAC modem lacks band 12/13), especially for
-   the `&R11e-*` devices.
+4. **`&`-aware SELECT-side matching — tracked in `B-0006`.** Making the base/module split of
+   `RBLtAP-2HnD&R11e-LTE7` queryable ("which devices ship, or *can* ship, an `R11e-LTE7`?") is the query→device
+   SELECT side, and lands in `B-0006` alongside the alias table. Same place fixes the alias builder's
+   shared-base / bogus-accessory collisions (it doesn't yet apply the matcher's guards).
+5. **Modules & radio-band capture (the R11e tangent).** Treat `R11e-*` as **special accessories, not devices**
+   (see resolved decisions): use the richer **www** data as their source, capture supported LTE/5G bands (and
+   LoRa frequencies) into the `ros-www-assessment.json` spec JSON, and surface them on the base devices that
+   expose a miniPCIe slot (known from matrix). Band data is only sometimes on the www page (some lives in
+   per-model PDFs / regulatory filings), so expect per-modem exceptions — FCC-ID / filing data may be the
+   richer RF source. Self-contained tangent; stays here rather than in B-0006/B-0007.
 6. **Non-device `/hardware` audit follow-up.** `hardware-unmatched.tsv` surfaces the set; a light
    classification (accessory vs series vs missing-device) could be added if the raw list proves noisy.
-7. **Resolve `SXTsq 5 ax` www slug** — currently `no-www-product`; confirm the real marketing slug.
+   Surfacing an accessory's `/hardware` page on a search hit (even when it has no matrix row) is acceptable.
+7. **✅ `SXTsq 5 ax` www slug resolved** — `mikrotik.com/product/sxtsq_5ax` + `/hardware/sxtsq-5axd`
+   (maintainer-confirmed 2026-07-11); now a `curated-alias`.
 
-## Open questions
+## Resolved decisions (2026-07-11 maintainer)
 
-- Does rosetta invent its own module/kit taxonomy, or mirror MikroTik's overloaded "series"/"kit"?
-- Should the `R11e-*` module family be first-class devices, or a separate `modules` overlay?
-- Is band/frequency data reliable enough on www product pages to scrape, or does it need a per-modem source?
+- **Taxonomy: mirror MikroTik's own schemes — do NOT invent a custom module/kit map.** MikroTik overloads
+  "series"/"kit" (LTE/5G/LoRa *and* non-radio); rosetta follows their naming rather than imposing its own.
+- **`R11e-*` (and the miniPCIe module family) are special accessories, not first-class devices.** They can
+  live in a dedicated `modules` table (covering whatever follows the `&` in a device's code) or fold into a
+  generic `accessories` table for the non-device `/hardware` pages where www is the richer source. The link
+  to base devices is the miniPCIe slot (from matrix) for "can ship" and the `&` compound for "does ship".
+- **Band/frequency data is worth capturing but not uniformly reliable on www** — some is PDF/regulatory-only,
+  so it needs an exceptions path (and possibly FCC-ID/filing sourcing). Not blocking; the modem tangent is
+  lower priority than getting the core device plumbing broadly wired.

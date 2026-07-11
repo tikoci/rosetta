@@ -8,7 +8,8 @@ VERSION    ?=
         extract-videos extract-videos-from-cache save-videos-cache \
         extract-dude extract-dude-from-cache \
         extract-skills extract-skills-from-cache \
-        link gc-versions assess assess-hardware assess-www device-map device-map-check search browse serve \
+        link gc-versions assess assess-hardware assess-www device-map device-map-check \
+        extract-hardware-catalog search browse serve \
 	typecheck lint test preflight verify \
         install setup clean eval eval-update eval-self eval-self-update
 
@@ -45,6 +46,14 @@ device-map:
 
 device-map-check:
 	bun run src/build-device-map.ts --check
+
+# Build hardware_catalog + device_aliases from ros-hardware-assessment.json +
+# ros-www-assessment.json (run assess-hardware/assess-www first to refresh those).
+# Requires extract-devices to have already populated `devices` for device_id
+# linking. Not part of the default `extract`/`extract-full` pipeline yet — see
+# briefings/B-0017-hardware-overlay-device-resolution.md and issue #35.
+extract-hardware-catalog:
+	bun run src/extract-hardware-catalog.ts
 
 # ── Quality ──
 

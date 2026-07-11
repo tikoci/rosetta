@@ -121,10 +121,14 @@ if (lines.length < 2) {
 const dataLines = lines.slice(1);
 
 // Idempotent: clear existing data (FTS triggers handle cleanup).
-// device_test_results FKs into devices — wipe it first to avoid a FOREIGN KEY
-// constraint failure on re-run over a populated DB. extract-test-results runs
-// later in the pipeline and repopulates it.
+// device_test_results and hardware_catalog both FK into devices — wipe them first to
+// avoid a FOREIGN KEY constraint failure on re-run over a populated DB. Re-extracting
+// devices also invalidates hardware_catalog.device_id links (device ids are AUTOINCREMENT,
+// not stable), so device_aliases is cleared too; extract-test-results and
+// extract-hardware-catalog run later and repopulate their tables from scratch.
 db.run("DELETE FROM device_test_results");
+db.run("DELETE FROM device_aliases");
+db.run("DELETE FROM hardware_catalog");
 db.run("DELETE FROM devices");
 
 const insert = db.prepare(`INSERT INTO devices (

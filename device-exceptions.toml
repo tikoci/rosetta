@@ -65,9 +65,10 @@ www_code = "lamp_5g_r16"
 note = "www product lamp_5g_r16 exists; LAMP 5G R16 is missing from /hardware entirely."
 
 ["SXTsq 5 ax"]
-class = "no-www-product"
+class = "curated-alias"
 hardware_slug = "sxtsq-5axd"
-note = "Has a /hardware page (sxtsq-5axd) but no locatable www product — matrix code SXTsq-5axD 404s, the page only links the bogus qm_x, and sxtsq_5_ax / sxtsq_5_axd both 404 (checked 2026-07-11). MAINTAINER: confirm the real www slug."
+www_code = "sxtsq_5ax"
+note = "Both pages exist under a slug the matcher can't reach: /hardware/sxtsq-5axd + mikrotik.com/product/sxtsq_5ax (maintainer-confirmed 2026-07-11). The page links only the bogus qm_x, and the www slug drops the trailing 'd', so neither auto-resolves the www side."
 
 ["Chateau LTE12 (2025)"]
 class = "no-hardware-page"

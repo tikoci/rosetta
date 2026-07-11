@@ -1,10 +1,11 @@
 /**
  * Anchor tests for the device matcher in assess-hardware.ts.
  *
- * These lock the five naming-surface fixes from the 2026-07-11 maintainer review
- * (briefings/B-0017-hardware-overlay-device-resolution.md → human-review pass). They
- * document *current* behavior so the matcher can be refactored safely — each test names the
- * pattern (P1–P4 + shared-base guard) and the real device that motivated it.
+ * These lock the naming-surface fixes from the 2026-07-11 maintainer review (P1–P4 +
+ * shared-base guard) plus the three PR #37 review fixes (canonNoRev model-suffix collision,
+ * own-slug collision guard, and its title-agreement escape hatch). See
+ * briefings/B-0018-product-naming-three-source-map.md. They document *current* behavior so the
+ * matcher can be refactored safely — each test names the pattern and the real device behind it.
  */
 import { describe, expect, test } from "bun:test";
 import {
@@ -40,6 +41,7 @@ function page(slug: string, opts: Partial<PageInfo> = {}): PageInfo {
     category: null,
     categoryMembers: [],
     tableModelCodes: [],
+    regulatoryIds: [],
     ...opts,
   };
 }
@@ -144,5 +146,46 @@ describe("shared-base guard (Chateau LTE family)", () => {
     // module suffix is the discriminator, so only LTE6-US matches.
     const c = classifyIn(page("chateau-lte6-us", { tableModelCodes: ["D53G-5HacD2HnD-TC&EG06-A"] }), chateau);
     expect(c.matchedMatrixNames).toEqual(["Chateau LTE6-US"]);
+  });
+});
+
+// ── canonNoRev only strips true metadata, not model suffixes (PR #37 review :173) ──
+
+describe("canonNoRev preserves model designators", () => {
+  test("R11e-LR8 / -LR9 / -LR2 stay distinct (uppercase-R model suffixes are not revisions)", () => {
+    // The old form lowercased first, so r\d+$/\d{3}$ collapsed all three to "r11el" and bound
+    // r11e-lr8/lr9 to "wAP LR2 kit". Model designators use an uppercase R and must survive.
+    const forms = [canonNoRev("R11e-LR8"), canonNoRev("R11e-LR9"), canonNoRev("R11e-LR2")];
+    expect(new Set(forms).size).toBe(3);
+    expect(forms).toEqual(["r11elr8", "r11elr9", "r11elr2"]);
+  });
+
+  test("a lowercase-r revision or separator+3-digit packaging suffix is still stripped", () => {
+    expect(canonNoRev("RB750r2")).toBe("rb750"); // lowercase r2 revision dropped, model number kept
+    expect(canonNoRev("RB750")).toBe("rb750"); // no separator before digits -> kept whole (not "rb")
+    expect(canonNoRev("RBcAPL-2nD-307")).toBe(canon("RBcAPL-2nD")); // -307 packaging suffix dropped
+  });
+});
+
+// ── An own-slug match must be corroborated or title-agreeing (PR #37 review :457) ──
+
+describe("own-slug collision guard", () => {
+  const haps = [row("hAP ax2", "C52iG-5HaxD2HaxD-TC"), row("hAP ax3", "C53UiG+5HPaxD2HPaxD")];
+
+  test("a page titled hAP ax³ linking hap_ax3 does not also claim hAP ax2 via its slug", () => {
+    // /hardware/hap-ax-2 canon-collides with the matrix name "hAP ax2", but the page IS hAP ax³.
+    const c = classifyIn(page("hap-ax-2", { title: "hAP ax³", productLinks: ["hap_ax3"] }), haps);
+    expect(c.matchedMatrixNames).toEqual(["hAP ax3"]);
+  });
+
+  test("but an own-slug match the page TITLE agrees with survives a mislinked product code", () => {
+    // /hardware/hap-ac-lite-tc is titled "hAP ac lite TC" and its slug names that device, but it
+    // erroneously links the non-TC RB952Ui-5ac2nD; the title clause keeps the correct TC match.
+    const rows = [row("hAP ac lite", "RB952Ui-5ac2nD"), row("hAP ac lite TC", "RB952Ui-5ac2nD-TC")];
+    const c = classifyIn(
+      page("hap-ac-lite-tc", { title: "hAP ac lite TC", productLinks: ["RB952Ui-5ac2nD"] }),
+      rows,
+    );
+    expect(c.matchedMatrixNames).toContain("hAP ac lite TC");
   });
 });

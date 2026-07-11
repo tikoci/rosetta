@@ -182,13 +182,25 @@ for (const key of Object.keys(EXCEPTIONS)) {
 }
 
 // ── Emit ──
+// In --check mode we do NOT rewrite the committed artifact; instead we verify it byte-for-byte
+// against the freshly computed output, so a stale committed TSV (matcher/exception changed but the
+// file wasn't regenerated) fails the gate rather than passing silently (PR #37 review).
+async function emitOrCheck(path: string, content: string, label: string): Promise<void> {
+  if (!CHECK_ONLY) {
+    await Bun.write(path, content);
+    console.log(`Wrote ${label} to ${path}`);
+    return;
+  }
+  const committed = existsSync(path) ? readFileSync(path, "utf-8") : "";
+  if (committed !== content) {
+    problems.push(`STALE artifact ${path} — committed content differs from freshly computed ${label}; run 'make device-map' and commit the result`);
+  }
+}
+
 const HEADERS: (keyof MapRow)[] = ["name", "code", "category", "resolution", "hw_url", "www_url", "needs_review", "note"];
 const tsv = `${[HEADERS.join("\t"), ...rows.map((row) => HEADERS.map((h) => String(row[h]).replace(/\t|\n/g, " ")).join("\t"))].join("\n")}\n`;
 
-if (!CHECK_ONLY) {
-  await Bun.write(OUT_TSV, tsv);
-  console.log(`Wrote ${rows.length} rows to ${OUT_TSV}`);
-}
+await emitOrCheck(OUT_TSV, tsv, `${rows.length} device rows`);
 
 // ── Audit view: /hardware pages that map to NO matrix device ──
 // The reverse of device-map.tsv. A /hardware page with no matrix row is usually a genuine
@@ -208,10 +220,7 @@ const unmatchedRows = hwPages
     (p.mentionedCodes ?? []).join(" "),
   ]);
 const unmatchedTsv = `${[UNMATCHED_HEADERS.join("\t"), ...unmatchedRows.map((r) => r.map((c) => String(c).replace(/\t|\n/g, " ")).join("\t"))].join("\n")}\n`;
-if (!CHECK_ONLY) {
-  await Bun.write(OUT_UNMATCHED_TSV, unmatchedTsv);
-  console.log(`Wrote ${unmatchedRows.length} unmatched /hardware pages to ${OUT_UNMATCHED_TSV}`);
-}
+await emitOrCheck(OUT_UNMATCHED_TSV, unmatchedTsv, `${unmatchedRows.length} unmatched /hardware pages`);
 
 // ── Summary + drift gate ──
 const byRes: Record<string, number> = {};

@@ -71,7 +71,7 @@ hAP ac2	RBD52G-5HacD2HnD-TCr2	Indoor wireless	auto	https://manual.mikrotik.com/h
 hAP ac3	RBD53iG-5HacD2HnD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ac3	https://mikrotik.com/product/hap_ac3		
 hAP ax lite	L41G-2axD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-lite	https://mikrotik.com/product/hap_ax_lite		
 hAP ax S	E62iUGS-2axD5axT	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-s	https://mikrotik.com/product/hap_ax_s		
-hAP ax2	C52iG-5HaxD2HaxD-TC	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-2	https://mikrotik.com/product/hap_ax2		
+hAP ax2	C52iG-5HaxD2HaxD-TC	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax	https://mikrotik.com/product/hap_ax2		
 hAP ax3	C53UiG+5HPaxD2HPaxD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-2	https://mikrotik.com/product/hap_ax3		
 hAP be lite	A42G-HbeP	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-be-lite	https://mikrotik.com/product/hap_be_lite		
 hAP be3 Media	MA53UG+HbeH	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-be-media	https://mikrotik.com/product/hap_be3_media		
@@ -142,7 +142,7 @@ ROSE Data server (RDS)	RDS2216-2XG-4S+4XS-2XQ		curated-alias	https://manual.mikr
 SXT LTE7 kit	SXTR&R11e-LTE7r3	LTE products	auto	https://manual.mikrotik.com/hardware/sxt-r	https://mikrotik.com/product/sxt_r		
 SXT SA5 ac	RBSXTG-5HPacD-SAr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsa-series	https://mikrotik.com/product/RBSXTG-5HPacD-SAr2		
 SXTsq 5 ac	RBSXTsqG-5acDr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsq-series	https://mikrotik.com/product/sxtsq_5_ac		
-SXTsq 5 ax	SXTsq-5axD	Wireless systems	no-www-product	https://manual.mikrotik.com/hardware/sxtsq-5axd		no-www-product	Has a /hardware page (sxtsq-5axd) but no locatable www product — matrix code SXTsq-5axD 404s, the page only links the bogus qm_x, and sxtsq_5_ax / sxtsq_5_axd both 404 (checked 2026-07-11). MAINTAINER: confirm the real www slug.
+SXTsq 5 ax	SXTsq-5axD	Wireless systems	curated-alias	https://manual.mikrotik.com/hardware/sxtsq-5axd	https://mikrotik.com/product/sxtsq_5ax	curated-alias	Both pages exist under a slug the matcher can't reach: /hardware/sxtsq-5axd + mikrotik.com/product/sxtsq_5ax (maintainer-confirmed 2026-07-11). The page links only the bogus qm_x, and the www slug drops the trailing 'd', so neither auto-resolves the www side.
 SXTsq Embedded LTE4	EC25-EU&SXTsq	LTE products	auto	https://manual.mikrotik.com/hardware/sxtsq-embedded-lte4	https://mikrotik.com/product/sxtsq_emb_lte4		
 SXTsq Embedded LTE4 Global	EG25-G&SXTsq		no-hardware-page		https://mikrotik.com/product/sxtsq_emb_lte4_global	no-hardware-page	www product sxtsq_emb_lte4_global exists; the Global embedded-LTE4 SKU is absent from /hardware (the non-Global SXTsq Embedded LTE4 does have a page).
 SXTsq Lite2	RBSXTsq2nD	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsq-series	https://mikrotik.com/product/sxtsq_lite2		

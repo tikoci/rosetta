@@ -162,9 +162,19 @@ export function canon(s: string): string {
  * review confirmed these are the same device (`RBGroove52HPnr2` == `RBGroove52HPn`,
  * `RBcAPL-2nD-307` == `RBcAPL-2nD`). Kept as a *separate* looser key so a same-family
  * revision only matches when nothing exact does.
+ *
+ * Stripping happens on the ORIGINAL string (case + separators intact), NOT on canon()'s
+ * lowercased/stripped output, so it only removes *true* metadata:
+ *   - a revision suffix is a lowercase `r` + digits at the end (`...HPnr2`); MikroTik's
+ *     model designators use an uppercase `R` (`R11e-LR8`, `-LR9`, `-LR2`), so those survive.
+ *   - a packaging suffix is `-`/`_` + exactly three digits (`-307`); an inline model number
+ *     like `RB750` has no separator before its digits, so it survives.
+ * (Regression: the old form stripped `r\d+$`/`\d{3}$` from the lowercased string, collapsing
+ * `R11e-LR8`/`-LR9`/`-LR2` all to `r11el` and `RB750` to `rb` — see PR #37 review.)
  */
 export function canonNoRev(s: string): string {
-  return canon(s).replace(/r\d+$/, "").replace(/\d{3}$/, "");
+  const stripped = (s || "").replace(/r\d+$/, "").replace(/[-_]\d{3}$/, "");
+  return canon(stripped);
 }
 
 /** Both canonical forms for a string, empty forms dropped. */
@@ -229,6 +239,32 @@ export interface PageInfo {
   categoryMembers: string[];
   /** Product codes read from a table's "Model" column (see extractModelColumnCodes). */
   tableModelCodes: string[];
+  /** Regulatory identifiers (FCC ID / IC / CE) per model, from Model-column tables. */
+  regulatoryIds: RegulatoryId[];
+}
+
+/** A regulatory identifier tied to a specific product model on a /hardware page. */
+export type RegulatoryType = "FCC ID" | "IC" | "CE";
+export interface RegulatoryId {
+  model: string;
+  type: RegulatoryType;
+  id: string;
+}
+
+/**
+ * The value shape is a more reliable signal than a possibly-misaligned column header: on
+ * several /hardware tables the FCC-ID and IC columns are swapped or share a mangled header,
+ * so a header-classified "FCC ID" cell actually holds an IC value and vice-versa. MikroTik's
+ * ISED Canada (IC) IDs are always "<numeric company number>-<product>" (7442A-…); their FCC
+ * IDs are "<grantee code><product>" with grantee TV7 and no leading numeric-hyphen. CE marks
+ * match neither, so they fall through to the header classification unchanged. Grounded in
+ * ros-hardware-assessment.json: e.g. lhg-series "7442A-LHG2ND" (IC, header said FCC) and
+ * ltap-mini-kit-series "TV7RB912R-2NDLTM" (FCC, header said IC).
+ */
+function canonicalizeRegulatoryType(headerType: RegulatoryType, id: string): RegulatoryType {
+  if (/^\d+[A-Za-z]?-/.test(id)) return "IC";
+  if (/^TV7/i.test(id)) return "FCC ID";
+  return headerType;
 }
 
 /**
@@ -303,6 +339,7 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
 
   const categoryInfo = extractSidebarCategory(html);
   const tableModelCodes = extractModelColumnCodes(article);
+  const regulatoryIds = extractRegulatoryIds(article);
 
   return {
     slug,
@@ -318,7 +355,52 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
     category: categoryInfo?.name ?? null,
     categoryMembers: categoryInfo?.members.map((m) => m.slug) ?? [],
     tableModelCodes,
+    regulatoryIds,
   };
+}
+
+/** Leading FCC ID / IC / CE label of a regulatory table's non-model column header. */
+function classifyRegulatoryColumn(header: string): RegulatoryType | null {
+  const h = header.trim();
+  if (/^fcc\s*id/i.test(h)) return "FCC ID";
+  if (/^ic\b/i.test(h) || /^ic[A-Z0-9]/.test(h)) return "IC";
+  if (/^ce\b/i.test(h) || /^ce[A-Z0-9]/.test(h)) return "CE";
+  return null;
+}
+
+/**
+ * The same Model-column regulatory tables extractModelColumnCodes() reads for matching
+ * also carry FCC ID / IC / CE columns, one identifier per model row. Issue #35 asked
+ * whether those regulatory IDs could serve as device identity; capturing them here lets
+ * extract-hardware-catalog.ts land them on catalog rows and answer that with counts
+ * instead of discarding them. Model + id-type are read from the header; the id is the
+ * clean cell value (the header cell text is DOM-mangled, but tbody cells are clean).
+ */
+function extractRegulatoryIds(article: Element | null): RegulatoryId[] {
+  const out: RegulatoryId[] = [];
+  for (const table of article?.querySelectorAll("table") ?? []) {
+    const headerRow = table.querySelector("thead tr") ?? table.querySelector("tr");
+    if (!headerRow) continue;
+    const headers = [...headerRow.children].map((c) => c.textContent?.trim() ?? "");
+    const modelIdx = headers.findIndex((h) => h.toLowerCase() === "model" || /^model[A-Z0-9]/.test(h));
+    if (modelIdx === -1) continue;
+    const idCols = headers
+      .map((h, i) => ({ i, type: i === modelIdx ? null : classifyRegulatoryColumn(h) }))
+      .filter((c): c is { i: number; type: RegulatoryType } => c.type !== null);
+    if (idCols.length === 0) continue;
+    for (const row of table.querySelector("tbody")?.children ?? []) {
+      const cells = [...row.children].map((c) => c.textContent?.trim() ?? "");
+      const model = cells[modelIdx];
+      if (!model || model === "-") continue;
+      for (const col of idCols) {
+        const id = cells[col.i];
+        if (id && id !== "-" && id.toLowerCase() !== "none") {
+          out.push({ model, type: canonicalizeRegulatoryType(col.type, id), id });
+        }
+      }
+    }
+  }
+  return out;
 }
 
 /**
@@ -446,18 +528,42 @@ export function classify(page: PageInfo, matrixRows: MatrixRow[], sharedSubCodes
   // Page code/table/slug identities: canon of the FULL token — do NOT split on `&`, which
   // would reintroduce shared-base over-matching from the page side (a page's table lists the
   // full `D53G-5HacD2HnD-TC&EG06-A`, which must match only LTE6-US's full code, not LTE12's).
+  // The page's OWN slug is kept separate from its www-style link tokens: the slug is the page's
+  // filename and can canon-collide with an unrelated variant, whereas an explicit product link
+  // is a corroborated self-identification.
   const linkForms = new Set(usableLinks.flatMap(canonForms));
   const tableForms = new Set(page.tableModelCodes.flatMap(canonForms));
-  const slugForms = new Set([page.slug, ...usableLinks].flatMap(canonForms));
+  const ownSlugForms = new Set(canonForms(page.slug));
+  const titleForms = new Set(canonForms(page.title));
 
   // Tier 1: exact product-code link.
   const byCode = matrixRows.filter((r) => [...rowCodeForms(r)].some((f) => linkForms.has(f)));
 
-  // Tier 2: own-page slug (STRONG identity) + www-style link tokens, canonical.
-  const bySlug = matrixRows.filter((r) => [...rowSlugForms(r)].some((f) => slugForms.has(f)));
-
   // Tier 3: regulatory-table Model column (WEAK — covers, not identifies).
   const byTable = matrixRows.filter((r) => [...rowCodeForms(r)].some((f) => tableForms.has(f)));
+
+  // Tier 2 (slug), split by evidence strength:
+  //   byLinkSlug — a www-style LINK token canonically equals a row name/code (corroborated).
+  //   byOwnSlug  — the page's OWN /hardware slug canonically equals a row name/code.
+  const byLinkSlug = matrixRows.filter((r) => [...rowSlugForms(r)].some((f) => linkForms.has(f)));
+  const byOwnSlug = matrixRows.filter((r) => [...rowSlugForms(r)].some((f) => ownSlugForms.has(f)));
+
+  // A row named by an explicit token (code/link/table) is corroborated. A bare own-slug hit that
+  // names a DIFFERENT device than the corroborated set is a canon slug collision — e.g.
+  // /hardware/hap-ax-2 is titled "hAP ax³" and links hap_ax3, but its slug canon-equals the
+  // matrix name "hAP ax2", so it wrongly claimed BOTH (PR #37 review, assess-hardware.ts:457).
+  // Keep an own-slug hit only when it is corroborated, OR the page has no corroborated match at
+  // all (its slug is the sole identity — many device pages carry no product link), OR the page
+  // TITLE agrees with it. The title clause is essential when a page's product link is wrong:
+  // /hardware/hap-ac-lite-tc is titled "hAP ac lite TC" and its slug matches that device, but its
+  // link points at the non-TC RB952Ui-5ac2nD — without the title check the correct TC match would
+  // be dropped as a "collision" against the mislinked non-TC device.
+  const corroborated = new Set([...byCode, ...byLinkSlug, ...byTable].map((r) => r.name));
+  const titleAgrees = (r: MatrixRow) => [...rowSlugForms(r)].some((f) => titleForms.has(f));
+  const bySlug = [
+    ...byLinkSlug,
+    ...byOwnSlug.filter((r) => corroborated.size === 0 || corroborated.has(r.name) || titleAgrees(r)),
+  ];
 
   // Union all tiers (a series page covers several devices via a mix of mechanisms), but the
   // reported `cause` reflects the STRONGEST tier that hit — code > slug > table.
@@ -564,6 +670,12 @@ async function main() {
     c.matchedMatrixNames = c.matchedMatrixNames.filter(
       (name) => !(c.tableOnlyNames.includes(name) && stronglyClaimed.has(name)),
     );
+    // Suppression can empty a page whose only claim was table-only; its "matched-by-table"
+    // cause is then stale (a matched-by-table with zero names). Downgrade to unmatched so the
+    // cause always reflects the surviving matches (PR #37 review, assess-hardware.ts:567).
+    if (c.matchedMatrixNames.length === 0 && c.cause === "matched-by-table") {
+      c.cause = "unmatched";
+    }
   }
 
   const byCause: Record<MatchCause, Classification[]> = {
@@ -725,6 +837,7 @@ async function main() {
         isSeries: p.isSeries,
         productLinks: p.productLinks,
         tableModelCodes: p.tableModelCodes,
+        regulatoryIds: p.regulatoryIds,
         nonDefaultIps: p.nonDefaultIps,
         category: p.category,
         cause: c?.cause,
