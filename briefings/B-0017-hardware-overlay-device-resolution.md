@@ -525,10 +525,107 @@ Q4 (accessory fit) is *mostly* answered — accessories clearly don't fit `devic
 CPU/architecture) — but scoping them in or out of v1 is a genuine judgment call, not something more digging
 resolves (see questions below).
 
-The one item that's still genuinely open research, not a decision: **the 10 linkless series pages' member
-enumeration** (no working signal found — body-text scanning came back empty). Recommend deprioritizing it
-rather than digging further — it's a 10-page edge case against a 239-page corpus, and doesn't block a first
-schema/build pass.
+### Track A research findings (2026-07-10, fourth pass — linkless series pages, requested by maintainer)
+
+The maintainer specifically asked whether the 10 linkless series pages were worth one more research pass
+before moving to a build issue, rather than deprioritizing them. They were right to ask — hand-reading the
+pages (not just regex-scanning, since the earlier cross-mention pass had already come back empty) found a
+real structured signal the two-tier match never looked at: **some regulatory compliance tables (FCC ID, IC)
+carry an explicit "Model" column enumerating every device the declaration covers.** `sxtsa-series` has zero
+product links, but its FCC ID table's Model column lists `RBSXTG-5HPnD-SAr2` and `RBSXTG-5HPacD-SAr2` — the
+second is *exactly* `matrix.csv`'s code for `SXT SA5 ac`, a row nothing else could reach.
+
+This is now a proper third matching tier in `assess-hardware.ts` (`extractModelColumnCodes`,
+`matched-by-table` cause) — DOM-based table parsing, not regex, since the minified HTML's table cell
+nesting isn't regex-safe. **Result: matrix.csv rows with no `/hardware` match at all drops from 14 to 12**
+(`SXT SA5 ac` and `Chateau LTE12 (2025)` both now resolve — the latter via a different page's table, not
+investigated by hand). The `no-product-link` bucket also shrinks 19 → 14 and gets more accurate: pages with
+a Model-column table that doesn't hit the *current* matrix (`r11e-series`, `sxt-kit-series` — both list only
+legacy/pre-refresh LTE modem variants) correctly move to `unmatched` instead of being miscounted as
+accessory/info-page candidates.
+
+**7 of the original 10 linkless series pages still have no enumerable signal at all** —
+`ccr1036-12g-4s-series`, `ccr1036-8g-2s-plus-series`, `crs-series`, `crs125-24g-1s-series`,
+`ltap-kit-series`, `mant-series`, `wap-series`. Checked by hand: no product link, no Model-column table (the
+tables present are frequency/power charts with no per-model breakdown), no `##`/`###` heading naming
+individual models ("Package contents," "Compatible models," etc. don't exist on these pages), no image alt
+text carrying model numbers. This looks like a genuine gap in MikroTik's own `/hardware` docs — these pages
+are shared install guides for a physical form factor used by several SKUs, and the specific SKU list simply
+isn't recorded anywhere in the page content or its own sidebar subtree. Worth surfacing to MikroTik directly
+(the maintainer's instinct) since it's their gap, not a rosetta extraction limitation — not acted on here,
+since that's an external action outside this research pass's scope.
+
+## Phased implementation plan (2026-07-10, in response to maintainer decisions)
+
+The maintainer's calls on the three real decisions from the prior pass:
+
+- **Alias table:** build now — small, well-understood work, data already exists.
+- **Accessory scope:** include as thin rows (not scoped out), but explicitly *not* by shoehorning them into
+  `devices`' router/switch shape, and not as a wholly disconnected table either — see the schema proposal
+  below, which is meant to resolve exactly that tension. The maintainer flagged they want a real schema
+  design review before build, not a rushed call — this section is that proposal, not a final decision.
+- **Provenance:** confirmed — www wins for spec/capability fields and category, `/hardware` wins for
+  install/quick-start/compliance content.
+- **Next step:** one more research pass on the linkless series pages first (done above), *then* move to
+  drafting a build issue.
+
+### Proposed schema (a proposal to react to, not a decision made)
+
+The tension the maintainer named directly: `matrix.csv` ↔ `devices` is currently a clean 1:1 relationship
+(156 rows, narrow router/switch/AP shape, backs `routeros_device_lookup` today) — shoehorning ~80 accessory
+and legacy rows into that shape means 40 mostly-null columns per accessory row, degrading a table that
+currently works well. But a fully separate, disconnected accessory table loses the ability to say "this
+`/hardware`/www entry *is* this `devices` row, with extra enrichment" for the ~142 rows that are both.
+
+Proposed middle ground: **`devices` stays exactly as it is today** (no schema change, no risk to existing
+behavior) — a new `hardware_catalog` table is the full `/hardware` + www universe (superset of `devices`,
+covers accessories and legacy SKUs too), with an optional link back:
+
+```text
+hardware_catalog (
+  id                  INTEGER PRIMARY KEY,
+  rosetta_device_id   TEXT UNIQUE,              -- stable, curated key (see Q3's recommendation above)
+  devices_id          INTEGER REFERENCES devices(id) NULL,  -- non-null when matrix.csv also tracks this device
+  category            TEXT,                      -- from /hardware sidebar taxonomy — free, no hand-curation
+  discontinued        BOOLEAN,
+  specs_json          TEXT,                        -- raw www key/value spec fields — JSON, not 40 sparse columns
+  source_hardware_slug TEXT,
+  source_www_code      TEXT
+)
+
+device_aliases (
+  alias               TEXT PRIMARY KEY,
+  rosetta_device_id    TEXT REFERENCES hardware_catalog,
+  source               TEXT                          -- 'matrix.csv' | 'hardware-slug' | 'hardware-link' | 'hardware-table' | 'www-declared-code' | ...
+)
+```
+
+Rationale for `specs_json` over promoting every field to a column: coverage drops off sharply outside a
+small universal core (Product code/price ~100%, CPU/RAM/architecture ~82%, switch chip ~52%, wireless
+fields ~30%) — a flat wide table fights that shape. Start with the JSON blob plus `category`/`discontinued`
+as the only promoted columns; promote individual spec fields (CPU, switch chip, etc.) to real columns later,
+*only* once a real query pattern needs them — consistent with this project's "don't design for hypothetical
+future requirements" convention, and cheap to do later since `specs_json` already has the data.
+
+This is one concrete proposal, not a foregone conclusion — flagging for the maintainer's review before any
+of it gets built, per their explicit ask.
+
+### Phases
+
+1. **Schema + core ETL** (the first real build issue): `hardware_catalog` + `device_aliases` tables (or
+   whatever shape the schema review lands on), an extractor reading `ros-hardware-assessment.json` +
+   `ros-www-assessment.json` (or re-deriving fresh at extract time — TBD), populating both tables and
+   linking to `devices.id` where resolvable. Apply the confirmed provenance rule.
+2. **MCP/TUI surfacing:** alias-aware device lookup, `category` surfaced for "related devices," regulatory/
+   compliance `/hardware` content gated behind an explicit opt-in (per Q5's finding).
+3. **Validation canaries:** the non-blocking baseline-diff checks from the "when to fail" section above,
+   wired into `make verify` once Phase 1 ships — not before, since there's nothing to diff against yet.
+4. **Track B** (device-capability surfacing) — gated on Phase 1's stable device key, per the original
+   sequencing call.
+
+Not in scope for any phase: the 7 still-unresolved linkless series pages (flagged as a possible MikroTik doc
+gap, not blocking); provenance conflict resolution beyond the simple source-per-table default (no real
+conflict has been observed yet to justify more machinery).
 
 ## Open questions
 
