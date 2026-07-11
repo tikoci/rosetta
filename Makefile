@@ -8,7 +8,7 @@ VERSION    ?=
         extract-videos extract-videos-from-cache save-videos-cache \
         extract-dude extract-dude-from-cache \
         extract-skills extract-skills-from-cache \
-        link gc-versions assess assess-hardware search browse serve \
+        link gc-versions assess assess-hardware assess-www search browse serve \
 	typecheck lint test preflight verify \
         install setup clean eval eval-update eval-self eval-self-update
 
@@ -31,6 +31,9 @@ assess:
 
 assess-hardware:
 	bun run src/assess-hardware.ts
+
+assess-www:
+	bun run src/assess-www.ts
 
 # ── Quality ──
 

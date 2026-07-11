@@ -595,6 +595,68 @@
       ]
     }
   ],
+  "linklessSeriesInferredMembers": [
+    {
+      "slug": "ccr1036-12g-4s-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "ccr1036-8g-2s-plus-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "crs-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "crs125-24g-1s-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "ltap-kit-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "mant-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "r11e-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "sxt-kit-series",
+      "inferredMatrixNames": []
+    },
+    {
+      "slug": "sxtsa-series",
+      "inferredMatrixNames": [
+        "SXT SA5 ac"
+      ]
+    },
+    {
+      "slug": "wap-series",
+      "inferredMatrixNames": [
+        "cAP lite"
+      ]
+    }
+  ],
+  "lifecycleKeywordPages": [
+    "g1040a-60wn",
+    "lhg-kit-series",
+    "lhgg-lte6-kit",
+    "ltap-mini-kit-series",
+    "netfiber-9",
+    "r11e-lr9",
+    "rbftc11",
+    "wap-ac",
+    "wap-ac-kit-series",
+    "wap-ax",
+    "wap-ax-lte7-kit",
+    "wap-lte-kit-2024",
+    "wap-r",
+    "wap-series"
+  ],
   "pages": [
     {
       "slug": "apa-1",
@@ -608,7 +670,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "atlgm-and-eg18-ea",
@@ -624,7 +689,16 @@
         "192.168.188.1"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "ATLGM",
+        "EG18-EA"
+      ],
+      "inferredMatrixNames": [
+        "ATL LTE18 kit",
+        "LHG LTE18 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "atlgm-and-rg520f-eu",
@@ -642,7 +716,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "ATL 5G R16"
-      ]
+      ],
+      "mentionedCodes": [
+        "ATLGM",
+        "RG520F-EU"
+      ],
+      "inferredMatrixNames": [
+        "ATL LTE18 kit",
+        "LAMP 5G R16"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "audience",
@@ -656,7 +739,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "audience-lte6-kit",
@@ -670,7 +756,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "basebox-series",
@@ -686,7 +775,16 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "BaseBox 5"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB912UAG-2HPnD",
+        "RB912UAG-5HPnD"
+      ],
+      "inferredMatrixNames": [
+        "RB912UAG-2HPnD",
+        "RB912UAG-5HPnD"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cap",
@@ -702,7 +800,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "cAP"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cap-ac",
@@ -718,7 +819,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP ac"
-      ]
+      ],
+      "mentionedCodes": [
+        "RBcAPGi-5acD2nD"
+      ],
+      "inferredMatrixNames": [
+        "cAP ac"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cap-ax",
@@ -734,7 +842,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "cAPGi-5HaxD2HaxD"
+      ],
+      "inferredMatrixNames": [
+        "cAP LTE12 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cap-lite",
@@ -750,7 +865,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP lite"
-      ]
+      ],
+      "mentionedCodes": [
+        "RBcAPL-2nD"
+      ],
+      "inferredMatrixNames": [
+        "cAP lite"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cap-lte12-ax",
@@ -766,7 +888,15 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP LTE12 ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "cAPGi-5HaxD2HaxD",
+        "EG12-EA"
+      ],
+      "inferredMatrixNames": [
+        "cAP LTE12 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cap-xl-ac",
@@ -782,7 +912,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "cAP XL ac"
-      ]
+      ],
+      "mentionedCodes": [
+        "RBcAPGi-5acD2nD"
+      ],
+      "inferredMatrixNames": [
+        "cAP ac"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1009-7g-1c-1s-plus",
@@ -796,7 +933,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1009-7g-1c-1s-plus-pc",
@@ -810,7 +950,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1009-7g-1c-pc",
@@ -824,7 +967,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1016-12g",
@@ -838,7 +984,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1016-12s-1s-plus",
@@ -852,7 +1001,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1036-12g-4s-series",
@@ -864,7 +1016,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1036-8g-2s-plus-series",
@@ -876,7 +1031,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr1072-1g-8s-plus",
@@ -890,7 +1048,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr2004-16g-2s-plus",
@@ -908,7 +1069,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-16G-2S+"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr2004-16g-2s-plus-pc",
@@ -924,7 +1088,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-16G-2S+PC"
-      ]
+      ],
+      "mentionedCodes": [
+        "CCR2004-16G-2S+PC"
+      ],
+      "inferredMatrixNames": [
+        "CCR2004-16G-2S+PC"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr2004-1g-12s-plus-2xs",
@@ -940,7 +1111,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-1G-12S+2XS"
-      ]
+      ],
+      "mentionedCodes": [
+        "CCR2004-1G-12S+2XS"
+      ],
+      "inferredMatrixNames": [
+        "CCR2004-1G-12S+2XS"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr2004-1g-2xs-pcie",
@@ -956,7 +1134,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2004-1G-2XS-PCIe"
-      ]
+      ],
+      "mentionedCodes": [
+        "CCR2004-1G-2XS-PCIe"
+      ],
+      "inferredMatrixNames": [
+        "CCR2004-1G-2XS-PCIe"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr2116-12g-4s-plus",
@@ -974,7 +1159,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2116-12G-4S+"
-      ]
+      ],
+      "mentionedCodes": [
+        "CCR2116-12G-4S+"
+      ],
+      "inferredMatrixNames": [
+        "CCR2116-12G-4S+"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ccr2216-1g-12xs-2xq",
@@ -992,7 +1184,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CCR2216-1G-12XS-2XQ"
-      ]
+      ],
+      "mentionedCodes": [
+        "CCR2216-1G-12XS-2XQ"
+      ],
+      "inferredMatrixNames": [
+        "CCR2216-1G-12XS-2XQ"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-5g",
@@ -1006,7 +1205,14 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "D53G-5HacD2HnD-TC"
+      ],
+      "inferredMatrixNames": [
+        "Chateau LTE12 (2025)"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-5g-ax",
@@ -1020,7 +1226,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-5g-r16",
@@ -1034,7 +1243,16 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "RG520F-EU",
+        "D53G-5HacD2HnD-TC"
+      ],
+      "inferredMatrixNames": [
+        "LAMP 5G R16",
+        "Chateau LTE12 (2025)"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-5g-r17-ax",
@@ -1050,7 +1268,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau 5G R17 ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "S53UG+5HaxD2HaxD-TC",
+        "RG650E-EU"
+      ],
+      "inferredMatrixNames": [
+        "Chateau LTE18 ax",
+        "Chateau 5G R17 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-lte12",
@@ -1064,7 +1291,14 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "EG12-EA"
+      ],
+      "inferredMatrixNames": [
+        "cAP LTE12 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-lte18-ax",
@@ -1080,7 +1314,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE18 ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "EG18-EA",
+        "S53UG+5HaxD2HaxD-TC"
+      ],
+      "inferredMatrixNames": [
+        "LHG LTE18 kit",
+        "Chateau LTE18 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-lte6",
@@ -1094,7 +1337,14 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "D53G-5HacD2HnD-TC"
+      ],
+      "inferredMatrixNames": [
+        "Chateau LTE12 (2025)"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-lte6-ax",
@@ -1108,7 +1358,14 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "S53UG+5HaxD2HaxD-TC"
+      ],
+      "inferredMatrixNames": [
+        "Chateau LTE18 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-lte6-us",
@@ -1124,7 +1381,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE6-US"
-      ]
+      ],
+      "mentionedCodes": [
+        "D53G-5HacD2HnD-TC",
+        "EG06-A"
+      ],
+      "inferredMatrixNames": [
+        "Chateau LTE12 (2025)",
+        "Chateau LTE6-US"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-lte7",
@@ -1140,7 +1406,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE7"
-      ]
+      ],
+      "mentionedCodes": [
+        "D53G-5HacD2HnD-TC",
+        "R11e-LTE7"
+      ],
+      "inferredMatrixNames": [
+        "Chateau LTE12 (2025)",
+        "wAP ax LTE7 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-lte7-ax",
@@ -1156,7 +1431,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau LTE7 ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "S53UG+5HaxD2HaxD-TC",
+        "R11e-LTE7"
+      ],
+      "inferredMatrixNames": [
+        "Chateau LTE18 ax",
+        "wAP ax LTE7 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "chateau-pro-ax",
@@ -1172,7 +1456,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "Chateau PRO ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "H53UiG-5HaxQ2HaxQ"
+      ],
+      "inferredMatrixNames": [
+        "Chateau PRO ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cme22-2n-bg77",
@@ -1188,7 +1479,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CME Gateway"
-      ]
+      ],
+      "mentionedCodes": [
+        "CME22-2n-BG77"
+      ],
+      "inferredMatrixNames": [
+        "CME Gateway"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "compliance",
@@ -1200,7 +1498,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs-series",
@@ -1212,7 +1513,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs106-1c-5s",
@@ -1228,7 +1532,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "CRS106-1C-5S"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs112-8g-4s-in",
@@ -1244,7 +1551,10 @@
         "192.168.88.2"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs112-8p-4s-in",
@@ -1262,7 +1572,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS112-8P-4S-IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS112-8P-4S-IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS112-8P-4S-IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs125-24g-1s-series",
@@ -1274,7 +1591,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs304-4xg-in",
@@ -1292,7 +1612,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS304-4XG-IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS304-4XG-IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS304-4XG-IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs305-1g-4s-plus-in",
@@ -1310,7 +1637,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS305-1G-4S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS305-1G-4S+IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS305-1G-4S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs309-1g-8s-plus-in",
@@ -1328,7 +1662,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS309-1G-8S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS309-1G-8S+IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS309-1G-8S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs310-1g-5s-4s-plus-in",
@@ -1346,7 +1687,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS310-1G-5S-4S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS310-1G-5S-4S+IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS310-1G-5S-4S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs310-8g-plus-2s-plus-in",
@@ -1364,7 +1712,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS310-8G+2S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS310-8G+2S+IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS310-8G+2S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs312-4c-plus-8xg-rm",
@@ -1382,7 +1737,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS312-4C+8XG-RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS312-4C+8XG-RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS312-4C+8XG-RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs317-1g-16s-plus-rm",
@@ -1400,7 +1762,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS317-1G-16S+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS317-1G-16S+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS317-1G-16S+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs320-8p-8b-4s-plus-rm",
@@ -1418,7 +1787,22 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS320-8P-8B-4S+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS320-8P-8B-4S+RM",
+        "CRS504-4XQ-IN",
+        "CRS504-4XQ-OUT",
+        "CRS510-8XS-2XQ-IN",
+        "FTC11XG"
+      ],
+      "inferredMatrixNames": [
+        "CRS320-8P-8B-4S+RM",
+        "CRS504-4XQ-IN",
+        "CRS504-4XQ-OUT",
+        "CRS510-8XS-2XQ-IN",
+        "FTC11XG"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs326-24g-2s-plus-in",
@@ -1436,7 +1820,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-24G-2S+IN"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs326-24g-2s-plus-rm",
@@ -1454,7 +1841,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-24G-2S+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS326-24G-2S+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS326-24G-2S+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs326-24s-plus-2q-plus-rm",
@@ -1472,7 +1866,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-24S+2Q+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS326-24S+2Q+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS326-24S+2Q+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs326-4c-plus-20g-plus-2q-plus-rm",
@@ -1490,7 +1891,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS326-4C+20G+2Q+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS326-4C+20G+2Q+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS326-4C+20G+2Q+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs328-24p-4s-plus-rm",
@@ -1508,7 +1916,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS328-24P-4S+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS328-24P-4S+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS328-24P-4S+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs328-4c-20s-4s-plus-rm",
@@ -1526,7 +1941,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS328-4C-20S-4S+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS328-4C-20S-4S+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS328-4C-20S-4S+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs354-48g-4s-plus-2q-plus-rm",
@@ -1544,7 +1966,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS354-48G-4S+2Q+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS354-48G-4S+2Q+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS354-48G-4S+2Q+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs354-48p-4s-plus-2q-plus-rm",
@@ -1562,7 +1991,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS354-48P-4S+2Q+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS354-48P-4S+2Q+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS354-48P-4S+2Q+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs418-8p-8g-2s-plus-5axq2axq-rm",
@@ -1578,7 +2014,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS418-8P-8G-2S+5axQ2axQ-RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS418-8P-8G-2S+5axQ2axQ-RM",
+        "CRS418-8P-8G-2S+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS418-8P-8G-2S+5axQ2axQ-RM",
+        "CRS418-8P-8G-2S+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs418-8p-8g-2s-plus-rm",
@@ -1596,7 +2041,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS418-8P-8G-2S+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS418-8P-8G-2S+RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS418-8P-8G-2S+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs504-4xq-in",
@@ -1614,7 +2066,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS504-4XQ-IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS504-4XQ-IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS504-4XQ-IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs504-4xq-out",
@@ -1632,7 +2091,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS504-4XQ-OUT"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS504-4XQ-OUT"
+      ],
+      "inferredMatrixNames": [
+        "CRS504-4XQ-OUT"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs510-8xs-2xq-in",
@@ -1650,7 +2116,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS510-8XS-2XQ-IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS510-8XS-2XQ-IN"
+      ],
+      "inferredMatrixNames": [
+        "CRS510-8XS-2XQ-IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs518-16xs-2xq-rm",
@@ -1668,7 +2141,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS518-16XS-2XQ-RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS518-16XS-2XQ-RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS518-16XS-2XQ-RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs520-4xs-16xq-rm",
@@ -1686,7 +2166,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS520-4XS-16XQ-RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS520-4XS-16XQ-RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS520-4XS-16XQ-RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs804-4ddq-hrm",
@@ -1704,7 +2191,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS804 DDQ"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS804-4DDQ-hRM"
+      ],
+      "inferredMatrixNames": [
+        "CRS804 DDQ"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "crs812-8ds-2dq-2ddq-rm",
@@ -1722,7 +2216,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CRS812 DDQ"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS812-8DS-2DQ-2DDQ-RM"
+      ],
+      "inferredMatrixNames": [
+        "CRS812 DDQ"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "css318-16g-2s-plus-in",
@@ -1740,7 +2241,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS318-16G-2S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS318-16G-2S+IN"
+      ],
+      "inferredMatrixNames": [
+        "CSS318-16G-2S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "css326-24g-2s-plus-rm",
@@ -1758,7 +2266,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS326-24G-2S+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS326-24G-2S+RM"
+      ],
+      "inferredMatrixNames": [
+        "CSS326-24G-2S+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "css610-8g-2s-plus-in",
@@ -1777,7 +2292,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS610-8G-2S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS610-8G-2S+IN"
+      ],
+      "inferredMatrixNames": [
+        "CSS610-8G-2S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "css610-8p-2s-plus-in",
@@ -1795,7 +2317,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "CSS610-8P-2S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS610-8P-2S+IN"
+      ],
+      "inferredMatrixNames": [
+        "CSS610-8P-2S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cube-60g-ac",
@@ -1809,7 +2338,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "cube-lite60",
@@ -1824,7 +2356,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "disc-lite5",
@@ -1838,7 +2373,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "disc-lite5-ac",
@@ -1852,7 +2390,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "dynadish-5",
@@ -1866,7 +2407,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "dynadish-6",
@@ -1878,7 +2422,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "fiberbox",
@@ -1892,7 +2439,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "fiberbox-plus",
@@ -1910,7 +2460,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "FiberBox Plus"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ftc11xg",
@@ -1928,7 +2481,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "FTC11XG"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ftc21",
@@ -1944,7 +2500,10 @@
         "192.168.88.2"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "g1040a-60wn",
@@ -1956,7 +2515,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "gesp-plus-poe-in",
@@ -1970,7 +2532,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "gpen11",
@@ -1984,7 +2549,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "gpen21",
@@ -2000,7 +2568,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "GPEN21"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "gper",
@@ -2015,7 +2586,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "gperx4",
@@ -2031,7 +2605,10 @@
         "192.168.88.2"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "gperx6",
@@ -2049,7 +2626,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "GPERx6"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS606-1G-2Gi-3S+OUT"
+      ],
+      "inferredMatrixNames": [
+        "GPERx6"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "groove-series",
@@ -2069,7 +2653,10 @@
         "Groove 52",
         "GrooveA 52",
         "GrooveA 52 ac"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap",
@@ -2085,7 +2672,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ac",
@@ -2101,7 +2691,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP ac"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ac-2",
@@ -2117,7 +2710,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ac2"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ac-lite",
@@ -2133,7 +2729,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP ac lite"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ac-lite-tc",
@@ -2150,7 +2749,14 @@
       "matchedMatrixNames": [
         "hAP ac lite",
         "hAP ac lite TC"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB952Ui-5ac2nD-TC"
+      ],
+      "inferredMatrixNames": [
+        "hAP ac lite TC"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ac3",
@@ -2166,7 +2772,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ac3"
-      ]
+      ],
+      "mentionedCodes": [
+        "RBD53iG-5HacD2HnD"
+      ],
+      "inferredMatrixNames": [
+        "hAP ac3"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ac3-lte6-kit",
@@ -2180,7 +2793,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ax",
@@ -2196,7 +2812,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax2"
-      ]
+      ],
+      "mentionedCodes": [
+        "C52iG-5HaxD2HaxD-TC"
+      ],
+      "inferredMatrixNames": [
+        "hAP ax2"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ax-2",
@@ -2212,7 +2835,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax3"
-      ]
+      ],
+      "mentionedCodes": [
+        "C53UiG+5HPaxD2HPaxD"
+      ],
+      "inferredMatrixNames": [
+        "hAP ax3"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ax-lite",
@@ -2228,7 +2858,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax lite"
-      ]
+      ],
+      "mentionedCodes": [
+        "L41G-2axD"
+      ],
+      "inferredMatrixNames": [
+        "hAP ax lite"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ax-lite-lte6",
@@ -2242,7 +2879,14 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "L41G-2axD"
+      ],
+      "inferredMatrixNames": [
+        "hAP ax lite"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ax-s",
@@ -2258,7 +2902,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP ax S"
-      ]
+      ],
+      "mentionedCodes": [
+        "E62iUGS-2axD5axT"
+      ],
+      "inferredMatrixNames": [
+        "hAP ax S"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-be-lite",
@@ -2274,7 +2925,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP be lite"
-      ]
+      ],
+      "mentionedCodes": [
+        "A42G-HbeP"
+      ],
+      "inferredMatrixNames": [
+        "hAP be lite"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-be-media",
@@ -2290,7 +2948,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hAP be3 Media"
-      ]
+      ],
+      "mentionedCodes": [
+        "MA53UG+HbeH"
+      ],
+      "inferredMatrixNames": [
+        "hAP be3 Media"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-lite",
@@ -2306,7 +2971,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP lite"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-lite-tc",
@@ -2322,7 +2990,14 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hAP lite TC"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB941-2nD"
+      ],
+      "inferredMatrixNames": [
+        "hAP lite"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-mini",
@@ -2336,7 +3011,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hex",
@@ -2352,7 +3030,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hex-lite",
@@ -2368,7 +3049,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX lite"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hex-poe",
@@ -2384,7 +3068,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX PoE"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hex-poe-lite",
@@ -2400,7 +3087,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "hEX PoE lite"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hex-refresh",
@@ -2416,7 +3106,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hEX refresh"
-      ]
+      ],
+      "mentionedCodes": [
+        "E50UG"
+      ],
+      "inferredMatrixNames": [
+        "hEX refresh"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hex-s",
@@ -2432,7 +3129,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hEX S"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB760iGS"
+      ],
+      "inferredMatrixNames": [
+        "hEX S"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hex-s-2025",
@@ -2448,7 +3152,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "hEX S (2025)"
-      ]
+      ],
+      "mentionedCodes": [
+        "E60iUGS"
+      ],
+      "inferredMatrixNames": [
+        "hEX S (2025)"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "intercell",
@@ -2466,7 +3177,10 @@
         "192.168.200.100"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "knot-embedded-lte4-ec25-eu-and-kne",
@@ -2482,7 +3196,14 @@
         "192.168.188.1"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "EC25-EU"
+      ],
+      "inferredMatrixNames": [
+        "SXTsq Embedded LTE4"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "knot-embedded-lte4-global-eg25-g-and-kne",
@@ -2498,7 +3219,14 @@
         "192.168.188.1"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "EG25-G"
+      ],
+      "inferredMatrixNames": [
+        "SXTsq Embedded LTE4 Global"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "l009uigs-2haxd-in",
@@ -2514,7 +3242,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L009UiGS-2HaxD-IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "L009UiGS-2HaxD-IN"
+      ],
+      "inferredMatrixNames": [
+        "L009UiGS-2HaxD-IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "l009uigs-rm",
@@ -2530,7 +3265,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L009UiGS-RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "L009UiGS-RM"
+      ],
+      "inferredMatrixNames": [
+        "L009UiGS-RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "l11ug-5haxd",
@@ -2546,7 +3288,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L11UG-5HaxD"
-      ]
+      ],
+      "mentionedCodes": [
+        "L11UG-5HaxD"
+      ],
+      "inferredMatrixNames": [
+        "L11UG-5HaxD"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "l23ugsr-5haxd2haxd",
@@ -2562,7 +3311,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "L23UGSR-5HaxD2HaxD"
-      ]
+      ],
+      "mentionedCodes": [
+        "L23UGSR-5HaxD2HaxD"
+      ],
+      "inferredMatrixNames": [
+        "L23UGSR-5HaxD2HaxD"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ldf-2",
@@ -2576,7 +3332,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ldf-5-series",
@@ -2593,7 +3352,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LDF 5"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ldf-lte6-kit",
@@ -2607,7 +3369,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-5axd",
@@ -2623,7 +3388,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG 5 ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "LHG-5axD"
+      ],
+      "inferredMatrixNames": [
+        "LHG 5 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-60g",
@@ -2637,7 +3409,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-kit-series",
@@ -2654,7 +3429,10 @@
         "192.168.188.1"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "lhg-lite60",
@@ -2668,7 +3446,10 @@
         "192.168.88.0"
       ],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-lte18-kit",
@@ -2686,7 +3467,15 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG LTE18 kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "EG18-EA",
+        "LHGGM"
+      ],
+      "inferredMatrixNames": [
+        "LHG LTE18 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-r",
@@ -2700,7 +3489,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-series",
@@ -2719,7 +3511,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "LHG 5"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-xl-2",
@@ -2731,7 +3526,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-xl-5-ac",
@@ -2747,7 +3545,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG XL 5 ac"
-      ]
+      ],
+      "mentionedCodes": [
+        "RBLHGG-5acD-XL"
+      ],
+      "inferredMatrixNames": [
+        "LHG XL 5 ac"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-xl-5-ax",
@@ -2763,7 +3568,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LHG XL 5 ax"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-xl-52-ac",
@@ -2777,7 +3585,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhg-xl-hp5",
@@ -2793,7 +3604,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "LHG XL HP5"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "lhgg-lte6-kit",
@@ -2809,7 +3623,14 @@
         "192.168.188.1"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "LHGGR"
+      ],
+      "inferredMatrixNames": [
+        "LHGG LTE7 kit"
+      ],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "ltap",
@@ -2823,7 +3644,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ltap-kit-series",
@@ -2835,7 +3659,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ltap-lr8-lte-kit",
@@ -2849,7 +3676,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ltap-lr8-lte6-kit",
@@ -2861,7 +3691,14 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "LtAP-2HnD"
+      ],
+      "inferredMatrixNames": [
+        "LtAP LTE7 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ltap-lr8g-lte6-kit",
@@ -2875,7 +3712,16 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "R11e-LR8G",
+        "LtAP-2HnD"
+      ],
+      "inferredMatrixNames": [
+        "wAP LR8G kit",
+        "LtAP LTE7 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ltap-mini",
@@ -2894,7 +3740,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LtAP mini"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB912R-2nD-LTm"
+      ],
+      "inferredMatrixNames": [
+        "LtAP mini LTE kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "ltap-mini-kit-series",
@@ -2914,7 +3767,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "LtAP mini LTE kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB912R-2nD-LTm"
+      ],
+      "inferredMatrixNames": [
+        "LtAP mini LTE kit"
+      ],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "mant-series",
@@ -2926,7 +3786,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "mantbox-52-15s",
@@ -2940,7 +3803,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "mantbox-ax-15s",
@@ -2956,7 +3822,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "mANTBox ax 15s"
-      ]
+      ],
+      "mentionedCodes": [
+        "L22UGS-5HaxD2HaxD-15S"
+      ],
+      "inferredMatrixNames": [
+        "mANTBox ax 15s"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "mantbox-series",
@@ -2972,7 +3845,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "mANTBox 2 12s"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "map",
@@ -2988,7 +3864,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "mAP"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "map-lite",
@@ -3004,7 +3883,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "mAP lite"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "metal-52-ac",
@@ -3020,7 +3902,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "Metal 52 ac"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "mqs",
@@ -3036,7 +3921,10 @@
         "192.168.88.3"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "mtp250-series",
@@ -3051,7 +3939,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netbox-5",
@@ -3066,7 +3957,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netbox-5-ax",
@@ -3083,7 +3977,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "NetBox 5 ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "L11UG-5HaxD",
+        "L11UG-5HaxD-NB"
+      ],
+      "inferredMatrixNames": [
+        "L11UG-5HaxD",
+        "NetBox 5 ax"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netfiber-9",
@@ -3101,7 +4004,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netFiber 9"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS310-1G-5S-4S+OUT"
+      ],
+      "inferredMatrixNames": [
+        "netFiber 9"
+      ],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "netmetal-ac",
@@ -3117,7 +4027,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "NetMetal ax"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netmetal-ax",
@@ -3133,7 +4046,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "NetMetal ax"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netmetal-series",
@@ -3149,7 +4065,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "NetMetal 5"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netpower-15fr",
@@ -3167,7 +4086,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower 15FR"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS318-1Fi-15Fr-2S-OUT"
+      ],
+      "inferredMatrixNames": [
+        "netPower 15FR"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netpower-16p",
@@ -3185,7 +4111,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower 16P"
-      ]
+      ],
+      "mentionedCodes": [
+        "CRS318-16P-2S+OUT"
+      ],
+      "inferredMatrixNames": [
+        "netPower 16P"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netpower-lite-7r",
@@ -3203,7 +4136,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower Lite 7R"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS610-1Gi-7R-2S+OUT"
+      ],
+      "inferredMatrixNames": [
+        "netPower Lite 7R"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "netpower-lite-8p",
@@ -3221,7 +4161,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "netPower Lite 8P"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS610-8P-2S+OUT"
+      ],
+      "inferredMatrixNames": [
+        "netPower Lite 8P"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "nray-series",
@@ -3238,7 +4185,10 @@
         "192.168.88.3"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "omnitik-series",
@@ -3254,7 +4204,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "OmniTIK 5 PoE ac"
-      ]
+      ],
+      "mentionedCodes": [
+        "RBOmniTikPG-5HacD"
+      ],
+      "inferredMatrixNames": [
+        "OmniTIK 5 PoE ac"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "powerbox",
@@ -3268,7 +4225,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "powerbox-pro",
@@ -3284,7 +4244,14 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "PowerBox Pro"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB960PGS"
+      ],
+      "inferredMatrixNames": [
+        "hEX PoE"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "pwr-line",
@@ -3296,7 +4263,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "pwr-line-ap",
@@ -3308,7 +4278,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "pwr-line-pro",
@@ -3322,7 +4295,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "qrt-2",
@@ -3336,7 +4312,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "qrt-5",
@@ -3352,7 +4331,14 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "QRT 5"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB911G-5HPnD"
+      ],
+      "inferredMatrixNames": [
+        "RB911G-5HPnD"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "qrt-5-ac",
@@ -3366,7 +4352,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "r11e-lr2",
@@ -3382,7 +4371,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR2 kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "R11e-LR2"
+      ],
+      "inferredMatrixNames": [
+        "wAP LR2 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "r11e-lr8",
@@ -3396,7 +4392,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "r11e-lr8g",
@@ -3413,7 +4412,14 @@
       "matchedMatrixNames": [
         "KNOT LR8G kit",
         "wAP LR8G kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "R11e-LR8G"
+      ],
+      "inferredMatrixNames": [
+        "wAP LR8G kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "r11e-lr9",
@@ -3427,7 +4433,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "r11e-lr9g",
@@ -3444,7 +4453,14 @@
       "matchedMatrixNames": [
         "KNOT LR9G kit",
         "wAP LR9G kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "R11e-LR9G"
+      ],
+      "inferredMatrixNames": [
+        "wAP LR9G kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "r11e-series",
@@ -3456,7 +4472,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb1100-series",
@@ -3474,7 +4493,10 @@
       "matchedMatrixNames": [
         "RB1100AHx4 Dude Edition",
         "RB1100AHx4"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb2011il-in",
@@ -3489,7 +4511,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb2011il-rm",
@@ -3503,7 +4528,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb2011ils-in",
@@ -3518,7 +4546,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb2011uias-2hnd-in",
@@ -3532,7 +4563,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb2011uias-in",
@@ -3547,7 +4581,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb2011uias-rm",
@@ -3561,7 +4598,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb260-series",
@@ -3581,7 +4621,14 @@
       "matchedMatrixNames": [
         "RB260GS",
         "RB260GSP"
-      ]
+      ],
+      "mentionedCodes": [
+        "CSS106-1G-4P-1S"
+      ],
+      "inferredMatrixNames": [
+        "RB260GSP"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb3011uias-rm",
@@ -3595,7 +4642,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb4011igs-plus-5hacq2hnd-in",
@@ -3611,7 +4661,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB4011iGS+5HacQ2HnD-IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB4011iGS+5HacQ2HnD-IN"
+      ],
+      "inferredMatrixNames": [
+        "RB4011iGS+5HacQ2HnD-IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb4011igs-plus-rm",
@@ -3627,7 +4684,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB4011iGS+RM"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB4011iGS+RM"
+      ],
+      "inferredMatrixNames": [
+        "RB4011iGS+RM"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb450gx4",
@@ -3643,7 +4707,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB450Gx4"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb5009ug-plus-s-plus-in",
@@ -3659,7 +4726,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB5009UG+S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB5009UG+S+IN"
+      ],
+      "inferredMatrixNames": [
+        "RB5009UG+S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb5009upr-plus-s-plus-in",
@@ -3675,7 +4749,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB5009UPr+S+IN"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB5009UPr+S+IN"
+      ],
+      "inferredMatrixNames": [
+        "RB5009UPr+S+IN"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb5009upr-plus-s-plus-out",
@@ -3691,7 +4772,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "RB5009UPr+S+OUT"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB5009UPr+S+OUT"
+      ],
+      "inferredMatrixNames": [
+        "RB5009UPr+S+OUT"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb911-series",
@@ -3707,7 +4795,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB911G-5HPnD"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb912uag-series",
@@ -3725,7 +4816,10 @@
       "matchedMatrixNames": [
         "RB912UAG-2HPnD",
         "RB912UAG-5HPnD"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb922uags-5hpacd",
@@ -3741,7 +4835,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB922UAGS-5HPacD"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb924i-2nd-bt5-and-bg77",
@@ -3761,7 +4858,21 @@
         "KNOT",
         "KNOT LR8G kit",
         "KNOT LR9G kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "RB924i-2nD-BT5",
+        "RB924iR-2nD-BT5",
+        "BG770A",
+        "R11e-LR8G",
+        "R11e-LR9G"
+      ],
+      "inferredMatrixNames": [
+        "KNOT",
+        "KNOT LR9G kit",
+        "wAP LR8G kit",
+        "wAP LR9G kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rb951-series",
@@ -3777,7 +4888,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RB951Ui-2HnD"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rbftc11",
@@ -3791,7 +4905,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "rbm11g",
@@ -3805,7 +4922,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rbm33g",
@@ -3821,7 +4941,10 @@
       "cause": "matched-by-code",
       "matchedMatrixNames": [
         "RBM33G"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "rose-data-server",
@@ -3837,7 +4960,14 @@
         "192.168.88.2"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "RDS2216-2XG-4S+4XS-2XQ"
+      ],
+      "inferredMatrixNames": [
+        "ROSE Data server (RDS)"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "s-3553lc20d",
@@ -3851,7 +4981,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sextant-g",
@@ -3865,7 +4998,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxt-2",
@@ -3877,7 +5013,10 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxt-6",
@@ -3891,7 +5030,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxt-kit-series",
@@ -3905,7 +5047,10 @@
         "192.168.188.1"
       ],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxt-r",
@@ -3919,7 +5064,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxtsa-series",
@@ -3931,7 +5079,14 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "RBSXTG-5HPacD-SAr2"
+      ],
+      "inferredMatrixNames": [
+        "SXT SA5 ac"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxtsq-5axd",
@@ -3947,7 +5102,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "SXTsq 5 ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "SXTsq-5axD",
+        "SXTsq"
+      ],
+      "inferredMatrixNames": [
+        "SXTsq 5 ax",
+        "SXTsq Embedded LTE4 Global"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxtsq-embedded-lte4",
@@ -3965,7 +5129,17 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "SXTsq Embedded LTE4"
-      ]
+      ],
+      "mentionedCodes": [
+        "EC25-EU",
+        "EG25-G",
+        "SXTsq"
+      ],
+      "inferredMatrixNames": [
+        "SXTsq Embedded LTE4",
+        "SXTsq Embedded LTE4 Global"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "sxtsq-series",
@@ -3987,7 +5161,14 @@
         "SXTsq Lite5",
         "SXTsq 5 ac",
         "SXTsq Lite2"
-      ]
+      ],
+      "mentionedCodes": [
+        "SXTsq"
+      ],
+      "inferredMatrixNames": [
+        "SXTsq Embedded LTE4 Global"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "tg-bt5-in",
@@ -4001,7 +5182,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "tg-bt5-out",
@@ -4015,7 +5199,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "tg-lr82",
@@ -4029,7 +5216,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "tg-lr92",
@@ -4043,7 +5233,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "up1302c-12",
@@ -4057,7 +5250,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-60g-series",
@@ -4075,7 +5271,10 @@
         "192.168.88.2"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-ac",
@@ -4089,7 +5288,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "wap-ac-kit-series",
@@ -4103,7 +5305,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "wap-ax",
@@ -4119,7 +5324,14 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP ax"
-      ]
+      ],
+      "mentionedCodes": [
+        "wAPG-5HaxD2HaxD"
+      ],
+      "inferredMatrixNames": [
+        "wAP ax"
+      ],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "wap-ax-lte7-kit",
@@ -4135,7 +5347,15 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP ax LTE7 kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "R11e-LTE7",
+        "wAPGR-5HaxD2HaxD"
+      ],
+      "inferredMatrixNames": [
+        "wAP ax LTE7 kit"
+      ],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "wap-kit-series",
@@ -4149,7 +5369,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-lr2-kit",
@@ -4165,7 +5388,16 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR2 kit"
-      ]
+      ],
+      "mentionedCodes": [
+        "RBwAPR-2nD",
+        "R11e-LR2"
+      ],
+      "inferredMatrixNames": [
+        "wAP R",
+        "wAP LR2 kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-lr8g-kit",
@@ -4181,7 +5413,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR8G kit"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-lr9-kit",
@@ -4195,7 +5430,14 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "RB912R-2nD-LTm"
+      ],
+      "inferredMatrixNames": [
+        "LtAP mini LTE kit"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-lr9g-kit",
@@ -4211,7 +5453,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LR9G kit"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-lte-kit-2024",
@@ -4227,7 +5472,10 @@
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
         "wAP LTE kit"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "wap-r",
@@ -4246,7 +5494,10 @@
         "wAP LR8G kit",
         "wAP LR9G kit",
         "wAP R"
-      ]
+      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "wap-r-ac",
@@ -4260,7 +5511,10 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wap-series",
@@ -4272,7 +5526,14 @@
       "productLinks": [],
       "nonDefaultIps": [],
       "cause": "no-product-link",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "RBcAPL-2nD"
+      ],
+      "inferredMatrixNames": [
+        "cAP lite"
+      ],
+      "mentionsLifecycleKeyword": true
     },
     {
       "slug": "wireless-wire-cube",
@@ -4289,7 +5550,10 @@
         "192.168.88.3"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wireless-wire-cube-pro-cube-60pro-ac",
@@ -4310,7 +5574,18 @@
       "matchedMatrixNames": [
         "Cube 60Pro ac",
         "Wireless Wire Cube Pro"
-      ]
+      ],
+      "mentionedCodes": [
+        "CubeG-5ac60ay",
+        "CubeG-5ac60ay-SA",
+        "CubeG-5ac60aypair"
+      ],
+      "inferredMatrixNames": [
+        "Cube 60Pro ac",
+        "CubeSA 60Pro ac",
+        "Wireless Wire Cube Pro"
+      ],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wireless-wire-dish",
@@ -4327,7 +5602,10 @@
         "192.168.88.3"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "woobm-usb",
@@ -4345,7 +5623,10 @@
         "192.168.4.5"
       ],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
+      "mentionsLifecycleKeyword": false
     },
     {
       "slug": "wsap-ac-lite",
@@ -4359,7 +5640,14 @@
       ],
       "nonDefaultIps": [],
       "cause": "unmatched",
-      "matchedMatrixNames": []
+      "matchedMatrixNames": [],
+      "mentionedCodes": [
+        "RB962UiGS-5HacT2HnT"
+      ],
+      "inferredMatrixNames": [
+        "hAP ac"
+      ],
+      "mentionsLifecycleKeyword": false
     }
   ]
 }

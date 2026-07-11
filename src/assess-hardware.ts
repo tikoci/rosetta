@@ -92,7 +92,7 @@ function parseCsvLine(line: string): string[] {
   return fields;
 }
 
-interface MatrixRow {
+export interface MatrixRow {
   name: string;
   code: string;
   /** Product codes are sometimes compound ("ATLGM&RG520F-EU" for a kit) — split for matching. */
@@ -108,7 +108,7 @@ interface MatrixRow {
  * is itself inconsistent live — `hap-ac-2` has the dash, `hap-ac3` doesn't — so this is
  * a heuristic fallback, not a guaranteed match).
  */
-function slugify(s: string): string {
+export function slugify(s: string): string {
   let out = s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹]/g, (c) => `-${DIGIT_SUPER_SUB[c] ?? c}`);
   out = out.replace(/\+/g, "-plus-").replace(/&/g, "-and-");
   out = out
@@ -119,7 +119,7 @@ function slugify(s: string): string {
   return out;
 }
 
-function loadMatrixRows(csvPath: string): MatrixRow[] {
+export function loadMatrixRows(csvPath: string): MatrixRow[] {
   const raw = readFileSync(csvPath, "utf-8").replace(/^﻿/, "");
   const lines = raw.split(/\r?\n/).filter((l) => l.trim());
   const rows: MatrixRow[] = [];
@@ -139,7 +139,7 @@ function loadMatrixRows(csvPath: string): MatrixRow[] {
 }
 
 /** Normalize a product code for case/variant-insensitive comparison. */
-function normCode(code: string): string {
+export function normCode(code: string): string {
   return code.trim().toLowerCase();
 }
 
@@ -176,6 +176,8 @@ interface PageInfo {
   productLinks: string[];
   nonDefaultIps: string[];
   isSeries: boolean;
+  /** Raw article text, kept for the cross-mention pass — not written to the JSON summary. */
+  bodyText: string;
 }
 
 function parsePage(slug: string, url: string, html: string): PageInfo {
@@ -216,8 +218,34 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
     productLinks: [...productLinks],
     nonDefaultIps,
     isSeries: slug.endsWith("-series"),
+    bodyText: text,
   };
 }
+
+// ── Cross-mention pass (body-text scan, no new network calls) ──
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Does this page's prose mention a matrix.csv product code that isn't already captured
+ * as a `mikrotik.com/product/` link? Primary payoff: 10 of 30 series pages carry zero
+ * product links at all (B-0017 Track A, 2026-07-10 exhaustive pass) — their member
+ * devices, if named at all, are named in prose/tables instead. Codes under 4 chars are
+ * skipped as too prone to false-positive substring hits in generic text.
+ */
+function findMentionedCodes(bodyText: string, allCodes: string[], exclude: Set<string>): string[] {
+  const found = new Set<string>();
+  for (const code of allCodes) {
+    if (code.length < 4 || exclude.has(normCode(code))) continue;
+    const re = new RegExp(`(?<![A-Za-z0-9])${escapeRegExp(code)}(?![A-Za-z0-9])`, "i");
+    if (re.test(bodyText)) found.add(code);
+  }
+  return [...found];
+}
+
+const LIFECYCLE_KEYWORDS = /\b(replac(?:es|ed|ing|ement)|successor|discontinued|end.of.life)\b/i;
 
 // ── Matrix cross-reference ──
 
@@ -347,6 +375,28 @@ async function main() {
   const matchedMatrixNames = new Set(classifications.flatMap((c) => c.matchedMatrixNames));
   const matrixRowsWithNoHardwarePage = matrixRows.filter((r) => !matchedMatrixNames.has(r.name));
 
+  // ── Cross-mention pass: body-text scan for codes not already linked ──
+  const allCodes = [...new Set(matrixRows.flatMap((r) => r.subCodes))];
+  const codeToRow = new Map<string, MatrixRow>();
+  for (const r of matrixRows) for (const c of r.subCodes) codeToRow.set(normCode(c), r);
+
+  const mentionedBySlug = new Map<string, { codes: string[]; names: string[] }>();
+  for (const p of pages) {
+    const linked = new Set(p.productLinks.map(normCode));
+    const codes = findMentionedCodes(p.bodyText, allCodes, linked);
+    if (codes.length === 0) continue;
+    const names = [...new Set(codes.map((c) => codeToRow.get(normCode(c))?.name).filter((n): n is string => !!n))];
+    mentionedBySlug.set(p.slug, { codes, names });
+  }
+
+  const linklessSeries = seriesPages.filter((p) => p.productLinks.length === 0);
+  const linklessSeriesInferred = linklessSeries.map((p) => ({
+    slug: p.slug,
+    inferredMatrixNames: mentionedBySlug.get(p.slug)?.names ?? [],
+  }));
+
+  const lifecyclePages = pages.filter((p) => LIFECYCLE_KEYWORDS.test(p.bodyText));
+
   // ── Heading frequency (boilerplate detection) ──
   const headingFreq: Record<string, number> = {};
   for (const p of pages) {
@@ -400,6 +450,16 @@ async function main() {
     console.log(`  ${p.slug} — ${p.nonDefaultIps.join(", ")}`);
   }
 
+  console.log(`\n--- Linkless series pages (0 product links) — inferred members via body-text mention ---`);
+  for (const s of linklessSeriesInferred) {
+    console.log(`  ${s.slug} — inferred: ${s.inferredMatrixNames.join(", ") || "(none found)"}`);
+  }
+
+  console.log(`\n--- Pages mentioning replacement/lifecycle keywords (replaces/successor/discontinued): ${lifecyclePages.length} ---`);
+  for (const p of lifecyclePages.slice(0, 30)) {
+    console.log(`  ${p.slug}`);
+  }
+
   // ── Write JSON summary (mirrors ros-html-assessment.json convention) ──
   const summary = {
     pageCount: pages.length,
@@ -414,8 +474,11 @@ async function main() {
     matrixRowsWithNoHardwarePage: matrixRowsWithNoHardwarePage.map((r) => r.name),
     headingFrequency: Object.fromEntries(sortedHeadings),
     pagesWithNonDefaultIp: pagesWithNonDefaultIp.map((p) => ({ slug: p.slug, ips: p.nonDefaultIps })),
+    linklessSeriesInferredMembers: linklessSeriesInferred,
+    lifecycleKeywordPages: lifecyclePages.map((p) => p.slug),
     pages: pages.map((p) => {
       const c = classifications.find((cl) => cl.slug === p.slug);
+      const mention = mentionedBySlug.get(p.slug);
       return {
         slug: p.slug,
         title: p.title,
@@ -427,6 +490,12 @@ async function main() {
         nonDefaultIps: p.nonDefaultIps,
         cause: c?.cause,
         matchedMatrixNames: c?.matchedMatrixNames ?? [],
+        // Cross-mention pass (2026-07-10): codes/names found in body prose that aren't
+        // already captured as a product link — a weaker, unlinked signal kept separate
+        // from matchedMatrixNames rather than merged into it (B-0017 "no surprises" ask).
+        mentionedCodes: mention?.codes ?? [],
+        inferredMatrixNames: mention?.names ?? [],
+        mentionsLifecycleKeyword: LIFECYCLE_KEYWORDS.test(p.bodyText),
       };
     }),
   };

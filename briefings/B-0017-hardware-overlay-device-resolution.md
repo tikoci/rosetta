@@ -234,6 +234,117 @@ boilerplate. Median word count is 1,656 (real substantive content, not mostly-em
 Q5's original lean: default output should be the quick-start/core sections, with regulatory/safety text
 gated behind an explicit opt-in.
 
+### Track A research findings (2026-07-10, second pass — www spec pages + cross-mention)
+
+The maintainer explicitly pushed back on moving to schema "decisions" yet, and reframed
+`ros-hardware-assessment.json` as the thing being *iteratively filled out* — asking for two concrete
+follow-ups before any schema call: (a) what fields exist on the www product page for devices `/hardware`
+surfaced that `matrix.csv` doesn't carry, since that's presumably where real specs live; (b) a recursive
+pass over `/hardware` body content for cross-references (other slugs/titles/product codes, CPU/switch-chip
+mentions) so later schema/MCP/TUI decisions don't hit surprises. Both are done, with a real (not assumed)
+answer to (a) that reframes what `/hardware` actually is.
+
+**`/hardware` pages are thin install/compliance manuals, not spec sheets — the real specs live on
+`mikrotik.com/product/<code>`.** 106 of 239 `/hardware` pages have zero `<table>` elements at all, and a
+single-device page's "Specifications" `<h2>` section is typically one sentence linking out to the www
+product page rather than containing spec data itself (confirmed by reading `hex-poe.html`'s rendered
+Specifications section directly — it's a link, nothing else). The actual structured spec fields — CPU,
+switch chip, RAM, PoE budget, certification, temperature range — live in a clean `<li>` key/value list on
+the **www** product page, not `/hardware`. This is the answer to "what fields does www have for the
+devices `/hardware` unlocked that aren't in matrix.csv": the same field set as every other device, because
+it's the same page template regardless of matrix.csv coverage.
+
+A new committed script, **`src/assess-www.ts`** (`make assess-www`, cached to `manual/pages/www/*.html`,
+gitignored same as `manual/pages/hardware/`), fetches `mikrotik.com/product/<code>` for the union of every
+matrix.csv product code and every distinct product-link token any `/hardware` page carries — 401 candidate
+codes — and extracts: the key/value spec list, a `Discontinued` status badge, and a `compareProductsTrigger`
+id (occasionally carries a hardware-revision suffix the declared code doesn't, e.g. `CCR1016-12G` →
+`CCR1016-12Gr2` — a minor observation, not pursued further). Output is **`ros-www-assessment.json`**
+(committed, same convention as the `/hardware` artifact).
+
+**Results: 236 of 401 candidates resolved (165 404s), 68 confirmed `Discontinued`.** Field frequency across
+the 236 found pages gives a real schema signal instead of a guess:
+
+| Field | Coverage | Read |
+|---|---|---|
+| Product code, Suggested price | 100% | universal |
+| MTBF, Certification | 95%, 90% | near-universal |
+| CPU, Architecture, Size of RAM | 82% each | present whenever the device has its own OS/CPU (absent for passive accessories) |
+| PoE in | 67% | most, not all |
+| 10/100/1000 Ethernet ports | 63% | most, not all |
+| Switch chip model | 52% | roughly half — **not a safe non-null column**, confirming Track B Q1's premise that chip data needs its own optional slot, not a `devices.cpu` overload |
+| Wireless 2.4/5 GHz standards, chip model, etc. | ~30% each | wireless-only family, a clearly separate field group |
+| SFP ports | 14% | switch/router-only |
+
+This is a much stronger basis for a future schema than the current `matrix.csv`-derived `devices` table
+alone — a genuinely useful "what fields exist for the non-matrix devices" answer, and it argues for
+grouping fields (core/CPU, power, ports, wireless, compliance) rather than one flat row shape, since
+coverage drops off sharply outside the universal core.
+
+**The `Discontinued` flag independently validates the `unmatched` bucket — mostly.** Cross-checking the 84
+`unmatched` `/hardware` pages (has product link(s), none hit current `matrix.csv`) against `Discontinued`
+status: **58 are confirmed discontinued** (the legacy/EOL hypothesis holds), but **26 resolve to a www page
+that is *not* discontinued** — active current products `matrix.csv` simply doesn't carry. Reading that list
+by hand splits it further:
+- The clear majority are genuine accessories outside `devices`' router/switch shape — SFP/media
+  converters (`S-31DLC20D`, `S-3553LC20D`), GPS/LoRa/antenna hardware (`GPeR`, `TG-BT5-IN/OUT`,
+  `TG-LR82/92`, `mtp250-*`), PoE adapters (`GESP+POE-IN`, `UP1302C-12`), an Ethernet extender (`GPEN11`),
+  a UPS module (`FTC21`), a media converter (`RBFTC11`) — confirms accessories are real, just not the
+  dominant cause (per the first pass).
+- **A handful are a matching-heuristic gap, not a true coverage gap** — worth flagging directly since it
+  revises the "14 matrix rows with no `/hardware` match" number from the first pass: `rose-data-server`
+  (→ `RDS2216-2XG-4S+4XS-2XQ`) and both `knot-embedded-lte4-*` pages (→ `EG25-G&KNe`) *do* have a
+  `/hardware` page and an active www product, but the code linked doesn't textually match `matrix.csv`'s
+  own code for `ROSE Data server (RDS)` / `KNOT Embedded LTE4` / `KNOT Embedded LTE4 Global` — the two-tier
+  `classify()` in `assess-hardware.ts` doesn't yet try matching through www's *declared* "Product code"
+  field as a third tier. That would resolve 3 of the 14 "no match at all" rows; not implemented this pass
+  (scoping call, not a decision — see "Current lean").
+- `chateau-lte12`/`chateau-lte6` both resolve their only product link to `mANT LTE 5o` (an antenna
+  accessory), not the Chateau device itself — a genuine methodological gotcha: **not every product link on
+  a page is that page's own primary device**; some are cross-sell/accessory links embedded in prose. Filed
+  as a caveat, not fixed — would need distinguishing "the Specifications-section link" from "any product
+  link anywhere on the page," which the current extractor doesn't do.
+
+**Recursive cross-mention pass (within `/hardware` body text) — mostly a negative result, and an
+instructive one.** `assess-hardware.ts` now also scans each cached page's article text for any other
+matrix.csv product code not already captured as a link (`findMentionedCodes` in the source), specifically
+to try to enumerate the 10 linkless series pages' members from prose instead of links. **It came back
+almost empty** — only 2 of 10 linkless series pages produced any hit, and one of the two was a false
+positive: `wap-series`'s only hit (`RBcAPL-2nD`, "cAP lite") turned out to be a hardcoded product code
+inside a **copy-pasted CE Declaration of Conformity boilerplate paragraph** that doesn't match the page's
+actual subject — a real gotcha confirming why this signal is kept as a separate `mentionedCodes` /
+`inferredMatrixNames` field in the JSON rather than merged into the authoritative `matchedMatrixNames`. Net
+conclusion: **`/hardware` body prose does not name series members in an extractable way**; enumerating a
+linkless series page's members will need a different signal entirely — most likely the www side (a
+product-family/category listing), not `/hardware` — future work, not resolved here. A weaker
+`mentionsLifecycleKeyword` flag (regex for replace/successor/discontinued/end-of-life) was also added for
+completeness; it mostly fires on generic marketing copy ("a single Audience unit might replace several
+other routers") rather than genuine successor pointers — noted but not load-bearing.
+
+**"Refresh" / replacement-SKU tracking — grounded, and it's simpler than it first looked.** The maintainer
+flagged that "refresh" products are real replacement SKUs with new specs, not aliases, and worth tracking
+what they replace. Checked concretely via `hEX` vs `hEX refresh`: **both are already separate `matrix.csv`
+rows** (`hEX` → `RB750Gr3`, MIPS, 880 MHz, 256 MB RAM vs. `hEX refresh` → `E50UG`, ARM, 950 MHz, 512 MB
+RAM, RouterOS v7) — not a data gap at all, just MikroTik's own naming convention for a successor SKU. What
+*isn't* available anywhere checked: a structured "this replaces/is replaced by `<code>`" field. The
+`Discontinued` badge exists (68 confirmed instances) but carries no pointer to a successor — checked the
+HTML immediately around the badge on `CCR1016-12G`'s page and found nothing but a "Discontinued" span, no
+related-product link. So replacement tracking, if wanted, would have to be **inferred** (name-prefix
+similarity, or a hand-curated mapping) rather than extracted — exactly the kind of "primer for known tough
+cases, processed out-of-band" the maintainer floated as a possibility. Not built this pass; flagged as a
+real future option, not a decision made now.
+
+**Requested-code vs. www's own declared "Product code" — quantifies the naming-surface problem instead of
+citing one example.** Of 236 resolved www pages, **174 show a mismatch** between the code/slug used to
+request the page and the page's own declared "Product code" field. Splitting that: **52 are punctuation/
+encoding-only** (`CCR1009-7G-1C-1Splus` → `CCR1009-7G-1C-1S+`, `&amp;` HTML-entity vs. `&`, underscore vs.
+none — cosmetic, not a real naming-surface problem) but **122 are genuinely different strings**
+(`audience` → `RBD25G-5HPacQD2HPnD`, `cap_ac` → `RBcAPGi-5acD2nD`) — the www-slug-as-fake-code pattern
+first spotted on one page (`cap_ac`) is confirmed as systemic, not an outlier, at roughly half of all
+resolved candidates. This is strong grounding for Q3's "there may now be two slugs, not one" concern and
+for treating a `device_aliases`-style table as necessary rather than optional once Track A reaches a
+schema decision.
+
 **Still open (not resolved by this pass):**
 
 - The two-tier match is heuristic, not authoritative — `matched-by-slug` in particular can false-positive
@@ -246,10 +357,28 @@ gated behind an explicit opt-in.
   series-page membership (especially the 10 linkless + `basebox-series`-style undercounted ones) is
   clearly a **schema** problem (one page → many devices) distinct from the accessory-fit question it was
   originally framed as.
-- Extraction mechanism (question 5) now has a concrete default: HTML parsing via `linkedom` (already a
-  project dependency, already proven against 239 live pages) beats the `search-doc.json` fallback for
-  anything needing the product-code links or section structure — `search-doc.json` loses exactly the link
-  and heading structure this pass depended on.
+- Extraction mechanism (question 5) now has a sharper, revised default: HTML parsing via `linkedom` is
+  still right, but the *target* shifts — `/hardware` is the install/compliance/quick-start source, **www
+  product pages are the spec source**. A real extractor for device capability fields (CPU, switch chip,
+  RAM, ports, PoE, wireless) should read `mikrotik.com/product/<code>`, not try to mine specs out of
+  `/hardware`, which mostly doesn't have them (106/239 pages, zero tables). `/hardware` still matters for
+  the install/safety/quick-start content and, per Q5's original framing, the boilerplate-vs-factoid split.
+- The classify() three-way join (`/hardware` link → matrix.csv code, `/hardware` slug → matrix.csv slug)
+  is provably incomplete on its own: at least 3 of the 14 "no `/hardware` match" matrix rows (`ROSE Data
+  server (RDS)`, both `KNOT Embedded LTE4` rows) actually do have a page, reachable only through www's own
+  declared "Product code" — a third tier (`classify()` extended to also check `ros-www-assessment.json`'s
+  declared codes) would close this gap. Not implemented — a small, well-scoped follow-up once Track A's
+  identity model (question 3) is settled, so the fix targets the final key shape rather than the interim
+  one.
+- The 26 "unmatched-but-active" pages (see above) mean matrix.csv is missing some current products
+  outright, not just failing to link to legacy ones — worth factoring into question 4's accessory-fit
+  decision, since a few of those 26 (`ROSE Data server (RDS)`, the `KNOT Embedded LTE4` pair) are full
+  router-shaped devices matrix.csv already has *rows* for, just unreachable by the current link logic —
+  distinct from the antenna/SFP/PoE-adapter accessories in the same bucket that genuinely don't fit
+  `devices`' shape.
+- No structured "replaces/replaced by" field exists anywhere checked (www or `/hardware`) — if replacement
+  tracking is wanted, it needs either inference (name-prefix matching, e.g. `hEX` ↔ `hEX refresh`) or a
+  hand-curated mapping, not extraction. Left as a real option, not decided.
 
 ### Track B — device-capability surfacing
 
@@ -271,19 +400,37 @@ gated behind an explicit opt-in.
 ## Current lean
 
 Research/explore phase, not actionable as a build task yet — consistent with how B-0012's `/docs`
-migration was staged (T-0033 research pass before T-0034/T-0035 build). Question 1 (inventory diff) is now
-**exhaustively answered** by the committed `src/assess-hardware.ts` + `ros-hardware-assessment.json` (see
-"Track A research findings" above): the 240-vs-156 gap is real, understood in kind and in exact count
-(series-grouping pages, legacy/EOL devices, genuine accessories, and naming deltas), which **overturns**
-the original "largely accessories" working assumption — accessories are a small minority. Question 5
-(extraction mechanism) also has a concrete answer now: HTML parsing via `linkedom` against live pages,
-proven against the full corpus, beats the `search-doc.json` fallback. That leaves questions 3 (identity
-model), 4 (series-page schema + accessory fit), 6 (alias-table trigger), and 7 (provenance) as the real
-remaining work — question 4 in particular now needs a second pass specifically on the 30 series pages
-(10 linkless, several link-undercounted) since product links alone can't fully enumerate membership. Run
-the rest of **Track A** to a decision before **Track B** (capability surfacing), which needs the stable
-device key Track A produces and remains the strongest candidate for its own scoped build issue rather than
-riding the same extractor.
+migration was staged (T-0033 research pass before T-0034/T-0035 build), and consistent with the
+maintainer's explicit 2026-07-10 steer that mapping/data-gathering should continue before any schema
+"decision" gets made. Question 1 (inventory diff) is **exhaustively answered** by `src/assess-hardware.ts`
++ `ros-hardware-assessment.json`: the 240-vs-156 gap is real, understood in kind and in exact count, which
+**overturns** the original "largely accessories" working assumption. Question 5 (extraction mechanism) is
+now **answered with a correction**: `linkedom`-based HTML parsing is right, but the target for spec/
+capability data is `mikrotik.com/product/<code>` (`src/assess-www.ts` + `ros-www-assessment.json`, 236
+products, ~30-40 spec fields, field-frequency census informing which fields are core-vs-optional), not
+`/hardware` — `/hardware` turned out to be install/compliance/quick-start content, largely without spec
+tables at all. That leaves questions 3 (identity model), 4 (series-page schema + accessory fit), 6
+(alias-table trigger), and 7 (provenance) as the real remaining decisions — none made this pass, by design.
+
+**Two forward-looking architecture notes raised by the maintainer, deliberately not acted on yet** (real
+options for whoever picks up the schema/ETL work, not commitments):
+
+- An eventual ETL might use a **stripped-down/revised version of these assessment JSONs**, plus small
+  **custom override files persisted in-repo** for known-hard cases (e.g. the www-slug-vs-code mismatches,
+  or a hand-curated refresh/replacement map) — i.e. `ros-hardware-assessment.json`/`ros-www-assessment.json`
+  as durable *inputs* to a future extractor, not just one-off research artifacts. Both are already
+  structured and re-runnable (`make assess-hardware` / `make assess-www`, `--from-cache` for offline
+  iteration) so this is a live option, not a rewrite.
+- An **intermediate structured format (JSON/TOML) between raw source and SQL** may be worth it in the ETL
+  itself, separate from direct `.md`-to-SQL, so data quality can be checked at that intermediate stage
+  before it lands in the DB — consistent with how `assess-*.ts` already stages through JSON rather than
+  writing straight to SQLite. Not decided; noted as aligned with the existing project pattern
+  (`extract-*.ts` → DB is the current norm, but nothing here blocks an intermediate stage for this
+  specific, unusually messy source).
+
+Run the rest of **Track A** to a decision before **Track B** (capability surfacing), which needs the
+stable device key Track A produces and remains the strongest candidate for its own scoped build issue
+rather than riding the same extractor.
 
 ## Open questions
 
