@@ -627,6 +627,256 @@ Not in scope for any phase: the 7 still-unresolved linkless series pages (flagge
 gap, not blocking); provenance conflict resolution beyond the simple source-per-table default (no real
 conflict has been observed yet to justify more machinery).
 
+## Phase 1 design review (2026-07-10, PR #36 — findings against the shipped ETL output)
+
+A maintainer-requested holistic review of PR #36's actual DB output (257 catalog rows, 801 aliases in the
+local `ros-help.db` smoke build), checked against this briefing's own findings. Verdict: **the schema
+direction is right (overlay table + alias resolution + fail-loud baseline), but the resolution logic
+shipped with known-from-research defects live in the data, and the baseline validates input drift, not
+output correctness** — so none of the defects below trip any check. These are Phase 1 rework, not Phase 2.
+
+### Confirmed data-quality defects (queried from the built DB, not hypothesized)
+
+1. **Cross-sell spec misattribution — the exact gotcha this briefing filed as "a caveat, not fixed" is
+   now baked into rows.** `findWwwProduct()` takes the first www hit across *all* of a page's product
+   links; when the page's own device 404s on www (legacy SKUs), an accessory link in prose wins.
+   Confirmed rows: `hw-chateau-lte6` carries **mANT LTE 5o** (antenna) specs+discontinued flag;
+   `hw-cube-60g-ac`, `hw-cube-lite60`, `hw-wireless-wire-cube` all carry **QM-X** (mounting bracket)
+   specs; `hw-netbox-5` carries **Flex-guide** cable-guide specs; `hw-rb2011ils-in`/`hw-rb2011uias-in`
+   carry **RB2011 Wall Mount Kit** specs; `hw-gperx4` carries single-port **GPeR** specs; `hw-r11e-lr8`/
+   `-lr9` carry **ACSMAUFL** SMA-cable specs. 18 rows total where `specs_json`'s declared "Product code"
+   is not among the row's own aliases.
+2. **The same bug seen from the other side: 22 of 236 fetched www products never attach to any row** —
+   and several are the *correct* products for the rows above (`cube_lite60`, `RB2011iL-IN`/`iLS`/`UiAS`,
+   `RB911G-5HPacD-NB` "NetBox 5", `wap_60g`, `lhg_2`…). The www index is keyed on *requested* code only;
+   declared "Product code" and compareId aren't lookup keys, so a page linking the real code misses when
+   www was fetched under the slug form. QM-X itself — a real product with a live www page — exists in the
+   DB *only* as wrong specs on three other devices' rows.
+3. **Duplicate identities / the unimplemented third matching tier.** This briefing already established
+   that matching through www's *declared* code would resolve `ROSE Data server (RDS)` and both `KNOT
+   Embedded LTE4` rows. Not implemented: the DB now has `hw-rose-data-server` *and* the unlinked matrix
+   row `rose-data-server-rds` as two separate devices (same for the KNOT pair), and 12 matrix-linked rows
+   sit fully unresolved (`source_hardware_slug` and `source_www_code` both NULL, `specs_json` NULL).
+4. **Silent first-claimed-wins alias corruption.** Alias collisions are dropped with no count, no log, no
+   baseline stat. Result: `qm_x` (bracket) resolves to `sxtsq-5-ax`, `acsmaufl` (cable) to `wap-lr2-kit`,
+   `mant_lte_5o` to `hw-chateau-lte12` — an alias-lookup surface that confidently returns wrong devices.
+
+### Schema/design gaps for "complete for any future surface"
+
+- **No `name` column.** The proposal above had `canonical_name`; the PR dropped it. A row's
+  human-readable name lives only inside `specs_json` (`_www_title`/`_hardware_title`) — and matrix-linked
+  rows never get a title stamped at all (13 rows have `specs_json` NULL, so no name anywhere without a
+  `devices` join). Nothing to FTS, nothing to display.
+- **Naming inconsistency the schema itself introduces:** `device_test_results.device_id` vs
+  `hardware_catalog.devices_id` are two different column names for an FK to the same `devices(id)`.
+  Rename to `device_id`. (`rosetta_device_id` itself is fine — matches `pages.rosetta_id` precedent.)
+- **No combined view.** Every future consumer (MCP, TUI, ad-hoc SQL) re-derives the same
+  catalog⟷devices⟷aliases join. Add a `device_overview` VIEW (identity, name COALESCE, category,
+  discontinued, matrix columns where linked) as the documented read surface — this also makes the
+  intended end-state legible: `hardware_catalog` is the canonical device registry, `devices` is the
+  matrix-derived structured-spec detail table hanging off it, lookup flows aliases → catalog → optional
+  matrix join.
+- **`devices_id` links by AUTOINCREMENT across independently-rebuilt extractors.** Re-running
+  `extract-devices` after `extract-hardware-catalog` silently invalidates every link (delete-and-rebuild
+  reassigns ids). `devices.product_name` is UNIQUE and stable — link by name, or re-derive/validate the
+  id link at read time, or at minimum make the write fail if link order is violated.
+- **Issue #35's explicit FCC/CE-ID open question was punted without evaluation.** The Model-column codes
+  are used for matching but the FCC IDs themselves are discarded by `assess-hardware.ts` — the question
+  ("how many rows actually carry one?") can't even be answered from the artifacts. Capture the IDs in the
+  assessment, store them, and answer the question with counts.
+- **Extracted-but-unlanded factoids.** `nonDefaultIps` (the management-IP deviation this briefing
+  specifically flagged as surface-worthy, 11 pages) is in `ros-hardware-assessment.json` and goes nowhere.
+  Same for per-page `wordCount`/`isSeries` signals if series handling ever needs them.
+- **No `db_meta` stamping** for this source (per `db-meta-stamping.instructions.md`) and the assessment
+  JSONs carry no fetched-at date — provenance of "when was this true" is only in git history.
+
+### Validation gap (the meta-finding)
+
+The baseline checks are all **input-drift aggregates** (category count, field frequency, coverage pct,
+404 rate, resolved-id list). What's missing is **output-invariant checks** that would have caught every
+defect above on the first run:
+
+- declared "Product code" in `specs_json` must be among the row's own aliases (catches all 18 of #1);
+- one www product attaches to at most one catalog row, with a small allowlist for genuinely-shared kit
+  pages like the `wAP R` family (catches QM-X ×4, RBWMK ×3);
+- every input entity is *accounted for* — each www product, `/hardware` page, and matrix row is either
+  attached or explicitly bucketed as dropped-with-reason (catches the 22 orphans of #2);
+- alias collisions are counted and baselined, not silently swallowed (#4).
+
+The strongest form, matching both the maintainer's "compare last results / stop and re-eval" ask and this
+briefing's earlier "intermediate structured format between raw source and SQL" note: **emit the built
+catalog as a committed, deterministic intermediate JSON** (sorted rows + aliases + a drop ledger) that
+the DB write consumes — any behavior change then shows up as a reviewable git diff, and "minor flake"
+can't silently become the expected baseline.
+
+### Copilot's PR comments (all legitimate, all minor)
+
+`initDb()` runs before validation (touches `user_version`/tables on a failed or `--check-only` run —
+contradicts "DB untouched"); `category` and `source_hardware_slug` can come from different pages for
+multi-slug devices; `resolvedDeviceNames` holds ids, not names — rename `resolvedDeviceIds`.
+
+### Recommended rework order (Phase 1.5, before merge or as immediate follow-up on the same PR)
+
+1. Fix www attribution: index www products by declared code + compareId too, and only accept a www match
+   whose declared code (or title-slug) agrees with the device's own code/slug family — else NULL + ledger.
+2. Implement the declared-code third matching tier (resolves ROSE/KNOT, removes the `hw-*` duplicates).
+3. Add the output invariants + drop ledger + alias-collision count to validation; commit the intermediate
+   catalog JSON as the diffable artifact.
+4. Add `name` column; rename `devices_id` → `device_id`; add the `device_overview` view.
+5. Land `nonDefaultIps`; capture + store FCC/CE IDs and answer #35's open question with counts.
+6. Fix the three Copilot nits; stamp `db_meta`; decide the `devices_id` staleness story.
+
+### Rework completed (2026-07-10, PR #36 Phase 1.5)
+
+All six items landed. Built against the committed artifacts (`make extract-devices && make
+extract-hardware-catalog`) and re-checked with the review's own SQL probes. Result: **253 catalog rows,
+787 aliases, 99 counted alias collisions, 31 drop-ledger entries; 148 resolved devices (was 144, +4, zero
+regressions).**
+
+What each invariant now catches (all three probes return **0** rows, were 18 / 6 / 22):
+
+- **Declared code ∈ own aliases** (`checkInvariants` #1) — a row's `specs_json` "Product code" must be an
+  alias pointing back to that row (allowlist-exempt). Catches every cross-sell misattribution: the agreement
+  gate now rejects `qm_x`/`mant_lte_5o`/`ACRPSMA`/`RBWMK`/`gper`/`acsmaufl` on the cube/chateau/netbox/rb2011/
+  gperx4/r11e pages, and the multi-key www index + declared-code lookup attach the *correct* products
+  instead (`hw-cube-lite60` → Cube Lite60, `hw-netbox-5` → NetBox 5, `hw-rb2011ils-in` → RB2011iLS-IN);
+  legacy SKUs with no own www product (`hw-chateau-lte6`, `hw-gperx4`, `hw-r11e-lr8`) now get NULL specs
+  instead of an accessory's.
+- **One www product → at most one row** (`checkInvariants` #2) — outside `SHARED_WWW_ALLOWLIST`, which has
+  exactly two justified entries (wAP R base radio across the wAP LR kits; LtAP mini base across its LTE kit).
+  The invariant *found* the LtAP mini case itself during rework — proof it works.
+- **Every input entity accounted for** (`checkInvariants` #3 + drop ledger) — 206 attached + 30 dropped = 236
+  www products, disjoint and exhaustive; each dropped product carries a reason (all 30 are "referenced but
+  identity disagreed" — the rejected cross-sell accessories).
+- **Alias collisions counted** (`BuildResult.aliasCollisions`, baselined) — 82 collisions surfaced instead of
+  silently swallowed; priority ranking makes the owning device win (`rbdisc-5nd` → `hw-disc-lite5`, not
+  netbox-5's stray table code; `rbwapr-2nd` → `wap-r`, not a kit).
+
+Declared-code tier resolved the duplicate identities: `rose-data-server-rds` (via link → www declared full
+code), `knot-embedded-lte4` + `knot-embedded-lte4-global` (via page slug-suffix, ignoring the shared
+mislabelled link), and `atl-lte18-kit` (bonus) — the corresponding `hw-*` rows are gone.
+
+The build now emits `fixtures/hardware-catalog/catalog.json` (sorted rows + aliases + drop ledger +
+collisions) as the diffable review gate; schema is v8 (`name` column, `devices_id` → `device_id`,
+`device_overview` view); `nonDefaultIps` and FCC/IC IDs land in `specs_json`; `db_meta` carries
+`hardware_catalog_source`/`hardware_catalog_built_at`; `initDb()` is deferred past validation so
+`--check-only`/failed runs leave the DB untouched; and the write fails loud on a stale `device_id`.
+
+**Issue #35 FCC-as-identity question, answered with data:** of 253 catalog rows, **51 carry an FCC ID** and
+11 carry an IC number (`assess-hardware.ts` now captures both from the Model-column regulatory tables — 79
+FCC / 23 IC IDs across 48 `/hardware` pages, after the value-shape canonicalizer corrects mislabelled
+columns; see the Phase 1.6 note below). Across those 51 rows there are 45 distinct FCC IDs, but **12 FCC IDs
+are shared across more than one catalog row** (a single grant covers hardware/regional variants — e.g.
+`TV7RB912G-2HPND` on basebox-5/rb912uag-2hpnd, `TV7GRV-A52HPN` on groove-52/groovea-52). Conclusion:
+**FCC ID is not a viable primary device identity** — coverage is only ~20% of rows and the IDs are not 1:1
+with devices. Kept as a searchable secondary attribute in `specs_json`, not promoted to an identity key.
+
+## Phase 1.6 — CodeRabbit review round (2026-07-11, PR #36)
+
+A second CodeRabbit pass on the Phase 1.5 push surfaced defects the invariants had not yet covered; all
+verified against the code before fixing:
+
+- **Shared-kit rows inherited the base radio's display name.** For an allowlisted shared spec source, the
+  name fell through to the *shared* www title (and, for LtAP mini, the shared `/hardware` page title too), so
+  `wap-lr2/lr8g/lr9g-kit` all read `"wAP R"` and `ltap-mini-lte-kit` read `"LtAP mini"` — indistinguishable
+  from the base unit. Fixed by using the row's own matrix product name for allowlisted-shared rows (its
+  identity is never shared), and added **`checkInvariants` #5**: rows sharing one allowlisted www product
+  must have distinct names. Now 4/4 and 2/2 distinct.
+- **Regulatory IDs were mistyped by column header.** Several Model-column tables have swapped/mangled FCC-ID
+  and IC headers, so 10 IC values (`7442A-…`) were typed `"FCC ID"` and 2 FCC values (`TV7…`) typed `"IC"`.
+  Added a value-shape canonicalizer (ISED `7442A-` → IC, FCC grantee `TV7` → FCC ID) so `_fcc_id`/`_ic`
+  split correctly downstream; IC row coverage rose 6 → 11.
+- **`extract-devices` FK-delete ordering.** The new `hardware_catalog.device_id → devices(id)` FK made
+  `DELETE FROM devices` fail once the catalog was populated, breaking the *core* pipeline on any re-run.
+  `extract-devices` now clears `hardware_catalog`/`device_aliases` before `devices` (mirroring
+  `device_test_results`), since re-extracting devices invalidates those AUTOINCREMENT links anyway.
+- **Provenance + dead code.** `category` and `source_hardware_slug` now derive from the same `/hardware`
+  page; removed the `void`-ed accounting scaffolding in `buildDropLedger` and stale `devices_id` comments in
+  `db.ts`/`Makefile`.
+
+## Phase 1.7 — Codex review round (2026-07-11, PR #36)
+
+A Codex review rebuilt against a **fresh** temp DB (not an over-populated one) and found three output
+gaps the Phase 1.6 tests/baseline did not catch. Two were blocking; all verified before fixing:
+
+- **Multi-match slug leak (blocking).** A non-series `/hardware` page that matched several matrix rows via
+  a *shared component/sub-code* signal fanned its slug — and thus its page title — onto every match. So
+  `chateau-lte12-2025` was mis-named `"Chateau LTE6-US"` (the `chateau-lte6-us` page matched all three
+  Chateau rows through the shared base board `D53G-5HacD2HnD-TC`), and `r11e-lr8g`/`r11e-lr9g` component
+  pages attached to both the KNOT and wAP kits that contain them. Fix: only `-series` pages fan out; an
+  ordinary page's slug attaches solely to the row whose **own identity** it is (`nameSlug`, or a code slug
+  **unique among the matched set** — a shared component code confers no ownership). New **`checkInvariants`
+  #6**: a non-series `source_hardware_slug` may appear on at most one row. Residual, *not* the leak: the
+  `chateau-lte12` page carries a wrong outbound link (`mant_lte_5o`), so `Chateau LTE12 (2025)` now sits
+  honestly unresolved rather than falsely enriched — a matching-completeness gap for a later phase.
+- **`catalog.json` non-determinism (blocking).** Each row serialized `deviceId`, a transient
+  `devices.id` AUTOINCREMENT value, so a clean `extract-devices` rebuild flipped all 156 ids (313-468 →
+  1-156) — breaking the file's role as the review-diff gate. Fix: serialize the stable
+  `deviceProductName` (devices.product_name, UNIQUE/rename-stable) and resolve `device_id` at write time;
+  the write now fails loud if a product name is absent from `devices`. Verified byte-identical across the
+  default DB and two independent fresh temp DBs.
+- **HTML-escaped compareId aliases.** `compareId` is scraped from a `data-` attribute, so `&` arrives as
+  `&amp;`, storing aliases like `atlgm&amp;eg18-ea` that no user queries and that duplicate the declared
+  code. Fix: `decodeEntities()` at every compareId use, skip the alias when it re-spells the requested or
+  declared code, and **`checkInvariants` #7**: no alias may contain an HTML entity. Alias count 787 → 765.
+
+Baseline moved (once, deliberately): `aliasCollisions` 99 → 82 (fewer aliases), `droppedWwwProducts`
+31 → 30, `resolvedDeviceIds` 148 → 147 (only `chateau-lte12-2025`, the honest un-resolution above).
+
+## Phase 1 wrap-up (2026-07-11, PR #36 final verification)
+
+Independent re-verification after the Phase 1.5/1.6/1.7 rework rounds: fresh temp-DB rebuild
+(`extract-devices` → `extract-hardware-catalog`) reproduces the committed `catalog.json` byte-identically
+and matches the baseline (253 rows / 765 aliases / 82 collisions / 30-entry drop ledger); typecheck, lint,
+and the full test suite (721 pass / 0 fail) are green; all original review probes return clean (0
+misattributed spec rows outside the 3 allowlist-exempt wAP LR kits, 0 nameless rows, 0 duplicate
+identities, 0 HTML-entity aliases, only the allowlisted `RBwAPR-2nD` multi-attach). CodeRabbit's one
+remaining "Major" thread (rowspan/colspan corruption in `extractRegulatoryIds`) was **verified false**:
+zero tables anywhere in the 239 cached `/hardware` pages carry `rowspan`/`colspan`; the anomalies it
+pointed at are MikroTik's own source-data errors, faithfully extracted and corrected by the value-shape
+canonicalizer. Phase 1 (schema + ETL + validation) is done.
+
+### Lingering data-quality items (non-blocking, carry to Phase 2)
+
+- **Cross-sell alias pollution.** 27 of the 30 drop-ledger www products' codes still exist as
+  `hardware-link` aliases pointing at the device whose page merely *linked* them. Roughly half are
+  defensible (series-page rows claiming member/kit codes: `wap_60g` → `hw-wap-60g-series`,
+  `mtp250_*` → `hw-mtp250-series`) but the rest are genuinely wrong as lookups: `qm_x` (mounting
+  bracket) → `sxtsq-5-ax`, `mant_lte_5o` → `hw-chateau-lte12`, `868_omni_antenna` → `wap-lr8g-kit`,
+  `acrpsma` → `netbox-5-ax`, `rbwmk` → `hw-rb2011il-in`, `ldf_5_ac` → `ldf-5` (sibling-variant
+  misdirect). The `source='hardware-link'` column lets a consumer rank these below exact-identity
+  sources, but Phase 2's alias-aware lookup should either drop link-tokens that name a known dropped
+  www product (except onto series rows) or expose the source ranking.
+- **`_non_default_ips` is over-inclusive.** 63 rows carry the field but 52 of them are the same-subnet
+  secondary addresses (`192.168.88.2`/`.88.3`/`.88.0`) this briefing explicitly classified as *not*
+  surface-worthy. Only the 9 `192.168.188.1` embedded-LTE rows plus `intercell`/`woobm-usb` are genuine
+  deviations. Filter at assess or extract time before any surface says "non-default IP."
+- 9 current matrix rows still have no `/hardware`/www identity at all (`chateau-lte12-2025` — see the
+  MikroTik list below — plus `cubesa-60pro-ac`, `ftc21-ups`, `lamp-5g-r16`, `lhgg-lte7-kit`,
+  `ltap-lte7-kit`, `r11e-lte7`, `sxt-lte7-kit`, `sxtsq-embedded-lte4-global`; down from 14 pre-rework).
+- The 30 dropped www products are real MikroTik products (accessories/EOL SKUs with live www pages) that
+  are *not* catalog rows — the "full /hardware + www universe" claim holds for pages, not for www-only
+  products. Adding them as rows is a scope decision for Phase 2, not a bug; the drop ledger accounts for
+  every one.
+
+### Items worth reporting to MikroTik (defects in their sources, evidenced by this extraction)
+
+1. **`manual.mikrotik.com/hardware/chateau-lte12` links the wrong product**: its only
+   `mikrotik.com/product/*` link is `mant_lte_5o` (an antenna), so the Chateau LTE12 / LTE12 (2025) is
+   unresolvable from its own manual page.
+2. **7 series pages enumerate no members at all** — no product links, no Model-column table, no prose
+   listing: `ccr1036-12g-4s-series`, `ccr1036-8g-2s-plus-series`, `crs-series`, `crs125-24g-1s-series`,
+   `ltap-kit-series`, `mant-series`, `wap-series`.
+3. **Mislabelled regulatory-table headers**: ~10 tables carry ISED/IC numbers (`7442A-…`) under an
+   "FCC ID" header and 2 the reverse (e.g. `lhg-lite60`, `ltap`).
+4. **`ltap-mini-kit-series` IC table data error**: the base kit row has the FCC ID
+   (`TV7RB912R-2NDLTM`) pasted in the IC column.
+5. **`wap-series` CE Declaration boilerplate names the wrong product**: contains cAP lite's code
+   (`RBcAPL-2nD`) in copy-pasted DoC text.
+6. **`/hardware` is excluded from the machine-readable endpoints** (`llms.txt` / `.md` — the
+   docusaurus-plugin-llms walk only covers `docs/`; see B-0012 H1/H2).
+7. **9 current product-matrix entries have no `/hardware` page** (list above) — mostly recent LTE kits.
+
 ## Open questions
 
 See "Open research questions" above. `B-0006` and `B-0007` stay `open` for now as historical record but

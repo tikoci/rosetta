@@ -17,6 +17,9 @@
  *   schema_node_presence — junction: which schema_nodes exist in which versions
  *   devices          — MikroTik product hardware specs from product matrix CSV
  *   devices_fts      — FTS5 over product name, code, architecture, CPU
+ *   hardware_catalog — /hardware + mikrotik.com/product device overlay (superset of devices)
+ *   device_aliases   — alias/slug/code variant -> hardware_catalog.rosetta_device_id
+ *   device_overview  — VIEW: catalog + devices spec columns + alias counts (read surface)
  *   changelogs       — parsed changelog entries per RouterOS version
  *   changelogs_fts   — FTS5 over category, description
  *   videos           — MikroTik YouTube video metadata (title, description, duration, chapters)
@@ -466,6 +469,86 @@ export function initDb() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_device_tests_device ON device_test_results(device_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_device_tests_type ON device_test_results(test_type);`);
 
+  // -- Hardware catalog (manual.mikrotik.com/hardware + mikrotik.com/product overlay) --
+  //
+  // Superset of `devices` — covers accessories and legacy/EOL SKUs `devices` doesn't carry,
+  // in addition to every device `devices` already has. `devices` itself is untouched (no
+  // schema change, no risk to routeros_device_lookup); `device_id` links back for the
+  // rows matrix.csv also tracks. See briefings/B-0017-hardware-overlay-device-resolution.md
+  // "Phased implementation plan" for the full rationale (specs_json over ~40 sparse columns
+  // — spec-field coverage falls off sharply outside a small universal core).
+  //
+  // rosetta_device_id is a rosetta-curated stable key (slugified matrix product name for
+  // devices-linked rows, `hw-<hardware-slug>` for hardware/www-only rows) — not any one
+  // source's own slug, since MikroTik does rename products (`hEX` -> `hEX refresh`) and
+  // www/`/hardware` carry independently-drifting slugs (see extract-hardware-catalog.ts).
+  //
+  // `name` is the human-readable display name (COALESCE of www title, /hardware page title,
+  // matrix product name — never NULL). `device_id` (not `devices_id`) links back to
+  // devices(id), matching device_test_results.device_id's naming so both FKs to devices read
+  // the same. B-0017 Phase 1.5 (PR #36 review) renamed the column and added `name`; the
+  // migration below drops the pre-rename shape so a dev DB rebuilds cleanly (both tables are
+  // fully repopulated every run by extract-hardware-catalog.ts, so a drop loses nothing).
+  const hwcatCols = db.prepare("PRAGMA table_info(hardware_catalog)").all() as Array<{ name: string }>;
+  if (hwcatCols.some((c) => c.name === "devices_id")) {
+    db.run("DROP VIEW IF EXISTS device_overview;");
+    db.run("DROP TABLE IF EXISTS device_aliases;");
+    db.run("DROP TABLE IF EXISTS hardware_catalog;");
+  }
+
+  db.run(`CREATE TABLE IF NOT EXISTS hardware_catalog (
+    id                   INTEGER PRIMARY KEY,
+    rosetta_device_id    TEXT NOT NULL UNIQUE,
+    device_id            INTEGER REFERENCES devices(id),
+    name                 TEXT NOT NULL,
+    category             TEXT,
+    discontinued         INTEGER,
+    specs_json           TEXT,
+    source_hardware_slug TEXT,
+    source_www_code      TEXT
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_hwcat_device ON hardware_catalog(device_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_hwcat_category ON hardware_catalog(category);`);
+
+  // device_aliases.alias is stored normalized (trim + lowercase, see normCode() in
+  // assess-hardware.ts) so case/whitespace variants of the same code collapse to one
+  // row — display-cased forms live in hardware_catalog.specs_json / devices.product_name.
+  db.run(`CREATE TABLE IF NOT EXISTS device_aliases (
+    alias              TEXT PRIMARY KEY,
+    rosetta_device_id  TEXT NOT NULL REFERENCES hardware_catalog(rosetta_device_id),
+    source             TEXT NOT NULL
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_device_aliases_device ON device_aliases(rosetta_device_id);`);
+
+  // device_overview — the documented read surface for the catalog: one row per catalog
+  // device, its display name, category/discontinued overlay, the matrix-derived structured
+  // spec columns where the row links to `devices`, and its alias count. Every future
+  // consumer (MCP, TUI, ad-hoc SQL) should read this instead of re-deriving the
+  // catalog<->devices<->aliases join. Recreated (not IF NOT EXISTS) so definition changes
+  // always take effect. The join is on device_id (the FK captured fresh at build
+  // time); extract-hardware-catalog.ts validates that FK against devices.product_name — the
+  // UNIQUE, rename-stable key — on every write so a stale AUTOINCREMENT link fails loud.
+  db.run("DROP VIEW IF EXISTS device_overview;");
+  db.run(`CREATE VIEW device_overview AS
+    SELECT
+      hc.rosetta_device_id,
+      hc.name,
+      hc.category,
+      hc.discontinued,
+      hc.device_id,
+      d.product_name,
+      d.product_code,
+      d.architecture,
+      d.cpu,
+      hc.source_hardware_slug,
+      hc.source_www_code,
+      hc.specs_json,
+      (SELECT COUNT(*) FROM device_aliases da WHERE da.rosetta_device_id = hc.rosetta_device_id) AS alias_count
+    FROM hardware_catalog hc
+    LEFT JOIN devices d ON d.id = hc.device_id;`);
+
   // -- Changelogs (parsed per-entry from MikroTik download server) --
 
   db.run(`CREATE TABLE IF NOT EXISTS changelogs (
@@ -840,6 +923,9 @@ export function getDbStats() {
     devices: count("SELECT COUNT(*) AS c FROM devices"),
     device_test_results: count("SELECT COUNT(*) AS c FROM device_test_results"),
     devices_with_tests: count("SELECT COUNT(DISTINCT device_id) AS c FROM device_test_results"),
+    hardware_catalog: count("SELECT COUNT(*) AS c FROM hardware_catalog"),
+    hardware_catalog_linked: count("SELECT COUNT(*) AS c FROM hardware_catalog WHERE device_id IS NOT NULL"),
+    device_aliases: count("SELECT COUNT(*) AS c FROM device_aliases"),
     changelogs: count("SELECT COUNT(*) AS c FROM changelogs"),
     changelog_versions: count("SELECT COUNT(DISTINCT version) AS c FROM changelogs"),
     ros_versions: count("SELECT COUNT(DISTINCT version) AS c FROM ros_versions"),

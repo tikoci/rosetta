@@ -184,6 +184,32 @@ interface PageInfo {
   categoryMembers: string[];
   /** Product codes read from a table's "Model" column (see extractModelColumnCodes). */
   tableModelCodes: string[];
+  /** Regulatory identifiers (FCC ID / IC / CE) per model, from Model-column tables. */
+  regulatoryIds: RegulatoryId[];
+}
+
+/** A regulatory identifier tied to a specific product model on a /hardware page. */
+export type RegulatoryType = "FCC ID" | "IC" | "CE";
+export interface RegulatoryId {
+  model: string;
+  type: RegulatoryType;
+  id: string;
+}
+
+/**
+ * The value shape is a more reliable signal than a possibly-misaligned column header: on
+ * several /hardware tables the FCC-ID and IC columns are swapped or share a mangled header,
+ * so a header-classified "FCC ID" cell actually holds an IC value and vice-versa. MikroTik's
+ * ISED Canada (IC) IDs are always "<numeric company number>-<product>" (7442A-…); their FCC
+ * IDs are "<grantee code><product>" with grantee TV7 and no leading numeric-hyphen. CE marks
+ * match neither, so they fall through to the header classification unchanged. Grounded in
+ * ros-hardware-assessment.json: e.g. lhg-series "7442A-LHG2ND" (IC, header said FCC) and
+ * ltap-mini-kit-series "TV7RB912R-2NDLTM" (FCC, header said IC).
+ */
+function canonicalizeRegulatoryType(headerType: RegulatoryType, id: string): RegulatoryType {
+  if (/^\d+[A-Za-z]?-/.test(id)) return "IC";
+  if (/^TV7/i.test(id)) return "FCC ID";
+  return headerType;
 }
 
 /**
@@ -258,6 +284,7 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
 
   const categoryInfo = extractSidebarCategory(html);
   const tableModelCodes = extractModelColumnCodes(article);
+  const regulatoryIds = extractRegulatoryIds(article);
 
   return {
     slug,
@@ -273,7 +300,52 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
     category: categoryInfo?.name ?? null,
     categoryMembers: categoryInfo?.members.map((m) => m.slug) ?? [],
     tableModelCodes,
+    regulatoryIds,
   };
+}
+
+/** Leading FCC ID / IC / CE label of a regulatory table's non-model column header. */
+function classifyRegulatoryColumn(header: string): RegulatoryType | null {
+  const h = header.trim();
+  if (/^fcc\s*id/i.test(h)) return "FCC ID";
+  if (/^ic\b/i.test(h) || /^ic[A-Z0-9]/.test(h)) return "IC";
+  if (/^ce\b/i.test(h) || /^ce[A-Z0-9]/.test(h)) return "CE";
+  return null;
+}
+
+/**
+ * The same Model-column regulatory tables extractModelColumnCodes() reads for matching
+ * also carry FCC ID / IC / CE columns, one identifier per model row. Issue #35 asked
+ * whether those regulatory IDs could serve as device identity; capturing them here lets
+ * extract-hardware-catalog.ts land them on catalog rows and answer that with counts
+ * instead of discarding them. Model + id-type are read from the header; the id is the
+ * clean cell value (the header cell text is DOM-mangled, but tbody cells are clean).
+ */
+function extractRegulatoryIds(article: Element | null): RegulatoryId[] {
+  const out: RegulatoryId[] = [];
+  for (const table of article?.querySelectorAll("table") ?? []) {
+    const headerRow = table.querySelector("thead tr") ?? table.querySelector("tr");
+    if (!headerRow) continue;
+    const headers = [...headerRow.children].map((c) => c.textContent?.trim() ?? "");
+    const modelIdx = headers.findIndex((h) => h.toLowerCase() === "model" || /^model[A-Z0-9]/.test(h));
+    if (modelIdx === -1) continue;
+    const idCols = headers
+      .map((h, i) => ({ i, type: i === modelIdx ? null : classifyRegulatoryColumn(h) }))
+      .filter((c): c is { i: number; type: RegulatoryType } => c.type !== null);
+    if (idCols.length === 0) continue;
+    for (const row of table.querySelector("tbody")?.children ?? []) {
+      const cells = [...row.children].map((c) => c.textContent?.trim() ?? "");
+      const model = cells[modelIdx];
+      if (!model || model === "-") continue;
+      for (const col of idCols) {
+        const id = cells[col.i];
+        if (id && id !== "-" && id.toLowerCase() !== "none") {
+          out.push({ model, type: canonicalizeRegulatoryType(col.type, id), id });
+        }
+      }
+    }
+  }
+  return out;
 }
 
 /**
@@ -610,6 +682,7 @@ async function main() {
         isSeries: p.isSeries,
         productLinks: p.productLinks,
         tableModelCodes: p.tableModelCodes,
+        regulatoryIds: p.regulatoryIds,
         nonDefaultIps: p.nonDefaultIps,
         category: p.category,
         cause: c?.cause,

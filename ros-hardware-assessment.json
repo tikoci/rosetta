@@ -982,6 +982,7 @@
         "apa_1"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "unmatched",
@@ -1001,6 +1002,7 @@
         "atl18"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -1028,6 +1030,7 @@
         "atl_5g_r16"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -1059,6 +1062,13 @@
       "tableModelCodes": [
         "RBD25G-5HPacQD2HPnD-US"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBD25G-5HPacQD2HPnD-US",
+          "type": "FCC ID",
+          "id": "TV7D25-5HPQ2HP"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "unmatched",
@@ -1079,6 +1089,18 @@
       ],
       "tableModelCodes": [
         "RBD25GR-5HPacQD2HPnD-US&R11e-LTE6"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBD25GR-5HPacQD2HPnD-US&R11e-LTE6",
+          "type": "FCC ID",
+          "id": "TV7D25-5HPQ2HP"
+        },
+        {
+          "model": "RBD25GR-5HPacQD2HPnD-US&R11e-LTE6",
+          "type": "IC",
+          "id": "7442A-D255HPQ2HP"
+        }
       ],
       "nonDefaultIps": [],
       "category": "LTE products",
@@ -1102,6 +1124,38 @@
         "BaseBox 2",
         "BaseBox 5",
         "BaseBox 6"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "BaseBox 2",
+          "type": "FCC ID",
+          "id": "TV7RB912G-2HPND"
+        },
+        {
+          "model": "BaseBox 5",
+          "type": "FCC ID",
+          "id": "TV7RB912G-5HPNDM"
+        },
+        {
+          "model": "BaseBox 6",
+          "type": "FCC ID",
+          "id": "TV7RB912G-6HPND"
+        },
+        {
+          "model": "BaseBox 2",
+          "type": "IC",
+          "id": "7442A-912G2HPND"
+        },
+        {
+          "model": "BaseBox 5",
+          "type": "IC",
+          "id": "7442A-912G5HPNDM"
+        },
+        {
+          "model": "BaseBox 6",
+          "type": "IC",
+          "id": "7442A-912G6HPNDM"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
@@ -1130,6 +1184,7 @@
         "RBcAP2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -1151,6 +1206,7 @@
         "cap_ac"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -1176,6 +1232,7 @@
         "cap_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -1201,6 +1258,7 @@
         "RBcAPL-2nD-307"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -1226,6 +1284,7 @@
         "cap_lte12_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-slug",
@@ -1254,6 +1313,13 @@
       "tableModelCodes": [
         "RBcAPGi-5acD2nD-XL-US"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBcAPGi-5acD2nD-XL-US",
+          "type": "FCC ID",
+          "id": "TV7CPGI52XL"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -1279,6 +1345,7 @@
         "CCR1009-7G-1C-1Splus"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -1298,6 +1365,7 @@
         "CCR1009-7G-1C-1SplusPC"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -1317,6 +1385,7 @@
         "CCR1009-7G-1C-PC"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -1336,6 +1405,7 @@
         "CCR1016-12G"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -1355,6 +1425,7 @@
         "CCR1016-12S-1Splus"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -1372,6 +1443,7 @@
       "isSeries": true,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "no-product-link",
@@ -1389,6 +1461,7 @@
       "isSeries": true,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "no-product-link",
@@ -1408,6 +1481,7 @@
         "CCR1072-1G-8Splus"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -1427,6 +1501,7 @@
         "ccr2004_16g_2splus"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -1450,6 +1525,7 @@
         "ccr2004_16g_2s_pc"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -1475,6 +1551,7 @@
         "ccr2004_1g_12s_2xs"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -1500,6 +1577,7 @@
         "ccr2004_1g_2xs_pcie"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -1525,6 +1603,7 @@
         "ccr2116_12g_4splus"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -1552,6 +1631,7 @@
         "ccr2216_1g_12xs_2xq"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -1579,6 +1659,7 @@
         "chateau_5g"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -1602,6 +1683,7 @@
         "chateau_5g_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -1621,6 +1703,7 @@
         "chateau5gr16"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -1646,6 +1729,7 @@
         "chateau_5g_r17_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-slug",
@@ -1673,6 +1757,7 @@
         "mant_lte_5o"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -1696,6 +1781,7 @@
         "chateaulte18_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-slug",
@@ -1723,6 +1809,7 @@
         "mant_lte_5o"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -1746,6 +1833,7 @@
         "chateau_lte6_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -1770,6 +1858,13 @@
       ],
       "tableModelCodes": [
         "D53G-5HacD2HnD-TC&EG06-A"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "D53G-5HacD2HnD-TC&EG06-A",
+          "type": "FCC ID",
+          "id": "TV7D53G-5ACD2ND"
+        }
       ],
       "nonDefaultIps": [],
       "category": "LTE products",
@@ -1800,6 +1895,7 @@
         "chateau_lte7"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-slug",
@@ -1827,6 +1923,7 @@
         "chateau_lte7_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-slug",
@@ -1854,6 +1951,7 @@
         "chateau_pro_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -1879,6 +1977,7 @@
         "cme_gateway"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -1902,6 +2001,7 @@
       "isSeries": false,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "no-product-link",
@@ -1919,6 +2019,7 @@
       "isSeries": true,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Switches",
       "cause": "no-product-link",
@@ -1938,6 +2039,7 @@
         "CRS106-1C-5S"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Switches",
       "cause": "matched-by-code",
@@ -1959,6 +2061,7 @@
         "CRS112-8G-4S-IN"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -1980,6 +2083,7 @@
         "crs112_8p_4s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2005,6 +2109,7 @@
       "isSeries": true,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Switches",
       "cause": "no-product-link",
@@ -2024,6 +2129,7 @@
         "crs304_4xg_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2051,6 +2157,7 @@
         "crs305_1g_4s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2078,6 +2185,7 @@
         "crs309_1g_8s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2105,6 +2213,7 @@
         "crs310_1g_5s_4s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2132,6 +2241,7 @@
         "crs310_8g_2s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2159,6 +2269,7 @@
         "crs312_4c_8xg_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2186,6 +2297,7 @@
         "crs317_1g_16s_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2213,6 +2325,7 @@
         "crs320_8p_8b_4s_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2248,6 +2361,7 @@
         "crs326_24g_2s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2271,6 +2385,7 @@
         "CRS326-24G-2SplusRM"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2298,6 +2413,7 @@
         "crs326_24s_2q_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2325,6 +2441,7 @@
         "crs326_4c_20g_2q_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2352,6 +2469,7 @@
         "crs328_24p_4s_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2379,6 +2497,7 @@
         "crs328_4c_20s_4s_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2406,6 +2525,7 @@
         "crs354_48g_4splus2qplusrm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2433,6 +2553,7 @@
         "crs354_48p_4s_2q_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2460,6 +2581,7 @@
         "crs418_8p_8g_2s_wifi"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Switches",
       "cause": "matched-by-slug",
@@ -2487,6 +2609,7 @@
         "crs418_8p_8g_2s_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2514,6 +2637,7 @@
         "crs504_4xq_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2541,6 +2665,7 @@
         "crs504_4xq_out"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2568,6 +2693,7 @@
         "crs510_8xs_2xq_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2595,6 +2721,7 @@
         "crs518_16xs_2xq"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2622,6 +2749,7 @@
         "crs520_4xs_16xq_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2649,6 +2777,7 @@
         "crs804_ddq"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2676,6 +2805,7 @@
         "crs812_ddq"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2703,6 +2833,7 @@
         "css318_16g_2s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2730,6 +2861,7 @@
         "CSS326-24G-2SplusRM"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2757,6 +2889,7 @@
         "css610_8g_2s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.3",
         "192.168.88.2"
@@ -2785,6 +2918,7 @@
         "css610_8p_2s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.3"
       ],
@@ -2814,6 +2948,13 @@
       "tableModelCodes": [
         "CubeG-5ac60ad"
       ],
+      "regulatoryIds": [
+        {
+          "model": "CubeG-5ac60ad",
+          "type": "FCC ID",
+          "id": "TV7CB5A60"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "60 GHz products",
       "cause": "unmatched",
@@ -2836,6 +2977,13 @@
       "tableModelCodes": [
         "RBCube-60ad"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBCube-60ad",
+          "type": "FCC ID",
+          "id": "TV7CUBE60"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "60 GHz products",
       "cause": "unmatched",
@@ -2856,6 +3004,13 @@
       ],
       "tableModelCodes": [
         "RBDisc-5nD"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBDisc-5nD",
+          "type": "FCC ID",
+          "id": "TV7LHG5NDM"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
@@ -2878,6 +3033,13 @@
       "tableModelCodes": [
         "RBDiscG-5acD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBDiscG-5acD",
+          "type": "FCC ID",
+          "id": "TV7LHG5ACD"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -2897,6 +3059,7 @@
         "RBDynaDishG-5HacDr3"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -2914,6 +3077,7 @@
       "isSeries": false,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "no-product-link",
@@ -2933,6 +3097,7 @@
         "fiberbox"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Switches",
       "cause": "unmatched",
@@ -2952,6 +3117,7 @@
         "fiberboxplus"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2975,6 +3141,7 @@
         "ftc11xg"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -2998,6 +3165,7 @@
         "ftc21"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -3017,6 +3185,7 @@
       "isSeries": false,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "no-product-link",
@@ -3036,6 +3205,7 @@
         "gesp_poe_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "unmatched",
@@ -3055,6 +3225,7 @@
         "gpen11"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "unmatched",
@@ -3074,6 +3245,7 @@
         "gpen21"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "matched-by-code",
@@ -3096,6 +3268,7 @@
         "gper_ip67_case"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "unmatched",
@@ -3115,6 +3288,7 @@
         "gper"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -3136,6 +3310,7 @@
         "gperx6"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -3169,6 +3344,23 @@
         "GrooveA 52",
         "GrooveA 52 ac"
       ],
+      "regulatoryIds": [
+        {
+          "model": "Groove 52",
+          "type": "FCC ID",
+          "id": "TV7GRV-A52HPN"
+        },
+        {
+          "model": "GrooveA 52",
+          "type": "FCC ID",
+          "id": "TV7GRV-A52HPN"
+        },
+        {
+          "model": "GrooveA 52 ac",
+          "type": "FCC ID",
+          "id": "TV7GRV-A52HPC"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-code",
@@ -3192,6 +3384,7 @@
         "RB951Ui-2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -3213,6 +3406,7 @@
         "RB962UiGS-5HacT2HnT"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -3234,6 +3428,7 @@
         "hap_ac2"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3255,6 +3450,7 @@
         "RB952Ui-5ac2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -3276,6 +3472,7 @@
         "RB952Ui-5ac2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -3304,6 +3501,13 @@
       "tableModelCodes": [
         "RBD53iG-5HacD2HnD-US"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBD53iG-5HacD2HnD-US",
+          "type": "FCC ID",
+          "id": "TV7D53I-5ACD2ND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3331,6 +3535,18 @@
       "tableModelCodes": [
         "RBD53GR-5HacD2HnD-US&R11e-LTE6"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBD53GR-5HacD2HnD-US&R11e-LTE6",
+          "type": "FCC ID",
+          "id": "TV7RBD53-5ACD2ND"
+        },
+        {
+          "model": "RBD53GR-5HacD2HnD-US&R11e-LTE6",
+          "type": "IC",
+          "id": "7442A-D53AC"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -3351,6 +3567,13 @@
       ],
       "tableModelCodes": [
         "C52iG-5HaxD2HaxD-TC-US"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "C52iG-5HaxD2HaxD-TC-US",
+          "type": "FCC ID",
+          "id": "TV7C52-5AXD2AXD"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
@@ -3377,6 +3600,7 @@
         "hap_ax3"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3402,6 +3626,7 @@
         "hap_ax_lite"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3427,6 +3652,7 @@
         "hap_ax_lite_lte6"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "unmatched",
@@ -3450,6 +3676,7 @@
         "hap_ax_s"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3475,6 +3702,7 @@
         "hap_be_lite"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3500,6 +3728,7 @@
         "hap_be3_media"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3525,6 +3754,7 @@
         "RB941-2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -3546,6 +3776,7 @@
         "RB941-2nD-TC"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -3571,6 +3802,7 @@
         "RB931-2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "unmatched",
@@ -3590,6 +3822,7 @@
         "RB750Gr3"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-code",
@@ -3611,6 +3844,7 @@
         "RB750r2"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-code",
@@ -3632,6 +3866,7 @@
         "RB960PGS"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-code",
@@ -3653,6 +3888,7 @@
         "RB750UPr2"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-code",
@@ -3674,6 +3910,7 @@
         "hex_2024"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -3699,6 +3936,7 @@
         "hex_s"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -3724,6 +3962,7 @@
         "hex_s_2025"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -3750,6 +3989,7 @@
         "rbgesp"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.200.200",
         "192.168.200.100"
@@ -3772,6 +4012,7 @@
         "knot_emb_lte4_global"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -3797,6 +4038,7 @@
         "knot_emb_lte4_global"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -3822,6 +4064,7 @@
         "l009uigs_2haxd_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -3847,6 +4090,7 @@
         "l009uigs_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -3872,6 +4116,7 @@
         "l11ug_5haxd"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "matched-by-slug",
@@ -3897,6 +4142,7 @@
         "l23ugsr_5haxd2haxd"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "matched-by-slug",
@@ -3924,6 +4170,13 @@
       "tableModelCodes": [
         "RBLDF-2nD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBLDF-2nD",
+          "type": "FCC ID",
+          "id": "TV7LDF2ND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -3946,6 +4199,18 @@
       "tableModelCodes": [
         "LDF 5",
         "LDF 5 ac"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "LDF 5",
+          "type": "FCC ID",
+          "id": "TV7LHG5NDM"
+        },
+        {
+          "model": "LDF 5 ac",
+          "type": "FCC ID",
+          "id": "TV7LHG5ACD"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
@@ -3970,6 +4235,7 @@
       "tableModelCodes": [
         "RBLDFR&R11e-LTE6"
       ],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -3989,6 +4255,7 @@
         "lhg_5_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-slug",
@@ -4016,6 +4283,13 @@
       "tableModelCodes": [
         "RBLHGG-60ad"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBLHGG-60ad",
+          "type": "FCC ID",
+          "id": "TV7LHGG60AD"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "60 GHz products",
       "cause": "unmatched",
@@ -4039,6 +4313,7 @@
         "RBLHGR&R11e-LTE6",
         "RBLHGR&R11e-LTE-US"
       ],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -4059,6 +4334,18 @@
       "productLinks": [],
       "tableModelCodes": [
         "RBLHG-60ad"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBLHG-60ad",
+          "type": "FCC ID",
+          "id": "TV7LHG60AD"
+        },
+        {
+          "model": "RBLHG-60ad",
+          "type": "IC",
+          "id": "7442A-LHG60AD"
+        }
       ],
       "nonDefaultIps": [
         "192.168.88.0"
@@ -4081,6 +4368,7 @@
         "lhg_lte18"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -4109,6 +4397,7 @@
         "rblhgr"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -4136,6 +4425,48 @@
         "LHG 5 ac",
         "LHG HP5"
       ],
+      "regulatoryIds": [
+        {
+          "model": "LHG 2",
+          "type": "FCC ID",
+          "id": "TV7LHG2ND"
+        },
+        {
+          "model": "LHG 5",
+          "type": "FCC ID",
+          "id": "TV7LHG5NDM"
+        },
+        {
+          "model": "LHG 5 ac",
+          "type": "FCC ID",
+          "id": "TV7LHG5ACD"
+        },
+        {
+          "model": "LHG HP5",
+          "type": "FCC ID",
+          "id": "TV7LHG5HPND"
+        },
+        {
+          "model": "LHG 2",
+          "type": "IC",
+          "id": "7442A-LHG2ND"
+        },
+        {
+          "model": "LHG 5",
+          "type": "IC",
+          "id": "7442A-LHG5NDM"
+        },
+        {
+          "model": "LHG 5 ac",
+          "type": "IC",
+          "id": "7442A-LHG5ACD"
+        },
+        {
+          "model": "LHG HP5",
+          "type": "IC",
+          "id": "7442A-LHG5HPND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-code",
@@ -4157,6 +4488,13 @@
       "tableModelCodes": [
         "LHG XL 2"
       ],
+      "regulatoryIds": [
+        {
+          "model": "LHG XL 2",
+          "type": "FCC ID",
+          "id": "TV7LHG2ND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -4177,6 +4515,13 @@
       ],
       "tableModelCodes": [
         "RBLHGG-5acD-XL"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBLHGG-5acD-XL",
+          "type": "FCC ID",
+          "id": "TV7LHG5ACD"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
@@ -4203,6 +4548,7 @@
         "lhg_5_ax_xl"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-slug",
@@ -4226,6 +4572,13 @@
       "tableModelCodes": [
         "RBLHGG-5HPacD2HPnD-XL"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBLHGG-5HPacD2HPnD-XL",
+          "type": "FCC ID",
+          "id": "TV7LHG5HPACD2HPD"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -4246,6 +4599,18 @@
       ],
       "tableModelCodes": [
         "RBLHG-5HPnD-XL"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBLHG-5HPnD-XL",
+          "type": "FCC ID",
+          "id": "TV7LHG5HPND"
+        },
+        {
+          "model": "RBLHG-5HPnD-XL",
+          "type": "IC",
+          "id": "7442A-LHG5ACD2HPD"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
@@ -4270,6 +4635,7 @@
       "tableModelCodes": [
         "RBLHGGR&R11e-LTE6"
       ],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -4297,6 +4663,18 @@
       "tableModelCodes": [
         "RBLtAP-2HnD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBLtAP-2HnD",
+          "type": "FCC ID",
+          "id": "TV7LTAP2HND"
+        },
+        {
+          "model": "RBLtAP-2HnD",
+          "type": "IC",
+          "id": "7442A-LTAP2HND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -4314,6 +4692,7 @@
       "isSeries": true,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "no-product-link",
@@ -4333,6 +4712,7 @@
         "lora_antenna_kit"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -4350,6 +4730,7 @@
       "isSeries": false,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "no-product-link",
@@ -4373,6 +4754,7 @@
         "ltap_lr8g_lte6_kit"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -4402,6 +4784,13 @@
       ],
       "tableModelCodes": [
         "RB912R-2nD-LTm"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RB912R-2nD-LTm",
+          "type": "FCC ID",
+          "id": "TV7RB912R-2NDLTM"
+        }
       ],
       "nonDefaultIps": [],
       "category": "LTE products",
@@ -4437,6 +4826,38 @@
         "RB912R-2nD-LTm&R11e-LTE-US",
         "RB912R-2nD-LTm&R11e-4G"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RB912R-2nD-LTm&R11e-LTE",
+          "type": "FCC ID",
+          "id": "TV7RB912R-2NDLTM"
+        },
+        {
+          "model": "RB912R-2nD-LTm&R11e-LTE-US",
+          "type": "FCC ID",
+          "id": "TV7RB912R-2NDLTM"
+        },
+        {
+          "model": "RB912R-2nD-LTm&R11e-4G",
+          "type": "FCC ID",
+          "id": "TV7RB912R-2NDLTM"
+        },
+        {
+          "model": "RB912R-2nD-LTm&R11e-LTE",
+          "type": "FCC ID",
+          "id": "TV7RB912R-2NDLTM"
+        },
+        {
+          "model": "RB912R-2nD-LTm&R11e-LTE-US",
+          "type": "IC",
+          "id": "7442A-912R2NDLTM"
+        },
+        {
+          "model": "RB912R-2nD-LTm&R11e-4G",
+          "type": "IC",
+          "id": "7442A-912R2NDLTM"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-table",
@@ -4461,6 +4882,7 @@
       "isSeries": true,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Antennas",
       "cause": "no-product-link",
@@ -4482,6 +4904,13 @@
       "tableModelCodes": [
         "RBD22UGS-5HPacD2HnD-15S"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBD22UGS-5HPacD2HnD-15S",
+          "type": "FCC ID",
+          "id": "TV7D2352AC"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -4501,6 +4930,7 @@
         "mantbox_ax_15s"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-slug",
@@ -4530,6 +4960,23 @@
         "RB921GS-5HPacD-19S",
         "RB911G-2HPnD-12S"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RB921GS-5HPacD-15S",
+          "type": "FCC ID",
+          "id": "TV7RB921G-5HPACD"
+        },
+        {
+          "model": "RB921GS-5HPacD-19S",
+          "type": "FCC ID",
+          "id": "TV7RB921G-5HPACD"
+        },
+        {
+          "model": "RB911G-2HPnD-12S",
+          "type": "FCC ID",
+          "id": "TV7RB911G2HPND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-slug",
@@ -4551,6 +4998,7 @@
         "RBmAP2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -4572,6 +5020,7 @@
         "RBmAPL-2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -4594,6 +5043,13 @@
       ],
       "tableModelCodes": [
         "RBMetalG-52SHPacn"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBMetalG-52SHPacn",
+          "type": "FCC ID",
+          "id": "TV7MTLG52SHPN"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
@@ -4618,6 +5074,13 @@
       "tableModelCodes": [
         "RBMQS"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBMQS",
+          "type": "FCC ID",
+          "id": "TV7MQS"
+        }
+      ],
       "nonDefaultIps": [
         "192.168.88.3"
       ],
@@ -4640,6 +5103,7 @@
         "mtp250_26v94_od"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "unmatched",
@@ -4662,6 +5126,13 @@
       "tableModelCodes": [
         "RBDisc-5nD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBDisc-5nD",
+          "type": "FCC ID",
+          "id": "TV7RB922-5HPACTM"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -4683,6 +5154,13 @@
       ],
       "tableModelCodes": [
         "RBDisc-5nD"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBDisc-5nD",
+          "type": "FCC ID",
+          "id": "TV7RB922-5HPACTM"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
@@ -4711,6 +5189,7 @@
         "netfiber_9"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -4738,6 +5217,7 @@
         "netmetal_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-slug",
@@ -4759,6 +5239,7 @@
         "netmetal_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-slug",
@@ -4780,6 +5261,7 @@
         "RB922UAGS-5HPacD-NM"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-code",
@@ -4801,6 +5283,7 @@
         "crs318_1fi_15fr_2s_out"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -4828,6 +5311,7 @@
         "netpower_16p"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -4855,6 +5339,7 @@
         "netpower_lite_7r"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -4882,6 +5367,7 @@
         "netpower_lite_ups"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -4909,6 +5395,7 @@
         "wireless_wire_nray"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2",
         "192.168.88.3"
@@ -4936,6 +5423,28 @@
         "RBOmniTikUPA-5HnD",
         "RBOmniTikU-5HnD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBOmniTikG-5HacD",
+          "type": "FCC ID",
+          "id": "TV7OMNITIKPG5HACD"
+        },
+        {
+          "model": "RBOmniTikPG-5HacD",
+          "type": "FCC ID",
+          "id": "TV7OMNITIKPG5HACD"
+        },
+        {
+          "model": "RBOmniTikUPA-5HnD",
+          "type": "FCC ID",
+          "id": "TV7RBOMNITIK5HND"
+        },
+        {
+          "model": "RBOmniTikU-5HnD",
+          "type": "FCC ID",
+          "id": "TV7RBOMNITIK5HND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-table",
@@ -4961,6 +5470,7 @@
         "RB750P-PBr2"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -4980,6 +5490,7 @@
         "RB960PGS-PB"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-code",
@@ -5003,6 +5514,7 @@
       "isSeries": false,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Data over Powerlines",
       "cause": "no-product-link",
@@ -5020,6 +5532,7 @@
       "isSeries": false,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Data over Powerlines",
       "cause": "no-product-link",
@@ -5039,6 +5552,7 @@
         "pl7510gi"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Data over Powerlines",
       "cause": "unmatched",
@@ -5058,6 +5572,7 @@
         "RBQRTG-2SHPnDr2"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -5077,6 +5592,7 @@
         "RB911G-5HPnD-QRT"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-code",
@@ -5102,6 +5618,7 @@
         "RB911G-5HPacD-QRT"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -5121,6 +5638,7 @@
         "acsmaufl"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -5146,6 +5664,7 @@
         "acsmaufl"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -5165,6 +5684,7 @@
         "acsmaufl"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -5191,6 +5711,7 @@
         "acsmaufl"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -5210,6 +5731,7 @@
         "acsmaufl"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -5239,6 +5761,38 @@
         "R11e-4G",
         "R11e-LTE6"
       ],
+      "regulatoryIds": [
+        {
+          "model": "R11e-LTE-US",
+          "type": "FCC ID",
+          "id": "TV7R11ELTE"
+        },
+        {
+          "model": "R11e-4G",
+          "type": "FCC ID",
+          "id": "TV7R11E4G"
+        },
+        {
+          "model": "R11e-LTE6",
+          "type": "FCC ID",
+          "id": "TV7R11ELTE6"
+        },
+        {
+          "model": "R11e-LTE-US",
+          "type": "IC",
+          "id": "7442A-R11ELTE"
+        },
+        {
+          "model": "R11e-4G",
+          "type": "IC",
+          "id": "7442A-R11E4G"
+        },
+        {
+          "model": "R11e-LTE6",
+          "type": "IC",
+          "id": "7442A-R11ELTE6"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -5259,6 +5813,7 @@
         "RB1100Dx4"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-code",
@@ -5282,6 +5837,7 @@
         "RB2011iL-IN"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -5301,6 +5857,7 @@
         "RB2011iL-RM"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -5321,6 +5878,7 @@
         "RB2011iLS-IN"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -5340,6 +5898,7 @@
         "RB2011UiAS-2HnD-IN"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "unmatched",
@@ -5360,6 +5919,7 @@
         "RB2011UiAS-IN"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -5379,6 +5939,7 @@
         "RB2011UiAS-RM"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -5399,6 +5960,7 @@
         "RB260GSP"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -5427,6 +5989,7 @@
         "RB3011UiAS-RM"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "unmatched",
@@ -5447,6 +6010,18 @@
       ],
       "tableModelCodes": [
         "RB4011iGS+5HacQ2HnD-IN"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RB4011iGS+5HacQ2HnD-IN",
+          "type": "FCC ID",
+          "id": "TV74011GS-5HQ2HD"
+        },
+        {
+          "model": "RB4011iGS+5HacQ2HnD-IN",
+          "type": "IC",
+          "id": "7442A-4011G5Q2"
+        }
       ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
@@ -5473,6 +6048,7 @@
         "rb4011igs_rm"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -5498,6 +6074,7 @@
         "rb450gx4"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "matched-by-code",
@@ -5519,6 +6096,7 @@
         "rb5009ug_s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -5544,6 +6122,7 @@
         "rb5009upr_s_in"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -5569,6 +6148,7 @@
         "rb5009_out"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
@@ -5594,6 +6174,7 @@
         "RB911G-5HPnD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "matched-by-code",
@@ -5619,6 +6200,18 @@
         "RB912UAG-5HPnD",
         "RB912UAG-2HPnD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RB912UAG-5HPnD",
+          "type": "FCC ID",
+          "id": "TV7RB912G-5HPNDM"
+        },
+        {
+          "model": "RB912UAG-2HPnD",
+          "type": "FCC ID",
+          "id": "TV7RB912G-2HPND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "matched-by-code",
@@ -5641,6 +6234,7 @@
         "RB922UAGS-5HPacD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "matched-by-code",
@@ -5664,6 +6258,7 @@
         "knot_lr9g_kit"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -5701,6 +6296,18 @@
         "RB951G-2HnD",
         "RB951Ui-2HnD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RB951G-2HnD",
+          "type": "FCC ID",
+          "id": "TV7RB951G-2HND"
+        },
+        {
+          "model": "RB951Ui-2HnD",
+          "type": "FCC ID",
+          "id": "TV7RB951U-2HND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-code",
@@ -5722,6 +6329,7 @@
         "RBFTC11"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "unmatched",
@@ -5741,6 +6349,7 @@
         "m11g"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "unmatched",
@@ -5760,6 +6369,7 @@
         "rbm33g"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "RouterBOARD",
       "cause": "matched-by-code",
@@ -5781,6 +6391,7 @@
         "rds2216"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -5806,6 +6417,7 @@
         "S-3553LC20D"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Interfaces",
       "cause": "unmatched",
@@ -5825,6 +6437,7 @@
         "RBSEXTANTG-5HPnD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -5842,6 +6455,7 @@
       "isSeries": false,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "no-product-link",
@@ -5861,6 +6475,7 @@
         "rbsxtg_6hpnd"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "unmatched",
@@ -5883,6 +6498,7 @@
         "RBSXTR&R11e-LTE-US",
         "RBSXTR&R11e-LTE"
       ],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -5904,6 +6520,7 @@
         "sxt_r"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -5924,6 +6541,7 @@
         "RBSXTG-5HPnD-SAr2",
         "RBSXTG-5HPacD-SAr2"
       ],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-table",
@@ -5949,6 +6567,7 @@
         "qm_x"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-slug",
@@ -5976,6 +6595,7 @@
         "sxtsq_emb_lte4"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.188.1"
       ],
@@ -6015,6 +6635,28 @@
         "SXTsq 5 ac",
         "SXTsq Lite2"
       ],
+      "regulatoryIds": [
+        {
+          "model": "SXTsq Lite5",
+          "type": "FCC ID",
+          "id": "TV7LHG5NDM"
+        },
+        {
+          "model": "SXTsq 5",
+          "type": "FCC ID",
+          "id": "TV7LHG5HPND"
+        },
+        {
+          "model": "SXTsq 5 ac",
+          "type": "FCC ID",
+          "id": "TV7LHG5ACD"
+        },
+        {
+          "model": "SXTsq Lite2",
+          "type": "FCC ID",
+          "id": "TV7SXTSQ-2ND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Wireless systems",
       "cause": "matched-by-code",
@@ -6044,6 +6686,13 @@
       "tableModelCodes": [
         "TG-BT5-IN"
       ],
+      "regulatoryIds": [
+        {
+          "model": "TG-BT5-IN",
+          "type": "FCC ID",
+          "id": "TV7-TB5I"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -6065,6 +6714,13 @@
       "tableModelCodes": [
         "TG-BT5-OUT"
       ],
+      "regulatoryIds": [
+        {
+          "model": "TG-BT5-OUT",
+          "type": "FCC ID",
+          "id": "TV7-TB5O"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -6084,6 +6740,7 @@
         "tg_lr82"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -6105,6 +6762,13 @@
       "tableModelCodes": [
         "TG-LR92"
       ],
+      "regulatoryIds": [
+        {
+          "model": "TG-LR92",
+          "type": "FCC ID",
+          "id": "TV7-TGLR92"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "unmatched",
@@ -6124,6 +6788,7 @@
         "up1302c_12"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Accessories",
       "cause": "unmatched",
@@ -6150,6 +6815,28 @@
         "RBwAPG-60ad-A",
         "RBwAPG-60ad-SA"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBwAPG-60adkit",
+          "type": "FCC ID",
+          "id": "TV7WAPG60AD"
+        },
+        {
+          "model": "RBwAPG-60ad",
+          "type": "FCC ID",
+          "id": "TV7WAPG60AD"
+        },
+        {
+          "model": "RBwAPG-60ad-A",
+          "type": "FCC ID",
+          "id": "TV7WAPG60AD"
+        },
+        {
+          "model": "RBwAPG-60ad-SA",
+          "type": "FCC ID",
+          "id": "TV7WAPG60ADM"
+        }
+      ],
       "nonDefaultIps": [
         "192.168.88.2"
       ],
@@ -6174,6 +6861,18 @@
         "RBwAPG-5HacD2HnD-US",
         "RBwAPG-5HacD2HnD-BE-US"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBwAPG-5HacD2HnD-US",
+          "type": "FCC ID",
+          "id": "TV7WAPGR5AC2D"
+        },
+        {
+          "model": "RBwAPG-5HacD2HnD-BE-US",
+          "type": "FCC ID",
+          "id": "TV7WAPGR5AC2D"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "unmatched",
@@ -6197,6 +6896,38 @@
         "wAP ac LTE kit",
         "wAP ac 4G kit"
       ],
+      "regulatoryIds": [
+        {
+          "model": "wAP ac LTE6 kit",
+          "type": "FCC ID",
+          "id": "TV7WAPGR5AC2D"
+        },
+        {
+          "model": "wAP ac LTE kit",
+          "type": "FCC ID",
+          "id": "TV7WAPGR5AC2D"
+        },
+        {
+          "model": "wAP ac 4G kit",
+          "type": "FCC ID",
+          "id": "TV7WAPGR5AC2D"
+        },
+        {
+          "model": "wAP ac LTE6 kit",
+          "type": "IC",
+          "id": "7442A-WAPGR5AC2D"
+        },
+        {
+          "model": "wAP ac LTE kit",
+          "type": "IC",
+          "id": "7442A-WAPGR5AC2D"
+        },
+        {
+          "model": "wAP ac 4G kit",
+          "type": "FCC ID",
+          "id": "TV7WAPGR5AC2D"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -6216,6 +6947,7 @@
         "wap_ax"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "matched-by-slug",
@@ -6241,6 +6973,7 @@
         "wap_ax_lte7"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-slug",
@@ -6270,6 +7003,28 @@
         "wAP LTE kit",
         "wAP 4G kit"
       ],
+      "regulatoryIds": [
+        {
+          "model": "wAP LTE kit",
+          "type": "FCC ID",
+          "id": "TV7WAPR2ND"
+        },
+        {
+          "model": "wAP 4G kit",
+          "type": "FCC ID",
+          "id": "TV7WAPR2ND"
+        },
+        {
+          "model": "wAP LTE kit",
+          "type": "IC",
+          "id": "7442A-WAPR2ND"
+        },
+        {
+          "model": "wAP 4G kit",
+          "type": "IC",
+          "id": "7442A-WAPR2ND"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -6289,6 +7044,7 @@
         "tof_2400_8v_4"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -6316,6 +7072,7 @@
         "868_omni_antenna"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -6338,6 +7095,18 @@
       ],
       "tableModelCodes": [
         "RBwAPR-2nD&R11e-LoRa9"
+      ],
+      "regulatoryIds": [
+        {
+          "model": "RBwAPR-2nD&R11e-LoRa9",
+          "type": "FCC ID",
+          "id": "TV7WAPR2ND"
+        },
+        {
+          "model": "RBwAPR-2nD&R11e-LoRa9",
+          "type": "IC",
+          "id": "7442A-WAPR2ND"
+        }
       ],
       "nonDefaultIps": [],
       "category": "IoT products",
@@ -6367,6 +7136,7 @@
         "915_omni_antenna"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
       "cause": "matched-by-slug",
@@ -6388,6 +7158,7 @@
         "wap_lte_kit"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-slug",
@@ -6409,6 +7180,7 @@
         "RBwAPR-2nD"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "matched-by-code",
@@ -6435,6 +7207,13 @@
       "tableModelCodes": [
         "RBwAPGR-5HacD2HnD"
       ],
+      "regulatoryIds": [
+        {
+          "model": "RBwAPGR-5HacD2HnD",
+          "type": "FCC ID",
+          "id": "TV7WAPGR5AC2D"
+        }
+      ],
       "nonDefaultIps": [],
       "category": "LTE products",
       "cause": "unmatched",
@@ -6452,6 +7231,7 @@
       "isSeries": true,
       "productLinks": [],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "no-product-link",
@@ -6477,6 +7257,13 @@
       "tableModelCodes": [
         "CubeG-5ac60adpair"
       ],
+      "regulatoryIds": [
+        {
+          "model": "CubeG-5ac60adpair",
+          "type": "FCC ID",
+          "id": "TV7CB5A60"
+        }
+      ],
       "nonDefaultIps": [
         "192.168.88.2",
         "192.168.88.3"
@@ -6500,6 +7287,7 @@
         "cube_60pro_ac"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2",
         "192.168.88.3"
@@ -6533,6 +7321,7 @@
         "wireless_wire_dish"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [
         "192.168.88.2",
         "192.168.88.3"
@@ -6557,6 +7346,13 @@
       "tableModelCodes": [
         "Woobm-USB"
       ],
+      "regulatoryIds": [
+        {
+          "model": "Woobm-USB",
+          "type": "FCC ID",
+          "id": "TV7WBM"
+        }
+      ],
       "nonDefaultIps": [
         "192.168.4.1",
         "192.168.4.2",
@@ -6580,6 +7376,7 @@
         "wsap_ac_lite"
       ],
       "tableModelCodes": [],
+      "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Indoor wireless",
       "cause": "unmatched",
