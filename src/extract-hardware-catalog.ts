@@ -532,8 +532,10 @@ export function buildCatalog(
 
     const attr = byName.get(row.name);
     const slugList = attr ? [...attr.slugs].sort() : [];
-    const category = slugList.map((s) => pageBySlug.get(s)?.category).find((c) => c != null) ?? null;
-    const sourceHardwareSlug = slugList[0] ?? null;
+    // Derive category and source_hardware_slug from the SAME page so provenance stays coherent:
+    // prefer the first attributed slug that actually carries a category, else the first slug.
+    const sourceHardwareSlug = slugList.find((s) => pageBySlug.get(s)?.category != null) ?? slugList[0] ?? null;
+    const category = sourceHardwareSlug ? (pageBySlug.get(sourceHardwareSlug)?.category ?? null) : null;
 
     // Canonical identity family + candidate keys. subCodes/name are canonical; link/table
     // tokens are only trusted through the agreement gate inside findAgreeingWww().
@@ -545,11 +547,17 @@ export function buildCatalog(
     const ownCodes = [...row.subCodes, ...(attr ? [...attr.tableTokens] : [])];
     const meta = metaFor(ownCodes, slugList);
     const hardwareTitle = slugList.map((s) => pageBySlug.get(s)?.title).find((t) => !!t) ?? null;
+    // An allowlisted shared product identifies the *base unit* (e.g. "wAP R"/"LtAP mini"),
+    // and its shared /hardware page title does too — so for a kit that merely draws specs
+    // from that base, use the row's OWN matrix product name (never shared) as the display
+    // name; otherwise fall back to www title -> hardware page title -> matrix name.
+    const wwwNameIsShared = www !== null && SHARED_WWW_ALLOWLIST.has(normCode(www.code));
+    const name = wwwNameIsShared ? row.name : www?.title || hardwareTitle || row.name;
 
     catalogRows.push({
       rosettaDeviceId: id,
       deviceId,
-      name: www?.title || hardwareTitle || row.name,
+      name,
       category,
       discontinued: www ? (www.discontinued ? 1 : 0) : null,
       specsJson: buildSpecsJson(www, hardwareTitle, meta),
@@ -580,11 +588,12 @@ export function buildCatalog(
     recordWww(www);
 
     const meta = metaFor(page.tableModelCodes, [page.slug]);
+    const wwwNameIsShared = www !== null && SHARED_WWW_ALLOWLIST.has(normCode(www.code));
 
     catalogRows.push({
       rosettaDeviceId: id,
       deviceId: null,
-      name: www?.title || page.title,
+      name: (!wwwNameIsShared && www?.title) || page.title,
       category: page.category,
       discontinued: www ? (www.discontinued ? 1 : 0) : null,
       specsJson: buildSpecsJson(www, page.title, meta),
@@ -598,7 +607,7 @@ export function buildCatalog(
     addWwwAliases(book, www, id);
   }
 
-  const dropLedger = buildDropLedger(sortedPages, sortedMatrix, wwwProducts, effectiveMatches, attachedWwwCodes);
+  const dropLedger = buildDropLedger(sortedPages, sortedMatrix, wwwProducts, attachedWwwCodes);
 
   return {
     catalogRows,
@@ -618,7 +627,6 @@ function buildDropLedger(
   pages: HardwarePage[],
   matrixRows: MatrixRow[],
   wwwProducts: WwwProduct[],
-  effectiveMatches: Map<string, string[]>,
   attachedWwwCodes: Set<string>,
 ): DropEntry[] {
   const ledger: DropEntry[] = [];
@@ -649,19 +657,14 @@ function buildDropLedger(
     });
   }
 
-  // Pages and matrix rows always land in a row today (matched -> matrix row; unmatched ->
-  // standalone hw-* row; every matrix row is iterated), but assert it so a future change
-  // that starts dropping them surfaces here instead of silently.
-  const matrixNames = new Set(matrixRows.map((r) => r.name));
-  const attachedNames = new Set<string>();
-  for (const names of effectiveMatches.values()) for (const n of names) attachedNames.add(n);
+  // Every matrix row is iterated into its own row, and every page with a slug either gets
+  // attributed to a matrix row or becomes a standalone hw-<slug> row — so the only way a
+  // page can drop is a missing/empty slug. Ledger that case so it surfaces instead of
+  // vanishing; matrix rows have no drop path today (a future one would surface as a
+  // rosetta_device_id collision or unresolved-devices warning upstream).
   for (const p of pages) {
-    const matched = (effectiveMatches.get(p.slug) ?? []).length > 0;
-    // matched -> attributed to a matrix row; unmatched -> becomes hw-<slug>. Neither drops.
-    if (!matched && !p.slug) ledger.push({ kind: "hardware-page", id: p.slug, reason: "empty slug" });
+    if (!p.slug) ledger.push({ kind: "hardware-page", id: p.slug, reason: "page has no slug — cannot form a catalog row" });
   }
-  void matrixNames;
-  void attachedNames;
 
   ledger.sort((a, b) => a.kind.localeCompare(b.kind) || a.id.localeCompare(b.id));
   return ledger;
@@ -730,6 +733,22 @@ export function checkInvariants(result: BuildResult, wwwProducts: WwwProduct[]):
   // (4) Every row has a non-empty name (no nameless rows).
   const nameless = result.catalogRows.filter((r) => !r.name).map((r) => r.rosettaDeviceId);
   if (nameless.length > 0) failures.push(`${nameless.length} row(s) with an empty name: ${nameless.slice(0, 10).join(", ")}`);
+
+  // (5) Rows sharing an allowlisted shared www product must stay name-distinguishable. The
+  //     base unit legitimately keeps the shared www title, but a kit that also draws specs
+  //     from it must not inherit that same title — otherwise the base and its kits collapse
+  //     to one indistinguishable name (the exact regression that shipped wap-lr*-kit -> "wAP R").
+  const sharedGroups = new Map<string, { id: string; name: string }[]>();
+  for (const row of result.catalogRows) {
+    if (!row.sourceWwwCode || !SHARED_WWW_ALLOWLIST.has(normCode(row.sourceWwwCode))) continue;
+    getOrInit(sharedGroups, normCode(row.sourceWwwCode), () => []).push({ id: row.rosettaDeviceId, name: row.name });
+  }
+  for (const [code, rows] of sharedGroups) {
+    const names = new Set(rows.map((r) => r.name));
+    if (names.size < rows.length) {
+      failures.push(`shared www product ${code} attaches to ${rows.length} rows sharing only ${names.size} distinct name(s): ${rows.map((r) => `${r.id}="${r.name}"`).join(", ")}`);
+    }
+  }
 
   void rowById;
   return failures;

@@ -246,6 +246,19 @@ describe("INVARIANT — a www product attaches to at most one row, save the shar
     // The base radio's own code alias resolves to wAP R itself, not a kit (sole-code priority).
     const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a.rosettaDeviceId]));
     expect(byAlias.get("rbwapr-2nd")).toBe("wap-r");
+
+    // Kit rows keep their OWN display name — they must not inherit the shared base radio's
+    // "wAP R" title just because they draw specs from it (the shipped regression this catches).
+    const byId = new Map(result.catalogRows.map((r) => [r.rosettaDeviceId, r]));
+    expect(byId.get("wap-r")?.name).toBe("wAP R");
+    expect(byId.get("wap-lr8g-kit")?.name).toBe("wAP LR8G kit");
+    expect(byId.get("wap-lr9g-kit")?.name).toBe("wAP LR9G kit");
+    // And the name-distinctness invariant (5) fires when a kit does inherit the base name.
+    const collapsed: BuildResult = {
+      ...result,
+      catalogRows: result.catalogRows.map((r) => (r.sourceWwwCode?.toLowerCase() === "rbwapr-2nd" ? { ...r, name: "wAP R" } : r)),
+    };
+    expect(checkInvariants(collapsed, www).some((f) => f.includes("distinct name"))).toBe(true);
   });
 
   test("checkInvariants flags a non-allowlisted www product bound to two rows", () => {

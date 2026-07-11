@@ -473,7 +473,7 @@ export function initDb() {
   //
   // Superset of `devices` — covers accessories and legacy/EOL SKUs `devices` doesn't carry,
   // in addition to every device `devices` already has. `devices` itself is untouched (no
-  // schema change, no risk to routeros_device_lookup); `devices_id` links back for the
+  // schema change, no risk to routeros_device_lookup); `device_id` links back for the
   // rows matrix.csv also tracks. See briefings/B-0017-hardware-overlay-device-resolution.md
   // "Phased implementation plan" for the full rationale (specs_json over ~40 sparse columns
   // — spec-field coverage falls off sharply outside a small universal core).
@@ -527,7 +527,7 @@ export function initDb() {
   // spec columns where the row links to `devices`, and its alias count. Every future
   // consumer (MCP, TUI, ad-hoc SQL) should read this instead of re-deriving the
   // catalog<->devices<->aliases join. Recreated (not IF NOT EXISTS) so definition changes
-  // always take effect. The join is on device_id (the FK devices_id captured fresh at build
+  // always take effect. The join is on device_id (the FK captured fresh at build
   // time); extract-hardware-catalog.ts validates that FK against devices.product_name — the
   // UNIQUE, rename-stable key — on every write so a stale AUTOINCREMENT link fails loud.
   db.run("DROP VIEW IF EXISTS device_overview;");

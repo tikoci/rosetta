@@ -4343,7 +4343,7 @@
         },
         {
           "model": "RBLHG-60ad",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-LHG60AD"
         }
       ],
@@ -4448,22 +4448,22 @@
         },
         {
           "model": "LHG 2",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-LHG2ND"
         },
         {
           "model": "LHG 5",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-LHG5NDM"
         },
         {
           "model": "LHG 5 ac",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-LHG5ACD"
         },
         {
           "model": "LHG HP5",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-LHG5HPND"
         }
       ],
@@ -4608,7 +4608,7 @@
         },
         {
           "model": "RBLHG-5HPnD-XL",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-LHG5ACD2HPD"
         }
       ],
@@ -4671,7 +4671,7 @@
         },
         {
           "model": "RBLtAP-2HnD",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-LTAP2HND"
         }
       ],
@@ -4844,7 +4844,7 @@
         },
         {
           "model": "RB912R-2nD-LTm&R11e-LTE",
-          "type": "IC",
+          "type": "FCC ID",
           "id": "TV7RB912R-2NDLTM"
         },
         {
@@ -5779,17 +5779,17 @@
         },
         {
           "model": "R11e-LTE-US",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-R11ELTE"
         },
         {
           "model": "R11e-4G",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-R11E4G"
         },
         {
           "model": "R11e-LTE6",
-          "type": "FCC ID",
+          "type": "IC",
           "id": "7442A-R11ELTE6"
         }
       ],
@@ -6924,7 +6924,7 @@
         },
         {
           "model": "wAP ac 4G kit",
-          "type": "IC",
+          "type": "FCC ID",
           "id": "TV7WAPGR5AC2D"
         }
       ],

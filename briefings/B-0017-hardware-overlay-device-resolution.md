@@ -763,12 +763,36 @@ collisions) as the diffable review gate; schema is v8 (`name` column, `devices_i
 `--check-only`/failed runs leave the DB untouched; and the write fails loud on a stale `device_id`.
 
 **Issue #35 FCC-as-identity question, answered with data:** of 253 catalog rows, **51 carry an FCC ID** and
-6 carry an IC number (`assess-hardware.ts` now captures both from the Model-column regulatory tables — 87
-FCC / 15 IC IDs across 48 `/hardware` pages). Across those 51 rows there are 55 distinct FCC IDs, but **12
-FCC IDs are shared across more than one catalog row** (a single grant covers hardware/regional variants —
-e.g. `TV7RB912G-2HPND`, `TV7D25-5HPQ2HP`). Conclusion: **FCC ID is not a viable primary device identity** —
-coverage is only ~20% of rows and the IDs are not 1:1 with devices. Kept as a searchable secondary
-attribute in `specs_json`, not promoted to an identity key.
+11 carry an IC number (`assess-hardware.ts` now captures both from the Model-column regulatory tables — 79
+FCC / 23 IC IDs across 48 `/hardware` pages, after the value-shape canonicalizer corrects mislabelled
+columns; see the Phase 1.6 note below). Across those 51 rows there are 45 distinct FCC IDs, but **12 FCC IDs
+are shared across more than one catalog row** (a single grant covers hardware/regional variants — e.g.
+`TV7RB912G-2HPND` on basebox-5/rb912uag-2hpnd, `TV7GRV-A52HPN` on groove-52/groovea-52). Conclusion:
+**FCC ID is not a viable primary device identity** — coverage is only ~20% of rows and the IDs are not 1:1
+with devices. Kept as a searchable secondary attribute in `specs_json`, not promoted to an identity key.
+
+## Phase 1.6 — CodeRabbit review round (2026-07-11, PR #36)
+
+A second CodeRabbit pass on the Phase 1.5 push surfaced defects the invariants had not yet covered; all
+verified against the code before fixing:
+
+- **Shared-kit rows inherited the base radio's display name.** For an allowlisted shared spec source, the
+  name fell through to the *shared* www title (and, for LtAP mini, the shared `/hardware` page title too), so
+  `wap-lr2/lr8g/lr9g-kit` all read `"wAP R"` and `ltap-mini-lte-kit` read `"LtAP mini"` — indistinguishable
+  from the base unit. Fixed by using the row's own matrix product name for allowlisted-shared rows (its
+  identity is never shared), and added **`checkInvariants` #5**: rows sharing one allowlisted www product
+  must have distinct names. Now 4/4 and 2/2 distinct.
+- **Regulatory IDs were mistyped by column header.** Several Model-column tables have swapped/mangled FCC-ID
+  and IC headers, so 10 IC values (`7442A-…`) were typed `"FCC ID"` and 2 FCC values (`TV7…`) typed `"IC"`.
+  Added a value-shape canonicalizer (ISED `7442A-` → IC, FCC grantee `TV7` → FCC ID) so `_fcc_id`/`_ic`
+  split correctly downstream; IC row coverage rose 6 → 11.
+- **`extract-devices` FK-delete ordering.** The new `hardware_catalog.device_id → devices(id)` FK made
+  `DELETE FROM devices` fail once the catalog was populated, breaking the *core* pipeline on any re-run.
+  `extract-devices` now clears `hardware_catalog`/`device_aliases` before `devices` (mirroring
+  `device_test_results`), since re-extracting devices invalidates those AUTOINCREMENT links anyway.
+- **Provenance + dead code.** `category` and `source_hardware_slug` now derive from the same `/hardware`
+  page; removed the `void`-ed accounting scaffolding in `buildDropLedger` and stale `devices_id` comments in
+  `db.ts`/`Makefile`.
 
 ## Open questions
 

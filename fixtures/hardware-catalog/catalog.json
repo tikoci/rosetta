@@ -7,7 +7,7 @@
   "rows": [
     {
       "rosettaDeviceId": "atl-5g-r16",
-      "deviceId": 157,
+      "deviceId": 313,
       "name": "ATL 5G R16",
       "category": "LTE products",
       "discontinued": 0,
@@ -17,7 +17,7 @@
     },
     {
       "rosettaDeviceId": "atl-lte18-kit",
-      "deviceId": 158,
+      "deviceId": 314,
       "name": "ATL LTE18 kit",
       "category": "LTE products",
       "discontinued": 0,
@@ -27,7 +27,7 @@
     },
     {
       "rosettaDeviceId": "basebox-5",
-      "deviceId": 159,
+      "deviceId": 315,
       "name": "BaseBox 5",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -37,7 +37,7 @@
     },
     {
       "rosettaDeviceId": "cap",
-      "deviceId": 160,
+      "deviceId": 316,
       "name": "cAP",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -47,7 +47,7 @@
     },
     {
       "rosettaDeviceId": "cap-ac",
-      "deviceId": 161,
+      "deviceId": 317,
       "name": "cAP ac",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -57,7 +57,7 @@
     },
     {
       "rosettaDeviceId": "cap-ax",
-      "deviceId": 162,
+      "deviceId": 318,
       "name": "cAP ax",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -67,7 +67,7 @@
     },
     {
       "rosettaDeviceId": "cap-lite",
-      "deviceId": 163,
+      "deviceId": 319,
       "name": "cAP lite",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -77,7 +77,7 @@
     },
     {
       "rosettaDeviceId": "cap-lte12-ax",
-      "deviceId": 164,
+      "deviceId": 320,
       "name": "cAP LTE12 ax",
       "category": "LTE products",
       "discontinued": 0,
@@ -87,7 +87,7 @@
     },
     {
       "rosettaDeviceId": "cap-xl-ac",
-      "deviceId": 165,
+      "deviceId": 321,
       "name": "cAP XL ac",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -97,7 +97,7 @@
     },
     {
       "rosettaDeviceId": "ccr2004-16g-2s-plus",
-      "deviceId": 168,
+      "deviceId": 324,
       "name": "CCR2004-16G-2S+",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -107,7 +107,7 @@
     },
     {
       "rosettaDeviceId": "ccr2004-16g-2s-plus-pc",
-      "deviceId": 169,
+      "deviceId": 325,
       "name": "CCR2004-16G-2S+PC",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -117,7 +117,7 @@
     },
     {
       "rosettaDeviceId": "ccr2004-1g-12s-plus-2xs",
-      "deviceId": 167,
+      "deviceId": 323,
       "name": "CCR2004-1G-12S+2XS",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -127,7 +127,7 @@
     },
     {
       "rosettaDeviceId": "ccr2004-1g-2xs-pcie",
-      "deviceId": 166,
+      "deviceId": 322,
       "name": "CCR2004-1G-2XS-PCIe",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -137,7 +137,7 @@
     },
     {
       "rosettaDeviceId": "ccr2116-12g-4s-plus",
-      "deviceId": 170,
+      "deviceId": 326,
       "name": "CCR2116-12G-4S+",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -147,7 +147,7 @@
     },
     {
       "rosettaDeviceId": "ccr2216-1g-12xs-2xq",
-      "deviceId": 171,
+      "deviceId": 327,
       "name": "CCR2216-1G-12XS-2XQ",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -157,7 +157,7 @@
     },
     {
       "rosettaDeviceId": "chateau-5g-r17-ax",
-      "deviceId": 172,
+      "deviceId": 328,
       "name": "Chateau 5G R17 ax",
       "category": "LTE products",
       "discontinued": 0,
@@ -167,7 +167,7 @@
     },
     {
       "rosettaDeviceId": "chateau-lte12-2025",
-      "deviceId": 176,
+      "deviceId": 332,
       "name": "Chateau LTE6-US",
       "category": "LTE products",
       "discontinued": null,
@@ -177,7 +177,7 @@
     },
     {
       "rosettaDeviceId": "chateau-lte18-ax",
-      "deviceId": 177,
+      "deviceId": 333,
       "name": "Chateau LTE18 ax",
       "category": "LTE products",
       "discontinued": 0,
@@ -187,7 +187,7 @@
     },
     {
       "rosettaDeviceId": "chateau-lte6-us",
-      "deviceId": 173,
+      "deviceId": 329,
       "name": "Chateau LTE6-US",
       "category": "LTE products",
       "discontinued": 0,
@@ -197,7 +197,7 @@
     },
     {
       "rosettaDeviceId": "chateau-lte7",
-      "deviceId": 174,
+      "deviceId": 330,
       "name": "Chateau LTE7",
       "category": "LTE products",
       "discontinued": 0,
@@ -207,7 +207,7 @@
     },
     {
       "rosettaDeviceId": "chateau-lte7-ax",
-      "deviceId": 175,
+      "deviceId": 331,
       "name": "Chateau LTE7 ax",
       "category": "LTE products",
       "discontinued": 0,
@@ -217,7 +217,7 @@
     },
     {
       "rosettaDeviceId": "chateau-pro-ax",
-      "deviceId": 178,
+      "deviceId": 334,
       "name": "Chateau PRO ax",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -227,7 +227,7 @@
     },
     {
       "rosettaDeviceId": "cme-gateway",
-      "deviceId": 179,
+      "deviceId": 335,
       "name": "CME Gateway",
       "category": "IoT products",
       "discontinued": 0,
@@ -237,7 +237,7 @@
     },
     {
       "rosettaDeviceId": "crs106-1c-5s",
-      "deviceId": 180,
+      "deviceId": 336,
       "name": "CRS106-1C-5S",
       "category": "Switches",
       "discontinued": 0,
@@ -247,7 +247,7 @@
     },
     {
       "rosettaDeviceId": "crs112-8p-4s-in",
-      "deviceId": 181,
+      "deviceId": 337,
       "name": "CRS112-8P-4S-IN",
       "category": "Switches",
       "discontinued": 0,
@@ -257,7 +257,7 @@
     },
     {
       "rosettaDeviceId": "crs304-4xg-in",
-      "deviceId": 182,
+      "deviceId": 338,
       "name": "CRS304-4XG-IN",
       "category": "Switches",
       "discontinued": 0,
@@ -267,7 +267,7 @@
     },
     {
       "rosettaDeviceId": "crs305-1g-4s-plus-in",
-      "deviceId": 183,
+      "deviceId": 339,
       "name": "CRS305-1G-4S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -277,7 +277,7 @@
     },
     {
       "rosettaDeviceId": "crs309-1g-8s-plus-in",
-      "deviceId": 184,
+      "deviceId": 340,
       "name": "CRS309-1G-8S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -287,7 +287,7 @@
     },
     {
       "rosettaDeviceId": "crs310-1g-5s-4s-plus-in",
-      "deviceId": 185,
+      "deviceId": 341,
       "name": "CRS310-1G-5S-4S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -297,7 +297,7 @@
     },
     {
       "rosettaDeviceId": "crs310-8g-plus-2s-plus-in",
-      "deviceId": 186,
+      "deviceId": 342,
       "name": "CRS310-8G+2S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -307,7 +307,7 @@
     },
     {
       "rosettaDeviceId": "crs312-4c-plus-8xg-rm",
-      "deviceId": 187,
+      "deviceId": 343,
       "name": "CRS312-4C+8XG-RM",
       "category": "Switches",
       "discontinued": 0,
@@ -317,7 +317,7 @@
     },
     {
       "rosettaDeviceId": "crs317-1g-16s-plus-rm",
-      "deviceId": 188,
+      "deviceId": 344,
       "name": "CRS317-1G-16S+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -327,7 +327,7 @@
     },
     {
       "rosettaDeviceId": "crs320-8p-8b-4s-plus-rm",
-      "deviceId": 189,
+      "deviceId": 345,
       "name": "CRS320-8P-8B-4S+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -337,7 +337,7 @@
     },
     {
       "rosettaDeviceId": "crs326-24g-2s-plus-in",
-      "deviceId": 191,
+      "deviceId": 347,
       "name": "CRS326-24G-2S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -347,7 +347,7 @@
     },
     {
       "rosettaDeviceId": "crs326-24g-2s-plus-rm",
-      "deviceId": 192,
+      "deviceId": 348,
       "name": "CRS326-24G-2S+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -357,7 +357,7 @@
     },
     {
       "rosettaDeviceId": "crs326-24s-plus-2q-plus-rm",
-      "deviceId": 193,
+      "deviceId": 349,
       "name": "CRS326-24S+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -367,7 +367,7 @@
     },
     {
       "rosettaDeviceId": "crs326-4c-plus-20g-plus-2q-plus-rm",
-      "deviceId": 190,
+      "deviceId": 346,
       "name": "CRS326-4C+20G+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -377,7 +377,7 @@
     },
     {
       "rosettaDeviceId": "crs328-24p-4s-plus-rm",
-      "deviceId": 195,
+      "deviceId": 351,
       "name": "CRS328-24P-4S+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -387,7 +387,7 @@
     },
     {
       "rosettaDeviceId": "crs328-4c-20s-4s-plus-rm",
-      "deviceId": 194,
+      "deviceId": 350,
       "name": "CRS328-4C-20S-4S+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -397,7 +397,7 @@
     },
     {
       "rosettaDeviceId": "crs354-48g-4s-plus-2q-plus-rm",
-      "deviceId": 196,
+      "deviceId": 352,
       "name": "CRS354-48G-4S+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -407,7 +407,7 @@
     },
     {
       "rosettaDeviceId": "crs354-48p-4s-plus-2q-plus-rm",
-      "deviceId": 197,
+      "deviceId": 353,
       "name": "CRS354-48P-4S+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -417,7 +417,7 @@
     },
     {
       "rosettaDeviceId": "crs418-8p-8g-2s-plus-5axq2axq-rm",
-      "deviceId": 198,
+      "deviceId": 354,
       "name": "CRS418-8P-8G-2S+5axQ2axQ-RM",
       "category": "Switches",
       "discontinued": 0,
@@ -427,7 +427,7 @@
     },
     {
       "rosettaDeviceId": "crs418-8p-8g-2s-plus-rm",
-      "deviceId": 199,
+      "deviceId": 355,
       "name": "CRS418-8P-8G-2S+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -437,7 +437,7 @@
     },
     {
       "rosettaDeviceId": "crs504-4xq-in",
-      "deviceId": 200,
+      "deviceId": 356,
       "name": "CRS504-4XQ-IN",
       "category": "Switches",
       "discontinued": 0,
@@ -447,7 +447,7 @@
     },
     {
       "rosettaDeviceId": "crs504-4xq-out",
-      "deviceId": 201,
+      "deviceId": 357,
       "name": "CRS504-4XQ-OUT",
       "category": "Switches",
       "discontinued": 0,
@@ -457,7 +457,7 @@
     },
     {
       "rosettaDeviceId": "crs510-8xs-2xq-in",
-      "deviceId": 202,
+      "deviceId": 358,
       "name": "CRS510-8XS-2XQ-IN",
       "category": "Switches",
       "discontinued": 0,
@@ -467,7 +467,7 @@
     },
     {
       "rosettaDeviceId": "crs518-16xs-2xq-rm",
-      "deviceId": 203,
+      "deviceId": 359,
       "name": "CRS518-16XS-2XQ-RM",
       "category": "Switches",
       "discontinued": 0,
@@ -477,7 +477,7 @@
     },
     {
       "rosettaDeviceId": "crs520-4xs-16xq-rm",
-      "deviceId": 204,
+      "deviceId": 360,
       "name": "CRS520-4XS-16XQ-RM",
       "category": "Switches",
       "discontinued": 0,
@@ -487,7 +487,7 @@
     },
     {
       "rosettaDeviceId": "crs804-ddq",
-      "deviceId": 205,
+      "deviceId": 361,
       "name": "CRS804 DDQ",
       "category": "Switches",
       "discontinued": 0,
@@ -497,7 +497,7 @@
     },
     {
       "rosettaDeviceId": "crs812-ddq",
-      "deviceId": 206,
+      "deviceId": 362,
       "name": "CRS812 DDQ",
       "category": "Switches",
       "discontinued": 0,
@@ -507,7 +507,7 @@
     },
     {
       "rosettaDeviceId": "css318-16g-2s-plus-in",
-      "deviceId": 207,
+      "deviceId": 363,
       "name": "CSS318-16G-2S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -517,7 +517,7 @@
     },
     {
       "rosettaDeviceId": "css326-24g-2s-plus-rm",
-      "deviceId": 208,
+      "deviceId": 364,
       "name": "CSS326-24G-2S+RM",
       "category": "Switches",
       "discontinued": 0,
@@ -527,7 +527,7 @@
     },
     {
       "rosettaDeviceId": "css610-8g-2s-plus-in",
-      "deviceId": 209,
+      "deviceId": 365,
       "name": "CSS610-8G-2S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -537,7 +537,7 @@
     },
     {
       "rosettaDeviceId": "css610-8p-2s-plus-in",
-      "deviceId": 210,
+      "deviceId": 366,
       "name": "CSS610-8P-2S+IN",
       "category": "Switches",
       "discontinued": 0,
@@ -547,7 +547,7 @@
     },
     {
       "rosettaDeviceId": "cube-60pro-ac",
-      "deviceId": 211,
+      "deviceId": 367,
       "name": "Cube 60Pro ac",
       "category": "60 GHz products",
       "discontinued": 0,
@@ -557,7 +557,7 @@
     },
     {
       "rosettaDeviceId": "cubesa-60pro-ac",
-      "deviceId": 212,
+      "deviceId": 368,
       "name": "CubeSA 60Pro ac",
       "category": null,
       "discontinued": null,
@@ -567,7 +567,7 @@
     },
     {
       "rosettaDeviceId": "fiberbox-plus",
-      "deviceId": 213,
+      "deviceId": 369,
       "name": "FiberBox Plus",
       "category": "Switches",
       "discontinued": 0,
@@ -577,7 +577,7 @@
     },
     {
       "rosettaDeviceId": "ftc11xg",
-      "deviceId": 214,
+      "deviceId": 370,
       "name": "FTC11XG",
       "category": "Accessories",
       "discontinued": 0,
@@ -587,7 +587,7 @@
     },
     {
       "rosettaDeviceId": "ftc21-ups",
-      "deviceId": 215,
+      "deviceId": 371,
       "name": "FTC21-ups",
       "category": null,
       "discontinued": null,
@@ -597,7 +597,7 @@
     },
     {
       "rosettaDeviceId": "gpen21",
-      "deviceId": 216,
+      "deviceId": 372,
       "name": "GPEN21",
       "category": "Accessories",
       "discontinued": 0,
@@ -607,7 +607,7 @@
     },
     {
       "rosettaDeviceId": "gperx6",
-      "deviceId": 217,
+      "deviceId": 373,
       "name": "GPERx6",
       "category": "Switches",
       "discontinued": 0,
@@ -617,7 +617,7 @@
     },
     {
       "rosettaDeviceId": "groove-52",
-      "deviceId": 218,
+      "deviceId": 374,
       "name": "Groove 52",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -627,7 +627,7 @@
     },
     {
       "rosettaDeviceId": "groovea-52",
-      "deviceId": 219,
+      "deviceId": 375,
       "name": "GrooveA 52",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -637,7 +637,7 @@
     },
     {
       "rosettaDeviceId": "groovea-52-ac",
-      "deviceId": 220,
+      "deviceId": 376,
       "name": "GrooveA 52 ac",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -647,7 +647,7 @@
     },
     {
       "rosettaDeviceId": "hap",
-      "deviceId": 221,
+      "deviceId": 377,
       "name": "hAP",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -657,7 +657,7 @@
     },
     {
       "rosettaDeviceId": "hap-ac",
-      "deviceId": 222,
+      "deviceId": 378,
       "name": "hAP ac",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -667,7 +667,7 @@
     },
     {
       "rosettaDeviceId": "hap-ac-lite",
-      "deviceId": 223,
+      "deviceId": 379,
       "name": "hAP ac lite",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -677,7 +677,7 @@
     },
     {
       "rosettaDeviceId": "hap-ac-lite-tc",
-      "deviceId": 224,
+      "deviceId": 380,
       "name": "hAP ac lite TC",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -687,7 +687,7 @@
     },
     {
       "rosettaDeviceId": "hap-ac2",
-      "deviceId": 225,
+      "deviceId": 381,
       "name": "hAP ac²",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -697,7 +697,7 @@
     },
     {
       "rosettaDeviceId": "hap-ac3",
-      "deviceId": 226,
+      "deviceId": 382,
       "name": "hAP ac³",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -707,7 +707,7 @@
     },
     {
       "rosettaDeviceId": "hap-ax-lite",
-      "deviceId": 227,
+      "deviceId": 383,
       "name": "hAP ax lite",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -717,7 +717,7 @@
     },
     {
       "rosettaDeviceId": "hap-ax-s",
-      "deviceId": 228,
+      "deviceId": 384,
       "name": "hAP ax S",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -727,7 +727,7 @@
     },
     {
       "rosettaDeviceId": "hap-ax2",
-      "deviceId": 229,
+      "deviceId": 385,
       "name": "hAP ax²",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -737,7 +737,7 @@
     },
     {
       "rosettaDeviceId": "hap-ax3",
-      "deviceId": 230,
+      "deviceId": 386,
       "name": "hAP ax³",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -747,7 +747,7 @@
     },
     {
       "rosettaDeviceId": "hap-be-lite",
-      "deviceId": 231,
+      "deviceId": 387,
       "name": "hAP be lite",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -757,7 +757,7 @@
     },
     {
       "rosettaDeviceId": "hap-be3-media",
-      "deviceId": 232,
+      "deviceId": 388,
       "name": "hAP be³ Media",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -767,7 +767,7 @@
     },
     {
       "rosettaDeviceId": "hap-lite",
-      "deviceId": 233,
+      "deviceId": 389,
       "name": "hAP lite",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -777,7 +777,7 @@
     },
     {
       "rosettaDeviceId": "hap-lite-tc",
-      "deviceId": 234,
+      "deviceId": 390,
       "name": "hAP lite TC",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -787,7 +787,7 @@
     },
     {
       "rosettaDeviceId": "hex",
-      "deviceId": 235,
+      "deviceId": 391,
       "name": "hEX",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -797,7 +797,7 @@
     },
     {
       "rosettaDeviceId": "hex-lite",
-      "deviceId": 236,
+      "deviceId": 392,
       "name": "hEX lite",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -807,7 +807,7 @@
     },
     {
       "rosettaDeviceId": "hex-poe",
-      "deviceId": 237,
+      "deviceId": 393,
       "name": "hEX PoE",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -817,7 +817,7 @@
     },
     {
       "rosettaDeviceId": "hex-poe-lite",
-      "deviceId": 238,
+      "deviceId": 394,
       "name": "hEX PoE lite",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -827,7 +827,7 @@
     },
     {
       "rosettaDeviceId": "hex-refresh",
-      "deviceId": 239,
+      "deviceId": 395,
       "name": "hEX refresh",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -837,7 +837,7 @@
     },
     {
       "rosettaDeviceId": "hex-s",
-      "deviceId": 240,
+      "deviceId": 396,
       "name": "hEX S",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -847,7 +847,7 @@
     },
     {
       "rosettaDeviceId": "hex-s-2025",
-      "deviceId": 241,
+      "deviceId": 397,
       "name": "hEX S (2025)",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -1281,7 +1281,7 @@
       "name": "LHG Lite60",
       "category": "60 GHz products",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"LHG Lite60\",\"_non_default_ips\":[\"192.168.88.0\"],\"_fcc_id\":[\"7442A-LHG60AD\",\"TV7LHG60AD\"]}",
+      "specsJson": "{\"_hardware_title\":\"LHG Lite60\",\"_non_default_ips\":[\"192.168.88.0\"],\"_fcc_id\":[\"TV7LHG60AD\"],\"_ic\":[\"7442A-LHG60AD\"]}",
       "sourceHardwareSlug": "lhg-lite60",
       "sourceWwwCode": null
     },
@@ -1331,7 +1331,7 @@
       "name": "LtAP",
       "category": "LTE products",
       "discontinued": 1,
-      "specsJson": "{\"Product code\":\"RBLtAP-2HnD\",\"Suggested price\":\"$199.00\",\"Architecture\":\"MMIPS\",\"CPU\":\"MT7621A\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"880 MHz\",\"CPU Threads count\":\"4\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, Automotive)\",\"DC jack input Voltage\":\"12-30 V\",\"Automotive input Voltage\":\"12-27 V\",\"Max power consumption\":\"24 W\",\"Max power consumption without attachments\":\"9 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-30 V\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"2.5\",\"Wireless 2.4 GHz chip model\":\"AR9382\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of SIM slots\":\"3 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"2\",\"Serial console port\":\"RS232\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"GNSS standards\":\"GPS\",\"Certification\":\"CE, FCC, IC, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LtAP\",\"_www_tagline\":\"A heavy-duty 2.4GHz access point with two miniPCI-e slots, three SIM slots and GNSS support (GPS, GLONASS, BeiDou, Galileo)\",\"_hardware_title\":\"LtAP\",\"_fcc_id\":[\"7442A-LTAP2HND\",\"TV7LTAP2HND\"]}",
+      "specsJson": "{\"Product code\":\"RBLtAP-2HnD\",\"Suggested price\":\"$199.00\",\"Architecture\":\"MMIPS\",\"CPU\":\"MT7621A\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"880 MHz\",\"CPU Threads count\":\"4\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, Automotive)\",\"DC jack input Voltage\":\"12-30 V\",\"Automotive input Voltage\":\"12-27 V\",\"Max power consumption\":\"24 W\",\"Max power consumption without attachments\":\"9 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-30 V\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"2.5\",\"Wireless 2.4 GHz chip model\":\"AR9382\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of SIM slots\":\"3 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"2\",\"Serial console port\":\"RS232\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"GNSS standards\":\"GPS\",\"Certification\":\"CE, FCC, IC, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LtAP\",\"_www_tagline\":\"A heavy-duty 2.4GHz access point with two miniPCI-e slots, three SIM slots and GNSS support (GPS, GLONASS, BeiDou, Galileo)\",\"_hardware_title\":\"LtAP\",\"_fcc_id\":[\"TV7LTAP2HND\"],\"_ic\":[\"7442A-LTAP2HND\"]}",
       "sourceHardwareSlug": "ltap",
       "sourceWwwCode": "ltap"
     },
@@ -1521,7 +1521,7 @@
       "name": "R11e series",
       "category": "LTE products",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"R11e series\",\"_fcc_id\":[\"7442A-R11E4G\",\"7442A-R11ELTE\",\"7442A-R11ELTE6\",\"TV7R11E4G\",\"TV7R11ELTE\",\"TV7R11ELTE6\"]}",
+      "specsJson": "{\"_hardware_title\":\"R11e series\",\"_fcc_id\":[\"TV7R11E4G\",\"TV7R11ELTE\",\"TV7R11ELTE6\"],\"_ic\":[\"7442A-R11E4G\",\"7442A-R11ELTE\",\"7442A-R11ELTE6\"]}",
       "sourceHardwareSlug": "r11e-series",
       "sourceWwwCode": null
     },
@@ -1751,7 +1751,7 @@
       "name": "wAP ac kit-series",
       "category": "LTE products",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"wAP ac kit-series\",\"_fcc_id\":[\"TV7WAPGR5AC2D\"],\"_ic\":[\"7442A-WAPGR5AC2D\",\"TV7WAPGR5AC2D\"]}",
+      "specsJson": "{\"_hardware_title\":\"wAP ac kit-series\",\"_fcc_id\":[\"TV7WAPGR5AC2D\"],\"_ic\":[\"7442A-WAPGR5AC2D\"]}",
       "sourceHardwareSlug": "wap-ac-kit-series",
       "sourceWwwCode": null
     },
@@ -1827,7 +1827,7 @@
     },
     {
       "rosettaDeviceId": "knot",
-      "deviceId": 242,
+      "deviceId": 398,
       "name": "KNOT",
       "category": "IoT products",
       "discontinued": 0,
@@ -1837,7 +1837,7 @@
     },
     {
       "rosettaDeviceId": "knot-embedded-lte4",
-      "deviceId": 243,
+      "deviceId": 399,
       "name": "KNOT Embedded LTE4 EC25-EU&KNe",
       "category": "IoT products",
       "discontinued": null,
@@ -1847,7 +1847,7 @@
     },
     {
       "rosettaDeviceId": "knot-embedded-lte4-global",
-      "deviceId": 244,
+      "deviceId": 400,
       "name": "KNOT Embedded LTE4 Global",
       "category": "IoT products",
       "discontinued": 0,
@@ -1857,7 +1857,7 @@
     },
     {
       "rosettaDeviceId": "knot-lr8g-kit",
-      "deviceId": 245,
+      "deviceId": 401,
       "name": "KNOT LR8G kit",
       "category": "IoT products",
       "discontinued": 0,
@@ -1867,7 +1867,7 @@
     },
     {
       "rosettaDeviceId": "knot-lr9g-kit",
-      "deviceId": 246,
+      "deviceId": 402,
       "name": "KNOT LR9G kit",
       "category": "IoT products",
       "discontinued": 0,
@@ -1877,7 +1877,7 @@
     },
     {
       "rosettaDeviceId": "l009uigs-2haxd-in",
-      "deviceId": 247,
+      "deviceId": 403,
       "name": "L009UiGS-2HaxD-IN",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -1887,7 +1887,7 @@
     },
     {
       "rosettaDeviceId": "l009uigs-rm",
-      "deviceId": 248,
+      "deviceId": 404,
       "name": "L009UiGS-RM",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -1897,7 +1897,7 @@
     },
     {
       "rosettaDeviceId": "l11ug-5haxd",
-      "deviceId": 249,
+      "deviceId": 405,
       "name": "L11UG-5HaxD",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -1907,7 +1907,7 @@
     },
     {
       "rosettaDeviceId": "l23ugsr-5haxd2haxd",
-      "deviceId": 250,
+      "deviceId": 406,
       "name": "L23UGSR-5HaxD2HaxD",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -1917,7 +1917,7 @@
     },
     {
       "rosettaDeviceId": "lamp-5g-r16",
-      "deviceId": 251,
+      "deviceId": 407,
       "name": "LAMP 5G R16",
       "category": null,
       "discontinued": null,
@@ -1927,7 +1927,7 @@
     },
     {
       "rosettaDeviceId": "ldf-5",
-      "deviceId": 252,
+      "deviceId": 408,
       "name": "LDF 5",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -1937,17 +1937,17 @@
     },
     {
       "rosettaDeviceId": "lhg-5",
-      "deviceId": 253,
+      "deviceId": 409,
       "name": "LHG 5",
       "category": "Wireless systems",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"RBLHG-5nD\",\"Suggested price\":\"$69.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"AR9344\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"600 MHz\",\"Dimensions\":\"Ø 391 x 222 mm; package 450 x 450 x 145 mm\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"6 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"11-30 V\",\"Wireless 5 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n\",\"Antenna gain dBi for 5 GHz\":\"24.5\",\"Wireless 5 GHz chip model\":\"AR9344\",\"Wireless 5 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LHG 5\",\"_www_tagline\":\"Dual chain 24.5dBi 5GHz CPE/Point-to-Point Integrated Antenna, 600Mhz CPU, 64MB RAM\",\"_hardware_title\":\"LHG-series\",\"_fcc_id\":[\"7442A-LHG2ND\",\"7442A-LHG5ACD\",\"7442A-LHG5HPND\",\"7442A-LHG5NDM\",\"TV7LHG2ND\",\"TV7LHG5ACD\",\"TV7LHG5HPND\",\"TV7LHG5NDM\"]}",
+      "specsJson": "{\"Product code\":\"RBLHG-5nD\",\"Suggested price\":\"$69.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"AR9344\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"600 MHz\",\"Dimensions\":\"Ø 391 x 222 mm; package 450 x 450 x 145 mm\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"6 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"11-30 V\",\"Wireless 5 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n\",\"Antenna gain dBi for 5 GHz\":\"24.5\",\"Wireless 5 GHz chip model\":\"AR9344\",\"Wireless 5 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LHG 5\",\"_www_tagline\":\"Dual chain 24.5dBi 5GHz CPE/Point-to-Point Integrated Antenna, 600Mhz CPU, 64MB RAM\",\"_hardware_title\":\"LHG-series\",\"_fcc_id\":[\"TV7LHG2ND\",\"TV7LHG5ACD\",\"TV7LHG5HPND\",\"TV7LHG5NDM\"],\"_ic\":[\"7442A-LHG2ND\",\"7442A-LHG5ACD\",\"7442A-LHG5HPND\",\"7442A-LHG5NDM\"]}",
       "sourceHardwareSlug": "lhg-series",
       "sourceWwwCode": "RBLHG-5nD"
     },
     {
       "rosettaDeviceId": "lhg-5-ax",
-      "deviceId": 254,
+      "deviceId": 410,
       "name": "LHG 5 ax",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -1957,7 +1957,7 @@
     },
     {
       "rosettaDeviceId": "lhg-lte18-kit",
-      "deviceId": 256,
+      "deviceId": 412,
       "name": "LHG LTE18 kit",
       "category": "LTE products",
       "discontinued": 0,
@@ -1967,7 +1967,7 @@
     },
     {
       "rosettaDeviceId": "lhg-xl-5-ac",
-      "deviceId": 257,
+      "deviceId": 413,
       "name": "LHG XL 5 ac",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -1977,7 +1977,7 @@
     },
     {
       "rosettaDeviceId": "lhg-xl-5-ax",
-      "deviceId": 258,
+      "deviceId": 414,
       "name": "LHG XL 5 ax",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -1987,17 +1987,17 @@
     },
     {
       "rosettaDeviceId": "lhg-xl-hp5",
-      "deviceId": 259,
+      "deviceId": 415,
       "name": "LHG XL HP5",
       "category": "Wireless systems",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"RBLHG-5HPnD-XL\",\"Suggested price\":\"$89.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"AR9344\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"600 MHz\",\"Dimensions\":\"Ø 550 x 245 mm;\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"7 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-28 V\",\"Wireless 5 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n\",\"Antenna gain dBi for 5 GHz\":\"27\",\"Wireless 5 GHz chip model\":\"AR9344\",\"Wireless 5 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LHG XL HP5\",\"_www_tagline\":\"Dual chain eXtra Large High Power 27dBi 5GHz CPE/Point-to-Point Integrated Antenna\",\"_hardware_title\":\"LHG XL HP5\",\"_fcc_id\":[\"7442A-LHG5ACD2HPD\",\"TV7LHG5HPND\"]}",
+      "specsJson": "{\"Product code\":\"RBLHG-5HPnD-XL\",\"Suggested price\":\"$89.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"AR9344\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"600 MHz\",\"Dimensions\":\"Ø 550 x 245 mm;\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"7 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-28 V\",\"Wireless 5 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n\",\"Antenna gain dBi for 5 GHz\":\"27\",\"Wireless 5 GHz chip model\":\"AR9344\",\"Wireless 5 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LHG XL HP5\",\"_www_tagline\":\"Dual chain eXtra Large High Power 27dBi 5GHz CPE/Point-to-Point Integrated Antenna\",\"_hardware_title\":\"LHG XL HP5\",\"_fcc_id\":[\"TV7LHG5HPND\"],\"_ic\":[\"7442A-LHG5ACD2HPD\"]}",
       "sourceHardwareSlug": "lhg-xl-hp5",
       "sourceWwwCode": "RBLHG-5HPnD-XL"
     },
     {
       "rosettaDeviceId": "lhgg-lte7-kit",
-      "deviceId": 255,
+      "deviceId": 411,
       "name": "LHGG LTE7 kit",
       "category": null,
       "discontinued": null,
@@ -2007,7 +2007,7 @@
     },
     {
       "rosettaDeviceId": "ltap-lte7-kit",
-      "deviceId": 260,
+      "deviceId": 416,
       "name": "LtAP LTE7 kit",
       "category": null,
       "discontinued": null,
@@ -2017,7 +2017,7 @@
     },
     {
       "rosettaDeviceId": "ltap-mini",
-      "deviceId": 261,
+      "deviceId": 417,
       "name": "LtAP mini",
       "category": "LTE products",
       "discontinued": 0,
@@ -2027,8 +2027,8 @@
     },
     {
       "rosettaDeviceId": "ltap-mini-lte-kit",
-      "deviceId": 262,
-      "name": "LtAP mini",
+      "deviceId": 418,
+      "name": "LtAP mini LTE kit",
       "category": "LTE products",
       "discontinued": 0,
       "specsJson": "{\"Product code\":\"RB912R-2nD-LTm\",\"Suggested price\":\"$99.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Dimensions\":\"139 x 77 x 28,5 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"MicroUSB input Voltage\":\"5 V\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, MicroUSB)\",\"DC jack input Voltage\":\"8-30 V\",\"Max power consumption\":\"9 W\",\"Max power consumption without attachments\":\"4 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"1.5\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Number of SIM slots\":\"2 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"1\",\"Serial console port\":\"RS232\",\"Mode button\":\"Yes\",\"GNSS standards\":\"GPS\",\"GPS RF connector type\":\"uUFL\",\"Certification\":\"CE, FCC, IC, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LtAP mini\",\"_www_tagline\":\"Small weatherproof wireless access point with LTE antennas, two SIM slots, integrated GPS and miniPCI-e slot\",\"_hardware_title\":\"LtAP mini\",\"_fcc_id\":[\"TV7RB912R-2NDLTM\"]}",
@@ -2037,7 +2037,7 @@
     },
     {
       "rosettaDeviceId": "mantbox-2-12s",
-      "deviceId": 263,
+      "deviceId": 419,
       "name": "mANTBox 2 12s",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2047,7 +2047,7 @@
     },
     {
       "rosettaDeviceId": "mantbox-ax-15s",
-      "deviceId": 264,
+      "deviceId": 420,
       "name": "mANTBox ax 15s",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2057,7 +2057,7 @@
     },
     {
       "rosettaDeviceId": "map",
-      "deviceId": 265,
+      "deviceId": 421,
       "name": "mAP",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -2067,7 +2067,7 @@
     },
     {
       "rosettaDeviceId": "map-lite",
-      "deviceId": 266,
+      "deviceId": 422,
       "name": "mAP lite",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -2077,7 +2077,7 @@
     },
     {
       "rosettaDeviceId": "metal-52-ac",
-      "deviceId": 267,
+      "deviceId": 423,
       "name": "Metal 52 ac",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2087,7 +2087,7 @@
     },
     {
       "rosettaDeviceId": "netbox-5-ax",
-      "deviceId": 268,
+      "deviceId": 424,
       "name": "NetBox 5 ax",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2097,7 +2097,7 @@
     },
     {
       "rosettaDeviceId": "netfiber-9",
-      "deviceId": 269,
+      "deviceId": 425,
       "name": "netFiber 9",
       "category": "Switches",
       "discontinued": 0,
@@ -2107,7 +2107,7 @@
     },
     {
       "rosettaDeviceId": "netmetal-5",
-      "deviceId": 270,
+      "deviceId": 426,
       "name": "NetMetal 5",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2117,7 +2117,7 @@
     },
     {
       "rosettaDeviceId": "netmetal-ax",
-      "deviceId": 271,
+      "deviceId": 427,
       "name": "NetMetal ax",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2127,7 +2127,7 @@
     },
     {
       "rosettaDeviceId": "netpower-15fr",
-      "deviceId": 272,
+      "deviceId": 428,
       "name": "netPower 15FR",
       "category": "Switches",
       "discontinued": 0,
@@ -2137,7 +2137,7 @@
     },
     {
       "rosettaDeviceId": "netpower-16p",
-      "deviceId": 273,
+      "deviceId": 429,
       "name": "netPower 16P",
       "category": "Switches",
       "discontinued": 0,
@@ -2147,7 +2147,7 @@
     },
     {
       "rosettaDeviceId": "netpower-lite-7r",
-      "deviceId": 274,
+      "deviceId": 430,
       "name": "netPower Lite 7R",
       "category": "Switches",
       "discontinued": 0,
@@ -2157,7 +2157,7 @@
     },
     {
       "rosettaDeviceId": "netpower-lite-8p",
-      "deviceId": 275,
+      "deviceId": 431,
       "name": "netPower Lite 8P",
       "category": "Switches",
       "discontinued": 0,
@@ -2167,7 +2167,7 @@
     },
     {
       "rosettaDeviceId": "omnitik-5-poe-ac",
-      "deviceId": 276,
+      "deviceId": 432,
       "name": "OmniTIK 5 PoE ac",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2177,7 +2177,7 @@
     },
     {
       "rosettaDeviceId": "powerbox-pro",
-      "deviceId": 277,
+      "deviceId": 433,
       "name": "PowerBox Pro",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2187,7 +2187,7 @@
     },
     {
       "rosettaDeviceId": "qrt-5",
-      "deviceId": 278,
+      "deviceId": 434,
       "name": "QRT 5",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2197,7 +2197,7 @@
     },
     {
       "rosettaDeviceId": "r11e-lte7",
-      "deviceId": 279,
+      "deviceId": 435,
       "name": "R11e-LTE7",
       "category": null,
       "discontinued": null,
@@ -2207,7 +2207,7 @@
     },
     {
       "rosettaDeviceId": "rb1100ahx4",
-      "deviceId": 288,
+      "deviceId": 444,
       "name": "RB1100AHx4",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2217,7 +2217,7 @@
     },
     {
       "rosettaDeviceId": "rb1100ahx4-dude-edition",
-      "deviceId": 289,
+      "deviceId": 445,
       "name": "RB1100AHx4 Dude Edition",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2227,7 +2227,7 @@
     },
     {
       "rosettaDeviceId": "rb260gs",
-      "deviceId": 280,
+      "deviceId": 436,
       "name": "RB260GS",
       "category": "Switches",
       "discontinued": 0,
@@ -2237,7 +2237,7 @@
     },
     {
       "rosettaDeviceId": "rb260gsp",
-      "deviceId": 281,
+      "deviceId": 437,
       "name": "RB260GSP",
       "category": "Switches",
       "discontinued": 0,
@@ -2247,7 +2247,7 @@
     },
     {
       "rosettaDeviceId": "rb4011igs-plus-5hacq2hnd-in",
-      "deviceId": 290,
+      "deviceId": 446,
       "name": "RB4011iGS+5HacQ2HnD-IN",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -2257,7 +2257,7 @@
     },
     {
       "rosettaDeviceId": "rb4011igs-plus-rm",
-      "deviceId": 291,
+      "deviceId": 447,
       "name": "RB4011iGS+RM",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2267,7 +2267,7 @@
     },
     {
       "rosettaDeviceId": "rb450gx4",
-      "deviceId": 282,
+      "deviceId": 438,
       "name": "RB450Gx4",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -2277,7 +2277,7 @@
     },
     {
       "rosettaDeviceId": "rb5009ug-plus-s-plus-in",
-      "deviceId": 292,
+      "deviceId": 448,
       "name": "RB5009UG+S+IN",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2287,7 +2287,7 @@
     },
     {
       "rosettaDeviceId": "rb5009upr-plus-s-plus-in",
-      "deviceId": 293,
+      "deviceId": 449,
       "name": "RB5009UPr+S+IN",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2297,7 +2297,7 @@
     },
     {
       "rosettaDeviceId": "rb5009upr-plus-s-plus-out",
-      "deviceId": 294,
+      "deviceId": 450,
       "name": "RB5009UPr+S+OUT",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2307,7 +2307,7 @@
     },
     {
       "rosettaDeviceId": "rb911g-5hpnd",
-      "deviceId": 283,
+      "deviceId": 439,
       "name": "RB911G-5HPnD",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -2317,7 +2317,7 @@
     },
     {
       "rosettaDeviceId": "rb912uag-2hpnd",
-      "deviceId": 284,
+      "deviceId": 440,
       "name": "RB912UAG-2HPnD",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -2327,7 +2327,7 @@
     },
     {
       "rosettaDeviceId": "rb912uag-5hpnd",
-      "deviceId": 285,
+      "deviceId": 441,
       "name": "RB912UAG-5HPnD",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -2337,7 +2337,7 @@
     },
     {
       "rosettaDeviceId": "rb922uags-5hpacd",
-      "deviceId": 286,
+      "deviceId": 442,
       "name": "RB922UAGS-5HPacD",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -2347,7 +2347,7 @@
     },
     {
       "rosettaDeviceId": "rb951ui-2hnd",
-      "deviceId": 287,
+      "deviceId": 443,
       "name": "RB951Ui-2HnD",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -2357,7 +2357,7 @@
     },
     {
       "rosettaDeviceId": "rbm33g",
-      "deviceId": 295,
+      "deviceId": 451,
       "name": "RBM33G",
       "category": "RouterBOARD",
       "discontinued": 0,
@@ -2367,7 +2367,7 @@
     },
     {
       "rosettaDeviceId": "rose-data-server-rds",
-      "deviceId": 296,
+      "deviceId": 452,
       "name": "ROSE Data server (RDS)",
       "category": "Ethernet routers",
       "discontinued": 0,
@@ -2377,7 +2377,7 @@
     },
     {
       "rosettaDeviceId": "sxt-lte7-kit",
-      "deviceId": 297,
+      "deviceId": 453,
       "name": "SXT LTE7 kit",
       "category": null,
       "discontinued": null,
@@ -2387,7 +2387,7 @@
     },
     {
       "rosettaDeviceId": "sxt-sa5-ac",
-      "deviceId": 298,
+      "deviceId": 454,
       "name": "SXT SA5 ac",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2397,7 +2397,7 @@
     },
     {
       "rosettaDeviceId": "sxtsq-5-ac",
-      "deviceId": 299,
+      "deviceId": 455,
       "name": "SXTsq 5 ac",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2407,7 +2407,7 @@
     },
     {
       "rosettaDeviceId": "sxtsq-5-ax",
-      "deviceId": 300,
+      "deviceId": 456,
       "name": "SXTsq-5axD",
       "category": "Wireless systems",
       "discontinued": null,
@@ -2417,7 +2417,7 @@
     },
     {
       "rosettaDeviceId": "sxtsq-embedded-lte4",
-      "deviceId": 301,
+      "deviceId": 457,
       "name": "SXTsq Embedded LTE4",
       "category": "LTE products",
       "discontinued": 0,
@@ -2427,7 +2427,7 @@
     },
     {
       "rosettaDeviceId": "sxtsq-embedded-lte4-global",
-      "deviceId": 302,
+      "deviceId": 458,
       "name": "SXTsq Embedded LTE4 Global",
       "category": null,
       "discontinued": null,
@@ -2437,7 +2437,7 @@
     },
     {
       "rosettaDeviceId": "sxtsq-lite2",
-      "deviceId": 303,
+      "deviceId": 459,
       "name": "SXTsq Lite2",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2447,7 +2447,7 @@
     },
     {
       "rosettaDeviceId": "sxtsq-lite5",
-      "deviceId": 304,
+      "deviceId": 460,
       "name": "SXTsq Lite5",
       "category": "Wireless systems",
       "discontinued": 0,
@@ -2457,7 +2457,7 @@
     },
     {
       "rosettaDeviceId": "wap-ax",
-      "deviceId": 305,
+      "deviceId": 461,
       "name": "wAP ax",
       "category": "Indoor wireless",
       "discontinued": 0,
@@ -2467,7 +2467,7 @@
     },
     {
       "rosettaDeviceId": "wap-ax-lte7-kit",
-      "deviceId": 306,
+      "deviceId": 462,
       "name": "wAP ax LTE7 kit",
       "category": "LTE products",
       "discontinued": 0,
@@ -2477,8 +2477,8 @@
     },
     {
       "rosettaDeviceId": "wap-lr2-kit",
-      "deviceId": 307,
-      "name": "wAP R",
+      "deviceId": 463,
+      "name": "wAP LR2 kit",
       "category": "IoT products",
       "discontinued": 0,
       "specsJson": "{\"Product code\":\"RBwAPR-2nD\",\"Suggested price\":\"$89.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Dimensions\":\"185x85x30 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"2\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Number of SIM slots\":\"1 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"1\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, Automotive)\",\"DC jack input Voltage\":\"9-30 V\",\"Automotive input Voltage\":\"9-30 V\",\"Max power consumption\":\"6 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"9-30 V\",\"Certification\":\"CE, FCC, IC, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"_www_title\":\"wAP R\",\"_www_tagline\":\"Small weatherproof wireless access point with LTE antennas and miniPCI-e slot\",\"_hardware_title\":\"R11e-LR2\"}",
@@ -2487,8 +2487,8 @@
     },
     {
       "rosettaDeviceId": "wap-lr8g-kit",
-      "deviceId": 308,
-      "name": "wAP R",
+      "deviceId": 464,
+      "name": "wAP LR8G kit",
       "category": "IoT products",
       "discontinued": 0,
       "specsJson": "{\"Product code\":\"RBwAPR-2nD\",\"Suggested price\":\"$89.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Dimensions\":\"185x85x30 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"2\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Number of SIM slots\":\"1 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"1\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, Automotive)\",\"DC jack input Voltage\":\"9-30 V\",\"Automotive input Voltage\":\"9-30 V\",\"Max power consumption\":\"6 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"9-30 V\",\"Certification\":\"CE, FCC, IC, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"_www_title\":\"wAP R\",\"_www_tagline\":\"Small weatherproof wireless access point with LTE antennas and miniPCI-e slot\",\"_hardware_title\":\"R11e-LR8G\"}",
@@ -2497,8 +2497,8 @@
     },
     {
       "rosettaDeviceId": "wap-lr9g-kit",
-      "deviceId": 309,
-      "name": "wAP R",
+      "deviceId": 465,
+      "name": "wAP LR9G kit",
       "category": "IoT products",
       "discontinued": 0,
       "specsJson": "{\"Product code\":\"RBwAPR-2nD\",\"Suggested price\":\"$89.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Dimensions\":\"185x85x30 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"2\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Number of SIM slots\":\"1 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"1\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, Automotive)\",\"DC jack input Voltage\":\"9-30 V\",\"Automotive input Voltage\":\"9-30 V\",\"Max power consumption\":\"6 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"9-30 V\",\"Certification\":\"CE, FCC, IC, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"_www_title\":\"wAP R\",\"_www_tagline\":\"Small weatherproof wireless access point with LTE antennas and miniPCI-e slot\",\"_hardware_title\":\"R11e-LR9G\"}",
@@ -2507,7 +2507,7 @@
     },
     {
       "rosettaDeviceId": "wap-lte-kit",
-      "deviceId": 310,
+      "deviceId": 466,
       "name": "wAP LTE kit",
       "category": "LTE products",
       "discontinued": 1,
@@ -2517,7 +2517,7 @@
     },
     {
       "rosettaDeviceId": "wap-r",
-      "deviceId": 311,
+      "deviceId": 467,
       "name": "wAP R",
       "category": "IoT products",
       "discontinued": 0,
@@ -2527,7 +2527,7 @@
     },
     {
       "rosettaDeviceId": "wireless-wire-cube-pro",
-      "deviceId": 312,
+      "deviceId": 468,
       "name": "Wireless Wire Cube Pro",
       "category": "60 GHz products",
       "discontinued": 0,
