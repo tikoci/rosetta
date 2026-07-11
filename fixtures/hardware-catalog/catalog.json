@@ -191,7 +191,7 @@
       "name": "Chateau LTE6-US",
       "category": "LTE products",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"D53G-5HacD2HnD-TC&EG06-A\",\"Suggested price\":\"$189.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"488-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"IPQ-4019\",\"Dimensions\":\"240 x 156 x 44 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (DC jack)\",\"DC jack input Voltage\":\"12-28 V\",\"Max power consumption\":\"19 W\",\"Max power consumption without attachments\":\"14.3 W\",\"Cooling type\":\"Passive\",\"3G Category\":\"R8 (42.2Mbps Downlink, 5.76Mbps Uplink)\",\"3G bands\":\"2 (1900MHz) 4 (1700MHz) 5 (850MHz)\",\"LTE Category\":\"6 (300Mbit/s Downlink, 50Mbit/s Uplink)\",\"LTE FDD bands\":\"2 (1900MHz) 4 (1700MHz) 5 (850MHz) 7 (2600MHz) 12 (700MHz) 13 (700 MHz) 25 (1900MHz) 26 (850MHz) 29 (700 MHz) 30 (2300 MHz) 66 (1700MHz)\",\"TAC\":\"01619900\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"3\",\"Wireless 2.4 GHz chip model\":\"IPQ-4019\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"Wireless 5 GHz Max data rate\":\"867 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"5.5\",\"Wireless 5 GHz chip model\":\"IPQ-4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"5\",\"Number of SIM slots\":\"1 Modem (Micro SIM)\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Mode button\":\"Yes\",\"Certification\":\"CE, FCC, EAC, ROHS\",\"_www_title\":\"Chateau LTE6-US\",\"_www_tagline\":\"US carrier-certified (AT&T, T-Mobile) home access point with LTE6 support for speeds up to 300 Mbps. With 5x Gigabit Ethernet ports, a powerful quad-core CPU, and a refreshingly tasteful design, this device is the right choice for most homes.\",\"_hardware_title\":\"Chateau LTE6-US\"}",
+      "specsJson": "{\"Product code\":\"D53G-5HacD2HnD-TC&EG06-A\",\"Suggested price\":\"$189.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"488-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"IPQ-4019\",\"Dimensions\":\"240 x 156 x 44 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (DC jack)\",\"DC jack input Voltage\":\"12-28 V\",\"Max power consumption\":\"19 W\",\"Max power consumption without attachments\":\"14.3 W\",\"Cooling type\":\"Passive\",\"3G Category\":\"R8 (42.2Mbps Downlink, 5.76Mbps Uplink)\",\"3G bands\":\"2 (1900MHz) 4 (1700MHz) 5 (850MHz)\",\"LTE Category\":\"6 (300Mbit/s Downlink, 50Mbit/s Uplink)\",\"LTE FDD bands\":\"2 (1900MHz) 4 (1700MHz) 5 (850MHz) 7 (2600MHz) 12 (700MHz) 13 (700 MHz) 25 (1900MHz) 26 (850MHz) 29 (700 MHz) 30 (2300 MHz) 66 (1700MHz)\",\"TAC\":\"01619900\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"3\",\"Wireless 2.4 GHz chip model\":\"IPQ-4019\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"Wireless 5 GHz Max data rate\":\"867 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"5.5\",\"Wireless 5 GHz chip model\":\"IPQ-4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"5\",\"Number of SIM slots\":\"1 Modem (Micro SIM)\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Mode button\":\"Yes\",\"Certification\":\"CE, FCC, EAC, ROHS\",\"_www_title\":\"Chateau LTE6-US\",\"_www_tagline\":\"US carrier-certified (AT&T, T-Mobile) home access point with LTE6 support for speeds up to 300 Mbps. With 5x Gigabit Ethernet ports, a powerful quad-core CPU, and a refreshingly tasteful design, this device is the right choice for most homes.\",\"_hardware_title\":\"Chateau LTE6-US\",\"_fcc_id\":[\"TV7D53G-5ACD2ND\"]}",
       "sourceHardwareSlug": "chateau-lte6-us",
       "sourceWwwCode": "chateau_lte6_us"
     },
@@ -1506,6 +1506,16 @@
       "sourceWwwCode": null
     },
     {
+      "rosettaDeviceId": "hw-r11e-lr8g",
+      "deviceProductName": null,
+      "name": "R11e-LR8G",
+      "category": "IoT products",
+      "discontinued": null,
+      "specsJson": "{\"_hardware_title\":\"R11e-LR8G\"}",
+      "sourceHardwareSlug": "r11e-lr8g",
+      "sourceWwwCode": null
+    },
+    {
       "rosettaDeviceId": "hw-r11e-lr9",
       "deviceProductName": null,
       "name": "R11e-LR9",
@@ -1513,6 +1523,16 @@
       "discontinued": null,
       "specsJson": "{\"_hardware_title\":\"R11e-LR9\"}",
       "sourceHardwareSlug": "r11e-lr9",
+      "sourceWwwCode": null
+    },
+    {
+      "rosettaDeviceId": "hw-r11e-lr9g",
+      "deviceProductName": null,
+      "name": "R11e-LR9G",
+      "category": "IoT products",
+      "discontinued": null,
+      "specsJson": "{\"_hardware_title\":\"R11e-LR9G\"}",
+      "sourceHardwareSlug": "r11e-lr9g",
       "sourceWwwCode": null
     },
     {
@@ -1666,16 +1686,6 @@
       "sourceWwwCode": null
     },
     {
-      "rosettaDeviceId": "hw-sxt-r",
-      "deviceProductName": null,
-      "name": "SXT R",
-      "category": "LTE products",
-      "discontinued": 1,
-      "specsJson": "{\"Product code\":\"RBSXTR\",\"Suggested price\":\"$89.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"QCA9531\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"PoE-out ports\":\"Ether2\",\"PoE out\":\"Passive PoE up to 57V\",\"Low voltage PoE-Out current limit\":\"600 mA\",\"High voltage PoE-Out current limit\":\"400 mA\",\"Max total out (A)\":\"600 mA\",\"10/100 Ethernet ports\":\"2\",\"Number of SIM slots\":\"2 Modem (Micro SIM)\",\"MiniPCI-e slots\":\"1\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"SXT R\",\"_www_tagline\":\"10.5dBi 60 degree LTE antenna with 2x Ethernet ports (one with PoE out), WITHOUT LTE modem\",\"_hardware_title\":\"SXT R\"}",
-      "sourceHardwareSlug": "sxt-r",
-      "sourceWwwCode": "sxt_r"
-    },
-    {
       "rosettaDeviceId": "hw-tg-bt5-in",
       "deviceProductName": null,
       "name": "TG-BT5-IN",
@@ -1763,6 +1773,16 @@
       "discontinued": null,
       "specsJson": "{\"_hardware_title\":\"wAP kit-series\",\"_fcc_id\":[\"TV7WAPR2ND\"],\"_ic\":[\"7442A-WAPR2ND\"]}",
       "sourceHardwareSlug": "wap-kit-series",
+      "sourceWwwCode": null
+    },
+    {
+      "rosettaDeviceId": "hw-wap-lr9-kit",
+      "deviceProductName": null,
+      "name": "wAP LR9 kit",
+      "category": "IoT products",
+      "discontinued": null,
+      "specsJson": "{\"_hardware_title\":\"wAP LR9 kit\",\"_fcc_id\":[\"TV7WAPR2ND\"],\"_ic\":[\"7442A-WAPR2ND\"]}",
+      "sourceHardwareSlug": "wap-lr9-kit",
       "sourceWwwCode": null
     },
     {
@@ -2031,7 +2051,7 @@
       "name": "LtAP mini LTE kit",
       "category": "LTE products",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"RB912R-2nD-LTm&EC200A-EU\",\"Suggested price\":\"$99.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"MicroUSB input Voltage\":\"5 V\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, MicroUSB)\",\"DC jack input Voltage\":\"8-30 V\",\"Max power consumption\":\"8 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"2G Category\":\"Class12\",\"2G bands\":\"3 (1800MHz) 8 (900MHz)\",\"3G Category\":\"R7 (21Mbps Downlinks, 5.76Mbps Uplink)\",\"3G bands\":\"1 (2100MHz) 5 (850MHz) 8 (900MHz)\",\"LTE Category\":\"4 (150Mbps Downlink, 50Mbps Uplink)\",\"MIMO DL\":\"2x2\",\"MIMO UL\":\"1x1\",\"LTE FDD bands\":\"1 (2100MHz) 3 (1800MHz) 5 (850MHz) 7 (2600MHz) 8 (900 MHz) 20 (800MHz) 28 (700MHz)\",\"LTE TDD bands\":\"38 (2600MHz) 40 (2300MHz) 41n (2500MHz)\",\"TAC\":\"86314105\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"1.5\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Number of SIM slots\":\"2 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"1\",\"Serial console port\":\"RS232\",\"Mode button\":\"Yes\",\"GNSS standards\":\"GPS\",\"GPS RF connector type\":\"uUFL\",\"Certification\":\"CE, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LtAP mini LTE kit\",\"_www_tagline\":\"Tiny, affordable weatherproof access point with a built-in LTE modem and GPS. Add extensive networking and tracking options to your vehicle without breaking the bank! This is a 2024 refresh with added B28 band support.\",\"_hardware_title\":\"LtAP mini kit-series\",\"_fcc_id\":[\"TV7RB912R-2NDLTM\"]}",
+      "specsJson": "{\"Product code\":\"RB912R-2nD-LTm&EC200A-EU\",\"Suggested price\":\"$99.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"MicroUSB input Voltage\":\"5 V\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, MicroUSB)\",\"DC jack input Voltage\":\"8-30 V\",\"Max power consumption\":\"8 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"2G Category\":\"Class12\",\"2G bands\":\"3 (1800MHz) 8 (900MHz)\",\"3G Category\":\"R7 (21Mbps Downlinks, 5.76Mbps Uplink)\",\"3G bands\":\"1 (2100MHz) 5 (850MHz) 8 (900MHz)\",\"LTE Category\":\"4 (150Mbps Downlink, 50Mbps Uplink)\",\"MIMO DL\":\"2x2\",\"MIMO UL\":\"1x1\",\"LTE FDD bands\":\"1 (2100MHz) 3 (1800MHz) 5 (850MHz) 7 (2600MHz) 8 (900 MHz) 20 (800MHz) 28 (700MHz)\",\"LTE TDD bands\":\"38 (2600MHz) 40 (2300MHz) 41n (2500MHz)\",\"TAC\":\"86314105\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"1.5\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"Number of SIM slots\":\"2 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"1\",\"Serial console port\":\"RS232\",\"Mode button\":\"Yes\",\"GNSS standards\":\"GPS\",\"GPS RF connector type\":\"uUFL\",\"Certification\":\"CE, E-MARK, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"LtAP mini LTE kit\",\"_www_tagline\":\"Tiny, affordable weatherproof access point with a built-in LTE modem and GPS. Add extensive networking and tracking options to your vehicle without breaking the bank! This is a 2024 refresh with added B28 band support.\",\"_hardware_title\":\"LtAP mini kit-series\",\"_fcc_id\":[\"TV7RB912R-2NDLTM\"],\"_ic\":[\"7442A-912R2NDLTM\"]}",
       "sourceHardwareSlug": "ltap-mini-kit-series",
       "sourceWwwCode": "ltap_mini_lte_kit_2024"
     },
@@ -2378,12 +2398,12 @@
     {
       "rosettaDeviceId": "sxt-lte7-kit",
       "deviceProductName": "SXT LTE7 kit",
-      "name": "SXT LTE7 kit",
-      "category": null,
-      "discontinued": null,
-      "specsJson": null,
-      "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "name": "SXT R",
+      "category": "LTE products",
+      "discontinued": 1,
+      "specsJson": "{\"Product code\":\"RBSXTR\",\"Suggested price\":\"$89.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"QCA9531\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"PoE-out ports\":\"Ether2\",\"PoE out\":\"Passive PoE up to 57V\",\"Low voltage PoE-Out current limit\":\"600 mA\",\"High voltage PoE-Out current limit\":\"400 mA\",\"Max total out (A)\":\"600 mA\",\"10/100 Ethernet ports\":\"2\",\"Number of SIM slots\":\"2 Modem (Micro SIM)\",\"MiniPCI-e slots\":\"1\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"SXT R\",\"_www_tagline\":\"10.5dBi 60 degree LTE antenna with 2x Ethernet ports (one with PoE out), WITHOUT LTE modem\",\"_hardware_title\":\"SXT R\"}",
+      "sourceHardwareSlug": "sxt-r",
+      "sourceWwwCode": "sxt_r"
     },
     {
       "rosettaDeviceId": "sxt-sa5-ac",
@@ -2553,13 +2573,18 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "acgpsa",
+      "rosettaDeviceId": "ltap-mini",
+      "source": "hardware-link"
+    },
+    {
       "alias": "acrpsma",
       "rosettaDeviceId": "netbox-5-ax",
       "source": "hardware-link"
     },
     {
       "alias": "acsmaufl",
-      "rosettaDeviceId": "wap-lr2-kit",
+      "rosettaDeviceId": "ltap-mini",
       "source": "hardware-link"
     },
     {
@@ -3670,7 +3695,7 @@
     {
       "alias": "d53g-5hacd2hnd-tc&eg06-a",
       "rosettaDeviceId": "chateau-lte6-us",
-      "source": "www-declared-code"
+      "source": "hardware-table"
     },
     {
       "alias": "d53g-5hacd2hnd-tc&r11e-lte7",
@@ -3686,6 +3711,11 @@
       "alias": "d53g-5hacd2hnd-tc&rg520f-eu",
       "rosettaDeviceId": "hw-chateau-5g-r16",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "dinrail_pro",
+      "rosettaDeviceId": "ltap-mini",
+      "source": "hardware-link"
     },
     {
       "alias": "disc_lite5_ac",
@@ -4595,7 +4625,7 @@
     {
       "alias": "ltap_mini_lte_kit_2024",
       "rosettaDeviceId": "ltap-mini-lte-kit",
-      "source": "www-code"
+      "source": "hardware-link"
     },
     {
       "alias": "ltap-2hnd",
@@ -4639,7 +4669,7 @@
     },
     {
       "alias": "ltap-mini-kit-series",
-      "rosettaDeviceId": "ltap-mini",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
       "source": "hardware-slug"
     },
     {
@@ -5258,6 +5288,21 @@
       "source": "www-compare-id"
     },
     {
+      "alias": "rb912r-2nd-ltm&r11e-4g",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "hardware-table"
+    },
+    {
+      "alias": "rb912r-2nd-ltm&r11e-lte",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "hardware-table"
+    },
+    {
+      "alias": "rb912r-2nd-ltm&r11e-lte-us",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "hardware-table"
+    },
+    {
       "alias": "rb912uag-2hpnd",
       "rosettaDeviceId": "rb912uag-2hpnd",
       "source": "matrix.csv"
@@ -5749,7 +5794,7 @@
     },
     {
       "alias": "rbsxtr",
-      "rosettaDeviceId": "hw-sxt-r",
+      "rosettaDeviceId": "sxt-lte7-kit",
       "source": "www-declared-code"
     },
     {
@@ -5774,7 +5819,7 @@
     },
     {
       "alias": "rbsxtrr2",
-      "rosettaDeviceId": "hw-sxt-r",
+      "rosettaDeviceId": "sxt-lte7-kit",
       "source": "www-compare-id"
     },
     {
@@ -5851,6 +5896,11 @@
       "alias": "rbwapr-2nd",
       "rosettaDeviceId": "wap-r",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rbwapr-2nd&r11e-lora9",
+      "rosettaDeviceId": "hw-wap-lr9-kit",
+      "source": "hardware-table"
     },
     {
       "alias": "rbwmk",
@@ -5959,7 +6009,7 @@
     },
     {
       "alias": "sxt_r",
-      "rosettaDeviceId": "hw-sxt-r",
+      "rosettaDeviceId": "sxt-lte7-kit",
       "source": "hardware-link"
     },
     {
@@ -5979,7 +6029,7 @@
     },
     {
       "alias": "sxt-r",
-      "rosettaDeviceId": "hw-sxt-r",
+      "rosettaDeviceId": "sxt-lte7-kit",
       "source": "hardware-slug"
     },
     {
@@ -6253,6 +6303,11 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "wap-lr9-kit",
+      "rosettaDeviceId": "hw-wap-lr9-kit",
+      "source": "hardware-slug"
+    },
+    {
       "alias": "wap-lr9g-kit",
       "rosettaDeviceId": "wap-lr9g-kit",
       "source": "hardware-slug"
@@ -6517,6 +6572,13 @@
   ],
   "aliasCollisions": [
     {
+      "alias": "acgpsa",
+      "kept": "ltap-mini",
+      "keptSource": "hardware-link",
+      "dropped": "ltap-mini-lte-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
       "alias": "acrpsma",
       "kept": "netbox-5-ax",
       "keptSource": "hardware-link",
@@ -6525,16 +6587,44 @@
     },
     {
       "alias": "acsmaufl",
-      "kept": "wap-lr2-kit",
+      "kept": "ltap-mini",
+      "keptSource": "hardware-link",
+      "dropped": "ltap-mini-lte-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
+      "alias": "acsmaufl",
+      "kept": "ltap-mini",
+      "keptSource": "hardware-link",
+      "dropped": "wap-lr2-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
+      "alias": "acsmaufl",
+      "kept": "ltap-mini",
       "keptSource": "hardware-link",
       "dropped": "hw-r11e-lr8",
       "droppedSource": "hardware-link"
     },
     {
       "alias": "acsmaufl",
-      "kept": "wap-lr2-kit",
+      "kept": "ltap-mini",
+      "keptSource": "hardware-link",
+      "dropped": "hw-r11e-lr8g",
+      "droppedSource": "hardware-link"
+    },
+    {
+      "alias": "acsmaufl",
+      "kept": "ltap-mini",
       "keptSource": "hardware-link",
       "dropped": "hw-r11e-lr9",
+      "droppedSource": "hardware-link"
+    },
+    {
+      "alias": "acsmaufl",
+      "kept": "ltap-mini",
+      "keptSource": "hardware-link",
+      "dropped": "hw-r11e-lr9g",
       "droppedSource": "hardware-link"
     },
     {
@@ -6620,6 +6710,13 @@
       "keptSource": "matrix.csv",
       "dropped": "hw-chateau-5g-r16",
       "droppedSource": "www-declared-code"
+    },
+    {
+      "alias": "dinrail_pro",
+      "kept": "ltap-mini",
+      "keptSource": "hardware-link",
+      "dropped": "ltap-mini-lte-kit",
+      "droppedSource": "hardware-link"
     },
     {
       "alias": "ec200a-eu",
@@ -6748,18 +6845,18 @@
       "droppedSource": "www-declared-code"
     },
     {
+      "alias": "lora_antenna_kit",
+      "kept": "hw-ltap-lr8-lte-kit",
+      "keptSource": "hardware-link",
+      "dropped": "hw-wap-lr9-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
       "alias": "ltap-2hnd",
       "kept": "ltap-lte7-kit",
       "keptSource": "matrix.csv",
       "dropped": "hw-ltap-lr8g-lte6-kit",
       "droppedSource": "www-declared-code"
-    },
-    {
-      "alias": "ltap-mini-kit-series",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-slug",
-      "dropped": "ltap-mini-lte-kit",
-      "droppedSource": "hardware-slug"
     },
     {
       "alias": "mant_lte_5o",
@@ -6797,11 +6894,25 @@
       "droppedSource": "matrix.csv"
     },
     {
+      "alias": "r11e-lr8g",
+      "kept": "knot-lr8g-kit",
+      "keptSource": "matrix.csv",
+      "dropped": "hw-r11e-lr8g",
+      "droppedSource": "hardware-slug"
+    },
+    {
       "alias": "r11e-lr9g",
       "kept": "knot-lr9g-kit",
       "keptSource": "matrix.csv",
       "dropped": "wap-lr9g-kit",
       "droppedSource": "matrix.csv"
+    },
+    {
+      "alias": "r11e-lr9g",
+      "kept": "knot-lr9g-kit",
+      "keptSource": "matrix.csv",
+      "dropped": "hw-r11e-lr9g",
+      "droppedSource": "hardware-slug"
     },
     {
       "alias": "r11e-lte6",

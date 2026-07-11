@@ -11,6 +11,14 @@ last_revisited: 2026-07-10
 
 # Question
 
+> **Companion:** For a human/MikroTik-readable guide to what the mapping *does now* — the
+> `device-map.tsv` / `hardware-unmatched.tsv` / `device-exceptions.toml` field meanings, the parsing
+> tricks, how to audit, and the known `/hardware` source gaps — see
+> [`B-0018-product-naming-three-source-map.md`](B-0018-product-naming-three-source-map.md). This
+> briefing keeps the historical research/reasoning; B-0018 is the standing legend. Note the exception
+> taxonomy was clarified on 2026-07-11 (`hardware-gap`/`www-fetch-gap` → `no-hardware-page` /
+> `no-www-product`); B-0018 and `device-exceptions.toml` carry the current names.
+
 Before `/hardware` (240+ Docusaurus pages) can be ingested as an overlay on rosetta's existing `devices`
 data, how should devices that appear under different names/slugs/model-numbers across `matrix.csv`, the
 www product pages, and `/hardware` get resolved to one canonical identity?
@@ -626,6 +634,18 @@ of it gets built, per their explicit ask.
 Not in scope for any phase: the 7 still-unresolved linkless series pages (flagged as a possible MikroTik doc
 gap, not blocking); provenance conflict resolution beyond the simple source-per-table default (no real
 conflict has been observed yet to justify more machinery).
+
+## Human-review pass (2026-07-11): matcher fixes + reviewable device-map
+
+The maintainer did a line-by-line review of the three-way join; every flag traced to **five systematic
+causes**, not per-device special cases. Those fixes (P1 full `&`-compound slug, P2 unified `canon()`,
+P3 `code > slug > table` precedence + cross-page suppression, P4 bogus-link filter, shared-base guard),
+the reviewable `device-map.tsv` / `hardware-unmatched.tsv` artifacts, the curated
+`device-exceptions.toml`, and how to audit them now live in their own standing companion —
+**[`B-0018-product-naming-three-source-map.md`](B-0018-product-naming-three-source-map.md)** — so this
+research log stays focused on the *why*. See B-0018 for the current mechanics, field legends, and the
+known `/hardware` source gaps. (`hardware_catalog` + `device_aliases` schema/ETL shipped in PR #36;
+the Phase 1 review of that output follows below.)
 
 ## Phase 1 design review (2026-07-10, PR #36 — findings against the shipped ETL output)
 

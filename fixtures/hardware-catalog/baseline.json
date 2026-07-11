@@ -8,7 +8,7 @@
   },
   "matrixCoveragePct": 88,
   "www404RatePct": 41,
-  "aliasCollisions": 82,
+  "aliasCollisions": 90,
   "droppedWwwProducts": 30,
   "resolvedDeviceIds": [
     "atl-5g-r16",
@@ -144,6 +144,7 @@
     "rb951ui-2hnd",
     "rbm33g",
     "rose-data-server-rds",
+    "sxt-lte7-kit",
     "sxt-sa5-ac",
     "sxtsq-5-ac",
     "sxtsq-5-ax",

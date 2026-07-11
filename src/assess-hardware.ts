@@ -143,9 +143,64 @@ export function normCode(code: string): string {
   return code.trim().toLowerCase();
 }
 
-/** A www-style product link token ("cap_ac") normalized to the same slug space as slugify(). */
-function normLinkToken(token: string): string {
-  return slugify(token.replace(/_/g, "-"));
+/**
+ * Aggressive canonical form that collapses the whole naming-surface variance the
+ * 2026-07-11 human review kept flagging as "declared code looks different — verify":
+ * case, the `-`/`_`/space separators, and `+`<->`plus` / `&`<->`and`. One rule folds
+ * `CCR2004-16G-2S+`, `ccr2004_16g_2splus`, and `CCR2004-16G-2SplusRM` onto the same
+ * key. This is deliberately lossier than slugify() (which preserves separators as `-`);
+ * slugify() stays for building/matching real URL slugs, canon() is only for identity
+ * comparison across the three naming surfaces (matrix code, /hardware slug, www code).
+ */
+export function canon(s: string): string {
+  return (s || "").toLowerCase().replace(/\+/g, "plus").replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * canon() with a trailing hardware revision (`r2`, `r3`) or www order/packaging suffix
+ * (`-307`, `-149`, `-168`) dropped — both are metadata, not device identity. The human
+ * review confirmed these are the same device (`RBGroove52HPnr2` == `RBGroove52HPn`,
+ * `RBcAPL-2nD-307` == `RBcAPL-2nD`). Kept as a *separate* looser key so a same-family
+ * revision only matches when nothing exact does.
+ *
+ * Stripping happens on the ORIGINAL string (case + separators intact), NOT on canon()'s
+ * lowercased/stripped output, so it only removes *true* metadata:
+ *   - a revision suffix is a lowercase `r` + digits at the end (`...HPnr2`); MikroTik's
+ *     model designators use an uppercase `R` (`R11e-LR8`, `-LR9`, `-LR2`), so those survive.
+ *   - a packaging suffix is `-`/`_` + exactly three digits (`-307`); an inline model number
+ *     like `RB750` has no separator before its digits, so it survives.
+ * (Regression: the old form stripped `r\d+$`/`\d{3}$` from the lowercased string, collapsing
+ * `R11e-LR8`/`-LR9`/`-LR2` all to `r11el` and `RB750` to `rb` — see PR #37 review.)
+ */
+export function canonNoRev(s: string): string {
+  const stripped = (s || "").replace(/r\d+$/, "").replace(/[-_]\d{3}$/, "");
+  return canon(stripped);
+}
+
+/** Both canonical forms for a string, empty forms dropped. */
+export function canonForms(s: string): string[] {
+  return [...new Set([canon(s), canonNoRev(s)].filter(Boolean))];
+}
+
+/**
+ * Product-link tokens seen on /hardware pages that stand in for something *other* than
+ * the page's own primary device — cross-sell/accessory links or broken links on
+ * MikroTik's side (all confirmed in the 2026-07-11 human review): `qm_x` (appears on
+ * several unrelated SXTsq/Cube pages), `acsmaufl`/`mant_lte_5o`/`acrpsma`/`lora_antenna_kit`
+ * (antennas & pigtails linked from KNOT/Chateau/LtAP/NetBox device pages). Never treat
+ * these as a device identity; they otherwise bind a device to an accessory's www page.
+ */
+export const BOGUS_PRODUCT_TOKENS = new Set([
+  "qm_x",
+  "acsmaufl",
+  "mant_lte_5o",
+  "acrpsma",
+  "lora_antenna_kit",
+]);
+
+/** Is this product-link token a known accessory/broken stand-in rather than a device? */
+export function isBogusProductToken(token: string): boolean {
+  return BOGUS_PRODUCT_TOKENS.has(token.trim().toLowerCase());
 }
 
 // ── HTML fetching / caching ──
@@ -166,7 +221,7 @@ function delay(ms: number): Promise<void> {
 
 // ── Page parsing ──
 
-interface PageInfo {
+export interface PageInfo {
   slug: string;
   url: string;
   title: string;
@@ -404,60 +459,134 @@ const LIFECYCLE_KEYWORDS = /\b(replac(?:es|ed|ing|ement)|successor|discontinued|
 
 // ── Matrix cross-reference ──
 
+/**
+ * Canonical subcodes that appear (as an `&`-split component) in more than one matrix row —
+ * i.e. shared bases/modules that don't identify a single device. Excluded from code/table
+ * matching so a shared base like `D53G-5HacD2HnD-TC` (Chateau LTE6-US + LTE12) or a shared
+ * module like `R11e-LTE7` (every LTE7 kit) doesn't bind all its siblings to one page.
+ */
+export function computeSharedSubCodes(matrixRows: MatrixRow[]): Set<string> {
+  const rowsPerCanon = new Map<string, Set<string>>();
+  for (const r of matrixRows) {
+    for (const sc of r.subCodes) {
+      const c = canon(sc);
+      if (!c) continue;
+      const names = rowsPerCanon.get(c) ?? new Set<string>();
+      names.add(r.name);
+      rowsPerCanon.set(c, names);
+    }
+  }
+  return new Set([...rowsPerCanon].filter(([, rows]) => rows.size > 1).map(([c]) => c));
+}
+
 type MatchCause = "matched-by-code" | "matched-by-table" | "matched-by-slug" | "no-product-link" | "unmatched";
 
 interface Classification {
   slug: string;
   cause: MatchCause;
   matchedMatrixNames: string[];
+  /** Rows this page claims *only* via its regulatory-table Model column (weak). main()
+   *  suppresses these when another page claims the same row by code/slug. */
+  tableOnlyNames: string[];
 }
 
 /**
- * Three-tier match: (1) exact product-code match via the page's `mikrotik.com/product/<x>`
- * link(s) against matrix.csv's Product code column — the reliable case (e.g. `RBcAP2nD`).
- * (2) a regulatory table's "Model" column (see extractModelColumnCodes) — equally reliable
- * (structured, not prose), and the only signal that resolves some linkless series pages at
- * all (e.g. `sxtsa-series` has zero product links but its FCC ID table's Model column
- * resolves `SXT SA5 ac`). (3) slug fallback — some pages link a www-style slug instead of
- * the real code (e.g. `cap_ac`, discovered live 2026-07-10), so also try
- * slugify()-normalized comparison of the link token, and the page's own /hardware slug,
- * against matrix name/code slugs. A page with zero product links and no slug/table hit is
- * the strongest accessory/info-page signal; a page with links that hit no tier is the
- * strongest legacy/EOL signal.
+ * Match a page's product-link/table/slug identities against matrix.csv rows, canonically.
+ *
+ * Three tiers, in *precedence* order (2026-07-11 human review corrected the old ordering):
+ *   (1) matched-by-code — an exact product-code via the page's `mikrotik.com/product/<x>`
+ *       link (e.g. `RBcAP2nD`). High precision: a link token equal to a matrix Product code.
+ *   (2) matched-by-slug — the page's *own* `/hardware/<slug>`, or a www-style link token
+ *       (e.g. `cap_ac`), canonically equals a matrix name/code. This now includes the FULL
+ *       compound code slug (`ATLGM&EG18-EA` -> canon `atlgmandeg18ea`, page `atlgm-and-eg18-ea`);
+ *       the old code split on `&` first and never tried the whole thing, silently missing it.
+ *   (3) matched-by-table — a regulatory FCC/IC "Model" column entry (see extractModelColumnCodes).
+ *       DEMOTED below slug: a Model column lists *every covered variant*, so on a multi-variant
+ *       page like `chateau-lte6-us` it otherwise binds every Chateau LTE to that one page. It is
+ *       now a last resort, used only when the device has no page of its own (see the cross-page
+ *       suppression in main()).
+ *
+ * All comparison is via canon()/canonNoRev() rather than normCode()/slugify() literal equality,
+ * collapsing the `+`/`plus`/`_`/`-`/case/`rN` variance the review flagged 64× as "looks different".
+ * Bogus accessory/broken link tokens (see BOGUS_PRODUCT_TOKENS) are dropped before matching.
  */
-function classify(page: PageInfo, matrixRows: MatrixRow[]): Classification {
-  // A series page can cover several devices via a mix of mechanisms (one product link
-  // resolves by exact code, a sibling link only resolves via the slug fallback) — union
-  // all tiers per page rather than short-circuiting on the first hit. Found live via
-  // rb1100-series: "RB1100Dx4" matches "RB1100AHx4 Dude Edition" by code, but the
-  // sibling link "rb1100ahx4" only matches plain "RB1100AHx4" by slug — short-circuiting
-  // on the code tier silently dropped the plain variant.
-  const linkCodes = new Set(page.productLinks.flatMap((c) => c.split("&")).map(normCode));
-  const byCode = matrixRows.filter((r) => r.subCodes.some((c) => linkCodes.has(normCode(c))));
+export function classify(page: PageInfo, matrixRows: MatrixRow[], sharedSubCodes: Set<string>): Classification {
+  const usableLinks = page.productLinks.filter((l) => !isBogusProductToken(l));
 
-  const tableCodes = new Set(page.tableModelCodes.flatMap((c) => c.split("&")).map(normCode));
-  const byTable = matrixRows.filter((r) => r.subCodes.some((c) => tableCodes.has(normCode(c))));
+  // A matrix row's canonical CODE identity: the full compound code, plus each `&`-split
+  // subcode EXCEPT ones shared across multiple rows. A shared base like `D53G-5HacD2HnD-TC`
+  // (in both Chateau LTE6-US and LTE12) doesn't identify a device — the `&EG06-A` vs
+  // `&EG120K-EA` module suffix is the discriminator — so matching the bare base binds every
+  // sibling LTE variant (the "Chateau LTE12 falls back to lte6-us" bug). Its own-name slug
+  // is what actually tells the variants apart, so name is in the slug tier, not here.
+  const uniqueSubForms = (r: MatrixRow) =>
+    r.subCodes.filter((sc) => !sharedSubCodes.has(canon(sc))).flatMap(canonForms);
+  const rowCodeForms = (r: MatrixRow) => new Set([...canonForms(r.code), ...uniqueSubForms(r)]);
+  const rowSlugForms = (r: MatrixRow) =>
+    new Set([...canonForms(r.code), ...canonForms(r.name), ...uniqueSubForms(r)]);
 
-  const slugCandidates = new Set([page.slug, ...page.productLinks.map(normLinkToken)]);
-  const bySlug = matrixRows.filter(
-    (r) => slugCandidates.has(r.nameSlug) || r.codeSlugs.some((cs) => slugCandidates.has(cs)),
-  );
+  // Page code/table/slug identities: canon of the FULL token — do NOT split on `&`, which
+  // would reintroduce shared-base over-matching from the page side (a page's table lists the
+  // full `D53G-5HacD2HnD-TC&EG06-A`, which must match only LTE6-US's full code, not LTE12's).
+  // The page's OWN slug is kept separate from its www-style link tokens: the slug is the page's
+  // filename and can canon-collide with an unrelated variant, whereas an explicit product link
+  // is a corroborated self-identification.
+  const linkForms = new Set(usableLinks.flatMap(canonForms));
+  const tableForms = new Set(page.tableModelCodes.flatMap(canonForms));
+  const ownSlugForms = new Set(canonForms(page.slug));
+  const titleForms = new Set(canonForms(page.title));
 
+  // Tier 1: exact product-code link.
+  const byCode = matrixRows.filter((r) => [...rowCodeForms(r)].some((f) => linkForms.has(f)));
+
+  // Tier 3: regulatory-table Model column (WEAK — covers, not identifies).
+  const byTable = matrixRows.filter((r) => [...rowCodeForms(r)].some((f) => tableForms.has(f)));
+
+  // Tier 2 (slug), split by evidence strength:
+  //   byLinkSlug — a www-style LINK token canonically equals a row name/code (corroborated).
+  //   byOwnSlug  — the page's OWN /hardware slug canonically equals a row name/code.
+  const byLinkSlug = matrixRows.filter((r) => [...rowSlugForms(r)].some((f) => linkForms.has(f)));
+  const byOwnSlug = matrixRows.filter((r) => [...rowSlugForms(r)].some((f) => ownSlugForms.has(f)));
+
+  // A row named by an explicit token (code/link/table) is corroborated. A bare own-slug hit that
+  // names a DIFFERENT device than the corroborated set is a canon slug collision — e.g.
+  // /hardware/hap-ax-2 is titled "hAP ax³" and links hap_ax3, but its slug canon-equals the
+  // matrix name "hAP ax2", so it wrongly claimed BOTH (PR #37 review, assess-hardware.ts:457).
+  // Keep an own-slug hit only when it is corroborated, OR the page has no corroborated match at
+  // all (its slug is the sole identity — many device pages carry no product link), OR the page
+  // TITLE agrees with it. The title clause is essential when a page's product link is wrong:
+  // /hardware/hap-ac-lite-tc is titled "hAP ac lite TC" and its slug matches that device, but its
+  // link points at the non-TC RB952Ui-5ac2nD — without the title check the correct TC match would
+  // be dropped as a "collision" against the mislinked non-TC device.
+  const corroborated = new Set([...byCode, ...byLinkSlug, ...byTable].map((r) => r.name));
+  const titleAgrees = (r: MatrixRow) => [...rowSlugForms(r)].some((f) => titleForms.has(f));
+  const bySlug = [
+    ...byLinkSlug,
+    ...byOwnSlug.filter((r) => corroborated.size === 0 || corroborated.has(r.name) || titleAgrees(r)),
+  ];
+
+  // Union all tiers (a series page covers several devices via a mix of mechanisms), but the
+  // reported `cause` reflects the STRONGEST tier that hit — code > slug > table.
   const matched = new Map<string, MatrixRow>();
-  for (const r of byCode) matched.set(r.name, r);
   for (const r of byTable) matched.set(r.name, r);
   for (const r of bySlug) matched.set(r.name, r);
+  for (const r of byCode) matched.set(r.name, r);
 
   if (matched.size > 0) {
     const cause: MatchCause =
-      byCode.length > 0 ? "matched-by-code" : byTable.length > 0 ? "matched-by-table" : "matched-by-slug";
-    return { slug: page.slug, cause, matchedMatrixNames: [...matched.values()].map((r) => r.name) };
+      byCode.length > 0 ? "matched-by-code" : bySlug.length > 0 ? "matched-by-slug" : "matched-by-table";
+    // Track table-only claims separately so main() can suppress them when a device is
+    // claimed more strongly by another page (the Chateau-LTE7-bound-to-lte6-us bug).
+    const tableOnly = byTable
+      .filter((r) => !byCode.includes(r) && !bySlug.includes(r))
+      .map((r) => r.name);
+    return { slug: page.slug, cause, matchedMatrixNames: [...matched.values()].map((r) => r.name), tableOnlyNames: tableOnly };
   }
 
-  if (page.productLinks.length === 0 && page.tableModelCodes.length === 0) {
-    return { slug: page.slug, cause: "no-product-link", matchedMatrixNames: [] };
+  if (usableLinks.length === 0 && page.tableModelCodes.length === 0) {
+    return { slug: page.slug, cause: "no-product-link", matchedMatrixNames: [], tableOnlyNames: [] };
   }
-  return { slug: page.slug, cause: "unmatched", matchedMatrixNames: [] };
+  return { slug: page.slug, cause: "unmatched", matchedMatrixNames: [], tableOnlyNames: [] };
 }
 
 // ── Main ──
@@ -522,7 +651,33 @@ async function main() {
   const matrixRows = loadMatrixRows(MATRIX_CSV);
   console.log(`Matrix rows loaded: ${matrixRows.length} (from ${MATRIX_CSV})`);
 
-  const classifications = pages.map((p) => classify(p, matrixRows));
+  const sharedSubCodes = computeSharedSubCodes(matrixRows);
+  const classifications = pages.map((p) => classify(p, matrixRows, sharedSubCodes));
+
+  // Cross-page table-suppression: a regulatory-table Model column enumerates every device a
+  // declaration COVERS, not the page's own subject — so `chateau-lte6-us`'s table lists LTE7,
+  // LTE12, … and would bind them all to that one page. Drop a page's table-only claim on any
+  // row that some *other* page claims more strongly (by code or own slug). Confirmed via the
+  // human review flagging "Chateau LTE7 WRONG … falls back to lte6-us".
+  const stronglyClaimed = new Set<string>();
+  for (const c of classifications) {
+    for (const name of c.matchedMatrixNames) {
+      if (!c.tableOnlyNames.includes(name)) stronglyClaimed.add(name);
+    }
+  }
+  for (const c of classifications) {
+    if (c.tableOnlyNames.length === 0) continue;
+    c.matchedMatrixNames = c.matchedMatrixNames.filter(
+      (name) => !(c.tableOnlyNames.includes(name) && stronglyClaimed.has(name)),
+    );
+    // Suppression can empty a page whose only claim was table-only; its "matched-by-table"
+    // cause is then stale (a matched-by-table with zero names). Downgrade to unmatched so the
+    // cause always reflects the surviving matches (PR #37 review, assess-hardware.ts:567).
+    if (c.matchedMatrixNames.length === 0 && c.cause === "matched-by-table") {
+      c.cause = "unmatched";
+    }
+  }
+
   const byCause: Record<MatchCause, Classification[]> = {
     "matched-by-code": [],
     "matched-by-table": [],
