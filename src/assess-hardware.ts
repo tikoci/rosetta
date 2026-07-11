@@ -182,6 +182,8 @@ interface PageInfo {
   category: string | null;
   /** Full sibling membership of `category`, read off this same page's expanded sidebar subtree. */
   categoryMembers: string[];
+  /** Product codes read from a table's "Model" column (see extractModelColumnCodes). */
+  tableModelCodes: string[];
 }
 
 /**
@@ -255,6 +257,7 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
   const nonDefaultIps = [...new Set(ipMatches)].filter((ip) => ip !== "192.168.88.1");
 
   const categoryInfo = extractSidebarCategory(html);
+  const tableModelCodes = extractModelColumnCodes(article);
 
   return {
     slug,
@@ -269,7 +272,37 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
     bodyText: text,
     category: categoryInfo?.name ?? null,
     categoryMembers: categoryInfo?.members.map((m) => m.slug) ?? [],
+    tableModelCodes,
   };
+}
+
+/**
+ * Some regulatory tables (FCC ID, IC) on series/kit pages carry an explicit "Model" column
+ * enumerating every device model the declaration covers — a structured, high-confidence
+ * signal distinct from the free-text cross-mention pass. Found live 2026-07-10 while
+ * investigating the 10 linkless series pages: `sxtsa-series`'s FCC ID table's Model column
+ * (`RBSXTG-5HPnD-SAr2`, `RBSXTG-5HPacD-SAr2`) resolves `SXT SA5 ac`, a matrix.csv row the
+ * link-based two-tier match couldn't reach at all (that page carries zero product links).
+ * Not every series page has such a table (`wap-series`, `crs-series`, `mant-series`, and
+ * others have only frequency/power tables with no Model column, or no tables at all) — this
+ * closes part of the linkless-series gap, not all of it.
+ */
+function extractModelColumnCodes(article: Element | null): string[] {
+  const codes = new Set<string>();
+  for (const table of article?.querySelectorAll("table") ?? []) {
+    const headerRow = table.querySelector("thead tr") ?? table.querySelector("tr");
+    if (!headerRow) continue;
+    const headers = [...headerRow.children].map((c) => c.textContent?.trim().toLowerCase() ?? "");
+    const modelIdx = headers.indexOf("model");
+    if (modelIdx === -1) continue;
+    const bodyRows = table.querySelector("tbody")?.children ?? [];
+    for (const row of bodyRows) {
+      const cells = [...row.children];
+      const val = cells[modelIdx]?.textContent?.trim();
+      if (val && val !== "-" && val.toLowerCase() !== "none") codes.add(val);
+    }
+  }
+  return [...codes];
 }
 
 // ── Cross-mention pass (body-text scan, no new network calls) ──
@@ -299,7 +332,7 @@ const LIFECYCLE_KEYWORDS = /\b(replac(?:es|ed|ing|ement)|successor|discontinued|
 
 // ── Matrix cross-reference ──
 
-type MatchCause = "matched-by-code" | "matched-by-slug" | "no-product-link" | "unmatched";
+type MatchCause = "matched-by-code" | "matched-by-table" | "matched-by-slug" | "no-product-link" | "unmatched";
 
 interface Classification {
   slug: string;
@@ -308,23 +341,30 @@ interface Classification {
 }
 
 /**
- * Two-tier match: (1) exact product-code match via the page's `mikrotik.com/product/<x>`
+ * Three-tier match: (1) exact product-code match via the page's `mikrotik.com/product/<x>`
  * link(s) against matrix.csv's Product code column — the reliable case (e.g. `RBcAP2nD`).
- * (2) slug fallback — some pages link to a www-style slug instead of the real code (e.g.
- * `cap_ac`, discovered live 2026-07-10), so also try slugify()-normalized comparison of
- * the link token, and the page's own /hardware slug, against matrix name/code slugs.
- * A page with zero product links and no slug hit is the strongest accessory/info-page
- * signal; a page with links that hit neither tier is the strongest legacy/EOL signal.
+ * (2) a regulatory table's "Model" column (see extractModelColumnCodes) — equally reliable
+ * (structured, not prose), and the only signal that resolves some linkless series pages at
+ * all (e.g. `sxtsa-series` has zero product links but its FCC ID table's Model column
+ * resolves `SXT SA5 ac`). (3) slug fallback — some pages link a www-style slug instead of
+ * the real code (e.g. `cap_ac`, discovered live 2026-07-10), so also try
+ * slugify()-normalized comparison of the link token, and the page's own /hardware slug,
+ * against matrix name/code slugs. A page with zero product links and no slug/table hit is
+ * the strongest accessory/info-page signal; a page with links that hit no tier is the
+ * strongest legacy/EOL signal.
  */
 function classify(page: PageInfo, matrixRows: MatrixRow[]): Classification {
   // A series page can cover several devices via a mix of mechanisms (one product link
   // resolves by exact code, a sibling link only resolves via the slug fallback) — union
-  // both tiers per page rather than short-circuiting on the first hit. Found live via
+  // all tiers per page rather than short-circuiting on the first hit. Found live via
   // rb1100-series: "RB1100Dx4" matches "RB1100AHx4 Dude Edition" by code, but the
   // sibling link "rb1100ahx4" only matches plain "RB1100AHx4" by slug — short-circuiting
   // on the code tier silently dropped the plain variant.
-  const wanted = new Set(page.productLinks.map(normCode));
-  const byCode = matrixRows.filter((r) => r.subCodes.some((c) => wanted.has(normCode(c))));
+  const linkCodes = new Set(page.productLinks.flatMap((c) => c.split("&")).map(normCode));
+  const byCode = matrixRows.filter((r) => r.subCodes.some((c) => linkCodes.has(normCode(c))));
+
+  const tableCodes = new Set(page.tableModelCodes.flatMap((c) => c.split("&")).map(normCode));
+  const byTable = matrixRows.filter((r) => r.subCodes.some((c) => tableCodes.has(normCode(c))));
 
   const slugCandidates = new Set([page.slug, ...page.productLinks.map(normLinkToken)]);
   const bySlug = matrixRows.filter(
@@ -333,14 +373,16 @@ function classify(page: PageInfo, matrixRows: MatrixRow[]): Classification {
 
   const matched = new Map<string, MatrixRow>();
   for (const r of byCode) matched.set(r.name, r);
+  for (const r of byTable) matched.set(r.name, r);
   for (const r of bySlug) matched.set(r.name, r);
 
   if (matched.size > 0) {
-    const cause: MatchCause = byCode.length > 0 ? "matched-by-code" : "matched-by-slug";
+    const cause: MatchCause =
+      byCode.length > 0 ? "matched-by-code" : byTable.length > 0 ? "matched-by-table" : "matched-by-slug";
     return { slug: page.slug, cause, matchedMatrixNames: [...matched.values()].map((r) => r.name) };
   }
 
-  if (page.productLinks.length === 0) {
+  if (page.productLinks.length === 0 && page.tableModelCodes.length === 0) {
     return { slug: page.slug, cause: "no-product-link", matchedMatrixNames: [] };
   }
   return { slug: page.slug, cause: "unmatched", matchedMatrixNames: [] };
@@ -411,6 +453,7 @@ async function main() {
   const classifications = pages.map((p) => classify(p, matrixRows));
   const byCause: Record<MatchCause, Classification[]> = {
     "matched-by-code": [],
+    "matched-by-table": [],
     "matched-by-slug": [],
     "no-product-link": [],
     unmatched: [],
@@ -484,11 +527,12 @@ async function main() {
   console.log(`Series pages (-series):   ${seriesPages.length}`);
   console.log(`Median word count:        ${median}`);
   console.log(`Pages w/ non-default IP:  ${pagesWithNonDefaultIp.length}`);
-  console.log(`\n--- Matrix cross-reference (product-code link, then slug fallback) ---`);
+  console.log(`\n--- Matrix cross-reference (product-code link, then Model-column table, then slug fallback) ---`);
   console.log(`  matched-by-code (product-code link hits matrix.csv "Product code"): ${byCause["matched-by-code"].length}`);
+  console.log(`  matched-by-table (table Model-column code hits matrix.csv "Product code"): ${byCause["matched-by-table"].length}`);
   console.log(`  matched-by-slug (link/page slug hits matrix.csv name/code slug):    ${byCause["matched-by-slug"].length}`);
-  console.log(`  unmatched (has product link(s), neither tier hit — legacy/EOL candidate): ${byCause.unmatched.length}`);
-  console.log(`  no-product-link (no mikrotik.com/product link at all — accessory/info-page candidate): ${byCause["no-product-link"].length}`);
+  console.log(`  unmatched (has product link(s)/table code(s), no tier hit — legacy/EOL candidate): ${byCause.unmatched.length}`);
+  console.log(`  no-product-link (no mikrotik.com/product link or Model-column table — accessory/info-page candidate): ${byCause["no-product-link"].length}`);
   console.log(`  series pages resolving >1 matrix row: ${seriesWithMultipleMatches.length}`);
   console.log(`\nmatrix.csv rows with NO /hardware page match at all: ${matrixRowsWithNoHardwarePage.length}`);
   if (matrixRowsWithNoHardwarePage.length > 0) {
@@ -542,6 +586,7 @@ async function main() {
     medianWordCount: median,
     matrixRowCount: matrixRows.length,
     matchedByCode: byCause["matched-by-code"].length,
+    matchedByTable: byCause["matched-by-table"].length,
     matchedBySlug: byCause["matched-by-slug"].length,
     unmatched: byCause.unmatched.length,
     noProductLink: byCause["no-product-link"].length,
@@ -564,6 +609,7 @@ async function main() {
         tableCount: p.tableCount,
         isSeries: p.isSeries,
         productLinks: p.productLinks,
+        tableModelCodes: p.tableModelCodes,
         nonDefaultIps: p.nonDefaultIps,
         category: p.category,
         cause: c?.cause,
