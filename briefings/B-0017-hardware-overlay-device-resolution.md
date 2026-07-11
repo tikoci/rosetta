@@ -627,6 +627,105 @@ Not in scope for any phase: the 7 still-unresolved linkless series pages (flagge
 gap, not blocking); provenance conflict resolution beyond the simple source-per-table default (no real
 conflict has been observed yet to justify more machinery).
 
+## Phase 1 design review (2026-07-10, PR #36 — findings against the shipped ETL output)
+
+A maintainer-requested holistic review of PR #36's actual DB output (257 catalog rows, 801 aliases in the
+local `ros-help.db` smoke build), checked against this briefing's own findings. Verdict: **the schema
+direction is right (overlay table + alias resolution + fail-loud baseline), but the resolution logic
+shipped with known-from-research defects live in the data, and the baseline validates input drift, not
+output correctness** — so none of the defects below trip any check. These are Phase 1 rework, not Phase 2.
+
+### Confirmed data-quality defects (queried from the built DB, not hypothesized)
+
+1. **Cross-sell spec misattribution — the exact gotcha this briefing filed as "a caveat, not fixed" is
+   now baked into rows.** `findWwwProduct()` takes the first www hit across *all* of a page's product
+   links; when the page's own device 404s on www (legacy SKUs), an accessory link in prose wins.
+   Confirmed rows: `hw-chateau-lte6` carries **mANT LTE 5o** (antenna) specs+discontinued flag;
+   `hw-cube-60g-ac`, `hw-cube-lite60`, `hw-wireless-wire-cube` all carry **QM-X** (mounting bracket)
+   specs; `hw-netbox-5` carries **Flex-guide** cable-guide specs; `hw-rb2011ils-in`/`hw-rb2011uias-in`
+   carry **RB2011 Wall Mount Kit** specs; `hw-gperx4` carries single-port **GPeR** specs; `hw-r11e-lr8`/
+   `-lr9` carry **ACSMAUFL** SMA-cable specs. 18 rows total where `specs_json`'s declared "Product code"
+   is not among the row's own aliases.
+2. **The same bug seen from the other side: 22 of 236 fetched www products never attach to any row** —
+   and several are the *correct* products for the rows above (`cube_lite60`, `RB2011iL-IN`/`iLS`/`UiAS`,
+   `RB911G-5HPacD-NB` "NetBox 5", `wap_60g`, `lhg_2`…). The www index is keyed on *requested* code only;
+   declared "Product code" and compareId aren't lookup keys, so a page linking the real code misses when
+   www was fetched under the slug form. QM-X itself — a real product with a live www page — exists in the
+   DB *only* as wrong specs on three other devices' rows.
+3. **Duplicate identities / the unimplemented third matching tier.** This briefing already established
+   that matching through www's *declared* code would resolve `ROSE Data server (RDS)` and both `KNOT
+   Embedded LTE4` rows. Not implemented: the DB now has `hw-rose-data-server` *and* the unlinked matrix
+   row `rose-data-server-rds` as two separate devices (same for the KNOT pair), and 12 matrix-linked rows
+   sit fully unresolved (`source_hardware_slug` and `source_www_code` both NULL, `specs_json` NULL).
+4. **Silent first-claimed-wins alias corruption.** Alias collisions are dropped with no count, no log, no
+   baseline stat. Result: `qm_x` (bracket) resolves to `sxtsq-5-ax`, `acsmaufl` (cable) to `wap-lr2-kit`,
+   `mant_lte_5o` to `hw-chateau-lte12` — an alias-lookup surface that confidently returns wrong devices.
+
+### Schema/design gaps for "complete for any future surface"
+
+- **No `name` column.** The proposal above had `canonical_name`; the PR dropped it. A row's
+  human-readable name lives only inside `specs_json` (`_www_title`/`_hardware_title`) — and matrix-linked
+  rows never get a title stamped at all (13 rows have `specs_json` NULL, so no name anywhere without a
+  `devices` join). Nothing to FTS, nothing to display.
+- **Naming inconsistency the schema itself introduces:** `device_test_results.device_id` vs
+  `hardware_catalog.devices_id` are two different column names for an FK to the same `devices(id)`.
+  Rename to `device_id`. (`rosetta_device_id` itself is fine — matches `pages.rosetta_id` precedent.)
+- **No combined view.** Every future consumer (MCP, TUI, ad-hoc SQL) re-derives the same
+  catalog⟷devices⟷aliases join. Add a `device_overview` VIEW (identity, name COALESCE, category,
+  discontinued, matrix columns where linked) as the documented read surface — this also makes the
+  intended end-state legible: `hardware_catalog` is the canonical device registry, `devices` is the
+  matrix-derived structured-spec detail table hanging off it, lookup flows aliases → catalog → optional
+  matrix join.
+- **`devices_id` links by AUTOINCREMENT across independently-rebuilt extractors.** Re-running
+  `extract-devices` after `extract-hardware-catalog` silently invalidates every link (delete-and-rebuild
+  reassigns ids). `devices.product_name` is UNIQUE and stable — link by name, or re-derive/validate the
+  id link at read time, or at minimum make the write fail if link order is violated.
+- **Issue #35's explicit FCC/CE-ID open question was punted without evaluation.** The Model-column codes
+  are used for matching but the FCC IDs themselves are discarded by `assess-hardware.ts` — the question
+  ("how many rows actually carry one?") can't even be answered from the artifacts. Capture the IDs in the
+  assessment, store them, and answer the question with counts.
+- **Extracted-but-unlanded factoids.** `nonDefaultIps` (the management-IP deviation this briefing
+  specifically flagged as surface-worthy, 11 pages) is in `ros-hardware-assessment.json` and goes nowhere.
+  Same for per-page `wordCount`/`isSeries` signals if series handling ever needs them.
+- **No `db_meta` stamping** for this source (per `db-meta-stamping.instructions.md`) and the assessment
+  JSONs carry no fetched-at date — provenance of "when was this true" is only in git history.
+
+### Validation gap (the meta-finding)
+
+The baseline checks are all **input-drift aggregates** (category count, field frequency, coverage pct,
+404 rate, resolved-id list). What's missing is **output-invariant checks** that would have caught every
+defect above on the first run:
+
+- declared "Product code" in `specs_json` must be among the row's own aliases (catches all 18 of #1);
+- one www product attaches to at most one catalog row, with a small allowlist for genuinely-shared kit
+  pages like the `wAP R` family (catches QM-X ×4, RBWMK ×3);
+- every input entity is *accounted for* — each www product, `/hardware` page, and matrix row is either
+  attached or explicitly bucketed as dropped-with-reason (catches the 22 orphans of #2);
+- alias collisions are counted and baselined, not silently swallowed (#4).
+
+The strongest form, matching both the maintainer's "compare last results / stop and re-eval" ask and this
+briefing's earlier "intermediate structured format between raw source and SQL" note: **emit the built
+catalog as a committed, deterministic intermediate JSON** (sorted rows + aliases + a drop ledger) that
+the DB write consumes — any behavior change then shows up as a reviewable git diff, and "minor flake"
+can't silently become the expected baseline.
+
+### Copilot's PR comments (all legitimate, all minor)
+
+`initDb()` runs before validation (touches `user_version`/tables on a failed or `--check-only` run —
+contradicts "DB untouched"); `category` and `source_hardware_slug` can come from different pages for
+multi-slug devices; `resolvedDeviceNames` holds ids, not names — rename `resolvedDeviceIds`.
+
+### Recommended rework order (Phase 1.5, before merge or as immediate follow-up on the same PR)
+
+1. Fix www attribution: index www products by declared code + compareId too, and only accept a www match
+   whose declared code (or title-slug) agrees with the device's own code/slug family — else NULL + ledger.
+2. Implement the declared-code third matching tier (resolves ROSE/KNOT, removes the `hw-*` duplicates).
+3. Add the output invariants + drop ledger + alias-collision count to validation; commit the intermediate
+   catalog JSON as the diffable artifact.
+4. Add `name` column; rename `devices_id` → `device_id`; add the `device_overview` view.
+5. Land `nonDefaultIps`; capture + store FCC/CE IDs and answer #35's open question with counts.
+6. Fix the three Copilot nits; stamp `db_meta`; decide the `devices_id` staleness story.
+
 ## Open questions
 
 See "Open research questions" above. `B-0006` and `B-0007` stay `open` for now as historical record but
