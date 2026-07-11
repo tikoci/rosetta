@@ -1,0 +1,4365 @@
+{
+  "pageCount": 239,
+  "seriesPageCount": 30,
+  "medianWordCount": 1656,
+  "matrixRowCount": 156,
+  "matchedByCode": 33,
+  "matchedBySlug": 103,
+  "unmatched": 84,
+  "noProductLink": 19,
+  "seriesWithMultipleMatches": 5,
+  "matrixRowsWithNoHardwarePage": [
+    "ATL LTE18 kit",
+    "Chateau LTE12 (2025)",
+    "CubeSA 60Pro ac",
+    "FTC21-ups",
+    "KNOT Embedded LTE4",
+    "KNOT Embedded LTE4 Global",
+    "LAMP 5G R16",
+    "LHGG LTE7 kit",
+    "LtAP LTE7 kit",
+    "R11e-LTE7",
+    "ROSE Data server (RDS)",
+    "SXT LTE7 kit",
+    "SXT SA5 ac",
+    "SXTsq Embedded LTE4 Global"
+  ],
+  "headingFrequency": {
+    "250": 1,
+    "Safety Warnings": 215,
+    "Operating system support": 212,
+    "Powering": 198,
+    "Extension slots and ports": 187,
+    "Mounting": 176,
+    "Configuration": 169,
+    "Accessories": 143,
+    "Eurasian Conformity Mark": 135,
+    "Norma Oficial Mexicana": 135,
+    "CE Declaration of Conformity": 133,
+    "Federal Communication Commission Interference Statement": 123,
+    "Innovation, Science and Economic Development Canada": 119,
+    "Quickstart": 119,
+    "Buttons and jumpers": 109,
+    "UKCA marking": 108,
+    "Reset button": 97,
+    "Specifications": 88,
+    "The National Commission for the State Regulation of Communications and Informatization by Ukraine": 85,
+    "MikroTik mobile app": 60,
+    "First use": 40,
+    "Connecting": 38,
+    "Notice": 29,
+    "Grounding": 27,
+    "Mode button": 26,
+    "UKCA Marking": 26,
+    "LED indicators": 21,
+    "Power output": 20,
+    "Bottom Lid": 20,
+    "SIM slot usage": 18,
+    "Antenna usage": 15,
+    "Setup": 15,
+    "Booting process": 13,
+    "Front status LED behavior": 12,
+    "Sync button": 12,
+    "Front LED status": 12,
+    "Connecting with a mobile app": 11,
+    "Assembly": 10,
+    "Buttons": 9,
+    "Assembly and mounting": 8,
+    "Included parts": 7,
+    "LED": 6,
+    "MiniPCIe slot usage": 6,
+    "Installing the module in your device": 6,
+    "Included Parts": 5,
+    "LED status": 5,
+    "miniPCIe slot usage": 5,
+    "Connecting to the antenna": 5,
+    "Configuration for RouterOS": 5,
+    "LEDs": 4,
+    "Removing back cover to access PCB": 4,
+    "First steps:": 4,
+    "Innovation, Science, and Economic Development Canada": 4,
+    "GPIO pinout": 4,
+    "Rackmount": 4,
+    "Opening cover": 4,
+    "Pinout": 4,
+    "Overview": 4,
+    "Information": 3,
+    "Installation": 3,
+    "Symbols on the Product": 3,
+    "eSIM settings": 3,
+    "Safety Notice": 3,
+    "LTE Antenna usage": 3,
+    "Configuration and operating system support": 3,
+    "Operating System Support": 3,
+    "Assembly and Mounting": 3,
+    "Case assembly": 3,
+    "Opening the case cover": 3,
+    "GPS": 3,
+    "miniPCIe slot": 3,
+    "Notes": 3,
+    "Opening latch": 3,
+    "Removing front cover to access PCB": 2,
+    "Supported 2xCA combinations": 2,
+    "Supported 2×CA (UL) LTE bands (Intra-band contiguous only)": 2,
+    "Wireless specifications": 2,
+    "Cooling": 2,
+    "Operation Environment": 2,
+    "Base plate mounting instruction": 2,
+    "Connecting to a POE Adapter": 2,
+    "Antenna Connections": 2,
+    "Cellular modem configuration": 2,
+    "GNSS configuration": 2,
+    "Connecting to a PoE Adapter:": 2,
+    "Compatible Enclosures": 2,
+    "Assembling on dish": 2,
+    "First steps": 2,
+    "GPS usage": 2,
+    "Removing upper cover": 2,
+    "Opening bottom cover": 2,
+    "Block diagram": 2,
+    "Software-related links": 2,
+    "Tag modes": 2,
+    "Initial steps": 2,
+    "The miniPCI-e slot usage": 1,
+    "Removing mounting ring": 1,
+    "PCIe usage": 1,
+    "Reset": 1,
+    "System LED alternate modem mode indications": 1,
+    "Chateau LTE6 ax (S53UG+5HaxD2HaxD-TC&FG621-EA)": 1,
+    "Chateau LTE6-US (D53G-5HacD2HnD-TC&EG06-A)": 1,
+    "Chateau LTE7 ax (S53UG+5HaxD2HaxD-TC&R11e-LTE7)": 1,
+    "Mounting and bottom lid": 1,
+    "GPS and CAT-M": 1,
+    "Mexico Information:": 1,
+    "Eurasian Economic Union Information:": 1,
+    "Default configuration": 1,
+    "PoE output": 1,
+    "Connecting to a POE Adapter:": 1,
+    "Combo interface": 1,
+    "SwOS Reset and Reinstall": 1,
+    "Use case schemes": 1,
+    "Combo ports": 1,
+    "PoE-Out": 1,
+    "RBDisc-5nD": 1,
+    "RBDiscG-5acD": 1,
+    "Quick Setup Guide and Warranty Information": 1,
+    "Reset and Reinstall": 1,
+    "The Reset button": 1,
+    "Status LEDs": 1,
+    "Hardware specifications": 1,
+    "Upgrade example": 1,
+    "B38 CFG example": 1,
+    "Intercell build-in EPC guide": 1,
+    "Reset configuration via serial console": 1,
+    "CFG Import for Intercell": 1,
+    "Intercell monitoring": 1,
+    "Intercell dual-carrier TDD enterprise small cell configuration guide": 1,
+    "LDF 5, LDF 5 ac": 1,
+    "OEM statement.": 1,
+    "Sim slot usage": 1,
+    "Federal Communication Commission interference statement": 1,
+    "RBLHGG-5acD-XL": 1,
+    "Assembling": 1,
+    "RBLHG-5HPnD-XL LHG XL HP5": 1,
+    "LR usage": 1,
+    "USB usage": 1,
+    "Automotive connector usage": 1,
+    "Models: RB921GS-5HPacD-15S (mANTBox 15s), RB921GS-5HPacD-19S (mANTBox 19s):": 1,
+    "Models: RB911G-2HPnD-12S (mANTBox 2 12s):": 1,
+    "Quick Setup Guide": 1,
+    "Opening Ethernet cover": 1,
+    "Upgrading": 1,
+    "Інформація для користувачів в Україні": 1,
+    "Removing upper and bottom covers": 1,
+    "Battery Charger Description": 1,
+    "External Temperature sensor connection": 1,
+    "Aim tool usage": 1,
+    "LED lights and PoE switch": 1,
+    "Country List": 1,
+    "OEM statement": 1,
+    "LE-LAN device restriction": 1,
+    "Important Notice to OEM integrators": 1,
+    "Power Output": 1,
+    "Modbus": 1,
+    "Bluetooth antenna": 1,
+    "GPS and NB/CAT-M": 1,
+    "First Steps:": 1,
+    "Model: RB951G-2HnD": 1,
+    "Model: RB951Ui-2HnDr2": 1,
+    "MiniPCIe slot": 1,
+    "USB jumper": 1,
+    "Boot configuration jumpers": 1,
+    "MiniPCIe, SIM slot usage": 1,
+    "Product specifications": 1,
+    "First Use - RouterOS set up before connecting disks": 1,
+    "Install Disks": 1,
+    "EC25-EU&SXTsq": 1,
+    "Indoor slim rectangular shape - TG-BT5-IN": 1,
+    "Outdoor Water Proof IP69k - TG-BT5-OUT": 1,
+    "Installing": 1,
+    "Configuration and connecting": 1,
+    "Included items": 1,
+    "wAP ax LTE7 kit, wAPGR-5HaxD2HaxD&R11e-LTE7": 1,
+    "First startup": 1,
+    "WEB interface": 1,
+    "Settings": 1,
+    "Upgrade firmware": 1,
+    "Telnet access": 1,
+    "Button functionality": 1
+  },
+  "pagesWithNonDefaultIp": [
+    {
+      "slug": "atlgm-and-eg18-ea",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "atlgm-and-rg520f-eu",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "ccr2004-16g-2s-plus",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr2116-12g-4s-plus",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr2216-1g-12xs-2xq",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs112-8g-4s-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs112-8p-4s-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs304-4xg-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs305-1g-4s-plus-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs309-1g-8s-plus-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs310-1g-5s-4s-plus-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs310-8g-plus-2s-plus-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs312-4c-plus-8xg-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs317-1g-16s-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs320-8p-8b-4s-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs326-24g-2s-plus-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs326-24g-2s-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs326-24s-plus-2q-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs326-4c-plus-20g-plus-2q-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs328-24p-4s-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs328-4c-20s-4s-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs354-48g-4s-plus-2q-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs354-48p-4s-plus-2q-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs418-8p-8g-2s-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs504-4xq-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs504-4xq-out",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs510-8xs-2xq-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs518-16xs-2xq-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs520-4xs-16xq-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs804-4ddq-hrm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "crs812-8ds-2dq-2ddq-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "css318-16g-2s-plus-in",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "css326-24g-2s-plus-rm",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "css610-8g-2s-plus-in",
+      "ips": [
+        "192.168.88.3",
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "css610-8p-2s-plus-in",
+      "ips": [
+        "192.168.88.3"
+      ]
+    },
+    {
+      "slug": "fiberbox-plus",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ftc11xg",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ftc21",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "gperx4",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "gperx6",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "intercell",
+      "ips": [
+        "192.168.200.200",
+        "192.168.200.100"
+      ]
+    },
+    {
+      "slug": "knot-embedded-lte4-ec25-eu-and-kne",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "knot-embedded-lte4-global-eg25-g-and-kne",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "lhg-kit-series",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "lhg-lite60",
+      "ips": [
+        "192.168.88.0"
+      ]
+    },
+    {
+      "slug": "lhg-lte18-kit",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "lhgg-lte6-kit",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "mqs",
+      "ips": [
+        "192.168.88.3"
+      ]
+    },
+    {
+      "slug": "netfiber-9",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "netpower-15fr",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "netpower-16p",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "netpower-lite-7r",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "netpower-lite-8p",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "nray-series",
+      "ips": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ]
+    },
+    {
+      "slug": "rb260-series",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "rose-data-server",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "sxt-kit-series",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "sxtsq-embedded-lte4",
+      "ips": [
+        "192.168.188.1"
+      ]
+    },
+    {
+      "slug": "wap-60g-series",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "wireless-wire-cube",
+      "ips": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ]
+    },
+    {
+      "slug": "wireless-wire-cube-pro-cube-60pro-ac",
+      "ips": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ]
+    },
+    {
+      "slug": "wireless-wire-dish",
+      "ips": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ]
+    },
+    {
+      "slug": "woobm-usb",
+      "ips": [
+        "192.168.4.1",
+        "192.168.4.2",
+        "192.168.4.5"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "slug": "apa-1",
+      "title": "APA-1",
+      "url": "https://manual.mikrotik.com/hardware/apa-1",
+      "wordCount": 917,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "apa_1"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "atlgm-and-eg18-ea",
+      "title": "ATLGM&EG18-EA",
+      "url": "https://manual.mikrotik.com/hardware/atlgm-and-eg18-ea",
+      "wordCount": 2335,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "atl18"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "atlgm-and-rg520f-eu",
+      "title": "ATLGM&RG520F-EU",
+      "url": "https://manual.mikrotik.com/hardware/atlgm-and-rg520f-eu",
+      "wordCount": 1656,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "atl_5g_r16"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "ATL 5G R16"
+      ]
+    },
+    {
+      "slug": "audience",
+      "title": "Audience",
+      "url": "https://manual.mikrotik.com/hardware/audience",
+      "wordCount": 3072,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "audience"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "audience-lte6-kit",
+      "title": "Audience LTE6 kit",
+      "url": "https://manual.mikrotik.com/hardware/audience-lte6-kit",
+      "wordCount": 3241,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "audience_lte6_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "basebox-series",
+      "title": "BaseBox-series",
+      "url": "https://manual.mikrotik.com/hardware/basebox-series",
+      "wordCount": 2006,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "RB912UAG-5HPnD-OUT"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "BaseBox 5"
+      ]
+    },
+    {
+      "slug": "cap",
+      "title": "cAP",
+      "url": "https://manual.mikrotik.com/hardware/cap",
+      "wordCount": 2538,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RBcAP2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "cAP"
+      ]
+    },
+    {
+      "slug": "cap-ac",
+      "title": "cAP ac",
+      "url": "https://manual.mikrotik.com/hardware/cap-ac",
+      "wordCount": 3212,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "cap_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "cAP ac"
+      ]
+    },
+    {
+      "slug": "cap-ax",
+      "title": "cAP ax",
+      "url": "https://manual.mikrotik.com/hardware/cap-ax",
+      "wordCount": 3321,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "cap_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "cAP ax"
+      ]
+    },
+    {
+      "slug": "cap-lite",
+      "title": "cAP lite",
+      "url": "https://manual.mikrotik.com/hardware/cap-lite",
+      "wordCount": 1998,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RBcAPL-2nD-307"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "cAP lite"
+      ]
+    },
+    {
+      "slug": "cap-lte12-ax",
+      "title": "cAP LTE12 ax",
+      "url": "https://manual.mikrotik.com/hardware/cap-lte12-ax",
+      "wordCount": 1444,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "cap_lte12_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "cAP LTE12 ax"
+      ]
+    },
+    {
+      "slug": "cap-xl-ac",
+      "title": "cAP XL ac",
+      "url": "https://manual.mikrotik.com/hardware/cap-xl-ac",
+      "wordCount": 2423,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "cap_xl_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "cAP XL ac"
+      ]
+    },
+    {
+      "slug": "ccr1009-7g-1c-1s-plus",
+      "title": "CCR1009-7G-1C-1S+",
+      "url": "https://manual.mikrotik.com/hardware/ccr1009-7g-1c-1s-plus",
+      "wordCount": 1098,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CCR1009-7G-1C-1Splus"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr1009-7g-1c-1s-plus-pc",
+      "title": "CCR1009-7G-1C-1S+PC",
+      "url": "https://manual.mikrotik.com/hardware/ccr1009-7g-1c-1s-plus-pc",
+      "wordCount": 1120,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CCR1009-7G-1C-1SplusPC"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr1009-7g-1c-pc",
+      "title": "CCR1009-7G-1C-PC",
+      "url": "https://manual.mikrotik.com/hardware/ccr1009-7g-1c-pc",
+      "wordCount": 1120,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CCR1009-7G-1C-PC"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr1016-12g",
+      "title": "CCR1016-12G",
+      "url": "https://manual.mikrotik.com/hardware/ccr1016-12g",
+      "wordCount": 1390,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CCR1016-12G"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr1016-12s-1s-plus",
+      "title": "CCR1016-12S-1S+",
+      "url": "https://manual.mikrotik.com/hardware/ccr1016-12s-1s-plus",
+      "wordCount": 1350,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CCR1016-12S-1Splus"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr1036-12g-4s-series",
+      "title": "CCR1036-12G-4S-series",
+      "url": "https://manual.mikrotik.com/hardware/ccr1036-12g-4s-series",
+      "wordCount": 1435,
+      "tableCount": 0,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr1036-8g-2s-plus-series",
+      "title": "CCR1036-8G-2S+-series",
+      "url": "https://manual.mikrotik.com/hardware/ccr1036-8g-2s-plus-series",
+      "wordCount": 1490,
+      "tableCount": 0,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr1072-1g-8s-plus",
+      "title": "CCR1072-1G-8S+",
+      "url": "https://manual.mikrotik.com/hardware/ccr1072-1g-8s-plus",
+      "wordCount": 1241,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CCR1072-1G-8Splus"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ccr2004-16g-2s-plus",
+      "title": "CCR2004-16G-2S+",
+      "url": "https://manual.mikrotik.com/hardware/ccr2004-16g-2s-plus",
+      "wordCount": 803,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ccr2004_16g_2splus"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CCR2004-16G-2S+"
+      ]
+    },
+    {
+      "slug": "ccr2004-16g-2s-plus-pc",
+      "title": "CCR2004-16G-2S+PC",
+      "url": "https://manual.mikrotik.com/hardware/ccr2004-16g-2s-plus-pc",
+      "wordCount": 1413,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "ccr2004_16g_2s_pc"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CCR2004-16G-2S+PC"
+      ]
+    },
+    {
+      "slug": "ccr2004-1g-12s-plus-2xs",
+      "title": "CCR2004-1G-12S+2XS",
+      "url": "https://manual.mikrotik.com/hardware/ccr2004-1g-12s-plus-2xs",
+      "wordCount": 1456,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ccr2004_1g_12s_2xs"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CCR2004-1G-12S+2XS"
+      ]
+    },
+    {
+      "slug": "ccr2004-1g-2xs-pcie",
+      "title": "CCR2004-1G-2XS-PCIe",
+      "url": "https://manual.mikrotik.com/hardware/ccr2004-1g-2xs-pcie",
+      "wordCount": 1285,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ccr2004_1g_2xs_pcie"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CCR2004-1G-2XS-PCIe"
+      ]
+    },
+    {
+      "slug": "ccr2116-12g-4s-plus",
+      "title": "CCR2116-12G-4S+",
+      "url": "https://manual.mikrotik.com/hardware/ccr2116-12g-4s-plus",
+      "wordCount": 1051,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ccr2116_12g_4splus"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CCR2116-12G-4S+"
+      ]
+    },
+    {
+      "slug": "ccr2216-1g-12xs-2xq",
+      "title": "CCR2216-1G-12XS-2XQ",
+      "url": "https://manual.mikrotik.com/hardware/ccr2216-1g-12xs-2xq",
+      "wordCount": 1042,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ccr2216_1g_12xs_2xq"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CCR2216-1G-12XS-2XQ"
+      ]
+    },
+    {
+      "slug": "chateau-5g",
+      "title": "Chateau 5G",
+      "url": "https://manual.mikrotik.com/hardware/chateau-5g",
+      "wordCount": 2576,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_5g"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "chateau-5g-ax",
+      "title": "Chateau 5G ax",
+      "url": "https://manual.mikrotik.com/hardware/chateau-5g-ax",
+      "wordCount": 3280,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_5g_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "chateau-5g-r16",
+      "title": "Chateau 5G R16",
+      "url": "https://manual.mikrotik.com/hardware/chateau-5g-r16",
+      "wordCount": 1667,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "chateau5gr16"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "chateau-5g-r17-ax",
+      "title": "Chateau 5G R17 ax",
+      "url": "https://manual.mikrotik.com/hardware/chateau-5g-r17-ax",
+      "wordCount": 2005,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_5g_r17_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "Chateau 5G R17 ax"
+      ]
+    },
+    {
+      "slug": "chateau-lte12",
+      "title": "Chateau LTE12",
+      "url": "https://manual.mikrotik.com/hardware/chateau-lte12",
+      "wordCount": 2162,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "mant_lte_5o"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "chateau-lte18-ax",
+      "title": "Chateau LTE18 ax",
+      "url": "https://manual.mikrotik.com/hardware/chateau-lte18-ax",
+      "wordCount": 1739,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "chateaulte18_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "Chateau LTE18 ax"
+      ]
+    },
+    {
+      "slug": "chateau-lte6",
+      "title": "Chateau LTE6",
+      "url": "https://manual.mikrotik.com/hardware/chateau-lte6",
+      "wordCount": 1230,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "mant_lte_5o"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "chateau-lte6-ax",
+      "title": "Chateau LTE6 ax",
+      "url": "https://manual.mikrotik.com/hardware/chateau-lte6-ax",
+      "wordCount": 1618,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_lte6_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "chateau-lte6-us",
+      "title": "Chateau LTE6-US",
+      "url": "https://manual.mikrotik.com/hardware/chateau-lte6-us",
+      "wordCount": 1992,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_lte6_us"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "Chateau LTE6-US"
+      ]
+    },
+    {
+      "slug": "chateau-lte7",
+      "title": "Chateau LTE7",
+      "url": "https://manual.mikrotik.com/hardware/chateau-lte7",
+      "wordCount": 1465,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_lte7"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "Chateau LTE7"
+      ]
+    },
+    {
+      "slug": "chateau-lte7-ax",
+      "title": "Chateau LTE7 ax",
+      "url": "https://manual.mikrotik.com/hardware/chateau-lte7-ax",
+      "wordCount": 1409,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_lte7_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "Chateau LTE7 ax"
+      ]
+    },
+    {
+      "slug": "chateau-pro-ax",
+      "title": "Chateau PRO ax",
+      "url": "https://manual.mikrotik.com/hardware/chateau-pro-ax",
+      "wordCount": 1235,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "chateau_pro_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "Chateau PRO ax"
+      ]
+    },
+    {
+      "slug": "cme22-2n-bg77",
+      "title": "CME22-2n-BG77",
+      "url": "https://manual.mikrotik.com/hardware/cme22-2n-bg77",
+      "wordCount": 1945,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "cme_gateway"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CME Gateway"
+      ]
+    },
+    {
+      "slug": "compliance",
+      "title": "Compliance",
+      "url": "https://manual.mikrotik.com/hardware/compliance",
+      "wordCount": 1999,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "crs-series",
+      "title": "CRS-series",
+      "url": "https://manual.mikrotik.com/hardware/crs-series",
+      "wordCount": 2545,
+      "tableCount": 1,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "crs106-1c-5s",
+      "title": "CRS106-1C-5S",
+      "url": "https://manual.mikrotik.com/hardware/crs106-1c-5s",
+      "wordCount": 1194,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CRS106-1C-5S"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "CRS106-1C-5S"
+      ]
+    },
+    {
+      "slug": "crs112-8g-4s-in",
+      "title": "CRS112-8G-4S-IN",
+      "url": "https://manual.mikrotik.com/hardware/crs112-8g-4s-in",
+      "wordCount": 1649,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CRS112-8G-4S-IN"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "crs112-8p-4s-in",
+      "title": "CRS112-8P-4S-IN",
+      "url": "https://manual.mikrotik.com/hardware/crs112-8p-4s-in",
+      "wordCount": 1339,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs112_8p_4s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS112-8P-4S-IN"
+      ]
+    },
+    {
+      "slug": "crs125-24g-1s-series",
+      "title": "CRS125-24G-1S-series",
+      "url": "https://manual.mikrotik.com/hardware/crs125-24g-1s-series",
+      "wordCount": 2337,
+      "tableCount": 2,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "crs304-4xg-in",
+      "title": "CRS304-4XG-IN",
+      "url": "https://manual.mikrotik.com/hardware/crs304-4xg-in",
+      "wordCount": 985,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs304_4xg_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS304-4XG-IN"
+      ]
+    },
+    {
+      "slug": "crs305-1g-4s-plus-in",
+      "title": "CRS305-1G-4S+IN",
+      "url": "https://manual.mikrotik.com/hardware/crs305-1g-4s-plus-in",
+      "wordCount": 1150,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs305_1g_4s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS305-1G-4S+IN"
+      ]
+    },
+    {
+      "slug": "crs309-1g-8s-plus-in",
+      "title": "CRS309-1G-8S+IN",
+      "url": "https://manual.mikrotik.com/hardware/crs309-1g-8s-plus-in",
+      "wordCount": 1220,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs309_1g_8s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS309-1G-8S+IN"
+      ]
+    },
+    {
+      "slug": "crs310-1g-5s-4s-plus-in",
+      "title": "CRS310-1G-5S-4S+IN",
+      "url": "https://manual.mikrotik.com/hardware/crs310-1g-5s-4s-plus-in",
+      "wordCount": 1072,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs310_1g_5s_4s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS310-1G-5S-4S+IN"
+      ]
+    },
+    {
+      "slug": "crs310-8g-plus-2s-plus-in",
+      "title": "CRS310-8G+2S+IN",
+      "url": "https://manual.mikrotik.com/hardware/crs310-8g-plus-2s-plus-in",
+      "wordCount": 1031,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs310_8g_2s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS310-8G+2S+IN"
+      ]
+    },
+    {
+      "slug": "crs312-4c-plus-8xg-rm",
+      "title": "CRS312-4C+8XG-RM",
+      "url": "https://manual.mikrotik.com/hardware/crs312-4c-plus-8xg-rm",
+      "wordCount": 1254,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs312_4c_8xg_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS312-4C+8XG-RM"
+      ]
+    },
+    {
+      "slug": "crs317-1g-16s-plus-rm",
+      "title": "CRS317-1G-16S+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs317-1g-16s-plus-rm",
+      "wordCount": 1244,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs317_1g_16s_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS317-1G-16S+RM"
+      ]
+    },
+    {
+      "slug": "crs320-8p-8b-4s-plus-rm",
+      "title": "CRS320-8P-8B-4S+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs320-8p-8b-4s-plus-rm",
+      "wordCount": 1669,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs320_8p_8b_4s_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS320-8P-8B-4S+RM"
+      ]
+    },
+    {
+      "slug": "crs326-24g-2s-plus-in",
+      "title": "CRS326-24G-2S+IN",
+      "url": "https://manual.mikrotik.com/hardware/crs326-24g-2s-plus-in",
+      "wordCount": 1023,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs326_24g_2s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS326-24G-2S+IN"
+      ]
+    },
+    {
+      "slug": "crs326-24g-2s-plus-rm",
+      "title": "CRS326-24G-2S+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs326-24g-2s-plus-rm",
+      "wordCount": 1161,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "CRS326-24G-2SplusRM"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS326-24G-2S+RM"
+      ]
+    },
+    {
+      "slug": "crs326-24s-plus-2q-plus-rm",
+      "title": "CRS326-24S+2Q+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs326-24s-plus-2q-plus-rm",
+      "wordCount": 1114,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs326_24s_2q_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS326-24S+2Q+RM"
+      ]
+    },
+    {
+      "slug": "crs326-4c-plus-20g-plus-2q-plus-rm",
+      "title": "CRS326-4C+20G+2Q+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs326-4c-plus-20g-plus-2q-plus-rm",
+      "wordCount": 1176,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs326_4c_20g_2q_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS326-4C+20G+2Q+RM"
+      ]
+    },
+    {
+      "slug": "crs328-24p-4s-plus-rm",
+      "title": "CRS328-24P-4S+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs328-24p-4s-plus-rm",
+      "wordCount": 1407,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs328_24p_4s_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS328-24P-4S+RM"
+      ]
+    },
+    {
+      "slug": "crs328-4c-20s-4s-plus-rm",
+      "title": "CRS328-4C-20S-4S+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs328-4c-20s-4s-plus-rm",
+      "wordCount": 1221,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs328_4c_20s_4s_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS328-4C-20S-4S+RM"
+      ]
+    },
+    {
+      "slug": "crs354-48g-4s-plus-2q-plus-rm",
+      "title": "CRS354-48G-4S+2Q+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs354-48g-4s-plus-2q-plus-rm",
+      "wordCount": 1065,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs354_48g_4splus2qplusrm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS354-48G-4S+2Q+RM"
+      ]
+    },
+    {
+      "slug": "crs354-48p-4s-plus-2q-plus-rm",
+      "title": "CRS354-48P-4S+2Q+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs354-48p-4s-plus-2q-plus-rm",
+      "wordCount": 1201,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "crs354_48p_4s_2q_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS354-48P-4S+2Q+RM"
+      ]
+    },
+    {
+      "slug": "crs418-8p-8g-2s-plus-5axq2axq-rm",
+      "title": "CRS418-8P-8G-2S+5axQ2axQ-RM",
+      "url": "https://manual.mikrotik.com/hardware/crs418-8p-8g-2s-plus-5axq2axq-rm",
+      "wordCount": 1328,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs418_8p_8g_2s_wifi"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS418-8P-8G-2S+5axQ2axQ-RM"
+      ]
+    },
+    {
+      "slug": "crs418-8p-8g-2s-plus-rm",
+      "title": "CRS418-8P-8G-2S+RM",
+      "url": "https://manual.mikrotik.com/hardware/crs418-8p-8g-2s-plus-rm",
+      "wordCount": 1230,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs418_8p_8g_2s_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS418-8P-8G-2S+RM"
+      ]
+    },
+    {
+      "slug": "crs504-4xq-in",
+      "title": "CRS504-4XQ-IN",
+      "url": "https://manual.mikrotik.com/hardware/crs504-4xq-in",
+      "wordCount": 1079,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs504_4xq_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS504-4XQ-IN"
+      ]
+    },
+    {
+      "slug": "crs504-4xq-out",
+      "title": "CRS504-4XQ-OUT",
+      "url": "https://manual.mikrotik.com/hardware/crs504-4xq-out",
+      "wordCount": 942,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs504_4xq_out"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS504-4XQ-OUT"
+      ]
+    },
+    {
+      "slug": "crs510-8xs-2xq-in",
+      "title": "CRS510-8XS-2XQ-IN",
+      "url": "https://manual.mikrotik.com/hardware/crs510-8xs-2xq-in",
+      "wordCount": 1043,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs510_8xs_2xq_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS510-8XS-2XQ-IN"
+      ]
+    },
+    {
+      "slug": "crs518-16xs-2xq-rm",
+      "title": "CRS518-16XS-2XQ-RM",
+      "url": "https://manual.mikrotik.com/hardware/crs518-16xs-2xq-rm",
+      "wordCount": 1053,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs518_16xs_2xq"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS518-16XS-2XQ-RM"
+      ]
+    },
+    {
+      "slug": "crs520-4xs-16xq-rm",
+      "title": "CRS520-4XS-16XQ-RM",
+      "url": "https://manual.mikrotik.com/hardware/crs520-4xs-16xq-rm",
+      "wordCount": 1192,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs520_4xs_16xq_rm"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS520-4XS-16XQ-RM"
+      ]
+    },
+    {
+      "slug": "crs804-4ddq-hrm",
+      "title": "CRS804-4DDQ-hRM",
+      "url": "https://manual.mikrotik.com/hardware/crs804-4ddq-hrm",
+      "wordCount": 1306,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs804_ddq"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS804 DDQ"
+      ]
+    },
+    {
+      "slug": "crs812-8ds-2dq-2ddq-rm",
+      "title": "CRS812-8DS-2DQ-2DDQ-RM",
+      "url": "https://manual.mikrotik.com/hardware/crs812-8ds-2dq-2ddq-rm",
+      "wordCount": 1217,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs812_ddq"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CRS812 DDQ"
+      ]
+    },
+    {
+      "slug": "css318-16g-2s-plus-in",
+      "title": "CSS318-16G-2S+IN",
+      "url": "https://manual.mikrotik.com/hardware/css318-16g-2s-plus-in",
+      "wordCount": 670,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "css318_16g_2s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CSS318-16G-2S+IN"
+      ]
+    },
+    {
+      "slug": "css326-24g-2s-plus-rm",
+      "title": "CSS326-24G-2S+RM",
+      "url": "https://manual.mikrotik.com/hardware/css326-24g-2s-plus-rm",
+      "wordCount": 734,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "CSS326-24G-2SplusRM"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CSS326-24G-2S+RM"
+      ]
+    },
+    {
+      "slug": "css610-8g-2s-plus-in",
+      "title": "CSS610-8G-2S+IN",
+      "url": "https://manual.mikrotik.com/hardware/css610-8g-2s-plus-in",
+      "wordCount": 1362,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "css610_8g_2s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.3",
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CSS610-8G-2S+IN"
+      ]
+    },
+    {
+      "slug": "css610-8p-2s-plus-in",
+      "title": "CSS610-8P-2S+IN",
+      "url": "https://manual.mikrotik.com/hardware/css610-8p-2s-plus-in",
+      "wordCount": 1489,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "css610_8p_2s_in"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.3"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "CSS610-8P-2S+IN"
+      ]
+    },
+    {
+      "slug": "cube-60g-ac",
+      "title": "Cube 60G ac",
+      "url": "https://manual.mikrotik.com/hardware/cube-60g-ac",
+      "wordCount": 2471,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "qm_x"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "cube-lite60",
+      "title": "Cube Lite60",
+      "url": "https://manual.mikrotik.com/hardware/cube-lite60",
+      "wordCount": 2446,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "qm_x",
+        "cube_lite60"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "disc-lite5",
+      "title": "Disc Lite5",
+      "url": "https://manual.mikrotik.com/hardware/disc-lite5",
+      "wordCount": 2028,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "rbdisc_5nd"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "disc-lite5-ac",
+      "title": "Disc Lite5 ac",
+      "url": "https://manual.mikrotik.com/hardware/disc-lite5-ac",
+      "wordCount": 2103,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "disc_lite5_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "dynadish-5",
+      "title": "DynaDish 5",
+      "url": "https://manual.mikrotik.com/hardware/dynadish-5",
+      "wordCount": 2044,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RBDynaDishG-5HacDr3"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "dynadish-6",
+      "title": "DynaDish 6",
+      "url": "https://manual.mikrotik.com/hardware/dynadish-6",
+      "wordCount": 1312,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "fiberbox",
+      "title": "FiberBox",
+      "url": "https://manual.mikrotik.com/hardware/fiberbox",
+      "wordCount": 1224,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "fiberbox"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "fiberbox-plus",
+      "title": "FiberBox Plus",
+      "url": "https://manual.mikrotik.com/hardware/fiberbox-plus",
+      "wordCount": 971,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "fiberboxplus"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "FiberBox Plus"
+      ]
+    },
+    {
+      "slug": "ftc11xg",
+      "title": "FTC11XG",
+      "url": "https://manual.mikrotik.com/hardware/ftc11xg",
+      "wordCount": 1037,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ftc11xg"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "FTC11XG"
+      ]
+    },
+    {
+      "slug": "ftc21",
+      "title": "FTC21",
+      "url": "https://manual.mikrotik.com/hardware/ftc21",
+      "wordCount": 1059,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ftc21"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "g1040a-60wn",
+      "title": "G1040A-60WN",
+      "url": "https://manual.mikrotik.com/hardware/g1040a-60wn",
+      "wordCount": 358,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "gesp-plus-poe-in",
+      "title": "GESP+POE-IN",
+      "url": "https://manual.mikrotik.com/hardware/gesp-plus-poe-in",
+      "wordCount": 160,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "gesp_poe_in"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "gpen11",
+      "title": "GPEN11",
+      "url": "https://manual.mikrotik.com/hardware/gpen11",
+      "wordCount": 608,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "gpen11"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "gpen21",
+      "title": "GPEN21",
+      "url": "https://manual.mikrotik.com/hardware/gpen21",
+      "wordCount": 978,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "gpen21"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "GPEN21"
+      ]
+    },
+    {
+      "slug": "gper",
+      "title": "GPeR",
+      "url": "https://manual.mikrotik.com/hardware/gper",
+      "wordCount": 995,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "gper",
+        "gper_ip67_case"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "gperx4",
+      "title": "GPeRx4",
+      "url": "https://manual.mikrotik.com/hardware/gperx4",
+      "wordCount": 1461,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "gper"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "gperx6",
+      "title": "GPERx6",
+      "url": "https://manual.mikrotik.com/hardware/gperx6",
+      "wordCount": 573,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "gperx6"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "GPERx6"
+      ]
+    },
+    {
+      "slug": "groove-series",
+      "title": "Groove-series",
+      "url": "https://manual.mikrotik.com/hardware/groove-series",
+      "wordCount": 2501,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "RBGroove52HPnr2",
+        "RBGrooveA-52HPnr2",
+        "RBGrooveGA-52HPacn"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "Groove 52",
+        "GrooveA 52",
+        "GrooveA 52 ac"
+      ]
+    },
+    {
+      "slug": "hap",
+      "title": "hAP",
+      "url": "https://manual.mikrotik.com/hardware/hap",
+      "wordCount": 2679,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB951Ui-2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hAP"
+      ]
+    },
+    {
+      "slug": "hap-ac",
+      "title": "hAP ac",
+      "url": "https://manual.mikrotik.com/hardware/hap-ac",
+      "wordCount": 2826,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB962UiGS-5HacT2HnT"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hAP ac"
+      ]
+    },
+    {
+      "slug": "hap-ac-2",
+      "title": "hAP ac²",
+      "url": "https://manual.mikrotik.com/hardware/hap-ac-2",
+      "wordCount": 2362,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ac2"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP ac2"
+      ]
+    },
+    {
+      "slug": "hap-ac-lite",
+      "title": "hAP ac lite",
+      "url": "https://manual.mikrotik.com/hardware/hap-ac-lite",
+      "wordCount": 2767,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB952Ui-5ac2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hAP ac lite"
+      ]
+    },
+    {
+      "slug": "hap-ac-lite-tc",
+      "title": "hAP ac lite TC",
+      "url": "https://manual.mikrotik.com/hardware/hap-ac-lite-tc",
+      "wordCount": 2980,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB952Ui-5ac2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hAP ac lite",
+        "hAP ac lite TC"
+      ]
+    },
+    {
+      "slug": "hap-ac3",
+      "title": "hAP ac3",
+      "url": "https://manual.mikrotik.com/hardware/hap-ac3",
+      "wordCount": 2813,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ac3"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP ac3"
+      ]
+    },
+    {
+      "slug": "hap-ac3-lte6-kit",
+      "title": "hAP ac3 LTE6 kit",
+      "url": "https://manual.mikrotik.com/hardware/hap-ac3-lte6-kit",
+      "wordCount": 3090,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ac3_lte6_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "hap-ax",
+      "title": "hAP ax²",
+      "url": "https://manual.mikrotik.com/hardware/hap-ax",
+      "wordCount": 2921,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ax2"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP ax2"
+      ]
+    },
+    {
+      "slug": "hap-ax-2",
+      "title": "hAP ax³",
+      "url": "https://manual.mikrotik.com/hardware/hap-ax-2",
+      "wordCount": 3068,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ax3"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP ax3"
+      ]
+    },
+    {
+      "slug": "hap-ax-lite",
+      "title": "hAP ax lite",
+      "url": "https://manual.mikrotik.com/hardware/hap-ax-lite",
+      "wordCount": 1186,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ax_lite"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP ax lite"
+      ]
+    },
+    {
+      "slug": "hap-ax-lite-lte6",
+      "title": "hAP ax lite LTE6",
+      "url": "https://manual.mikrotik.com/hardware/hap-ax-lite-lte6",
+      "wordCount": 748,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ax_lite_lte6"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "hap-ax-s",
+      "title": "hAP ax S",
+      "url": "https://manual.mikrotik.com/hardware/hap-ax-s",
+      "wordCount": 1199,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "hap_ax_s"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP ax S"
+      ]
+    },
+    {
+      "slug": "hap-be-lite",
+      "title": "hAP be lite",
+      "url": "https://manual.mikrotik.com/hardware/hap-be-lite",
+      "wordCount": 1057,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "hap_be_lite"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP be lite"
+      ]
+    },
+    {
+      "slug": "hap-be-media",
+      "title": "hAP be³ Media",
+      "url": "https://manual.mikrotik.com/hardware/hap-be-media",
+      "wordCount": 1314,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "hap_be3_media"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hAP be3 Media"
+      ]
+    },
+    {
+      "slug": "hap-lite",
+      "title": "hAP lite",
+      "url": "https://manual.mikrotik.com/hardware/hap-lite",
+      "wordCount": 2231,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB941-2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hAP lite"
+      ]
+    },
+    {
+      "slug": "hap-lite-tc",
+      "title": "hAP lite TC",
+      "url": "https://manual.mikrotik.com/hardware/hap-lite-tc",
+      "wordCount": 2503,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB941-2nD-TC"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hAP lite TC"
+      ]
+    },
+    {
+      "slug": "hap-mini",
+      "title": "hAP mini",
+      "url": "https://manual.mikrotik.com/hardware/hap-mini",
+      "wordCount": 2440,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB931-2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "hex",
+      "title": "hEX",
+      "url": "https://manual.mikrotik.com/hardware/hex",
+      "wordCount": 1707,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB750Gr3"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hEX"
+      ]
+    },
+    {
+      "slug": "hex-lite",
+      "title": "hEX lite",
+      "url": "https://manual.mikrotik.com/hardware/hex-lite",
+      "wordCount": 1509,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB750r2"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hEX lite"
+      ]
+    },
+    {
+      "slug": "hex-poe",
+      "title": "hEX PoE",
+      "url": "https://manual.mikrotik.com/hardware/hex-poe",
+      "wordCount": 1753,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB960PGS"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hEX PoE"
+      ]
+    },
+    {
+      "slug": "hex-poe-lite",
+      "title": "hEX PoE lite",
+      "url": "https://manual.mikrotik.com/hardware/hex-poe-lite",
+      "wordCount": 1383,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB750UPr2"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "hEX PoE lite"
+      ]
+    },
+    {
+      "slug": "hex-refresh",
+      "title": "hEX refresh",
+      "url": "https://manual.mikrotik.com/hardware/hex-refresh",
+      "wordCount": 533,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "hex_2024"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hEX refresh"
+      ]
+    },
+    {
+      "slug": "hex-s",
+      "title": "hEX S",
+      "url": "https://manual.mikrotik.com/hardware/hex-s",
+      "wordCount": 1630,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "hex_s"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hEX S"
+      ]
+    },
+    {
+      "slug": "hex-s-2025",
+      "title": "hEX S (2025)",
+      "url": "https://manual.mikrotik.com/hardware/hex-s-2025",
+      "wordCount": 1246,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "hex_s_2025"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "hEX S (2025)"
+      ]
+    },
+    {
+      "slug": "intercell",
+      "title": "Intercell",
+      "url": "https://manual.mikrotik.com/hardware/intercell",
+      "wordCount": 1316,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "S-31DLC20D-181",
+        "rbgesp"
+      ],
+      "nonDefaultIps": [
+        "192.168.200.200",
+        "192.168.200.100"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "knot-embedded-lte4-ec25-eu-and-kne",
+      "title": "KNOT Embedded LTE4 EC25-EU&KNe",
+      "url": "https://manual.mikrotik.com/hardware/knot-embedded-lte4-ec25-eu-and-kne",
+      "wordCount": 1214,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "knot_emb_lte4_global"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "knot-embedded-lte4-global-eg25-g-and-kne",
+      "title": "KNOT Embedded LTE4 Global EG25-G&KNe",
+      "url": "https://manual.mikrotik.com/hardware/knot-embedded-lte4-global-eg25-g-and-kne",
+      "wordCount": 1237,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "knot_emb_lte4_global"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "l009uigs-2haxd-in",
+      "title": "L009UiGS-2HaxD-IN",
+      "url": "https://manual.mikrotik.com/hardware/l009uigs-2haxd-in",
+      "wordCount": 1301,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "l009uigs_2haxd_in"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "L009UiGS-2HaxD-IN"
+      ]
+    },
+    {
+      "slug": "l009uigs-rm",
+      "title": "L009UiGS-RM",
+      "url": "https://manual.mikrotik.com/hardware/l009uigs-rm",
+      "wordCount": 1223,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "l009uigs_rm"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "L009UiGS-RM"
+      ]
+    },
+    {
+      "slug": "l11ug-5haxd",
+      "title": "L11UG-5HaxD",
+      "url": "https://manual.mikrotik.com/hardware/l11ug-5haxd",
+      "wordCount": 1207,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "l11ug_5haxd"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "L11UG-5HaxD"
+      ]
+    },
+    {
+      "slug": "l23ugsr-5haxd2haxd",
+      "title": "L23UGSR-5HaxD2HaxD",
+      "url": "https://manual.mikrotik.com/hardware/l23ugsr-5haxd2haxd",
+      "wordCount": 1256,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "l23ugsr_5haxd2haxd"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "L23UGSR-5HaxD2HaxD"
+      ]
+    },
+    {
+      "slug": "ldf-2",
+      "title": "LDF 2",
+      "url": "https://manual.mikrotik.com/hardware/ldf-2",
+      "wordCount": 2512,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "ldf_2"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ldf-5-series",
+      "title": "LDF 5-series",
+      "url": "https://manual.mikrotik.com/hardware/ldf-5-series",
+      "wordCount": 2910,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "rbldf_5nd",
+        "ldf_5_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "LDF 5"
+      ]
+    },
+    {
+      "slug": "ldf-lte6-kit",
+      "title": "LDF LTE6 kit",
+      "url": "https://manual.mikrotik.com/hardware/ldf-lte6-kit",
+      "wordCount": 2216,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "ldf_lte6_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "lhg-5axd",
+      "title": "LHG-5axD",
+      "url": "https://manual.mikrotik.com/hardware/lhg-5axd",
+      "wordCount": 1214,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "lhg_5_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "LHG 5 ax"
+      ]
+    },
+    {
+      "slug": "lhg-60g",
+      "title": "LHG 60G",
+      "url": "https://manual.mikrotik.com/hardware/lhg-60g",
+      "wordCount": 2012,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "lhg_60g"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "lhg-kit-series",
+      "title": "LHG kit-series",
+      "url": "https://manual.mikrotik.com/hardware/lhg-kit-series",
+      "wordCount": 2876,
+      "tableCount": 3,
+      "isSeries": true,
+      "productLinks": [
+        "lhg_lte6_kit",
+        "lhg_lte_kit"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "lhg-lite60",
+      "title": "LHG Lite60",
+      "url": "https://manual.mikrotik.com/hardware/lhg-lite60",
+      "wordCount": 1365,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [
+        "192.168.88.0"
+      ],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "lhg-lte18-kit",
+      "title": "LHG LTE18 kit",
+      "url": "https://manual.mikrotik.com/hardware/lhg-lte18-kit",
+      "wordCount": 2067,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "lhg_lte18"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "LHG LTE18 kit"
+      ]
+    },
+    {
+      "slug": "lhg-r",
+      "title": "LHG R",
+      "url": "https://manual.mikrotik.com/hardware/lhg-r",
+      "wordCount": 2750,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "rblhgr"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "lhg-series",
+      "title": "LHG-series",
+      "url": "https://manual.mikrotik.com/hardware/lhg-series",
+      "wordCount": 2937,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "RBLHG-5nD",
+        "lhg_2",
+        "RBLHG-5HPnD",
+        "lhg_5_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "LHG 5"
+      ]
+    },
+    {
+      "slug": "lhg-xl-2",
+      "title": "LHG XL 2",
+      "url": "https://manual.mikrotik.com/hardware/lhg-xl-2",
+      "wordCount": 2053,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "lhg-xl-5-ac",
+      "title": "LHG XL 5 ac",
+      "url": "https://manual.mikrotik.com/hardware/lhg-xl-5-ac",
+      "wordCount": 2050,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "lhg_xl_5_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "LHG XL 5 ac"
+      ]
+    },
+    {
+      "slug": "lhg-xl-5-ax",
+      "title": "LHG XL 5 ax",
+      "url": "https://manual.mikrotik.com/hardware/lhg-xl-5-ax",
+      "wordCount": 1239,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "lhg_5_ax_xl"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "LHG XL 5 ax"
+      ]
+    },
+    {
+      "slug": "lhg-xl-52-ac",
+      "title": "LHG XL 52 ac",
+      "url": "https://manual.mikrotik.com/hardware/lhg-xl-52-ac",
+      "wordCount": 2756,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "lhg_xl_52_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "lhg-xl-hp5",
+      "title": "LHG XL HP5",
+      "url": "https://manual.mikrotik.com/hardware/lhg-xl-hp5",
+      "wordCount": 1922,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "RBLHG-5HPnD-XL"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "LHG XL HP5"
+      ]
+    },
+    {
+      "slug": "lhgg-lte6-kit",
+      "title": "LHGG LTE6 kit",
+      "url": "https://manual.mikrotik.com/hardware/lhgg-lte6-kit",
+      "wordCount": 2686,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "lhgg_lte6_kit"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ltap",
+      "title": "LtAP",
+      "url": "https://manual.mikrotik.com/hardware/ltap",
+      "wordCount": 3317,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "ltap"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ltap-kit-series",
+      "title": "LtAP kit-series",
+      "url": "https://manual.mikrotik.com/hardware/ltap-kit-series",
+      "wordCount": 2554,
+      "tableCount": 0,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ltap-lr8-lte-kit",
+      "title": "LtAP LR8 LTE kit",
+      "url": "https://manual.mikrotik.com/hardware/ltap-lr8-lte-kit",
+      "wordCount": 3200,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "lora_antenna_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ltap-lr8-lte6-kit",
+      "title": "LtAP LR8 LTE6 kit",
+      "url": "https://manual.mikrotik.com/hardware/ltap-lr8-lte6-kit",
+      "wordCount": 1460,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ltap-lr8g-lte6-kit",
+      "title": "LtAP LR8G LTE6 kit",
+      "url": "https://manual.mikrotik.com/hardware/ltap-lr8g-lte6-kit",
+      "wordCount": 1506,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "ltap_lr8g_lte6_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "ltap-mini",
+      "title": "LtAP mini",
+      "url": "https://manual.mikrotik.com/hardware/ltap-mini",
+      "wordCount": 3151,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "dinrail_pro",
+        "acgpsa",
+        "acsmaufl",
+        "ltap_mini"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "LtAP mini"
+      ]
+    },
+    {
+      "slug": "ltap-mini-kit-series",
+      "title": "LtAP mini kit-series",
+      "url": "https://manual.mikrotik.com/hardware/ltap-mini-kit-series",
+      "wordCount": 3208,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "ltap_mini_lte_kit_2024",
+        "dinrail_pro",
+        "acgpsa",
+        "acsmaufl",
+        "ltap_mini_lte_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "LtAP mini LTE kit"
+      ]
+    },
+    {
+      "slug": "mant-series",
+      "title": "mANT-series",
+      "url": "https://manual.mikrotik.com/hardware/mant-series",
+      "wordCount": 878,
+      "tableCount": 0,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "mantbox-52-15s",
+      "title": "MANTBox 52 15s",
+      "url": "https://manual.mikrotik.com/hardware/mantbox-52-15s",
+      "wordCount": 2715,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "mantbox_52_15s"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "mantbox-ax-15s",
+      "title": "mANTBox ax 15s",
+      "url": "https://manual.mikrotik.com/hardware/mantbox-ax-15s",
+      "wordCount": 1400,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "mantbox_ax_15s"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "mANTBox ax 15s"
+      ]
+    },
+    {
+      "slug": "mantbox-series",
+      "title": "mANTBox-series",
+      "url": "https://manual.mikrotik.com/hardware/mantbox-series",
+      "wordCount": 3700,
+      "tableCount": 7,
+      "isSeries": true,
+      "productLinks": [
+        "mantbox_2_12s"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "mANTBox 2 12s"
+      ]
+    },
+    {
+      "slug": "map",
+      "title": "mAP",
+      "url": "https://manual.mikrotik.com/hardware/map",
+      "wordCount": 2507,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RBmAP2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "mAP"
+      ]
+    },
+    {
+      "slug": "map-lite",
+      "title": "mAP lite",
+      "url": "https://manual.mikrotik.com/hardware/map-lite",
+      "wordCount": 1912,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RBmAPL-2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "mAP lite"
+      ]
+    },
+    {
+      "slug": "metal-52-ac",
+      "title": "Metal 52 ac",
+      "url": "https://manual.mikrotik.com/hardware/metal-52-ac",
+      "wordCount": 2766,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "RBMetalG-52SHPacn"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "Metal 52 ac"
+      ]
+    },
+    {
+      "slug": "mqs",
+      "title": "MQS",
+      "url": "https://manual.mikrotik.com/hardware/mqs",
+      "wordCount": 1860,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "mqs"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.3"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "mtp250-series",
+      "title": "MTP250 series",
+      "url": "https://manual.mikrotik.com/hardware/mtp250-series",
+      "wordCount": 958,
+      "tableCount": 1,
+      "isSeries": true,
+      "productLinks": [
+        "mtp250_53v47_od",
+        "mtp250_26v94_od"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "netbox-5",
+      "title": "NetBox 5",
+      "url": "https://manual.mikrotik.com/hardware/netbox-5",
+      "wordCount": 2818,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "ACRPSMA",
+        "RB911G-5HPacD-NB"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "netbox-5-ax",
+      "title": "NetBox 5 ax",
+      "url": "https://manual.mikrotik.com/hardware/netbox-5-ax",
+      "wordCount": 2919,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "netbox_5_ax",
+        "ACRPSMA"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "NetBox 5 ax"
+      ]
+    },
+    {
+      "slug": "netfiber-9",
+      "title": "netFiber 9",
+      "url": "https://manual.mikrotik.com/hardware/netfiber-9",
+      "wordCount": 2017,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "netfiber_9"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "netFiber 9"
+      ]
+    },
+    {
+      "slug": "netmetal-ac",
+      "title": "NetMetal ac²",
+      "url": "https://manual.mikrotik.com/hardware/netmetal-ac",
+      "wordCount": 2519,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "netmetal_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "NetMetal ax"
+      ]
+    },
+    {
+      "slug": "netmetal-ax",
+      "title": "NetMetal ax",
+      "url": "https://manual.mikrotik.com/hardware/netmetal-ax",
+      "wordCount": 1880,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "netmetal_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "NetMetal ax"
+      ]
+    },
+    {
+      "slug": "netmetal-series",
+      "title": "NetMetal-series",
+      "url": "https://manual.mikrotik.com/hardware/netmetal-series",
+      "wordCount": 1975,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "RB922UAGS-5HPacD-NM"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "NetMetal 5"
+      ]
+    },
+    {
+      "slug": "netpower-15fr",
+      "title": "netPower 15FR",
+      "url": "https://manual.mikrotik.com/hardware/netpower-15fr",
+      "wordCount": 2076,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "crs318_1fi_15fr_2s_out"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "netPower 15FR"
+      ]
+    },
+    {
+      "slug": "netpower-16p",
+      "title": "netPower 16P",
+      "url": "https://manual.mikrotik.com/hardware/netpower-16p",
+      "wordCount": 2153,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "netpower_16p"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "netPower 16P"
+      ]
+    },
+    {
+      "slug": "netpower-lite-7r",
+      "title": "netPower Lite 7R",
+      "url": "https://manual.mikrotik.com/hardware/netpower-lite-7r",
+      "wordCount": 1725,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "netpower_lite_7r"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "netPower Lite 7R"
+      ]
+    },
+    {
+      "slug": "netpower-lite-8p",
+      "title": "netPower Lite 8P",
+      "url": "https://manual.mikrotik.com/hardware/netpower-lite-8p",
+      "wordCount": 3242,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "netpower_lite_ups"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "netPower Lite 8P"
+      ]
+    },
+    {
+      "slug": "nray-series",
+      "title": "nRAY series",
+      "url": "https://manual.mikrotik.com/hardware/nray-series",
+      "wordCount": 1937,
+      "tableCount": 1,
+      "isSeries": true,
+      "productLinks": [
+        "wireless_wire_nray"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "omnitik-series",
+      "title": "OmniTIK series",
+      "url": "https://manual.mikrotik.com/hardware/omnitik-series",
+      "wordCount": 2576,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "rbomnitikpg_5hacd"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "OmniTIK 5 PoE ac"
+      ]
+    },
+    {
+      "slug": "powerbox",
+      "title": "PowerBox",
+      "url": "https://manual.mikrotik.com/hardware/powerbox",
+      "wordCount": 1106,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB750P-PBr2"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "powerbox-pro",
+      "title": "PowerBox Pro",
+      "url": "https://manual.mikrotik.com/hardware/powerbox-pro",
+      "wordCount": 1127,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB960PGS-PB"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "PowerBox Pro"
+      ]
+    },
+    {
+      "slug": "pwr-line",
+      "title": "PWR-LINE",
+      "url": "https://manual.mikrotik.com/hardware/pwr-line",
+      "wordCount": 941,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "pwr-line-ap",
+      "title": "PWR-LINE AP",
+      "url": "https://manual.mikrotik.com/hardware/pwr-line-ap",
+      "wordCount": 1804,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "pwr-line-pro",
+      "title": "PWR-LINE PRO",
+      "url": "https://manual.mikrotik.com/hardware/pwr-line-pro",
+      "wordCount": 994,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "pl7510gi"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "qrt-2",
+      "title": "QRT 2",
+      "url": "https://manual.mikrotik.com/hardware/qrt-2",
+      "wordCount": 1811,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RBQRTG-2SHPnDr2"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "qrt-5",
+      "title": "QRT 5",
+      "url": "https://manual.mikrotik.com/hardware/qrt-5",
+      "wordCount": 2155,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB911G-5HPnD-QRT"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "QRT 5"
+      ]
+    },
+    {
+      "slug": "qrt-5-ac",
+      "title": "QRT 5 ac",
+      "url": "https://manual.mikrotik.com/hardware/qrt-5-ac",
+      "wordCount": 2113,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "RB911G-5HPacD-QRT"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "r11e-lr2",
+      "title": "R11e-LR2",
+      "url": "https://manual.mikrotik.com/hardware/r11e-lr2",
+      "wordCount": 1387,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "acsmaufl"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP LR2 kit"
+      ]
+    },
+    {
+      "slug": "r11e-lr8",
+      "title": "R11e-LR8",
+      "url": "https://manual.mikrotik.com/hardware/r11e-lr8",
+      "wordCount": 1310,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "acsmaufl"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "r11e-lr8g",
+      "title": "R11e-LR8G",
+      "url": "https://manual.mikrotik.com/hardware/r11e-lr8g",
+      "wordCount": 1003,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "acsmaufl"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "KNOT LR8G kit",
+        "wAP LR8G kit"
+      ]
+    },
+    {
+      "slug": "r11e-lr9",
+      "title": "R11e-LR9",
+      "url": "https://manual.mikrotik.com/hardware/r11e-lr9",
+      "wordCount": 1930,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "acsmaufl"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "r11e-lr9g",
+      "title": "R11e-LR9G",
+      "url": "https://manual.mikrotik.com/hardware/r11e-lr9g",
+      "wordCount": 995,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "acsmaufl"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "KNOT LR9G kit",
+        "wAP LR9G kit"
+      ]
+    },
+    {
+      "slug": "r11e-series",
+      "title": "R11e series",
+      "url": "https://manual.mikrotik.com/hardware/r11e-series",
+      "wordCount": 1290,
+      "tableCount": 3,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb1100-series",
+      "title": "RB1100-series",
+      "url": "https://manual.mikrotik.com/hardware/rb1100-series",
+      "wordCount": 1364,
+      "tableCount": 0,
+      "isSeries": true,
+      "productLinks": [
+        "rb1100ahx4",
+        "RB1100Dx4"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "RB1100AHx4 Dude Edition",
+        "RB1100AHx4"
+      ]
+    },
+    {
+      "slug": "rb2011il-in",
+      "title": "RB2011iL-IN",
+      "url": "https://manual.mikrotik.com/hardware/rb2011il-in",
+      "wordCount": 1552,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RBWMK",
+        "RB2011iL-IN"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb2011il-rm",
+      "title": "RB2011iL-RM",
+      "url": "https://manual.mikrotik.com/hardware/rb2011il-rm",
+      "wordCount": 1627,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB2011iL-RM"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb2011ils-in",
+      "title": "RB2011iLS-IN",
+      "url": "https://manual.mikrotik.com/hardware/rb2011ils-in",
+      "wordCount": 1562,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RBWMK",
+        "RB2011iLS-IN"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb2011uias-2hnd-in",
+      "title": "RB2011UiAS-2HnD-IN",
+      "url": "https://manual.mikrotik.com/hardware/rb2011uias-2hnd-in",
+      "wordCount": 2707,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB2011UiAS-2HnD-IN"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb2011uias-in",
+      "title": "RB2011UiAS-IN",
+      "url": "https://manual.mikrotik.com/hardware/rb2011uias-in",
+      "wordCount": 1572,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RBWMK",
+        "RB2011UiAS-IN"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb2011uias-rm",
+      "title": "RB2011UiAS-RM",
+      "url": "https://manual.mikrotik.com/hardware/rb2011uias-rm",
+      "wordCount": 1633,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB2011UiAS-RM"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb260-series",
+      "title": "RB260-series",
+      "url": "https://manual.mikrotik.com/hardware/rb260-series",
+      "wordCount": 1341,
+      "tableCount": 0,
+      "isSeries": true,
+      "productLinks": [
+        "RB260GS",
+        "RB260GSP"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "RB260GS",
+        "RB260GSP"
+      ]
+    },
+    {
+      "slug": "rb3011uias-rm",
+      "title": "RB3011UiAS-RM",
+      "url": "https://manual.mikrotik.com/hardware/rb3011uias-rm",
+      "wordCount": 1781,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RB3011UiAS-RM"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rb4011igs-plus-5hacq2hnd-in",
+      "title": "RB4011iGS+5HacQ2HnD-IN",
+      "url": "https://manual.mikrotik.com/hardware/rb4011igs-plus-5hacq2hnd-in",
+      "wordCount": 2993,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "rb4011igs_5hacq2hnd_in"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "RB4011iGS+5HacQ2HnD-IN"
+      ]
+    },
+    {
+      "slug": "rb4011igs-plus-rm",
+      "title": "RB4011iGS+RM",
+      "url": "https://manual.mikrotik.com/hardware/rb4011igs-plus-rm",
+      "wordCount": 1696,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rb4011igs_rm"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "RB4011iGS+RM"
+      ]
+    },
+    {
+      "slug": "rb450gx4",
+      "title": "RB450Gx4",
+      "url": "https://manual.mikrotik.com/hardware/rb450gx4",
+      "wordCount": 1494,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rb450gx4"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "RB450Gx4"
+      ]
+    },
+    {
+      "slug": "rb5009ug-plus-s-plus-in",
+      "title": "RB5009UG+S+IN",
+      "url": "https://manual.mikrotik.com/hardware/rb5009ug-plus-s-plus-in",
+      "wordCount": 1245,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rb5009ug_s_in"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "RB5009UG+S+IN"
+      ]
+    },
+    {
+      "slug": "rb5009upr-plus-s-plus-in",
+      "title": "RB5009UPr+S+IN",
+      "url": "https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-in",
+      "wordCount": 1294,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rb5009upr_s_in"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "RB5009UPr+S+IN"
+      ]
+    },
+    {
+      "slug": "rb5009upr-plus-s-plus-out",
+      "title": "RB5009UPr+S+OUT",
+      "url": "https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-out",
+      "wordCount": 1100,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rb5009_out"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "RB5009UPr+S+OUT"
+      ]
+    },
+    {
+      "slug": "rb911-series",
+      "title": "RB911-series",
+      "url": "https://manual.mikrotik.com/hardware/rb911-series",
+      "wordCount": 2424,
+      "tableCount": 2,
+      "isSeries": true,
+      "productLinks": [
+        "RB911G-5HPnD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "RB911G-5HPnD"
+      ]
+    },
+    {
+      "slug": "rb912uag-series",
+      "title": "RB912UAG-series",
+      "url": "https://manual.mikrotik.com/hardware/rb912uag-series",
+      "wordCount": 2142,
+      "tableCount": 3,
+      "isSeries": true,
+      "productLinks": [
+        "RB912UAG-5HPnD",
+        "RB912UAG-2HPnD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "RB912UAG-2HPnD",
+        "RB912UAG-5HPnD"
+      ]
+    },
+    {
+      "slug": "rb922uags-5hpacd",
+      "title": "RB922UAGS-5HPacD",
+      "url": "https://manual.mikrotik.com/hardware/rb922uags-5hpacd",
+      "wordCount": 1999,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RB922UAGS-5HPacD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "RB922UAGS-5HPacD"
+      ]
+    },
+    {
+      "slug": "rb924i-2nd-bt5-and-bg77",
+      "title": "RB924i-2nD-BT5&BG77",
+      "url": "https://manual.mikrotik.com/hardware/rb924i-2nd-bt5-and-bg77",
+      "wordCount": 4621,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "knot",
+        "knot_lr8g_kit",
+        "knot_lr9g_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "KNOT",
+        "KNOT LR8G kit",
+        "KNOT LR9G kit"
+      ]
+    },
+    {
+      "slug": "rb951-series",
+      "title": "RB951-series",
+      "url": "https://manual.mikrotik.com/hardware/rb951-series",
+      "wordCount": 2724,
+      "tableCount": 5,
+      "isSeries": true,
+      "productLinks": [
+        "RB951Ui-2HnD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "RB951Ui-2HnD"
+      ]
+    },
+    {
+      "slug": "rbftc11",
+      "title": "RBFTC11",
+      "url": "https://manual.mikrotik.com/hardware/rbftc11",
+      "wordCount": 1130,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RBFTC11"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rbm11g",
+      "title": "RBM11G",
+      "url": "https://manual.mikrotik.com/hardware/rbm11g",
+      "wordCount": 1686,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "m11g"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "rbm33g",
+      "title": "RBM33G",
+      "url": "https://manual.mikrotik.com/hardware/rbm33g",
+      "wordCount": 2215,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rbm33g"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "RBM33G"
+      ]
+    },
+    {
+      "slug": "rose-data-server",
+      "title": "ROSE Data Server",
+      "url": "https://manual.mikrotik.com/hardware/rose-data-server",
+      "wordCount": 1147,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rds2216"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "s-3553lc20d",
+      "title": "S-3553LC20D",
+      "url": "https://manual.mikrotik.com/hardware/s-3553lc20d",
+      "wordCount": 286,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "S-3553LC20D"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "sextant-g",
+      "title": "SEXTANT G",
+      "url": "https://manual.mikrotik.com/hardware/sextant-g",
+      "wordCount": 1620,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "RBSEXTANTG-5HPnD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "sxt-2",
+      "title": "SXT 2",
+      "url": "https://manual.mikrotik.com/hardware/sxt-2",
+      "wordCount": 2216,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "sxt-6",
+      "title": "SXT 6",
+      "url": "https://manual.mikrotik.com/hardware/sxt-6",
+      "wordCount": 1470,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "rbsxtg_6hpnd"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "sxt-kit-series",
+      "title": "SXT kit-series",
+      "url": "https://manual.mikrotik.com/hardware/sxt-kit-series",
+      "wordCount": 2716,
+      "tableCount": 3,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "sxt-r",
+      "title": "SXT R",
+      "url": "https://manual.mikrotik.com/hardware/sxt-r",
+      "wordCount": 2474,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "sxt_r"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "sxtsa-series",
+      "title": "SXTSA-series",
+      "url": "https://manual.mikrotik.com/hardware/sxtsa-series",
+      "wordCount": 2359,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "sxtsq-5axd",
+      "title": "SXTsq-5axD",
+      "url": "https://manual.mikrotik.com/hardware/sxtsq-5axd",
+      "wordCount": 1290,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "qm_x"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "SXTsq 5 ax"
+      ]
+    },
+    {
+      "slug": "sxtsq-embedded-lte4",
+      "title": "SXTsq Embedded LTE4",
+      "url": "https://manual.mikrotik.com/hardware/sxtsq-embedded-lte4",
+      "wordCount": 1359,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "sxtsq_emb_lte4"
+      ],
+      "nonDefaultIps": [
+        "192.168.188.1"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "SXTsq Embedded LTE4"
+      ]
+    },
+    {
+      "slug": "sxtsq-series",
+      "title": "SXTsq-series",
+      "url": "https://manual.mikrotik.com/hardware/sxtsq-series",
+      "wordCount": 2619,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "qm_x",
+        "sxtsq_lite2",
+        "RBSXTsq5nD",
+        "sxtsq_5_ac",
+        "sxtsq_5_high_power"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "SXTsq Lite5",
+        "SXTsq 5 ac",
+        "SXTsq Lite2"
+      ]
+    },
+    {
+      "slug": "tg-bt5-in",
+      "title": "TG-BT5-IN",
+      "url": "https://manual.mikrotik.com/hardware/tg-bt5-in",
+      "wordCount": 1776,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "tg_bt5_in"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "tg-bt5-out",
+      "title": "TG-BT5-OUT",
+      "url": "https://manual.mikrotik.com/hardware/tg-bt5-out",
+      "wordCount": 1832,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "tg_bt5_out"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "tg-lr82",
+      "title": "TG-LR82",
+      "url": "https://manual.mikrotik.com/hardware/tg-lr82",
+      "wordCount": 684,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "tg_lr82"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "tg-lr92",
+      "title": "TG-LR92",
+      "url": "https://manual.mikrotik.com/hardware/tg-lr92",
+      "wordCount": 745,
+      "tableCount": 3,
+      "isSeries": false,
+      "productLinks": [
+        "tg_lr92"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "up1302c-12",
+      "title": "UP1302C-12",
+      "url": "https://manual.mikrotik.com/hardware/up1302c-12",
+      "wordCount": 390,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "up1302c_12"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wap-60g-series",
+      "title": "wAP 60G series",
+      "url": "https://manual.mikrotik.com/hardware/wap-60g-series",
+      "wordCount": 2125,
+      "tableCount": 3,
+      "isSeries": true,
+      "productLinks": [
+        "wireless_wire",
+        "wap_60g",
+        "wap_60g_ap"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wap-ac",
+      "title": "wAP ac",
+      "url": "https://manual.mikrotik.com/hardware/wap-ac",
+      "wordCount": 3077,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "wap_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wap-ac-kit-series",
+      "title": "wAP ac kit-series",
+      "url": "https://manual.mikrotik.com/hardware/wap-ac-kit-series",
+      "wordCount": 3759,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "wap_ac_lte_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wap-ax",
+      "title": "wAP ax",
+      "url": "https://manual.mikrotik.com/hardware/wap-ax",
+      "wordCount": 1737,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "wap_ax"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP ax"
+      ]
+    },
+    {
+      "slug": "wap-ax-lte7-kit",
+      "title": "wAP ax LTE7 kit",
+      "url": "https://manual.mikrotik.com/hardware/wap-ax-lte7-kit",
+      "wordCount": 1965,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "wap_ax_lte7"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP ax LTE7 kit"
+      ]
+    },
+    {
+      "slug": "wap-kit-series",
+      "title": "wAP kit-series",
+      "url": "https://manual.mikrotik.com/hardware/wap-kit-series",
+      "wordCount": 3516,
+      "tableCount": 4,
+      "isSeries": true,
+      "productLinks": [
+        "wap_lte_kit_2024"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wap-lr2-kit",
+      "title": "wAP LR2 kit",
+      "url": "https://manual.mikrotik.com/hardware/wap-lr2-kit",
+      "wordCount": 2853,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "tof_2400_8v_4"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP LR2 kit"
+      ]
+    },
+    {
+      "slug": "wap-lr8g-kit",
+      "title": "wAP LR8G kit",
+      "url": "https://manual.mikrotik.com/hardware/wap-lr8g-kit",
+      "wordCount": 2231,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "868_omni_antenna"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP LR8G kit"
+      ]
+    },
+    {
+      "slug": "wap-lr9-kit",
+      "title": "wAP LR9 kit",
+      "url": "https://manual.mikrotik.com/hardware/wap-lr9-kit",
+      "wordCount": 3107,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "lora_antenna_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wap-lr9g-kit",
+      "title": "wAP LR9G kit",
+      "url": "https://manual.mikrotik.com/hardware/wap-lr9g-kit",
+      "wordCount": 2231,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "915_omni_antenna"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP LR9G kit"
+      ]
+    },
+    {
+      "slug": "wap-lte-kit-2024",
+      "title": "wAP LTE kit (2024)",
+      "url": "https://manual.mikrotik.com/hardware/wap-lte-kit-2024",
+      "wordCount": 1676,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "wap_lte_kit"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "wAP LTE kit"
+      ]
+    },
+    {
+      "slug": "wap-r",
+      "title": "wAP R",
+      "url": "https://manual.mikrotik.com/hardware/wap-r",
+      "wordCount": 1720,
+      "tableCount": 0,
+      "isSeries": false,
+      "productLinks": [
+        "RBwAPR-2nD"
+      ],
+      "nonDefaultIps": [],
+      "cause": "matched-by-code",
+      "matchedMatrixNames": [
+        "wAP LR2 kit",
+        "wAP LR8G kit",
+        "wAP LR9G kit",
+        "wAP R"
+      ]
+    },
+    {
+      "slug": "wap-r-ac",
+      "title": "wAP R ac",
+      "url": "https://manual.mikrotik.com/hardware/wap-r-ac",
+      "wordCount": 2037,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "wap_r_ac"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wap-series",
+      "title": "wAP-series",
+      "url": "https://manual.mikrotik.com/hardware/wap-series",
+      "wordCount": 2771,
+      "tableCount": 2,
+      "isSeries": true,
+      "productLinks": [],
+      "nonDefaultIps": [],
+      "cause": "no-product-link",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wireless-wire-cube",
+      "title": "Wireless Wire Cube",
+      "url": "https://manual.mikrotik.com/hardware/wireless-wire-cube",
+      "wordCount": 2438,
+      "tableCount": 5,
+      "isSeries": false,
+      "productLinks": [
+        "qm_x"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wireless-wire-cube-pro-cube-60pro-ac",
+      "title": "Wireless Wire Cube Pro, Cube 60Pro ac",
+      "url": "https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac",
+      "wordCount": 2774,
+      "tableCount": 4,
+      "isSeries": false,
+      "productLinks": [
+        "wireless_wire_cube_pro",
+        "cube_60pro_ac"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ],
+      "cause": "matched-by-slug",
+      "matchedMatrixNames": [
+        "Cube 60Pro ac",
+        "Wireless Wire Cube Pro"
+      ]
+    },
+    {
+      "slug": "wireless-wire-dish",
+      "title": "Wireless Wire Dish",
+      "url": "https://manual.mikrotik.com/hardware/wireless-wire-dish",
+      "wordCount": 2281,
+      "tableCount": 1,
+      "isSeries": false,
+      "productLinks": [
+        "wireless_wire_dish"
+      ],
+      "nonDefaultIps": [
+        "192.168.88.2",
+        "192.168.88.3"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "woobm-usb",
+      "title": "Woobm-USB",
+      "url": "https://manual.mikrotik.com/hardware/woobm-usb",
+      "wordCount": 1786,
+      "tableCount": 7,
+      "isSeries": false,
+      "productLinks": [
+        "woobm"
+      ],
+      "nonDefaultIps": [
+        "192.168.4.1",
+        "192.168.4.2",
+        "192.168.4.5"
+      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    },
+    {
+      "slug": "wsap-ac-lite",
+      "title": "wsAP ac lite",
+      "url": "https://manual.mikrotik.com/hardware/wsap-ac-lite",
+      "wordCount": 2913,
+      "tableCount": 2,
+      "isSeries": false,
+      "productLinks": [
+        "wsap_ac_lite"
+      ],
+      "nonDefaultIps": [],
+      "cause": "unmatched",
+      "matchedMatrixNames": []
+    }
+  ]
+}

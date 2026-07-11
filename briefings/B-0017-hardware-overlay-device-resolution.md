@@ -31,10 +31,11 @@ side; `/hardware` reframes it as a three-way (not two-way) reconciliation proble
 
 - **`/hardware` has more entries than `matrix.csv`, not the same set with a different shape.**
   `matrix.csv`-driven `devices` covers ~144 products. B-0012's 2026-07-07 surface inventory counted 240
-  live `/hardware/<model>` sitemap URLs. The maintainer's working assumption (2026-07-10, not yet
-  verified by a real diff) is that the gap is largely **accessories** — e.g. `TR-LR82`-style items —
-  that never had a `matrix.csv` row because the matrix is scoped to routers/switches with the matrix's
-  own column schema (CPU, architecture, ports, license level), not general hardware.
+  live `/hardware/<model>` sitemap URLs. The maintainer's working assumption (2026-07-10) was that the
+  gap is largely **accessories** — e.g. `TR-LR82`-style items — that never had a `matrix.csv` row. **A
+  real diff pass (2026-07-10, see "Track A research findings" below) shows accessories are only one of
+  at least four causes, and not the dominant one** — series-grouping pages and legacy/EOL devices
+  dropped from the current matrix account for at least as much of the gap.
 - **Slugs/names may not line up across three sources, not two.** `matrix.csv` product names, www product
   page slugs (`mikrotik.com/product/<slug>`), and `/hardware/<model>` slugs are three independently
   maintained naming surfaces. `data-source-naming-product-matrix.instructions.md` already documents that
@@ -150,6 +151,106 @@ code. The questions split into two intertwined tracks that a future agent can ru
    disagree on a field, which source wins, and is per-field provenance recorded (cf. `db-meta-stamping`)?
    A gap not in view before `/hardware` became a third source.
 
+### Track A research findings (2026-07-10, exhaustive pass)
+
+Question 1 (inventory diff) and the structural half of question 5 (extraction mechanism) are now answered
+by a **committed, re-runnable script** — `src/assess-hardware.ts` (mirrors `assess-html.ts`'s "splunk the
+structure before designing a schema" role for the Confluence corpus). It fetches all 239 live `/hardware`
+pages' rendered HTML (`/hardware/<slug>.md` 404s — confirmed live, unlike `/docs` — so this parses HTML
+with `linkedom`, not raw Markdown), caches them under `manual/pages/hardware/*.html` (gitignored, same
+convention as `manual/pages/docs/`), and writes a full per-page census to the **committed**
+`ros-hardware-assessment.json` (mirrors `ros-html-assessment.json`'s precedent for committing derived
+structural-assessment artifacts). Re-run any time with `bun run src/assess-hardware.ts` (live) or
+`--from-cache` (offline, re-analyze cached HTML). This supersedes the original eyeballed slug-diff pass
+below with an exhaustive, code-verified one — the four-cause breakdown still holds, but with exact counts.
+
+**Key discovery driving the method:** most single-device `/hardware` pages' "Specifications" section links
+directly to `mikrotik.com/product/<code>` — e.g. `manual.mikrotik.com/hardware/cap`'s Specifications
+section links `mikrotik.com/product/RBcAP2nD`, which is *exactly* `matrix.csv`'s Product code value for
+`cAP`. That link is a far more reliable cross-reference than slug-guessing. But it isn't uniform: some
+pages link a **www-style slug instead of the real code** (`manual.mikrotik.com/hardware/cap-ac` links
+`mikrotik.com/product/cap_ac`, not a product code at all) — a fourth naming surface, confirming Q3's
+"there may now be two slugs, not one" concern empirically. The script therefore matches in two tiers per
+page — exact product-code match first, then a slug-normalized fallback (reusing the `+`→`-plus-` and
+superscript→`-<digit>` rules from the original pass) — and **unions both tiers' results** rather than
+short-circuiting on the first hit. That union step mattered in practice: `rb1100-series` carries two
+product links, `RB1100Dx4` (code-matches `"RB1100AHx4 Dude Edition"`) and `rb1100ahx4` (only
+slug-matches plain `"RB1100AHx4"`) — an early short-circuiting version of the script silently dropped the
+plain variant, caught and fixed before these numbers were finalized.
+
+**Exhaustive results (239 `/hardware` pages, 156 current `matrix.csv` rows):**
+
+| Bucket | Pages | Meaning |
+|---|---|---|
+| `matched-by-code` | 33 | Product-code link hits `matrix.csv` "Product code" directly |
+| `matched-by-slug` | 103 | Link or page slug hits a slugified matrix name/code |
+| `unmatched` | 84 | Has product link(s), neither tier hit — legacy/EOL candidate |
+| `no-product-link` | 19 | No `mikrotik.com/product/*` link at all — accessory/info-page/linkless-series candidate |
+
+Coverage the *other* direction is better than the original assumption suggested: only **14 of 156**
+current `matrix.csv` rows have **no** `/hardware` page match at all (`ATL LTE18 kit`, `Chateau LTE12
+(2025)`, `CubeSA 60Pro ac`, `FTC21-ups`, `KNOT Embedded LTE4` [+ Global], `LAMP 5G R16`, `LHGG LTE7 kit`,
+`LtAP LTE7 kit`, `R11e-LTE7`, `ROSE Data server (RDS)`, `SXT LTE7 kit`, `SXT SA5 ac`, `SXTsq Embedded LTE4
+Global`) — i.e. **91% of current products have a resolvable `/hardware` page**, mostly recent LTE-kit
+bundles and one very-recent product (`Chateau LTE12 (2025)`) whose page likely hasn't shipped yet or uses
+a shape the two-tier match doesn't cover.
+
+**Series pages (30 of 239, confirmed exact count) are not uniform.** Breaking them down by the same
+buckets: most resolve to `matched-by-code`/`matched-by-slug` with **5 confirmed resolving to more than one
+current matrix row** (true multi-device grouping, e.g. `rb1100-series` → `RB1100AHx4` +
+`RB1100AHx4 Dude Edition`) — but **10 of the 30 series pages carry zero product links at all**
+(`ccr1036-12g-4s-series`, `ccr1036-8g-2s-plus-series`, `crs-series`, `crs125-24g-1s-series`,
+`ltap-kit-series`, `mant-series`, `r11e-series`, `sxt-kit-series`, `sxtsa-series`, `wap-series`) and **6
+resolve to product links that hit nothing in the current matrix** (`lhg-kit-series`, `mtp250-series`,
+`nray-series`, `wap-60g-series`, `wap-ac-kit-series`, `wap-kit-series` — entire discontinued series). The
+link-based method **undercounts** true series membership even when it does resolve: `basebox-series`
+covers BaseBox 2/5/6 live but carries only one product link (`RB912UAG-5HPnD-OUT`, matching BaseBox 5
+only) — confirmed by re-reading the live page content, not just the link set. **Series-page membership
+cannot be fully derived from product links alone**; a future extraction pass needs a second signal (page
+prose, or a real product-code/spec table if one exists on these pages) to enumerate members completely.
+
+**The `no-product-link` bucket (19 pages) splits cleanly into two different problems**, not one:
+`compliance` (confirmed non-device — generic regulatory content, no product links, no title matching any
+device) plus 8 more single-device pages with no Specifications-link at all (`dynadish-6`, `g1040a-60wn`,
+`lhg-lite60`, `lhg-xl-2`, `ltap-lr8-lte6-kit`, `pwr-line`, `pwr-line-ap`, `sxt-2` — real but likely
+legacy/thin pages using an older page template) — versus the 10 linkless series pages above, which are a
+schema problem (need member enumeration), not an accessory problem.
+
+**Non-default management IP factoid, generalized beyond the one known case.** The user's `sxt-kit-series`
+example (`192.168.188.1`) is real but not isolated: **11 pages** carry a genuine subnet deviation (not
+just a second same-subnet address like `.88.2`/`.88.3`, which ~60 pages mention incidentally in
+multi-port setup instructions and is *not* a deviation worth surfacing). The real `192.168.188.1` cluster
+is `atlgm-and-eg18-ea`, `atlgm-and-rg520f-eu`, both `knot-embedded-lte4-*` pages, `lhg-kit-series`,
+`lhg-lte18-kit`, `lhgg-lte6-kit`, `sxt-kit-series`, `sxtsq-embedded-lte4` — **every one of these is an
+embedded-LTE/5G-modem product**, confirming the user's "concentrated in LTE/5G products" hunch exactly
+and tying it specifically to the *embedded modem's own management interface*, not the router itself. Two
+more genuine outliers: `intercell` (`192.168.200.100`/`.200.200`) and `woobm-usb` (`192.168.4.1/.2/.5` —
+an out-of-band USB dongle, where a distinct subnet is expected by design, not a factoid worth surfacing).
+
+**Boilerplate-vs-core is confirmed, not just suspected.** Across 239 pages, `Safety Warnings` appears on
+215 (90%), `Operating system support` on 212 (89%), and every regulatory heading (FCC, Canada/ISED, UKCA,
+Eurasian Conformity, CE, Mexico, Ukraine) appears on 85–135 pages each — near-universal, near-identical
+boilerplate. Median word count is 1,656 (real substantive content, not mostly-empty pages), supporting
+Q5's original lean: default output should be the quick-start/core sections, with regulatory/safety text
+gated behind an explicit opt-in.
+
+**Still open (not resolved by this pass):**
+
+- The two-tier match is heuristic, not authoritative — `matched-by-slug` in particular can false-positive
+  on a coincidental slug collision (none observed, but not proven absent at 103 matches).
+- The 10 linkless series pages and the 84 `unmatched` pages have not been individually verified as
+  legacy/EOL vs. some other cause — that classification is inferred from "has product link(s) but none
+  hit the current matrix," which is a strong but not certain signal.
+- Questions 3 (identity model), 4 (do accessories fit `devices`?), 6 (alias-table trigger), and 7
+  (provenance) are unaffected by this pass and still need a decision. This pass sharpens question 4:
+  series-page membership (especially the 10 linkless + `basebox-series`-style undercounted ones) is
+  clearly a **schema** problem (one page → many devices) distinct from the accessory-fit question it was
+  originally framed as.
+- Extraction mechanism (question 5) now has a concrete default: HTML parsing via `linkedom` (already a
+  project dependency, already proven against 239 live pages) beats the `search-doc.json` fallback for
+  anything needing the product-code links or section structure — `search-doc.json` loses exactly the link
+  and heading structure this pass depended on.
+
 ### Track B — device-capability surfacing
 
 1. **Switch-chip → device mapping, and other per-device capability dimensions.** The switch chip is the
@@ -170,12 +271,19 @@ code. The questions split into two intertwined tracks that a future agent can ru
 ## Current lean
 
 Research/explore phase, not actionable as a build task yet — consistent with how B-0012's `/docs`
-migration was staged (T-0033 research pass before T-0034/T-0035 build). A future task should do a real
-diff pass (question 1) first; that result will likely settle questions 2–3 faster than reasoning about
-them abstractly, the same way B-0012's H7 identity question got settled by a live prototype (T-0034)
-rather than by argument alone. Run **Track A** (identity/inventory) first — **Track B** (capability
-surfacing) needs the stable device key it produces — and expect Track B to become its own scoped build
-issue rather than riding the same extractor.
+migration was staged (T-0033 research pass before T-0034/T-0035 build). Question 1 (inventory diff) is now
+**exhaustively answered** by the committed `src/assess-hardware.ts` + `ros-hardware-assessment.json` (see
+"Track A research findings" above): the 240-vs-156 gap is real, understood in kind and in exact count
+(series-grouping pages, legacy/EOL devices, genuine accessories, and naming deltas), which **overturns**
+the original "largely accessories" working assumption — accessories are a small minority. Question 5
+(extraction mechanism) also has a concrete answer now: HTML parsing via `linkedom` against live pages,
+proven against the full corpus, beats the `search-doc.json` fallback. That leaves questions 3 (identity
+model), 4 (series-page schema + accessory fit), 6 (alias-table trigger), and 7 (provenance) as the real
+remaining work — question 4 in particular now needs a second pass specifically on the 30 series pages
+(10 linkless, several link-undercounted) since product links alone can't fully enumerate membership. Run
+the rest of **Track A** to a decision before **Track B** (capability surfacing), which needs the stable
+device key Track A produces and remains the strongest candidate for its own scoped build issue rather than
+riding the same extractor.
 
 ## Open questions
 
