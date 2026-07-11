@@ -79,6 +79,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0015 | Unified "explain" static + live across the tikoci trilogy (rosetta/centrs/lsp) | open |
 | B-0016 | CLI-Reference overlay: precursor ETL design (issue [#33](https://github.com/tikoci/rosetta/issues/33)) | open |
 | B-0017 | `/hardware` overlay: device-resolution research (issue [#34](https://github.com/tikoci/rosetta/issues/34); absorbs B-0006/B-0007) | open |
+| B-0018 | Product-naming ↔ three-source map: human/MikroTik guide to `device-map.tsv`, parsing tricks, and known `/hardware` gaps (companion to B-0017) | open |
 
 ## Done index
 

@@ -11,6 +11,14 @@ last_revisited: 2026-07-10
 
 # Question
 
+> **Companion:** For a human/MikroTik-readable guide to what the mapping *does now* — the
+> `device-map.tsv` / `hardware-unmatched.tsv` / `device-exceptions.toml` field meanings, the parsing
+> tricks, how to audit, and the known `/hardware` source gaps — see
+> [`B-0018-product-naming-three-source-map.md`](B-0018-product-naming-three-source-map.md). This
+> briefing keeps the historical research/reasoning; B-0018 is the standing legend. Note the exception
+> taxonomy was clarified on 2026-07-11 (`hardware-gap`/`www-fetch-gap` → `no-hardware-page` /
+> `no-www-product`); B-0018 and `device-exceptions.toml` carry the current names.
+
 Before `/hardware` (240+ Docusaurus pages) can be ingested as an overlay on rosetta's existing `devices`
 data, how should devices that appear under different names/slugs/model-numbers across `matrix.csv`, the
 www product pages, and `/hardware` get resolved to one canonical identity?
@@ -626,6 +634,59 @@ of it gets built, per their explicit ask.
 Not in scope for any phase: the 7 still-unresolved linkless series pages (flagged as a possible MikroTik doc
 gap, not blocking); provenance conflict resolution beyond the simple source-per-table default (no real
 conflict has been observed yet to justify more machinery).
+
+## Human-review pass (2026-07-11): matcher fixes + reviewable device-map
+
+The maintainer exported the three-way join to CSV (`device-review.csv`, the earlier session's artifact),
+added a `human_commentary` column, and went through all 257 rows by hand. Every "verify"/"WRONG"/"NO match"
+they flagged traced to one of **five systematic causes**, not 40 special cases — grounded by re-running the
+matcher against the annotated data before concluding:
+
+- **P1 — the `&`-compound full-code slug was never tried.** `loadMatrixRows` splits a kit code on `&` into
+  subcodes and `classify()` only slugged those, so `ATLGM&EG18-EA` never tried its own full slug
+  `atlgm-and-eg18-ea` (the exact page). Fixed: match the full compound canon too.
+- **P2 — no unified canonical form.** 64 rows flagged "www declared code looks different — verify" were the
+  same device under `+`/`plus`/`_`/`-`/case/`rN` variance. Fixed with one `canon()` (lowercase, `+`→`plus`,
+  `&`→`and`, strip non-alphanumerics) plus a `canonNoRev()` that drops a trailing `rN`/`-NNN`. Collapses all
+  64 to confirmed matches.
+- **P3 — the regulatory-table Model column outranked the page's own slug.** A page's FCC/IC Model column
+  enumerates *every covered variant*, so `chateau-lte6-us`'s table bound LTE7/LTE12 to that one page, and
+  clean own-slug matches (RB4011) were mislabeled `matched-by-table`. Fixed: precedence is now
+  `code > own-slug > table`, plus a cross-page suppression step that drops a page's table-only claim on any
+  row another page claims by code/slug.
+- **P4 — "not every product link is the page's device."** Cross-sell/accessory and broken links (`qm_x`,
+  `acsmaufl`, `mant_lte_5o`, `acrpsma`, `lora_antenna_kit`) bound devices to an accessory's www page. Fixed
+  with a `BOGUS_PRODUCT_TOKENS` blacklist (a spec-section-link preference is the fuller fix, deferred).
+- **Shared-base guard (a facet the maintainer named directly).** After splitting on `&`, the base *before*
+  the `&` is often shared across a whole LTE family (`D53G-5HacD2HnD-TC` = Chateau LTE6-US + LTE12) — the
+  `&EG06-A` vs `&EG120K-EA` module suffix is the discriminator. `computeSharedSubCodes()` excludes any
+  subcode present in more than one matrix row from code/table matching, so a shared base no longer binds its
+  siblings.
+
+**Result:** `matched-by-table` collapsed 13→1 (only genuinely table-only pages like `sxtsa-series` remain),
+`matched-by-code` rose 33→55, and matrix rows with no `/hardware` match dropped 14→11. Those 11 residuals are
+the *only* devices no rule can reach, and they sort into three human-meaningful buckets, curated by hand in
+`device-exceptions.toml` (12 entries — the 11 plus `SXTsq 5 ax`, whose www product couldn't be located):
+**curated-alias** (page/product exist under a marketing name — CubeSA 60Pro ac, KNOT Embedded LTE4 ×2, ROSE
+Data server), **www-fetch-gap** (product exists under a slug never fetched — FTC21-ups, SXTsq 5 ax),
+**accessory** (R11e-LTE7), and **hardware-gap** (MikroTik published no page — LAMP 5G R16, Chateau LTE12
+(2025), the LTE7-kit family; worth surfacing upstream).
+
+**Deliverables (this pass, one PR):**
+
+- Matcher fixes P1–P4 + shared-base guard in `src/assess-hardware.ts` (`canon`/`canonNoRev`/`canonForms`,
+  `computeSharedSubCodes`, `BOGUS_PRODUCT_TOKENS`, rewritten `classify()` + cross-page table-suppression).
+- `src/assess-hardware.test.ts` — anchor tests locking each pattern against the real device that motivated it.
+- `device-exceptions.toml` — the hand-curated odd-balls, folding in the maintainer's verified URLs.
+- `src/build-device-map.ts` (`make device-map`) → `device-map.tsv`: the reviewable intermediate form, one row
+  per device with `resolution`/`hw_url`/`www_url`/`needs_review`/`note`. Doubles as a **CI drift gate** —
+  exits non-zero when a device stops auto-resolving without a curated entry, or when a curated exception goes
+  stale (device now auto-resolves), so `device-exceptions.toml` can't rot.
+
+**Deferred (follow-up PRs, per the maintainer's scope call):** the `hardware_catalog` schema + ETL (Phase 1
+above); wiring `make assess-hardware`/`assess-www`/`device-map-check` into CI with the drift canaries; the
+spec-section-link preference (fuller P4). The 7 truly-linkless series pages and the LTE7-kit `/hardware` gaps
+are MikroTik doc gaps to surface upstream, not rosetta extraction limits.
 
 ## Open questions
 
