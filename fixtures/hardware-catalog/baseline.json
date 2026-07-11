@@ -8,8 +8,8 @@
   },
   "matrixCoveragePct": 88,
   "www404RatePct": 41,
-  "aliasCollisions": 99,
-  "droppedWwwProducts": 31,
+  "aliasCollisions": 82,
+  "droppedWwwProducts": 30,
   "resolvedDeviceIds": [
     "atl-5g-r16",
     "atl-lte18-kit",
@@ -27,7 +27,6 @@
     "ccr2116-12g-4s-plus",
     "ccr2216-1g-12xs-2xq",
     "chateau-5g-r17-ax",
-    "chateau-lte12-2025",
     "chateau-lte18-ax",
     "chateau-lte6-us",
     "chateau-lte7",

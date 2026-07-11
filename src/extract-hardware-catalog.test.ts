@@ -69,7 +69,7 @@ describe("buildCatalog — single-match devices-linked row", () => {
     expect(result.catalogRows).toHaveLength(1);
     const row = result.catalogRows[0];
     expect(row.rosettaDeviceId).toBe("cap-ac");
-    expect(row.deviceId).toBe(42);
+    expect(row.deviceProductName).toBe("cAP ac");
     expect(row.name).toBe("cAP ac");
     expect(row.category).toBe("Indoor wireless");
     expect(row.sourceHardwareSlug).toBe("cap-ac");
@@ -83,11 +83,11 @@ describe("buildCatalog — single-match devices-linked row", () => {
     expect(byAlias.get("cap-ac")).toMatchObject({ rosettaDeviceId: "cap-ac", source: "hardware-slug" });
   });
 
-  test("device_id is null and unresolvedDevices flags a matrix row absent from the devices table", () => {
+  test("deviceProductName is null and unresolvedDevices flags a matrix row absent from the devices table", () => {
     const matrixRows = [mkMatrixRow("Ghost Device", "GHOST-1")];
     const result = buildCatalog(matrixRows, new Map(), [], []);
 
-    expect(result.catalogRows[0].deviceId).toBeNull();
+    expect(result.catalogRows[0].deviceProductName).toBeNull();
     expect(result.catalogRows[0].name).toBe("Ghost Device"); // falls back to matrix name
     expect(result.unresolvedDevices).toEqual(["Ghost Device"]);
   });
@@ -141,6 +141,57 @@ describe("buildCatalog — multi-match series pages (rb1100-series regression ca
   });
 });
 
+describe("buildCatalog — an ordinary product page must not leak its slug onto siblings (PR #36 Codex review)", () => {
+  // chateau-lte6-us is NOT a series page, but shared sub-code signals make it match several
+  // chateau rows. Its slug/title must land only on the row it names, never on chateau-lte7 etc.
+  const rows = [
+    mkMatrixRow("Chateau LTE6-US", "D53G-5HacD2HnD-TC&EG06-A"),
+    mkMatrixRow("Chateau LTE7", "D53G-5HacD2HnD-TC&R11e-LTE7"),
+  ];
+  const page = mkPage({
+    slug: "chateau-lte6-us",
+    title: "Chateau LTE6-US",
+    matchedMatrixNames: ["Chateau LTE6-US", "Chateau LTE7"],
+    cause: "matched-by-code",
+    category: "LTE products",
+  });
+
+  test("the slug attaches only to the row it names; the sibling keeps its own name", () => {
+    const result = buildCatalog(rows, new Map(), [page], []);
+    const byId = new Map(result.catalogRows.map((r) => [r.rosettaDeviceId, r]));
+    expect(byId.get("chateau-lte6-us")?.sourceHardwareSlug).toBe("chateau-lte6-us");
+    expect(byId.get("chateau-lte7")?.sourceHardwareSlug).toBeNull();
+    expect(byId.get("chateau-lte7")?.name).toBe("Chateau LTE7"); // NOT "Chateau LTE6-US"
+    expect(checkInvariants(result, [])).toEqual([]);
+  });
+
+  test("checkInvariants #6 flags a non-series slug that reached two rows", () => {
+    const leaked: BuildResult = {
+      catalogRows: [
+        { rosettaDeviceId: "chateau-lte6-us", deviceProductName: null, name: "Chateau LTE6-US", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: "chateau-lte6-us", sourceWwwCode: null },
+        { rosettaDeviceId: "chateau-lte7", deviceProductName: null, name: "Chateau LTE6-US", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: "chateau-lte6-us", sourceWwwCode: null },
+      ],
+      aliasRows: [],
+      unresolvedDevices: [],
+      ambiguousTokens: [],
+      dropLedger: [],
+      aliasCollisions: [],
+    };
+    expect(checkInvariants(leaked, []).some((f) => f.includes("page-slug leak"))).toBe(true);
+  });
+});
+
+describe("buildCatalog — compareId aliases are HTML-decoded, not stored as markup (PR #36 Codex review)", () => {
+  test("a compareId like `atlgm&amp;eg18-ea` never lands in aliases as an entity", () => {
+    const row = mkMatrixRow("ATL LTE18 kit", "ATLGM&EG18-EA");
+    const www = [mkWww("atl18", { title: "ATL LTE18 kit", compareId: "atlgm&amp;eg18-ea", specs: { "Product code": "ATLGM&EG18-EA" } })];
+    const page = mkPage({ slug: "atl", title: "ATL LTE18 kit", productLinks: ["atl18"], matchedMatrixNames: ["ATL LTE18 kit"], cause: "matched-by-code" });
+    const result = buildCatalog([row], new Map(), [page], www);
+    expect(result.aliasRows.some((a) => a.alias.includes("&amp;"))).toBe(false);
+    expect(checkInvariants(result, www)).toEqual([]);
+  });
+});
+
 describe("buildCatalog — standalone /hardware-only rows (accessories, legacy/EOL)", () => {
   test("a page with no matrix match becomes an hw-prefixed row with device_id null", () => {
     const page = mkPage({ slug: "apa-1", title: "APA-1", productLinks: ["apa_1"], category: "Accessories", cause: "unmatched" });
@@ -151,7 +202,7 @@ describe("buildCatalog — standalone /hardware-only rows (accessories, legacy/E
     expect(result.catalogRows).toHaveLength(1);
     const row = result.catalogRows[0];
     expect(row.rosettaDeviceId).toBe("hw-apa-1");
-    expect(row.deviceId).toBeNull();
+    expect(row.deviceProductName).toBeNull();
     expect(row.category).toBe("Accessories");
     expect(row.discontinued).toBe(1);
     expect(row.sourceWwwCode).toBe("apa_1");
@@ -207,7 +258,7 @@ describe("INVARIANT — a device only takes a www product whose identity agrees 
       catalogRows: [
         {
           rosettaDeviceId: "hw-x",
-          deviceId: null,
+          deviceProductName: null,
           name: "X",
           category: null,
           discontinued: null,
@@ -264,8 +315,8 @@ describe("INVARIANT — a www product attaches to at most one row, save the shar
   test("checkInvariants flags a non-allowlisted www product bound to two rows", () => {
     const corrupt: BuildResult = {
       catalogRows: [
-        { rosettaDeviceId: "a", deviceId: null, name: "A", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: "shared" },
-        { rosettaDeviceId: "b", deviceId: null, name: "B", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: "shared" },
+        { rosettaDeviceId: "a", deviceProductName: null, name: "A", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: "shared" },
+        { rosettaDeviceId: "b", deviceProductName: null, name: "B", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: "shared" },
       ],
       aliasRows: [],
       unresolvedDevices: [],
@@ -332,7 +383,7 @@ describe("buildCatalog — declared-code third matching tier (ROSE / KNOT)", () 
     // No standalone hw-rose-data-server duplicate — the page attributes to the matrix row.
     expect(result.catalogRows.some((r) => r.rosettaDeviceId === "hw-rose-data-server")).toBe(false);
     const row = must(result.catalogRows.find((r) => r.rosettaDeviceId === "rose-data-server-rds"), "rose-data-server-rds row");
-    expect(row.deviceId).toBe(9);
+    expect(row.deviceProductName).toBe("ROSE Data server (RDS)");
     expect(row.sourceHardwareSlug).toBe("rose-data-server");
     expect(row.sourceWwwCode).toBe("rds2216");
   });
@@ -448,9 +499,9 @@ describe("computeValidationStats", () => {
   test("resolvedDeviceIds only counts devices linked to `devices` AND enriched by /hardware or www", () => {
     const result: BuildResult = {
       catalogRows: [
-        { rosettaDeviceId: "a", deviceId: 1, name: "a", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: "a", sourceWwwCode: null },
-        { rosettaDeviceId: "b", deviceId: 2, name: "b", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: null }, // bare devices row, no overlay
-        { rosettaDeviceId: "hw-c", deviceId: null, name: "c", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: "c", sourceWwwCode: null }, // accessory, not devices-linked
+        { rosettaDeviceId: "a", deviceProductName: "a", name: "a", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: "a", sourceWwwCode: null },
+        { rosettaDeviceId: "b", deviceProductName: "b", name: "b", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: null }, // bare devices row, no overlay
+        { rosettaDeviceId: "hw-c", deviceProductName: null, name: "c", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: "c", sourceWwwCode: null }, // accessory, not devices-linked
       ],
       aliasRows: [],
       unresolvedDevices: [],
@@ -564,10 +615,10 @@ describe("writeCatalog", () => {
     expect(ov.alias_count).toBeGreaterThanOrEqual(1);
   });
 
-  test("a stale device_id (not present in devices) fails the write loud", async () => {
+  test("a device link whose product name is absent from devices fails the write loud", async () => {
     initDb();
     const result: BuildResult = {
-      catalogRows: [{ rosettaDeviceId: "stale", deviceId: 99999, name: "Stale", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: null }],
+      catalogRows: [{ rosettaDeviceId: "stale", deviceProductName: "Nonexistent Product", name: "Stale", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: null, sourceWwwCode: null }],
       aliasRows: [{ alias: "stale", rosettaDeviceId: "stale", source: "matrix.csv" }],
       unresolvedDevices: [],
       ambiguousTokens: [],

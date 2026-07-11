@@ -745,10 +745,10 @@ What each invariant now catches (all three probes return **0** rows, were 18 / 6
 - **One www product → at most one row** (`checkInvariants` #2) — outside `SHARED_WWW_ALLOWLIST`, which has
   exactly two justified entries (wAP R base radio across the wAP LR kits; LtAP mini base across its LTE kit).
   The invariant *found* the LtAP mini case itself during rework — proof it works.
-- **Every input entity accounted for** (`checkInvariants` #3 + drop ledger) — 205 attached + 31 dropped = 236
-  www products, disjoint and exhaustive; each dropped product carries a reason (all 31 are "referenced but
+- **Every input entity accounted for** (`checkInvariants` #3 + drop ledger) — 206 attached + 30 dropped = 236
+  www products, disjoint and exhaustive; each dropped product carries a reason (all 30 are "referenced but
   identity disagreed" — the rejected cross-sell accessories).
-- **Alias collisions counted** (`BuildResult.aliasCollisions`, baselined) — 99 collisions surfaced instead of
+- **Alias collisions counted** (`BuildResult.aliasCollisions`, baselined) — 82 collisions surfaced instead of
   silently swallowed; priority ranking makes the owning device win (`rbdisc-5nd` → `hw-disc-lite5`, not
   netbox-5's stray table code; `rbwapr-2nd` → `wap-r`, not a kit).
 
@@ -793,6 +793,35 @@ verified against the code before fixing:
 - **Provenance + dead code.** `category` and `source_hardware_slug` now derive from the same `/hardware`
   page; removed the `void`-ed accounting scaffolding in `buildDropLedger` and stale `devices_id` comments in
   `db.ts`/`Makefile`.
+
+## Phase 1.7 — Codex review round (2026-07-11, PR #36)
+
+A Codex review rebuilt against a **fresh** temp DB (not an over-populated one) and found three output
+gaps the Phase 1.6 tests/baseline did not catch. Two were blocking; all verified before fixing:
+
+- **Multi-match slug leak (blocking).** A non-series `/hardware` page that matched several matrix rows via
+  a *shared component/sub-code* signal fanned its slug — and thus its page title — onto every match. So
+  `chateau-lte12-2025` was mis-named `"Chateau LTE6-US"` (the `chateau-lte6-us` page matched all three
+  Chateau rows through the shared base board `D53G-5HacD2HnD-TC`), and `r11e-lr8g`/`r11e-lr9g` component
+  pages attached to both the KNOT and wAP kits that contain them. Fix: only `-series` pages fan out; an
+  ordinary page's slug attaches solely to the row whose **own identity** it is (`nameSlug`, or a code slug
+  **unique among the matched set** — a shared component code confers no ownership). New **`checkInvariants`
+  #6**: a non-series `source_hardware_slug` may appear on at most one row. Residual, *not* the leak: the
+  `chateau-lte12` page carries a wrong outbound link (`mant_lte_5o`), so `Chateau LTE12 (2025)` now sits
+  honestly unresolved rather than falsely enriched — a matching-completeness gap for a later phase.
+- **`catalog.json` non-determinism (blocking).** Each row serialized `deviceId`, a transient
+  `devices.id` AUTOINCREMENT value, so a clean `extract-devices` rebuild flipped all 156 ids (313-468 →
+  1-156) — breaking the file's role as the review-diff gate. Fix: serialize the stable
+  `deviceProductName` (devices.product_name, UNIQUE/rename-stable) and resolve `device_id` at write time;
+  the write now fails loud if a product name is absent from `devices`. Verified byte-identical across the
+  default DB and two independent fresh temp DBs.
+- **HTML-escaped compareId aliases.** `compareId` is scraped from a `data-` attribute, so `&` arrives as
+  `&amp;`, storing aliases like `atlgm&amp;eg18-ea` that no user queries and that duplicate the declared
+  code. Fix: `decodeEntities()` at every compareId use, skip the alias when it re-spells the requested or
+  declared code, and **`checkInvariants` #7**: no alias may contain an HTML entity. Alias count 787 → 765.
+
+Baseline moved (once, deliberately): `aliasCollisions` 99 → 82 (fewer aliases), `droppedWwwProducts`
+31 → 30, `resolvedDeviceIds` 148 → 147 (only `chateau-lte12-2025`, the honest un-resolution above).
 
 ## Open questions
 

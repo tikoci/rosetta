@@ -130,7 +130,11 @@ export interface WwwAssessment {
 
 export interface CatalogRow {
   rosettaDeviceId: string;
-  deviceId: number | null;
+  // The stable devices.product_name (UNIQUE, rename-stable) this row links to, or null for
+  // accessory/legacy rows with no matrix device. device_id is resolved from this at write
+  // time — the transient AUTOINCREMENT id is never serialized, so catalog.json stays
+  // byte-identical across a clean `extract-devices` rebuild (PR #36 review — determinism).
+  deviceProductName: string | null;
   name: string;
   category: string | null;
   discontinued: 0 | 1 | null;
@@ -191,6 +195,21 @@ function getOrInit<K, V>(map: Map<K, V>, key: K, make: () => V): V {
   return v;
 }
 
+/**
+ * Decode the HTML entities the www assessment leaves in `compareId` (it is scraped from a
+ * `data-` attribute, so `&` arrives as `&amp;`). Without this, aliases store markup spellings
+ * like `atlgm&amp;eg18-ea` that no user would ever query. Named entities plus numeric refs.
+ */
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;|&#0*39;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&amp;/g, "&");
+}
+
 /** slugify() each non-empty token into a Set for slug-space identity comparison. */
 function identSlugs(...tokens: Array<string | null | undefined>): Set<string> {
   const out = new Set<string>();
@@ -204,7 +223,7 @@ function identSlugs(...tokens: Array<string | null | undefined>): Set<string> {
 
 /** A www product's own identity, in slug space — code, declared code, compareId, title. */
 function wwwIdentitySlugs(p: WwwProduct): Set<string> {
-  return identSlugs(p.code, p.specs["Product code"], p.compareId, p.title);
+  return identSlugs(p.code, p.specs["Product code"], decodeEntities(p.compareId), p.title);
 }
 
 /**
@@ -225,7 +244,7 @@ function buildWwwIndex(products: WwwProduct[]): Map<string, WwwProduct> {
   for (const p of [...products].sort((a, b) => normCode(a.code).localeCompare(normCode(b.code)))) {
     add(p.code, p);
     if (p.specs["Product code"]) add(p.specs["Product code"], p);
-    if (p.compareId) add(p.compareId, p);
+    if (p.compareId) add(decodeEntities(p.compareId), p);
   }
   return byKey;
 }
@@ -410,8 +429,11 @@ function addWwwAliases(book: AliasBook, www: WwwProduct | null, rosettaDeviceId:
       if (part && normCode(part) !== normCode(declared)) book.add(part, rosettaDeviceId, "www-declared-code", RANK_WWW);
     }
   }
-  if (www.compareId && normCode(www.compareId) !== normCode(www.code)) {
-    book.add(www.compareId, rosettaDeviceId, "www-compare-id", RANK_WWW);
+  // Decode compareId's HTML entities before aliasing; skip it when it just re-spells the
+  // requested or declared code (the common case — otherwise it only inflates alias counts).
+  const compareId = www.compareId ? decodeEntities(www.compareId) : "";
+  if (compareId && normCode(compareId) !== normCode(www.code) && normCode(compareId) !== normCode(declared ?? "")) {
+    book.add(compareId, rosettaDeviceId, "www-compare-id", RANK_WWW);
   }
 }
 
@@ -479,10 +501,26 @@ export function buildCatalog(
       for (const t of page.tableModelCodes) a.tableTokens.add(t);
       continue;
     }
-    // Multi-match series page: its slug legitimately describes every matched device, but
-    // the concrete codes on the page are per-device — attribute those by token so a www
-    // lookup never picks up a sibling's spec page.
-    for (const name of names) getAttr(byName, name).slugs.add(page.slug);
+    // Multi-match page. A genuine series page (slug ends `-series`) legitimately describes
+    // every matched device, so its slug fans out to all. An ordinary product page that only
+    // matched several rows via shared component/sub-code signals does NOT describe them all —
+    // its slug names one device, so attach it only to the matched row(s) whose OWN identity
+    // the slug is (nameSlug or a code slug). Fanning it to unrelated siblings leaked the
+    // page's title in as their display name (e.g. chateau-lte6-us onto chateau-lte12-2025).
+    // The concrete codes on the page stay per-device via token attribution below.
+    const slugOwners = page.slug.endsWith("-series")
+      ? names
+      : names.filter((n) => {
+          const r = matrixRowByName.get(n);
+          if (!r) return false;
+          if (r.nameSlug === page.slug) return true; // the page names this device
+          // A code slug confers ownership only when it's UNIQUE to this row among the matches:
+          // a shared component code (e.g. r11e-lr8g, present in both the KNOT and wAP LR8G kits)
+          // must not make every kit an owner — that is the same leak, one level down.
+          if (!r.codeSlugs.includes(page.slug)) return false;
+          return !names.some((m) => m !== n && matrixRowByName.get(m)?.codeSlugs.includes(page.slug));
+        });
+    for (const name of slugOwners) getAttr(byName, name).slugs.add(page.slug);
     for (const t of page.productLinks) {
       const owner = attributeToken(t, names, matrixRowByName);
       if (owner) getAttr(byName, owner).linkTokens.add(t);
@@ -527,8 +565,9 @@ export function buildCatalog(
   for (const row of sortedMatrix) {
     const id = slugify(row.name);
     claimId(id);
-    const deviceId = devicesByName.get(row.name) ?? null;
-    if (deviceId === null) unresolvedDevices.push(row.name);
+    // Link by the stable product name, not the transient AUTOINCREMENT id (resolved at write).
+    const deviceProductName = devicesByName.has(row.name) ? row.name : null;
+    if (deviceProductName === null) unresolvedDevices.push(row.name);
 
     const attr = byName.get(row.name);
     const slugList = attr ? [...attr.slugs].sort() : [];
@@ -556,7 +595,7 @@ export function buildCatalog(
 
     catalogRows.push({
       rosettaDeviceId: id,
-      deviceId,
+      deviceProductName,
       name,
       category,
       discontinued: www ? (www.discontinued ? 1 : 0) : null,
@@ -592,7 +631,7 @@ export function buildCatalog(
 
     catalogRows.push({
       rosettaDeviceId: id,
-      deviceId: null,
+      deviceProductName: null,
       name: (!wwwNameIsShared && www?.title) || page.title,
       category: page.category,
       discontinued: www ? (www.discontinued ? 1 : 0) : null,
@@ -647,7 +686,7 @@ function buildDropLedger(
     const referencedHere =
       referenced.has(k) ||
       referenced.has(normCode(p.specs["Product code"] ?? "")) ||
-      referenced.has(normCode(p.compareId ?? ""));
+      referenced.has(normCode(decodeEntities(p.compareId ?? "")));
     ledger.push({
       kind: "www-product",
       id: p.code,
@@ -750,6 +789,28 @@ export function checkInvariants(result: BuildResult, wwwProducts: WwwProduct[]):
     }
   }
 
+  // (6) An ordinary (non-`-series`) /hardware page names one device — its slug must not be the
+  //     source_hardware_slug of more than one row. A multi-match product page fanning its slug
+  //     (and thus its title) onto unrelated siblings is the leak that mis-named chateau-lte12-2025
+  //     "Chateau LTE6-US"; genuine series pages fan out legitimately and are exempt.
+  const slugRows = new Map<string, string[]>();
+  for (const row of result.catalogRows) {
+    if (!row.sourceHardwareSlug || row.sourceHardwareSlug.endsWith("-series")) continue;
+    getOrInit(slugRows, row.sourceHardwareSlug, () => []).push(row.rosettaDeviceId);
+  }
+  const leaked = [...slugRows].filter(([, rows]) => rows.length > 1);
+  if (leaked.length > 0) {
+    failures.push(`${leaked.length} non-series /hardware slug(s) attached to >1 row (page-slug leak): ${leaked.slice(0, 10).map(([s, r]) => `${s} -> ${r.join(", ")}`).join("; ")}`);
+  }
+
+  // (7) No alias carries an undecoded HTML entity — compareId arrives HTML-escaped from the
+  //     www assessment and must be decoded before aliasing, never stored as `&amp;` markup.
+  const entityRe = /&(amp|lt|gt|quot|apos|#\d+);/;
+  const marked = [...new Set(result.aliasRows.filter((a) => entityRe.test(a.alias)).map((a) => a.alias))];
+  if (marked.length > 0) {
+    failures.push(`${marked.length} alias(es) contain an undecoded HTML entity: ${marked.slice(0, 10).join(", ")}`);
+  }
+
   void rowById;
   return failures;
 }
@@ -786,7 +847,7 @@ export function computeValidationStats(hw: HardwareAssessment, www: WwwAssessmen
   const www404RatePct = www.candidateCount > 0 ? Math.round((www.notFoundCount / www.candidateCount) * 100) : 0;
 
   const resolvedDeviceIds = result.catalogRows
-    .filter((r) => r.deviceId !== null && (r.sourceHardwareSlug !== null || r.sourceWwwCode !== null))
+    .filter((r) => r.deviceProductName !== null && (r.sourceHardwareSlug !== null || r.sourceWwwCode !== null))
     .map((r) => r.rosettaDeviceId)
     .sort();
 
@@ -853,16 +914,18 @@ export function serializeCatalog(result: BuildResult, counts: SerializedCatalog[
 // ── DB write (idempotent — delete then rebuild, per extractor-idempotent convention) ──
 
 export function writeCatalog(catalog: SerializedCatalog): void {
-  // Guard the AUTOINCREMENT link: device_id was captured fresh at build time from
-  // devices.product_name (UNIQUE, rename-stable), but if extract-devices reran between
-  // build and write the ids could be stale — fail loud rather than write a broken link.
-  const liveDeviceIds = new Set(
-    (db.prepare("SELECT id FROM devices").all() as Array<{ id: number }>).map((r) => r.id),
+  // Resolve each linked row's device_id fresh from devices.product_name (UNIQUE, rename-stable)
+  // at write time — the serialized artifact carries the stable product name, never the transient
+  // AUTOINCREMENT id, so catalog.json is byte-identical across a clean rebuild. A product name
+  // the current devices table no longer has means extract-devices is out of sync — fail loud
+  // rather than silently drop the link.
+  const deviceIdByName = new Map(
+    (db.prepare("SELECT id, product_name FROM devices").all() as Array<{ id: number; product_name: string }>).map((r) => [r.product_name, r.id]),
   );
-  const stale = catalog.rows.filter((r) => r.deviceId !== null && !liveDeviceIds.has(r.deviceId));
-  if (stale.length > 0) {
+  const missing = catalog.rows.filter((r) => r.deviceProductName !== null && !deviceIdByName.has(r.deviceProductName));
+  if (missing.length > 0) {
     throw new Error(
-      `device_id link is stale for ${stale.length} row(s) (e.g. ${stale[0].rosettaDeviceId} -> ${stale[0].deviceId}) — ` +
+      `device link is stale for ${missing.length} row(s) (e.g. ${missing[0].rosettaDeviceId} -> "${missing[0].deviceProductName}" not in devices) — ` +
         `re-run 'make extract-devices' then 'make extract-hardware-catalog' in that order`,
     );
   }
@@ -875,7 +938,8 @@ export function writeCatalog(catalog: SerializedCatalog): void {
       (rosetta_device_id, device_id, name, category, discontinued, specs_json, source_hardware_slug, source_www_code)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
     for (const r of catalog.rows) {
-      insertCatalog.run(r.rosettaDeviceId, r.deviceId, r.name, r.category, r.discontinued, r.specsJson, r.sourceHardwareSlug, r.sourceWwwCode);
+      const deviceId = r.deviceProductName !== null ? (deviceIdByName.get(r.deviceProductName) ?? null) : null;
+      insertCatalog.run(r.rosettaDeviceId, deviceId, r.name, r.category, r.discontinued, r.specsJson, r.sourceHardwareSlug, r.sourceWwwCode);
     }
 
     const insertAlias = db.prepare(`INSERT INTO device_aliases (alias, rosetta_device_id, source) VALUES (?, ?, ?)`);
@@ -923,7 +987,7 @@ async function main() {
   // and regenerating it on --check-only is exactly how you inspect a proposed change.
   writeFileSync(CATALOG_JSON_PATH, `${JSON.stringify(catalog, null, 2)}\n`);
 
-  console.log(`hardware_catalog rows: ${result.catalogRows.length} (${result.catalogRows.filter((r) => r.deviceId !== null).length} linked to devices)`);
+  console.log(`hardware_catalog rows: ${result.catalogRows.length} (${result.catalogRows.filter((r) => r.deviceProductName !== null).length} linked to devices)`);
   console.log(`device_aliases rows:   ${result.aliasRows.length}`);
   console.log(`alias collisions:      ${result.aliasCollisions.length}`);
   console.log(`drop ledger:           ${result.dropLedger.length} (${result.dropLedger.filter((d) => d.kind === "www-product").length} www products)`);
