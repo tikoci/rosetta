@@ -1,0 +1,157 @@
+name	code	category	resolution	hw_url	www_url	needs_review	note
+ATL 5G R16	ATLGM&RG520F-EU	LTE products	auto	https://manual.mikrotik.com/hardware/atlgm-and-rg520f-eu	https://mikrotik.com/product/atl_5g_r16		
+ATL LTE18 kit	ATLGM&EG18-EA	LTE products	auto	https://manual.mikrotik.com/hardware/atlgm-and-eg18-ea	https://mikrotik.com/product/atl18		
+BaseBox 5	RB912UAG-5HPnD-OUT	Wireless systems	auto	https://manual.mikrotik.com/hardware/basebox-series	https://mikrotik.com/product/RB912UAG-5HPnD-OUT		
+cAP	RBcAP2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/cap	https://mikrotik.com/product/RBcAP2nD		
+cAP ac	RBcAPGi-5acD2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/cap-ac	https://mikrotik.com/product/cap_ac		
+cAP ax	cAPGi-5HaxD2HaxD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/cap-ax	https://mikrotik.com/product/cap_ax		
+cAP lite	RBcAPL-2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/cap-lite	https://mikrotik.com/product/RBcAPL-2nD-307		
+cAP LTE12 ax	cAPGi-5HaxD2HaxD&EG12-EA	LTE products	auto	https://manual.mikrotik.com/hardware/cap-lte12-ax	https://mikrotik.com/product/cap_lte12_ax		
+cAP XL ac	RBcAPGi-5acD2nD-XLr4	Indoor wireless	auto	https://manual.mikrotik.com/hardware/cap-xl-ac	https://mikrotik.com/product/cap_xl_ac		
+CCR2004-1G-2XS-PCIe	CCR2004-1G-2XS-PCIe	Ethernet routers	auto	https://manual.mikrotik.com/hardware/ccr2004-1g-2xs-pcie	https://mikrotik.com/product/ccr2004_1g_2xs_pcie		
+CCR2004-1G-12S+2XS	CCR2004-1G-12S+2XS	Ethernet routers	auto	https://manual.mikrotik.com/hardware/ccr2004-1g-12s-plus-2xs	https://mikrotik.com/product/ccr2004_1g_12s_2xs		
+CCR2004-16G-2S+	CCR2004-16G-2S+r2	Ethernet routers	auto	https://manual.mikrotik.com/hardware/ccr2004-16g-2s-plus	https://mikrotik.com/product/ccr2004_16g_2splus		
+CCR2004-16G-2S+PC	CCR2004-16G-2S+PC	Ethernet routers	auto	https://manual.mikrotik.com/hardware/ccr2004-16g-2s-plus-pc	https://mikrotik.com/product/ccr2004_16g_2s_pc		
+CCR2116-12G-4S+	CCR2116-12G-4S+	Ethernet routers	auto	https://manual.mikrotik.com/hardware/ccr2116-12g-4s-plus	https://mikrotik.com/product/ccr2116_12g_4splus		
+CCR2216-1G-12XS-2XQ	CCR2216-1G-12XS-2XQ	Ethernet routers	auto	https://manual.mikrotik.com/hardware/ccr2216-1g-12xs-2xq	https://mikrotik.com/product/ccr2216_1g_12xs_2xq		
+Chateau 5G R17 ax	S53UG+5HaxD2HaxD-TC&RG650E-EU	LTE products	auto	https://manual.mikrotik.com/hardware/chateau-5g-r17-ax	https://mikrotik.com/product/chateau_5g_r17_ax		
+Chateau LTE6-US	D53G-5HacD2HnD-TC&EG06-A	LTE products	auto	https://manual.mikrotik.com/hardware/chateau-lte6-us	https://mikrotik.com/product/chateau_lte6_us		
+Chateau LTE7	D53G-5HacD2HnD-TC&R11e-LTE7	LTE products	auto	https://manual.mikrotik.com/hardware/chateau-lte7	https://mikrotik.com/product/chateau_lte7		
+Chateau LTE7 ax	S53UG+5HaxD2HaxD-TC&R11e-LTE7	LTE products	auto	https://manual.mikrotik.com/hardware/chateau-lte7-ax	https://mikrotik.com/product/chateau_lte7_ax		
+Chateau LTE12 (2025)	D53G-5HacD2HnD-TC&EG120K-EA		no-hardware-page		https://mikrotik.com/product/chateau_lte12_2025	no-hardware-page	www product chateau_lte12_2025 exists (maintainer-confirmed 2026-07-11); very recent SKU (D53G-5HacD2HnD-TC&EG120K-EA) with the refreshed LTE12 modem, no /hardware page yet. Do not bind to chateau-lte6-us (shares the base code before the &).
+Chateau LTE18 ax	S53UG+5HaxD2HaxD-TC&EG18-EA	LTE products	auto	https://manual.mikrotik.com/hardware/chateau-lte18-ax	https://mikrotik.com/product/chateaulte18_ax		
+Chateau PRO ax	H53UiG-5HaxQ2HaxQ	Indoor wireless	auto	https://manual.mikrotik.com/hardware/chateau-pro-ax	https://mikrotik.com/product/chateau_pro_ax		
+CME Gateway	CME22-2n-BG77	IoT products	auto	https://manual.mikrotik.com/hardware/cme22-2n-bg77	https://mikrotik.com/product/cme_gateway		
+CRS106-1C-5S	CRS106-1C-5S	Switches	auto	https://manual.mikrotik.com/hardware/crs106-1c-5s	https://mikrotik.com/product/CRS106-1C-5S		
+CRS112-8P-4S-IN	CRS112-8P-4S-IN	Switches	auto	https://manual.mikrotik.com/hardware/crs112-8p-4s-in	https://mikrotik.com/product/crs112_8p_4s_in		
+CRS304-4XG-IN	CRS304-4XG-IN	Switches	auto	https://manual.mikrotik.com/hardware/crs304-4xg-in	https://mikrotik.com/product/crs304_4xg_in		
+CRS305-1G-4S+IN	CRS305-1G-4S+IN	Switches	auto	https://manual.mikrotik.com/hardware/crs305-1g-4s-plus-in	https://mikrotik.com/product/crs305_1g_4s_in		
+CRS309-1G-8S+IN	CRS309-1G-8S+IN	Switches	auto	https://manual.mikrotik.com/hardware/crs309-1g-8s-plus-in	https://mikrotik.com/product/crs309_1g_8s_in		
+CRS310-1G-5S-4S+IN	CRS310-1G-5S-4S+IN	Switches	auto	https://manual.mikrotik.com/hardware/crs310-1g-5s-4s-plus-in	https://mikrotik.com/product/crs310_1g_5s_4s_in		
+CRS310-8G+2S+IN	CRS310-8G+2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/crs310-8g-plus-2s-plus-in	https://mikrotik.com/product/crs310_8g_2s_in		
+CRS312-4C+8XG-RM	CRS312-4C+8XG-RM	Switches	auto	https://manual.mikrotik.com/hardware/crs312-4c-plus-8xg-rm	https://mikrotik.com/product/crs312_4c_8xg_rm		
+CRS317-1G-16S+RM	CRS317-1G-16S+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs317-1g-16s-plus-rm	https://mikrotik.com/product/crs317_1g_16s_rm		
+CRS320-8P-8B-4S+RM	CRS320-8P-8B-4S+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs320-8p-8b-4s-plus-rm	https://mikrotik.com/product/crs320_8p_8b_4s_rm		
+CRS326-4C+20G+2Q+RM	CRS326-4C+20G+2Q+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs326-4c-plus-20g-plus-2q-plus-rm	https://mikrotik.com/product/crs326_4c_20g_2q_rm		
+CRS326-24G-2S+IN	CRS326-24G-2S+INr2	Switches	auto	https://manual.mikrotik.com/hardware/crs326-24g-2s-plus-in	https://mikrotik.com/product/crs326_24g_2s_in		
+CRS326-24G-2S+RM	CRS326-24G-2S+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs326-24g-2s-plus-rm	https://mikrotik.com/product/CRS326-24G-2SplusRM		
+CRS326-24S+2Q+RM	CRS326-24S+2Q+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs326-24s-plus-2q-plus-rm	https://mikrotik.com/product/crs326_24s_2q_rm		
+CRS328-4C-20S-4S+RM	CRS328-4C-20S-4S+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs328-4c-20s-4s-plus-rm	https://mikrotik.com/product/crs328_4c_20s_4s_rm		
+CRS328-24P-4S+RM	CRS328-24P-4S+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs328-24p-4s-plus-rm	https://mikrotik.com/product/crs328_24p_4s_rm		
+CRS354-48G-4S+2Q+RM	CRS354-48G-4S+2Q+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs354-48g-4s-plus-2q-plus-rm	https://mikrotik.com/product/crs354_48g_4splus2qplusrm		
+CRS354-48P-4S+2Q+RM	CRS354-48P-4S+2Q+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs354-48p-4s-plus-2q-plus-rm	https://mikrotik.com/product/crs354_48p_4s_2q_rm		
+CRS418-8P-8G-2S+5axQ2axQ-RM	CRS418-8P-8G-2S+5axQ2axQ-RM	Switches	auto	https://manual.mikrotik.com/hardware/crs418-8p-8g-2s-plus-5axq2axq-rm	https://mikrotik.com/product/crs418_8p_8g_2s_wifi		
+CRS418-8P-8G-2S+RM	CRS418-8P-8G-2S+RM	Switches	auto	https://manual.mikrotik.com/hardware/crs418-8p-8g-2s-plus-rm	https://mikrotik.com/product/crs418_8p_8g_2s_rm		
+CRS504-4XQ-IN	CRS504-4XQ-IN	Switches	auto	https://manual.mikrotik.com/hardware/crs504-4xq-in	https://mikrotik.com/product/crs504_4xq_in		
+CRS504-4XQ-OUT	CRS504-4XQ-OUT	Switches	auto	https://manual.mikrotik.com/hardware/crs504-4xq-out	https://mikrotik.com/product/crs504_4xq_out		
+CRS510-8XS-2XQ-IN	CRS510-8XS-2XQ-IN	Switches	auto	https://manual.mikrotik.com/hardware/crs510-8xs-2xq-in	https://mikrotik.com/product/crs510_8xs_2xq_in		
+CRS518-16XS-2XQ-RM	CRS518-16XS-2XQ-RM	Switches	auto	https://manual.mikrotik.com/hardware/crs518-16xs-2xq-rm	https://mikrotik.com/product/crs518_16xs_2xq		
+CRS520-4XS-16XQ-RM	CRS520-4XS-16XQ-RM	Switches	auto	https://manual.mikrotik.com/hardware/crs520-4xs-16xq-rm	https://mikrotik.com/product/crs520_4xs_16xq_rm		
+CRS804 DDQ	CRS804-4DDQ-hRM	Switches	auto	https://manual.mikrotik.com/hardware/crs804-4ddq-hrm	https://mikrotik.com/product/crs804_ddq		
+CRS812 DDQ	CRS812-8DS-2DQ-2DDQ-RM	Switches	auto	https://manual.mikrotik.com/hardware/crs812-8ds-2dq-2ddq-rm	https://mikrotik.com/product/crs812_ddq		
+CSS318-16G-2S+IN	CSS318-16G-2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/css318-16g-2s-plus-in	https://mikrotik.com/product/css318_16g_2s_in		
+CSS326-24G-2S+RM	CSS326-24G-2S+RM	Switches	auto	https://manual.mikrotik.com/hardware/css326-24g-2s-plus-rm	https://mikrotik.com/product/CSS326-24G-2SplusRM		
+CSS610-8G-2S+IN	CSS610-8G-2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/css610-8g-2s-plus-in	https://mikrotik.com/product/css610_8g_2s_in		
+CSS610-8P-2S+IN	CSS610-8P-2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/css610-8p-2s-plus-in	https://mikrotik.com/product/css610_8p_2s_in		
+Cube 60Pro ac	CubeG-5ac60ay	60 GHz products	auto	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/cube_60pro_ac		
+CubeSA 60Pro ac	CubeG-5ac60ay-SA		curated-alias	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/cubesa_60pro_ac	curated-alias	MikroTik combines two products on one /hardware page; this SA variant's own www product is cubesa_60pro_ac.
+FiberBox Plus	CRS305-1G-4S+OUTr2	Switches	auto	https://manual.mikrotik.com/hardware/fiberbox-plus	https://mikrotik.com/product/fiberboxplus		
+FTC11XG	FTC11XG	Accessories	auto	https://manual.mikrotik.com/hardware/ftc11xg	https://mikrotik.com/product/ftc11xg		
+FTC21-ups	FTC21-ups		no-hardware-page		https://mikrotik.com/product/ftc21_ups	no-hardware-page	www product ftc21_ups exists (was never a fetch candidate); the /hardware/ftc21 page is the non-ups variant, so there is no /hardware page for the -ups SKU.
+GPEN21	GPEN21	Accessories	auto	https://manual.mikrotik.com/hardware/gpen21	https://mikrotik.com/product/gpen21		
+GPERx6	CSS606-1G-2Gi-3S+OUT	Switches	auto	https://manual.mikrotik.com/hardware/gperx6	https://mikrotik.com/product/gperx6		
+Groove 52	RBGroove52HPnr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/groove-series	https://mikrotik.com/product/RBGroove52HPnr2		
+GrooveA 52	RBGrooveA-52HPnr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/groove-series	https://mikrotik.com/product/RBGrooveA-52HPnr2		
+GrooveA 52 ac	RBGrooveGA-52HPacn	Wireless systems	auto	https://manual.mikrotik.com/hardware/groove-series	https://mikrotik.com/product/RBGrooveGA-52HPacn		
+hAP	RB951Ui-2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap	https://mikrotik.com/product/RB951Ui-2nD		
+hAP ac	RB962UiGS-5HacT2HnT	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ac	https://mikrotik.com/product/RB962UiGS-5HacT2HnT		
+hAP ac lite	RB952Ui-5ac2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ac-lite	https://mikrotik.com/product/RB952Ui-5ac2nD		
+hAP ac lite TC	RB952Ui-5ac2nD-TC	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ac-lite-tc	https://mikrotik.com/product/RB952Ui-5ac2nD-TC		
+hAP ac2	RBD52G-5HacD2HnD-TCr2	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ac-2	https://mikrotik.com/product/hap_ac2		
+hAP ac3	RBD53iG-5HacD2HnD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ac3	https://mikrotik.com/product/hap_ac3		
+hAP ax lite	L41G-2axD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-lite	https://mikrotik.com/product/hap_ax_lite		
+hAP ax S	E62iUGS-2axD5axT	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-s	https://mikrotik.com/product/hap_ax_s		
+hAP ax2	C52iG-5HaxD2HaxD-TC	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-2	https://mikrotik.com/product/hap_ax2		
+hAP ax3	C53UiG+5HPaxD2HPaxD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-ax-2	https://mikrotik.com/product/hap_ax3		
+hAP be lite	A42G-HbeP	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-be-lite	https://mikrotik.com/product/hap_be_lite		
+hAP be3 Media	MA53UG+HbeH	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-be-media	https://mikrotik.com/product/hap_be3_media		
+hAP lite	RB941-2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-lite	https://mikrotik.com/product/RB941-2nD		
+hAP lite TC	RB941-2nD-TC	Indoor wireless	auto	https://manual.mikrotik.com/hardware/hap-lite-tc	https://mikrotik.com/product/RB941-2nD-TC		
+hEX	RB750Gr3	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex	https://mikrotik.com/product/RB750Gr3		
+hEX lite	RB750r2	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-lite	https://mikrotik.com/product/RB750r2		
+hEX PoE	RB960PGS	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-poe	https://mikrotik.com/product/RB960PGS		
+hEX PoE lite	RB750UPr2	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-poe-lite	https://mikrotik.com/product/RB750UPr2		
+hEX refresh	E50UG	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-refresh	https://mikrotik.com/product/hex_2024		
+hEX S	RB760iGS	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-s	https://mikrotik.com/product/hex_s		
+hEX S (2025)	E60iUGS	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-s-2025	https://mikrotik.com/product/hex_s_2025		
+KNOT	RB924i-2nD-BT5&BG77r2	IoT products	auto	https://manual.mikrotik.com/hardware/rb924i-2nd-bt5-and-bg77	https://mikrotik.com/product/knot		
+KNOT Embedded LTE4	EC25-EU&KNe		curated-alias	https://manual.mikrotik.com/hardware/knot-embedded-lte4-ec25-eu-and-kne	https://mikrotik.com/product/knot_emb_lte4_global	curated-alias	Page slug prefixes the friendly name onto the &-compound code; www uses the shared _global product.
+KNOT Embedded LTE4 Global	EG25-G&KNe		curated-alias	https://manual.mikrotik.com/hardware/knot-embedded-lte4-global-eg25-g-and-kne	https://mikrotik.com/product/knot_emb_lte4_global	curated-alias	Same shared www product as KNOT Embedded LTE4.
+KNOT LR8G kit	RB924iR-2nD-BT5&BG770A&R11e-LR8G	IoT products	auto	https://manual.mikrotik.com/hardware/rb924i-2nd-bt5-and-bg77	https://mikrotik.com/product/knot_lr8g_kit		
+KNOT LR9G kit	RB924iR-2nD-BT5&BG770A&R11e-LR9G	IoT products	auto	https://manual.mikrotik.com/hardware/rb924i-2nd-bt5-and-bg77	https://mikrotik.com/product/knot_lr9g_kit		
+L009UiGS-2HaxD-IN	L009UiGS-2HaxD-IN	Indoor wireless	auto	https://manual.mikrotik.com/hardware/l009uigs-2haxd-in	https://mikrotik.com/product/l009uigs_2haxd_in		
+L009UiGS-RM	L009UiGS-RM	Ethernet routers	auto	https://manual.mikrotik.com/hardware/l009uigs-rm	https://mikrotik.com/product/l009uigs_rm		
+L11UG-5HaxD	L11UG-5HaxD	RouterBOARD	auto	https://manual.mikrotik.com/hardware/l11ug-5haxd	https://mikrotik.com/product/l11ug_5haxd		
+L23UGSR-5HaxD2HaxD	L23UGSR-5HaxD2HaxD	RouterBOARD	auto	https://manual.mikrotik.com/hardware/l23ugsr-5haxd2haxd	https://mikrotik.com/product/l23ugsr_5haxd2haxd		
+LAMP 5G R16	LAMPGM&RG520F-EU		no-hardware-page		https://mikrotik.com/product/lamp_5g_r16	no-hardware-page	www product lamp_5g_r16 exists; LAMP 5G R16 is missing from /hardware entirely.
+LDF 5	RBLDF-5nD	Wireless systems	auto	https://manual.mikrotik.com/hardware/ldf-5-series	https://mikrotik.com/product/rbldf_5nd		
+LHG 5	RBLHG-5nD	Wireless systems	auto	https://manual.mikrotik.com/hardware/lhg-series	https://mikrotik.com/product/RBLHG-5nD		
+LHG 5 ax	LHG-5axD	Wireless systems	auto	https://manual.mikrotik.com/hardware/lhg-5axd	https://mikrotik.com/product/lhg_5_ax		
+LHGG LTE7 kit	LHGGR&R11e-LTE7		no-hardware-page		https://mikrotik.com/product/lhgg_lte7	no-hardware-page	www product lhgg_lte7 exists (maintainer-confirmed 2026-07-11); LTE7-kit family systematically absent from /hardware (see LtAP LTE7 kit, SXT LTE7 kit).
+LHG LTE18 kit	LHGGM&EG18-EA	LTE products	auto	https://manual.mikrotik.com/hardware/lhg-lte18-kit	https://mikrotik.com/product/lhg_lte18		
+LHG XL 5 ac	RBLHGG-5acD-XL	Wireless systems	auto	https://manual.mikrotik.com/hardware/lhg-xl-5-ac	https://mikrotik.com/product/lhg_xl_5_ac		
+LHG XL 5 ax	LHG-5axD-XL	Wireless systems	auto	https://manual.mikrotik.com/hardware/lhg-xl-5-ax	https://mikrotik.com/product/lhg_5_ax_xl		
+LHG XL HP5	RBLHG-5HPnD-XL	Wireless systems	auto	https://manual.mikrotik.com/hardware/lhg-xl-hp5	https://mikrotik.com/product/RBLHG-5HPnD-XL		
+LtAP LTE7 kit	LtAP-2HnD&R11e-LTE7r2		no-hardware-page		https://mikrotik.com/product/ltap_lte7_kit	no-hardware-page	www product ltap_lte7_kit exists (maintainer-confirmed 2026-07-11); LTE7-kit family absent from /hardware. The base /hardware/ltap page exists; the LTE7 kit SKU does not.
+LtAP mini	RB912R-2nD-LTm	LTE products	auto	https://manual.mikrotik.com/hardware/ltap-mini	https://mikrotik.com/product/ltap_mini		
+LtAP mini LTE kit	RB912R-2nD-LTm&EC200A-EUr3	LTE products	auto	https://manual.mikrotik.com/hardware/ltap-mini-kit-series	https://mikrotik.com/product/ltap_mini_lte_kit_2024		
+mANTBox 2 12s	RB911G-2HPnD-12Sr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/mantbox-series	https://mikrotik.com/product/mantbox_2_12s		
+mANTBox ax 15s	L22UGS-5HaxD2HaxD-15S	Wireless systems	auto	https://manual.mikrotik.com/hardware/mantbox-ax-15s	https://mikrotik.com/product/mantbox_ax_15s		
+mAP	RBmAP2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/map	https://mikrotik.com/product/RBmAP2nD		
+mAP lite	RBmAPL-2nD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/map-lite	https://mikrotik.com/product/RBmAPL-2nD		
+Metal 52 ac	RBMetalG-52SHPacn	Wireless systems	auto	https://manual.mikrotik.com/hardware/metal-52-ac	https://mikrotik.com/product/RBMetalG-52SHPacn		
+NetBox 5 ax	L11UG-5HaxD-NB	Wireless systems	auto	https://manual.mikrotik.com/hardware/netbox-5-ax	https://mikrotik.com/product/netbox_5_ax		
+netFiber 9	CRS310-1G-5S-4S+OUT	Switches	auto	https://manual.mikrotik.com/hardware/netfiber-9	https://mikrotik.com/product/netfiber_9		
+NetMetal 5	RB922UAGS-5HPacD-NM	Wireless systems	auto	https://manual.mikrotik.com/hardware/netmetal-series	https://mikrotik.com/product/RB922UAGS-5HPacD-NM		
+NetMetal ax	L23UGSR-5HaxD2HaxD-NM	Wireless systems	auto	https://manual.mikrotik.com/hardware/netmetal-ax	https://mikrotik.com/product/netmetal_ax		
+netPower 15FR	CRS318-1Fi-15Fr-2S-OUT	Switches	auto	https://manual.mikrotik.com/hardware/netpower-15fr	https://mikrotik.com/product/crs318_1fi_15fr_2s_out		
+netPower 16P	CRS318-16P-2S+OUT	Switches	auto	https://manual.mikrotik.com/hardware/netpower-16p	https://mikrotik.com/product/netpower_16p		
+netPower Lite 7R	CSS610-1Gi-7R-2S+OUT	Switches	auto	https://manual.mikrotik.com/hardware/netpower-lite-7r	https://mikrotik.com/product/netpower_lite_7r		
+netPower Lite 8P	CSS610-8P-2S+OUT	Switches	auto	https://manual.mikrotik.com/hardware/netpower-lite-8p	https://mikrotik.com/product/netpower_lite_ups		
+OmniTIK 5 PoE ac	RBOmniTikPG-5HacD	Wireless systems	auto	https://manual.mikrotik.com/hardware/omnitik-series	https://mikrotik.com/product/rbomnitikpg_5hacd		
+PowerBox Pro	RB960PGS-PB	Ethernet routers	auto	https://manual.mikrotik.com/hardware/powerbox-pro	https://mikrotik.com/product/RB960PGS-PB		
+QRT 5	RB911G-5HPnD-QRT	Wireless systems	auto	https://manual.mikrotik.com/hardware/qrt-5	https://mikrotik.com/product/RB911G-5HPnD-QRT		
+R11e-LTE7	R11e-LTE7		accessory		https://mikrotik.com/product/r11e_lte7	accessory	User-installable miniPCIe LTE CAT7 modem module; www product r11e_lte7, no /hardware page. Base module behind the &r11e-lte7 LTE7-series kits (LtAP/SXT/Chateau LTE7).
+RB260GS	CSS106-5G-1S	Switches	auto	https://manual.mikrotik.com/hardware/rb260-series	https://mikrotik.com/product/RB260GS		
+RB260GSP	CSS106-1G-4P-1S	Switches	auto	https://manual.mikrotik.com/hardware/rb260-series	https://mikrotik.com/product/RB260GSP		
+RB450Gx4	RB450Gx4	RouterBOARD	auto	https://manual.mikrotik.com/hardware/rb450gx4	https://mikrotik.com/product/rb450gx4		
+RB911G-5HPnD	RB911G-5HPnD	RouterBOARD	auto	https://manual.mikrotik.com/hardware/rb911-series	https://mikrotik.com/product/RB911G-5HPnD		
+RB912UAG-2HPnD	RB912UAG-2HPnD	RouterBOARD	auto	https://manual.mikrotik.com/hardware/rb912uag-series	https://mikrotik.com/product/RB912UAG-2HPnD		
+RB912UAG-5HPnD	RB912UAG-5HPnD	RouterBOARD	auto	https://manual.mikrotik.com/hardware/rb912uag-series	https://mikrotik.com/product/RB912UAG-5HPnD		
+RB922UAGS-5HPacD	RB922UAGS-5HPacD	RouterBOARD	auto	https://manual.mikrotik.com/hardware/rb922uags-5hpacd	https://mikrotik.com/product/RB922UAGS-5HPacD		
+RB951Ui-2HnD	RB951Ui-2HnD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/rb951-series	https://mikrotik.com/product/RB951Ui-2HnD		
+RB1100AHx4	RB1100x4	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb1100-series	https://mikrotik.com/product/rb1100ahx4		
+RB1100AHx4 Dude Edition	RB1100Dx4	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb1100-series	https://mikrotik.com/product/RB1100Dx4		
+RB4011iGS+5HacQ2HnD-IN	RB4011iGS+5HacQ2HnD-IN	Indoor wireless	auto	https://manual.mikrotik.com/hardware/rb4011igs-plus-5hacq2hnd-in	https://mikrotik.com/product/rb4011igs_5hacq2hnd_in		
+RB4011iGS+RM	RB4011iGS+RM	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb4011igs-plus-rm	https://mikrotik.com/product/rb4011igs_rm		
+RB5009UG+S+IN	RB5009UG+S+IN	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb5009ug-plus-s-plus-in	https://mikrotik.com/product/rb5009ug_s_in		
+RB5009UPr+S+IN	RB5009UPr+S+IN	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-in	https://mikrotik.com/product/rb5009upr_s_in		
+RB5009UPr+S+OUT	RB5009UPr+S+OUT	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-out	https://mikrotik.com/product/rb5009_out		
+RBM33G	RBM33G	RouterBOARD	auto	https://manual.mikrotik.com/hardware/rbm33g	https://mikrotik.com/product/rbm33g		
+ROSE Data server (RDS)	RDS2216-2XG-4S+4XS-2XQ		curated-alias	https://manual.mikrotik.com/hardware/rose-data-server	https://mikrotik.com/product/rds2216	curated-alias	Marketing name; matrix code RDS2216-2XG-4S+4XS-2XQ, www product rds2216.
+SXT LTE7 kit	SXTR&R11e-LTE7r3	LTE products	auto	https://manual.mikrotik.com/hardware/sxt-r	https://mikrotik.com/product/sxt_r		
+SXT SA5 ac	RBSXTG-5HPacD-SAr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsa-series	https://mikrotik.com/product/RBSXTG-5HPacD-SAr2		
+SXTsq 5 ac	RBSXTsqG-5acDr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsq-series	https://mikrotik.com/product/sxtsq_5_ac		
+SXTsq 5 ax	SXTsq-5axD	Wireless systems	no-www-product	https://manual.mikrotik.com/hardware/sxtsq-5axd		no-www-product	Has a /hardware page (sxtsq-5axd) but no locatable www product — matrix code SXTsq-5axD 404s, the page only links the bogus qm_x, and sxtsq_5_ax / sxtsq_5_axd both 404 (checked 2026-07-11). MAINTAINER: confirm the real www slug.
+SXTsq Embedded LTE4	EC25-EU&SXTsq	LTE products	auto	https://manual.mikrotik.com/hardware/sxtsq-embedded-lte4	https://mikrotik.com/product/sxtsq_emb_lte4		
+SXTsq Embedded LTE4 Global	EG25-G&SXTsq		no-hardware-page		https://mikrotik.com/product/sxtsq_emb_lte4_global	no-hardware-page	www product sxtsq_emb_lte4_global exists; the Global embedded-LTE4 SKU is absent from /hardware (the non-Global SXTsq Embedded LTE4 does have a page).
+SXTsq Lite2	RBSXTsq2nD	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsq-series	https://mikrotik.com/product/sxtsq_lite2		
+SXTsq Lite5	RBSXTsq5nD	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsq-series	https://mikrotik.com/product/RBSXTsq5nD		
+wAP ax	wAPG-5HaxD2HaxD	Indoor wireless	auto	https://manual.mikrotik.com/hardware/wap-ax	https://mikrotik.com/product/wap_ax		
+wAP ax LTE7 kit	wAPGR-5HaxD2HaxD&R11e-LTE7	LTE products	auto	https://manual.mikrotik.com/hardware/wap-ax-lte7-kit	https://mikrotik.com/product/wap_ax_lte7		
+wAP LR2 kit	RBwAPR-2nD&R11e-LR2	IoT products	auto	https://manual.mikrotik.com/hardware/r11e-lr2	https://mikrotik.com/product/RBwAPR-2nD		
+wAP LR8G kit	RBwAPR-2nD&R11e-LR8G	IoT products	auto	https://manual.mikrotik.com/hardware/wap-lr8g-kit	https://mikrotik.com/product/RBwAPR-2nD		
+wAP LR9G kit	RBwAPR-2nD&R11e-LR9G	IoT products	auto	https://manual.mikrotik.com/hardware/wap-lr9g-kit	https://mikrotik.com/product/RBwAPR-2nD		
+wAP LTE kit	wAPR-2nD&EC200A-EUr2	LTE products	auto	https://manual.mikrotik.com/hardware/wap-lte-kit-2024	https://mikrotik.com/product/wap_lte_kit_2024		
+wAP R	RBwAPR-2nD	LTE products	auto	https://manual.mikrotik.com/hardware/wap-r	https://mikrotik.com/product/RBwAPR-2nD		
+Wireless Wire Cube Pro	CubeG-5ac60aypair	60 GHz products	auto	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/wireless_wire_cube_pro		

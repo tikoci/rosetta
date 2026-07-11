@@ -1,0 +1,101 @@
+slug	category	is_series	cause	url	mentioned_codes
+cube-60g-ac	60 GHz products		unmatched	https://manual.mikrotik.com/hardware/cube-60g-ac	
+cube-lite60	60 GHz products		unmatched	https://manual.mikrotik.com/hardware/cube-lite60	
+lhg-60g	60 GHz products		unmatched	https://manual.mikrotik.com/hardware/lhg-60g	
+lhg-lite60	60 GHz products		unmatched	https://manual.mikrotik.com/hardware/lhg-lite60	
+nray-series	60 GHz products	yes	unmatched	https://manual.mikrotik.com/hardware/nray-series	
+wap-60g-series	60 GHz products	yes	unmatched	https://manual.mikrotik.com/hardware/wap-60g-series	
+wireless-wire-cube	60 GHz products		unmatched	https://manual.mikrotik.com/hardware/wireless-wire-cube	
+wireless-wire-dish	60 GHz products		unmatched	https://manual.mikrotik.com/hardware/wireless-wire-dish	
+apa-1	Accessories		unmatched	https://manual.mikrotik.com/hardware/apa-1	
+ftc21	Accessories		unmatched	https://manual.mikrotik.com/hardware/ftc21	
+g1040a-60wn	Accessories		no-product-link	https://manual.mikrotik.com/hardware/g1040a-60wn	
+gesp-plus-poe-in	Accessories		unmatched	https://manual.mikrotik.com/hardware/gesp-plus-poe-in	
+gpen11	Accessories		unmatched	https://manual.mikrotik.com/hardware/gpen11	
+gper	Accessories		unmatched	https://manual.mikrotik.com/hardware/gper	
+gperx4	Accessories		unmatched	https://manual.mikrotik.com/hardware/gperx4	
+mqs	Accessories		unmatched	https://manual.mikrotik.com/hardware/mqs	
+mtp250-series	Accessories	yes	unmatched	https://manual.mikrotik.com/hardware/mtp250-series	
+rbftc11	Accessories		unmatched	https://manual.mikrotik.com/hardware/rbftc11	
+up1302c-12	Accessories		unmatched	https://manual.mikrotik.com/hardware/up1302c-12	
+woobm-usb	Accessories		unmatched	https://manual.mikrotik.com/hardware/woobm-usb	
+mant-series	Antennas	yes	no-product-link	https://manual.mikrotik.com/hardware/mant-series	
+pwr-line	Data over Powerlines		no-product-link	https://manual.mikrotik.com/hardware/pwr-line	
+pwr-line-ap	Data over Powerlines		no-product-link	https://manual.mikrotik.com/hardware/pwr-line-ap	
+pwr-line-pro	Data over Powerlines		unmatched	https://manual.mikrotik.com/hardware/pwr-line-pro	
+ccr1009-7g-1c-1s-plus	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/ccr1009-7g-1c-1s-plus	
+ccr1009-7g-1c-1s-plus-pc	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/ccr1009-7g-1c-1s-plus-pc	
+ccr1009-7g-1c-pc	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/ccr1009-7g-1c-pc	
+ccr1016-12g	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/ccr1016-12g	
+ccr1016-12s-1s-plus	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/ccr1016-12s-1s-plus	
+ccr1036-12g-4s-series	Ethernet routers	yes	no-product-link	https://manual.mikrotik.com/hardware/ccr1036-12g-4s-series	
+ccr1036-8g-2s-plus-series	Ethernet routers	yes	no-product-link	https://manual.mikrotik.com/hardware/ccr1036-8g-2s-plus-series	
+ccr1072-1g-8s-plus	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/ccr1072-1g-8s-plus	
+powerbox	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/powerbox	
+rb2011il-in	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/rb2011il-in	
+rb2011il-rm	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/rb2011il-rm	
+rb2011ils-in	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/rb2011ils-in	
+rb2011uias-in	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/rb2011uias-in	
+rb2011uias-rm	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/rb2011uias-rm	
+rb3011uias-rm	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/rb3011uias-rm	
+rose-data-server	Ethernet routers		unmatched	https://manual.mikrotik.com/hardware/rose-data-server	RDS2216-2XG-4S+4XS-2XQ
+audience	Indoor wireless		unmatched	https://manual.mikrotik.com/hardware/audience	
+hap-ax-lite-lte6	Indoor wireless		unmatched	https://manual.mikrotik.com/hardware/hap-ax-lite-lte6	L41G-2axD
+hap-mini	Indoor wireless		unmatched	https://manual.mikrotik.com/hardware/hap-mini	
+rb2011uias-2hnd-in	Indoor wireless		unmatched	https://manual.mikrotik.com/hardware/rb2011uias-2hnd-in	
+wap-ac	Indoor wireless		unmatched	https://manual.mikrotik.com/hardware/wap-ac	
+wap-series	Indoor wireless	yes	no-product-link	https://manual.mikrotik.com/hardware/wap-series	RBcAPL-2nD
+wsap-ac-lite	Indoor wireless		unmatched	https://manual.mikrotik.com/hardware/wsap-ac-lite	RB962UiGS-5HacT2HnT
+s-3553lc20d	Interfaces		unmatched	https://manual.mikrotik.com/hardware/s-3553lc20d	
+knot-embedded-lte4-ec25-eu-and-kne	IoT products		unmatched	https://manual.mikrotik.com/hardware/knot-embedded-lte4-ec25-eu-and-kne	EC25-EU
+knot-embedded-lte4-global-eg25-g-and-kne	IoT products		unmatched	https://manual.mikrotik.com/hardware/knot-embedded-lte4-global-eg25-g-and-kne	EG25-G
+ltap-lr8-lte-kit	IoT products		no-product-link	https://manual.mikrotik.com/hardware/ltap-lr8-lte-kit	
+ltap-lr8-lte6-kit	IoT products		no-product-link	https://manual.mikrotik.com/hardware/ltap-lr8-lte6-kit	LtAP-2HnD
+ltap-lr8g-lte6-kit	IoT products		unmatched	https://manual.mikrotik.com/hardware/ltap-lr8g-lte6-kit	R11e-LR8G LtAP-2HnD
+r11e-lr8g	IoT products		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr8g	R11e-LR8G
+r11e-lr9g	IoT products		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr9g	R11e-LR9G
+tg-bt5-in	IoT products		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-in	
+tg-bt5-out	IoT products		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-out	
+tg-lr82	IoT products		unmatched	https://manual.mikrotik.com/hardware/tg-lr82	
+tg-lr92	IoT products		unmatched	https://manual.mikrotik.com/hardware/tg-lr92	
+wap-lr9-kit	IoT products		unmatched	https://manual.mikrotik.com/hardware/wap-lr9-kit	RB912R-2nD-LTm
+audience-lte6-kit	LTE products		unmatched	https://manual.mikrotik.com/hardware/audience-lte6-kit	
+chateau-5g	LTE products		unmatched	https://manual.mikrotik.com/hardware/chateau-5g	D53G-5HacD2HnD-TC
+chateau-5g-ax	LTE products		unmatched	https://manual.mikrotik.com/hardware/chateau-5g-ax	
+chateau-5g-r16	LTE products		unmatched	https://manual.mikrotik.com/hardware/chateau-5g-r16	RG520F-EU D53G-5HacD2HnD-TC
+chateau-lte12	LTE products		no-product-link	https://manual.mikrotik.com/hardware/chateau-lte12	EG12-EA
+chateau-lte6	LTE products		no-product-link	https://manual.mikrotik.com/hardware/chateau-lte6	D53G-5HacD2HnD-TC
+chateau-lte6-ax	LTE products		unmatched	https://manual.mikrotik.com/hardware/chateau-lte6-ax	S53UG+5HaxD2HaxD-TC
+hap-ac3-lte6-kit	LTE products		unmatched	https://manual.mikrotik.com/hardware/hap-ac3-lte6-kit	
+intercell	LTE products		unmatched	https://manual.mikrotik.com/hardware/intercell	
+ldf-lte6-kit	LTE products		unmatched	https://manual.mikrotik.com/hardware/ldf-lte6-kit	
+lhg-kit-series	LTE products	yes	unmatched	https://manual.mikrotik.com/hardware/lhg-kit-series	
+lhg-r	LTE products		unmatched	https://manual.mikrotik.com/hardware/lhg-r	
+lhgg-lte6-kit	LTE products		unmatched	https://manual.mikrotik.com/hardware/lhgg-lte6-kit	LHGGR
+ltap	LTE products		unmatched	https://manual.mikrotik.com/hardware/ltap	
+ltap-kit-series	LTE products	yes	no-product-link	https://manual.mikrotik.com/hardware/ltap-kit-series	
+r11e-series	LTE products	yes	unmatched	https://manual.mikrotik.com/hardware/r11e-series	
+sxt-kit-series	LTE products	yes	unmatched	https://manual.mikrotik.com/hardware/sxt-kit-series	
+wap-ac-kit-series	LTE products	yes	unmatched	https://manual.mikrotik.com/hardware/wap-ac-kit-series	
+wap-kit-series	LTE products	yes	unmatched	https://manual.mikrotik.com/hardware/wap-kit-series	
+wap-r-ac	LTE products		unmatched	https://manual.mikrotik.com/hardware/wap-r-ac	
+rbm11g	RouterBOARD		unmatched	https://manual.mikrotik.com/hardware/rbm11g	
+crs-series	Switches	yes	no-product-link	https://manual.mikrotik.com/hardware/crs-series	
+crs112-8g-4s-in	Switches		unmatched	https://manual.mikrotik.com/hardware/crs112-8g-4s-in	
+crs125-24g-1s-series	Switches	yes	no-product-link	https://manual.mikrotik.com/hardware/crs125-24g-1s-series	
+fiberbox	Switches		unmatched	https://manual.mikrotik.com/hardware/fiberbox	
+compliance	Wireless systems		no-product-link	https://manual.mikrotik.com/hardware/compliance	
+disc-lite5	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/disc-lite5	
+disc-lite5-ac	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/disc-lite5-ac	
+dynadish-5	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/dynadish-5	
+dynadish-6	Wireless systems		no-product-link	https://manual.mikrotik.com/hardware/dynadish-6	
+ldf-2	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/ldf-2	
+lhg-xl-2	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/lhg-xl-2	
+lhg-xl-52-ac	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/lhg-xl-52-ac	
+mantbox-52-15s	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/mantbox-52-15s	
+netbox-5	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/netbox-5	
+qrt-2	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/qrt-2	
+qrt-5-ac	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/qrt-5-ac	
+sextant-g	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/sextant-g	
+sxt-2	Wireless systems		no-product-link	https://manual.mikrotik.com/hardware/sxt-2	
+sxt-6	Wireless systems		unmatched	https://manual.mikrotik.com/hardware/sxt-6	

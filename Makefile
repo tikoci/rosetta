@@ -8,7 +8,7 @@ VERSION    ?=
         extract-videos extract-videos-from-cache save-videos-cache \
         extract-dude extract-dude-from-cache \
         extract-skills extract-skills-from-cache \
-        link gc-versions assess assess-hardware assess-www search browse serve \
+        link gc-versions assess assess-hardware assess-www device-map device-map-check search browse serve \
 	typecheck lint test preflight verify \
         install setup clean eval eval-update eval-self eval-self-update
 
@@ -34,6 +34,17 @@ assess-hardware:
 
 assess-www:
 	bun run src/assess-www.ts
+
+# Regenerate the reviewable device→URL map (device-map.tsv) + the reverse audit view
+# (hardware-unmatched.tsv, /hardware pages with no matrix device) from the committed assessment
+# JSON + curated device-exceptions.toml. Exits non-zero on drift (an unlisted device stops
+# auto-resolving, or a curated exception goes stale) — safe to wire into CI as a gate. Use
+# `device-map-check` to validate without rewriting the TSVs. See briefings/B-0018 for the legend.
+device-map:
+	bun run src/build-device-map.ts
+
+device-map-check:
+	bun run src/build-device-map.ts --check
 
 # ── Quality ──
 
