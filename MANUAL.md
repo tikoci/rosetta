@@ -319,7 +319,7 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `devices` | 156 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
 | `device_test_results` | 2,874 | Ethernet and IPSec throughput benchmarks for 125 devices — packet sizes, modes, Mbps/Kpps |
 | `hardware_catalog` | ~255 | `/hardware` + `mikrotik.com/product` device overlay — superset of `devices` (accessories, legacy/EOL SKUs included); never-null `name`, `category` from the `/hardware` sidebar taxonomy, raw www spec fields + non-default IP + FCC/IC IDs as JSON, optional `device_id` link back |
-| `device_aliases` | ~772 | Every observed device slug/code/name variant (matrix.csv, `/hardware` slug/link/table code, www requested/declared/compare code) resolved to one `hardware_catalog.rosetta_device_id` (priority-ranked, collision-counted) |
+| `device_aliases` | ~752 | Every observed device slug/code/name variant (matrix.csv, `/hardware` slug/link/table code, www requested/declared/compare code) resolved to one `hardware_catalog.rosetta_device_id` (priority-ranked, collision-counted) |
 | `device_overview` (view) | ~255 | Documented read surface: `hardware_catalog` joined to `devices` spec columns with per-device alias counts |
 | `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
 | `videos` | 538 | MikroTik YouTube video metadata — title, description, duration, chapters |

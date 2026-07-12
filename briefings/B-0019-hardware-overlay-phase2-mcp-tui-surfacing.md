@@ -12,15 +12,16 @@ last_revisited: 2026-07-12
 
 # Question
 
-Phase 1 (#35/#36) landed `hardware_catalog` (255 rows), `device_aliases` (772 rows), and the
-`device_overview` VIEW — but nothing reads them. How do `routeros_device_lookup`, the classifier,
-`routeros_search`'s `related.devices`, and the browse TUI consume them without adding tool #15,
-without breaking `V-tool-shapes`/`V-tool-budget`, and with TUI parity?
+Phase 1 (#35/#36) plus the B-0017 cleanup (#48) landed `hardware_catalog` (255 rows),
+`device_aliases` (752 rows), and the `device_overview` VIEW — but nothing reads them. How do
+`routeros_device_lookup`, the classifier, `routeros_search`'s `related.devices`, and the browse TUI
+consume them without adding tool #15, without breaking `V-tool-shapes`/`V-tool-budget`, and with TUI
+parity?
 
 This is the design deliverable #39 asks for. Each of #39's six questions gets a **proposed** answer
 below (decided/deferred marked per question, pending maintainer review). Grounded in: `src/db.ts`
 schema v8, `fixtures/hardware-catalog/catalog.json` (255 rows: 156 matrix-linked, 99 catalog-only, 37
-series, 52 discontinued; aliases by source: matrix.csv 263, hardware-slug 205, hardware-link 172,
+series, 52 discontinued; aliases by source: matrix.csv 263, hardware-slug 205, hardware-link 152,
 hardware-table 59, www-declared-code 57, www-compare-id 14, www-code 2), and the current code paths
 (`searchDevices()` in `query.ts:1737`, `detectDevice()` in `classify.ts:194`, `routeros_device_lookup`
 in `mcp.ts:1186`, `related.devices` in `query.ts:383`, TUI `device` command + `renderDeviceCard` in
@@ -50,7 +51,7 @@ Proposed `searchDevices()` pipeline (stages 1, 2–4 unchanged):
 Alias lookup is exact-normalized only, **not fuzzy** (Q1): the table was built with the normalization
 already applied, fuzzy matching is what stages 2–3 already do against `devices`, and a wrong
 "confident" alias hit is worse than falling through. Collisions don't exist at read time — `alias` is
-the PK; the 82 build-time collisions were resolved by source-priority ranking in the ETL.
+the PK; the 74 build-time collisions were resolved by source-priority ranking in the ETL.
 
 **Enrichment on every matrix-linked result** (exact, alias, LIKE-single): a small `hardware` sub-object
 joined from `device_overview`, not a flattening of `specs_json`:
@@ -147,7 +148,7 @@ resolution for free. Surface-level work in `browse.ts`:
     `C53UiG+5HPaxD2HPaxD` → hAP ax³ (declared code);
   - catalog fallback: `GPeR` → accessory-labeled thin row; a discontinued SKU → `kind: "discontinued"`;
   - pollution guard: `qm_x` (mounting bracket, dropped-www cross-sell alias) must NOT resolve to
-    `sxtsq-5-ax` (see prerequisites);
+    `sxtsq-5-ax` (the #48 cleanup);
   - `category` filter returns only that category; classifier probe resolves a non-regex name
     (e.g. "chateau lte12").
 - **Golden retrieval eval** (`src/eval/retrieval.ts`, Phase 0): add 3–5 device-identity golden queries
@@ -165,28 +166,30 @@ resolution for free. Surface-level work in `browse.ts`:
   alias behavior ("product codes, www slugs, and old names resolve to the canonical device").
   Description-only edits need no changelog, but the arg addition does.
 
-# Prerequisites carried from Phase 1 (small, do first — in the build issue, not a separate PR)
+# Prerequisites cleared before Phase 2
 
-1. **`hardware-link` alias pollution** (B-0017 "lingering items"): 27 of 30 drop-ledger www-product
-   codes exist as `hardware-link` aliases pointing at the device whose page merely linked them
-   (`qm_x` → sxtsq-5-ax, `mant_lte_5o` → hw-chateau-lte12, …). But `hardware-link` also carries
-   *correct* systemic aliases (`cap_ac`). Proposal: at **ETL time**, drop `hardware-link` aliases whose
-   token names a drop-ledger www product, unless the owner is a series row (the exemption B-0017
-   suggested); keep the rest. Read-time source-ranking stays as a tie-breaker concept only — with a
-   PK-unique table there is nothing to rank at read time, so fix the data, not the reader.
-2. **`_non_default_ips` over-inclusion**: 63 rows carry it; only ~11 are genuine subnet deviations
-   (`192.168.188.1` embedded-LTE cluster + intercell + woobm-usb). Filter at extract time (per
-   B-0017's classification: same-subnet `.88.x` secondaries are not deviations) so the surface can
-   trust the field; the `hardware.non_default_ip` output emits only when present post-filter.
+B-0017 carried two cleanup items that Phase 2 should treat as already handled once #48 lands:
 
-Both are extractor changes with baseline moves (`catalog.json` diff is the review gate) — bundle them
-as the first commit of the build issue so the surface work reads clean data.
+1. **`hardware-link` alias pollution** (B-0017 "lingering items"): before #48, 27 of 30 drop-ledger
+   www-product codes still existed as `hardware-link` aliases pointing at the device whose page merely
+   linked them (`qm_x` → sxtsq-5-ax, `mant_lte_5o` → hw-chateau-lte12, …). #48 filters those aliases at
+   ETL time when the token names a drop-ledger www product, while keeping standalone series-page aliases
+   exempt because they legitimately claim member/kit codes. Read-time source-ranking stays as a
+   tie-breaker concept only — with a PK-unique table there is nothing to rank at read time, so fix the
+   data, not the reader.
+2. **`_non_default_ips` over-inclusion**: before #48, 63 rows carried it; only ~11 are genuine subnet
+   deviations (`192.168.188.1` embedded-LTE cluster + intercell + woobm-usb). #48 filters at extract time
+   per B-0017's classification, so same-subnet `.88.x` secondaries are not deviations and Phase 2 can trust
+   the field; the `hardware.non_default_ip` output emits only when present post-filter.
+
+Both are extractor changes with baseline moves (`catalog.json` diff is the review gate) that should land
+before the surfacing work starts, so Phase 2 reads clean data instead of re-deriving these classifications.
 
 # Proposed build-issue split (the 1–2 issues #39 must spawn)
 
 **Issue A — "Alias-aware device lookup + catalog enrichment (MCP + TUI)"** — `agent-ready` candidate:
-prerequisites 1–2; `searchDevices()` stage 1.5 + stage 5 + `hardware` enrichment block + thin-row
-`kind` labeling; classifier pattern additions + whole-input alias probe in `searchAll()`;
+depends on the clean catalog from #48; `searchDevices()` stage 1.5 + stage 5 + `hardware` enrichment
+block + thin-row `kind` labeling; classifier pattern additions + whole-input alias probe in `searchAll()`;
 `related.devices` +category/+discontinued; TUI card/stats updates; contract snapshot + budget
 re-baseline; anchor tests + device golden queries; tool-description refresh; changelog.
 Acceptance: the anchor-test list above green; `V-tool-registry` diff empty; parity test green;
@@ -209,5 +212,3 @@ Out of scope for both (already deferred above): `specs_json` passthrough, `/hard
    prefers one).
 3. Whether `mode: "alias"` is worth exposing as a distinct search mode string (proposed: yes — free
    observability for evals) or alias hits should report `"exact"`.
-4. The `hardware-link` drop-ledger filter (prerequisite 1) — confirm the series-row exemption matches
-   intent before the ETL change moves the alias baseline again.
