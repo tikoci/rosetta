@@ -71,7 +71,7 @@ jobs:
       hardware_catalog: ${{ steps.stats.outputs.hardware_catalog }}
       device_aliases: ${{ steps.stats.outputs.device_aliases }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -417,7 +417,7 @@ jobs:
     outputs:
       version: ${{ needs.build.outputs.version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -430,7 +430,7 @@ jobs:
 
       # The DB that passed the qa gates — the ONLY DB that reaches publishing.
       - name: Download built DB artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ros-help-db
           path: .
@@ -439,7 +439,7 @@ jobs:
       # version) over the committed one, so npm publishes the exact version
       # build computed and validated.
       - name: Download resolved package.json
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: release-package-json
           path: .
