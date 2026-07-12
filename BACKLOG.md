@@ -54,6 +54,8 @@ Tracked in [GitHub Issues](https://github.com/tikoci/rosetta/issues) since 2026-
 gh issue list                        # everything open
 gh issue list --label agent-ready    # pick-up-now queue
 gh issue list --label umbrella       # theme tracking issues
+gh issue list --milestone 0.11.0     # 0.11 release checklist
+gh issue list --milestone "0.12 — MCP surface"  # surface-cleanup theme
 ```
 
 One exception still tracked as a file: `tasks/T-0037-npm-prerelease-dist-tag-channel.md` (`in-progress`, finishing under the old scheme — its PR closes it).
@@ -79,7 +81,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0013 | Steering / skills / rosetta / centrs positioning ladder | open |
 | B-0014 | CI is release-workflow-locked, not PR/main-gated — QA cleanup plan | open |
 | B-0015 | Unified "explain" static + live across the tikoci trilogy (rosetta/centrs/lsp) | open |
-| B-0016 | CLI-Reference overlay: precursor ETL design (issue [#33](https://github.com/tikoci/rosetta/issues/33)) | open |
+| B-0016 | CLI-Reference overlay: precursor ETL design (issue [#33](https://github.com/tikoci/rosetta/issues/33)) | parked (2026-07-12 — track parked, revisit triggers on #33) |
 | B-0017 | `/hardware` overlay: device-resolution research (issue [#34](https://github.com/tikoci/rosetta/issues/34); absorbs B-0006/B-0007) | open |
 | B-0018 | Product-naming ↔ three-source map: human/MikroTik guide to `device-map.tsv`, parsing tricks, and known `/hardware` gaps (companion to B-0017) | open |
 | B-0019 | Hardware overlay Phase 2: surfacing `hardware_catalog`/`device_aliases` in MCP/TUI — design done, [#39](https://github.com/tikoci/rosetta/issues/39) closed; build spawned as [#49](https://github.com/tikoci/rosetta/issues/49)/[#50](https://github.com/tikoci/rosetta/issues/50) | resolved |
