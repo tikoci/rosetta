@@ -51,7 +51,7 @@ Agent-specific entrypoints are thin shims: Claude starts here, Codex starts with
 | Extraction and data-shape work | `extraction.instructions.md` plus `extractor-idempotent.instructions.md`, `extractor-import-side-effects.instructions.md`, `command-versions-vs-presence.instructions.md`, `schema-roundtrip-compat.instructions.md`, `data-source-naming-product-matrix.instructions.md`, `skill-attribution-boundary.instructions.md` |
 | Release / install / provenance | `release-via-ci.instructions.md`, `republish-assets-not-npm.instructions.md`, `db-meta-stamping.instructions.md` |
 | Markdown / doc-authoring rules | `markdownlint-fenced-code.instructions.md`, `llm-instruction-files-excluded-from-mdlint.instructions.md` |
-| Issue / briefing workflow | `tasks-vs-briefings.instructions.md`, `issue-pr-linking.instructions.md`, `tasks/README.md`, `briefings/README.md` |
+| Issue / briefing workflow | `tasks-vs-briefings.instructions.md`, `issue-pr-linking.instructions.md`, `pr-review-bots.instructions.md`, `tasks/README.md`, `briefings/README.md` |
 
 ## Fast pointers
 

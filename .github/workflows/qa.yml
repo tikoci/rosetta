@@ -98,7 +98,7 @@ jobs:
     name: QA • ${{ inputs.test_scope }} • ${{ inputs.db_source }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # workflow_call inputs are free-form strings, so a typo (e.g. test_scope:
       # db_content with an underscore) would otherwise skip every gated step and
@@ -201,7 +201,7 @@ jobs:
       # eval/contract resolve it via paths.ts dev-mode, same as the other two sources.
       - name: Download build artifact (artifact)
         if: inputs.db_source == 'artifact'
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact_name }}
           path: .
