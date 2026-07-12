@@ -49,8 +49,9 @@ device-map-check:
 
 # Build hardware_catalog + device_aliases from ros-hardware-assessment.json +
 # ros-www-assessment.json (run assess-hardware/assess-www first to refresh those).
-# Requires extract-devices to have already populated `devices` for device_id
-# linking. Not part of the default `extract`/`extract-full` pipeline yet — see
+# Reads the committed assessment JSON — no network. Requires extract-devices to
+# have already populated `devices` for device_id linking; both `extract` and
+# `extract-full` order it after extract-devices for exactly that reason. See
 # briefings/B-0017-hardware-overlay-device-resolution.md and issue #35.
 extract-hardware-catalog:
 	bun run src/extract-hardware-catalog.ts
@@ -63,8 +64,13 @@ typecheck:
 test:
 	bun test
 
+# Full local lint = the same three checks test.yml runs, so `make lint` locally
+# and CI agree: Biome (src/), markdownlint-cli2 (all *.md, LLM instruction files
+# excluded via .markdownlint-cli2.yaml), and cspell (repo-wide, project-words.txt).
 lint:
 	bun run lint
+	bun run lint:md
+	bun run lint:spell
 
 preflight:
 	@echo "── Preflight checks ──"
@@ -105,9 +111,13 @@ verify:
 # (Confluence HTML) is kept only for rebuilding historical pre-migration release
 # DBs via `make extract-legacy-confluence`; it is not part of the default pipeline.
 
-extract: extract-docusaurus extract-commands extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
+# extract-hardware-catalog MUST come after extract-devices: extract-devices.ts
+# wipes device_aliases + hardware_catalog (device_id links point at AUTOINCREMENT
+# ids that a devices rebuild invalidates), so running the hardware overlay first
+# would have its rows deleted out from under it. Ordering here is load-bearing.
+extract: extract-docusaurus extract-commands extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
 
-extract-full: extract-docusaurus extract-all-versions extract-devices extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
+extract-full: extract-docusaurus extract-all-versions extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
 
 # Live fetch from manual.mikrotik.com's sitemap.xml, caching each page's raw
 # Markdown to manual/pages/ (gitignored — not the full-corpus fixture set).

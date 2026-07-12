@@ -108,6 +108,11 @@ describe("download lock helpers", () => {
     expect(await waiter).toBe(false);
   });
 
+  // Third arg raises bun's per-test timeout well above this test's own 2_000ms
+  // internal deadline: it uses a real setTimeout/Bun.sleep polling loop, so under
+  // GitHub shared-runner CPU/disk contention it occasionally blows past bun's
+  // default 5_000ms even though its own logic resolves in ~100-350ms. 15_000ms
+  // absorbs that jitter without weakening the assertion. See issue #32.
   test("waitForUsableDb returns true when another process finishes the DB", async () => {
     const dbFile = path.join(tmp, "wait-true.db");
     const lock = tryAcquireDownloadLock(dbFile);
@@ -122,7 +127,7 @@ describe("download lock helpers", () => {
     expect(probe?.releaseTag).toBe("v0.0.0-wait");
     expect(probe?.pages).toBe(100);
     expect(probe?.commands).toBe(1000);
-  });
+  }, 15_000);
 
   test("waitForUsableDb does not create a missing canonical DB while waiting", async () => {
     const dbFile = path.join(tmp, "wait-no-create.db");
@@ -179,6 +184,10 @@ describe("probeDb", () => {
     expect(probe?.releaseTag).toBe("v0.0.0-test");
   });
 
+  // 15_000ms bun-level timeout for the same reason as the waitForUsableDb case
+  // above: this test does real bun:sqlite file I/O (writeUsableDb writes 100 pages
+  // + 1000 commands, then probe + rename), which under shared-runner contention can
+  // exceed bun's default 5_000ms despite finishing in a few hundred ms locally. #32.
   test("closes statements so a probed temp DB can be renamed immediately", () => {
     const dbFile = path.join(tmp, "probe-rename-source.db");
     const renamed = path.join(tmp, "probe-rename-dest.db");
@@ -190,7 +199,7 @@ describe("probeDb", () => {
     renameSync(dbFile, renamed);
     expect(existsSync(dbFile)).toBe(false);
     expect(probeDb(renamed)?.releaseTag).toBe("v0.0.0-rename");
-  });
+  }, 15_000);
 
   test("opens a freshly-renamed WAL-mode DB with no .shm sibling", () => {
     // Reproduces the exact state downloadDb leaves the DB in: journal_mode=WAL

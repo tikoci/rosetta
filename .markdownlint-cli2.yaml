@@ -1,0 +1,40 @@
+# markdownlint-cli2 configuration (globs + ignores).
+# https://github.com/DavidAnson/markdownlint-cli2
+#
+# Rules live in .markdownlint.yaml (read by both the IDE extension and this CLI).
+# This file only adds CLI-specific settings: which files to skip.
+#
+# The ignore set MUST stay in sync with .markdownlintignore (the IDE extension
+# reads that file, this CLI reads this one — keep both listing the same paths).
+# LLM instruction files are excluded per
+# .github/instructions/llm-instruction-files-excluded-from-mdlint.instructions.md:
+# they target agents, not readers, and intentionally use patterns linters flag.
+
+# Respect .gitignore so the live-fetched manual/pages cache, box/, node_modules,
+# dist/, and the /skills GitHub cache are never linted (they aren't committed docs).
+gitignore: true
+
+ignores:
+  # LLM instruction files (mirror .markdownlintignore)
+  - "CLAUDE.md"
+  - "AGENTS.md"
+  - ".github/copilot-instructions.md"
+  - ".github/instructions/**"
+  # Repo-local Copilot prompt/skill workflows — also agent-facing, not rendered docs
+  - ".github/prompts/**"
+  - ".github/skills/**"
+  # Test fixtures — intentionally malformed Markdown that exercises the parser
+  - "fixtures/**"
+  # Frozen archive of the pre-2026-07 task queue (CLAUDE.md) — grep-able history,
+  # not rendered docs; each T-*.md is frontmatter-then-body markdownlint reads as
+  # multiple H1s. Not worth reflowing dead files.
+  - "tasks/**"
+  # Research notes / decision support (B-*.md). Frontmatter-carrying, deliberately
+  # multi-H1 (one H1 per section) — agent/research-facing, not rendered docs. Same
+  # category as tasks/; the shipped human docs (README/DESIGN/MANUAL/…) stay linted.
+  - "briefings/**"
+  # Vendored / generated / WIP — never lint
+  - "node_modules/**"
+  - "**/node_modules/**"
+  - "box/**"
+  - "drafts/**"

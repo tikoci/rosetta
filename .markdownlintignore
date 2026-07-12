@@ -1,4 +1,26 @@
+# markdownlint ignore list — read by the IDE markdownlint extension.
+# Keep in sync with .markdownlint-cli2.yaml's `ignores:` (the CLI reads that file;
+# this one drives the editor Problems pane). Rules themselves live in
+# .markdownlint.yaml, shared by both.
+
+# LLM instruction files (agent-facing, intentionally use patterns linters flag) —
+# see .github/instructions/llm-instruction-files-excluded-from-mdlint.instructions.md
 CLAUDE.md
 AGENTS.md
 .github/copilot-instructions.md
 .github/instructions/**
+.github/prompts/**
+.github/skills/**
+
+# Test fixtures — intentionally malformed Markdown that exercises the parser
+fixtures/**
+
+# Frozen task archive + research notes (frontmatter-carrying, multi-H1) — not rendered docs
+tasks/**
+briefings/**
+
+# Vendored / generated / live-fetched cache / WIP — never lint
+node_modules/**
+box/**
+manual/**
+drafts/**

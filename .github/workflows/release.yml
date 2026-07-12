@@ -269,6 +269,15 @@ jobs:
       - name: Extract devices
         run: bun run src/extract-devices.ts
 
+      # Must run after Extract devices: extract-devices.ts wipes device_aliases +
+      # hardware_catalog (their device_id links point at AUTOINCREMENT ids a devices
+      # rebuild invalidates), so the overlay has to be rebuilt afterwards or its rows
+      # get deleted. No network — the ETL reads the committed ros-hardware-assessment.json
+      # / ros-www-assessment.json. Stamps db_meta provenance (hardware_catalog_source,
+      # _built_at, _matrix_snapshot) itself before writing.
+      - name: Extract hardware catalog
+        run: bun run src/extract-hardware-catalog.ts
+
       - name: Extract test results
         run: bun run src/extract-test-results.ts
 
@@ -385,6 +394,8 @@ jobs:
           PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
           VIDEOS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM videos" 2>/dev/null || echo 0)
           SEGMENTS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM video_segments WHERE transcript != ''" 2>/dev/null || echo 0)
+          HARDWARE_CATALOG=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM hardware_catalog" 2>/dev/null || echo 0)
+          DEVICE_ALIASES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM device_aliases" 2>/dev/null || echo 0)
           {
             echo "pages=$PAGES"
             echo "commands=$COMMANDS"
@@ -393,8 +404,10 @@ jobs:
             echo "properties=$PROPERTIES"
             echo "videos=$VIDEOS"
             echo "segments=$SEGMENTS"
+            echo "hardware_catalog=$HARDWARE_CATALOG"
+            echo "device_aliases=$DEVICE_ALIASES"
           } >> "$GITHUB_OUTPUT"
-          echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments)"
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases"
 
       # ── Sanity gate: refuse to publish a degenerate DB ──
       # Release v0.7.6 shipped with 3 pages because a test wiped the DB after
@@ -406,6 +419,8 @@ jobs:
           COMMANDS: ${{ steps.stats.outputs.commands }}
           DEVICES: ${{ steps.stats.outputs.devices }}
           PROPERTIES: ${{ steps.stats.outputs.properties }}
+          HARDWARE_CATALOG: ${{ steps.stats.outputs.hardware_catalog }}
+          DEVICE_ALIASES: ${{ steps.stats.outputs.device_aliases }}
         run: |
           set -euo pipefail
           fail=0
@@ -423,6 +438,17 @@ jobs:
           fi
           if [ "${PROPERTIES:-0}" -lt 1000 ]; then
             echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (Docusaurus export is ~4,509). Aborting release."
+            fail=1
+          fi
+          # Hardware overlay floors (B-0017/B-0018, issue #38): the tables exist at
+          # db.ts init, so a pipeline that skipped extract-hardware-catalog would ship
+          # them empty. These floors catch that regression. Current: 255 / 772.
+          if [ "${HARDWARE_CATALOG:-0}" -lt 200 ]; then
+            echo "::error::DB has only ${HARDWARE_CATALOG} hardware_catalog rows — expected ≥200 (current: 255). Did extract-hardware-catalog run after extract-devices? Aborting release."
+            fail=1
+          fi
+          if [ "${DEVICE_ALIASES:-0}" -lt 600 ]; then
+            echo "::error::DB has only ${DEVICE_ALIASES} device_aliases rows — expected ≥600 (current: 772). Did extract-hardware-catalog run after extract-devices? Aborting release."
             fail=1
           fi
           if [ "$fail" = "1" ]; then exit 1; fi

@@ -21,6 +21,18 @@
     "../DESIGN.md",
     "../BACKLOG.md"
   ],
+  // markdownlint extension auto-reads .markdownlint.yaml + .markdownlint-cli2.yaml
+  // + .markdownlintignore, so the editor Problems pane matches `make lint`'s
+  // markdownlint-cli2 run (LLM instruction files, briefings/, tasks/, fixtures/,
+  // and the manual/ cache all excluded). cSpell auto-reads cspell.json +
+  // project-words.txt for the same reason — surfaced as warnings, not red errors.
+  "cSpell.diagnosticLevel": "Warning",
+  "cSpell.enabledFileTypes": {
+    "markdown": true,
+    "typescript": true,
+    "json": true,
+    "yaml": true
+  },
   "chat.tools.terminal.autoApprove": {
     "uname": true
   }

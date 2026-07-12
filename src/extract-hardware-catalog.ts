@@ -1032,9 +1032,15 @@ async function main() {
   }
 
   // Only now, after every gate has passed, stamp the schema + create tables and write.
+  // db_meta provenance (db-meta-stamping.instructions.md): where the overlay came from,
+  // when this build ran, and which dated matrix.csv snapshot backed the device linking.
+  // The assessment JSONs carry no internal date, so the matrix dir (matrix/<date>/) is the
+  // stable snapshot marker — derive it from the CSV path rather than a non-reproducible mtime.
+  const matrixSnapshot = /matrix[/\\]([^/\\]+)[/\\]/.exec(DEFAULT_MATRIX_CSV)?.[1] ?? "unknown";
   initDb();
   setDbMeta("hardware_catalog_source", "manual.mikrotik.com/hardware + mikrotik.com/product (B-0017)");
   setDbMeta("hardware_catalog_built_at", new Date().toISOString());
+  setDbMeta("hardware_catalog_matrix_snapshot", matrixSnapshot);
   writeCatalog(catalog);
 
   console.log(`Wrote ${catalog.rows.length} hardware_catalog rows, ${catalog.aliases.length} device_aliases rows.`);

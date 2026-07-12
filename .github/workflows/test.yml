@@ -55,8 +55,21 @@ jobs:
       - name: Run tests
         run: bun test
 
+      # Drift gate over the *committed* hardware-overlay artifacts (device-map.tsv,
+      # hardware-unmatched.tsv, device-exceptions.toml, the two assessment JSONs):
+      # fails if a device stops auto-resolving without a curated exception, an
+      # exception goes stale, or a committed TSV drifts from freshly-computed output.
+      # No network — validates coherence of what's committed only.
+      #
+      # Non-goal (deliberate): `make assess-hardware` / `make assess-www` are the
+      # LIVE-FETCH refresh tools (they re-scrape manual.mikrotik.com / mikrotik.com)
+      # and stay MANUAL/local — see B-0018 "How to audit". CI never re-fetches; it
+      # only proves the committed snapshot is internally consistent.
+      - name: Device map drift gate
+        run: make device-map-check
+
       - name: Lint
-        run: bun run lint
+        run: make lint
 
       - name: AI findings probe (forward-compat)
         # GitHub's "Code Quality > AI findings" tab is in preview and is not

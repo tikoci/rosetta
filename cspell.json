@@ -1,0 +1,40 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "enabled": true,
+  "enableGlobDot": true,
+  "useGitignore": true,
+  "minWordLength": 3,
+  "flagWords": ["hte", "teh"],
+  "ignorePaths": [
+    "node_modules",
+    ".git",
+    "bun.lock",
+    "cspell.json",
+    "coverage",
+    "dist",
+    "box",
+    "manual",
+    ".claude/**",
+    "fixtures/**",
+    "matrix/**",
+    "transcripts/**",
+    "dude/**",
+    "skills/**",
+    "*.tsv",
+    "*.db",
+    "ros-hardware-assessment.json",
+    "ros-www-assessment.json",
+    "ros-html-assessment.json"
+  ],
+  "ignoreWords": ["behaviour"],
+  "dictionaryDefinitions": [
+    {
+      "name": "project-words",
+      "path": "./project-words.txt",
+      "addWords": true
+    }
+  ],
+  "dictionaries": ["project-words"],
+  "words": []
+}

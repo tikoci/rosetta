@@ -1,7 +1,7 @@
 ---
 id: T-0037-npm-prerelease-dist-tag-channel
 title: npm prerelease/dist-tag channel (alpha/beta/rc/next) with aligned OCI tags + coverage reporting
-status: in-progress
+status: done
 priority: high
 area: release
 depends_on:
