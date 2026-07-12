@@ -653,6 +653,16 @@ Initial public release.
 - Bun tests for the query planner + schema health.
 
 [Unreleased]: https://github.com/tikoci/rosetta/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/tikoci/rosetta/compare/v0.9.3...v0.10.0
+[0.9.3]: https://github.com/tikoci/rosetta/compare/v0.9.2...v0.9.3
+[0.9.2]: https://github.com/tikoci/rosetta/compare/v0.9.1...v0.9.2
+[0.9.1]: https://github.com/tikoci/rosetta/compare/v0.8.13...v0.9.1
+[0.8.13]: https://github.com/tikoci/rosetta/compare/v0.8.12...v0.8.13
+[0.8.12]: https://github.com/tikoci/rosetta/compare/v0.8.11...v0.8.12
+[0.8.11]: https://github.com/tikoci/rosetta/compare/v0.8.10...v0.8.11
+[0.8.10]: https://github.com/tikoci/rosetta/compare/v0.8.9...v0.8.10
+[0.8.9]: https://github.com/tikoci/rosetta/compare/v0.8.8...v0.8.9
+[0.8.8]: https://github.com/tikoci/rosetta/compare/v0.8.3...v0.8.8
 [0.8.2 – 0.8.3]: https://github.com/tikoci/rosetta/compare/v0.8.1...v0.8.3
 [0.8.0 – 0.8.1]: https://github.com/tikoci/rosetta/compare/v0.7.8...v0.8.1
 [0.7.5 – 0.7.8]: https://github.com/tikoci/rosetta/compare/v0.7.4...v0.7.8

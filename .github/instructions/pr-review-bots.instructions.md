@@ -17,10 +17,14 @@ one signal will mis-read the state of the PR.
   `CHANGES_REQUESTED`. So `gh pr view N --json reviewDecision` will **not** show it as
   blocking or pending the way a human "changes requested" review would — the findings
   are real but invisible to a decision-status check.
-- **Neither bot blocks the merge button.** `main` is not branch-protected here and both
-  bots submit `COMMENTED`, so `mergeStateStatus` / `reviewDecision` can read clean while
-  unaddressed findings sit in inline threads. Checking merge status is **not** a proxy
-  for "review handled."
+- **Bot reviews don't move `reviewDecision`, but unresolved threads DO block the merge.**
+  `main` is branch-protected: **required status checks** (`test`, both CodeQL `Analyze`)
+  plus **required conversation resolution**, with `enforce_admins: false` (an admin can
+  still override the button, or merge via `gh`). Because both bots submit `COMMENTED`
+  (never `CHANGES_REQUESTED`), `gh pr view N --json reviewDecision` stays clean — the
+  block surfaces as `mergeStateStatus: BLOCKED`, driven by the **unresolved review
+  threads**, not by a review decision. So `reviewDecision` is *not* the signal to watch;
+  an open bot thread is. Resolving every thread (below) is what clears the gate.
 
 ## Wrapping a PR
 
