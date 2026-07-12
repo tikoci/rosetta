@@ -257,8 +257,8 @@ type RelatedDevice = {
   cpu: string | null;
   license_level: number | null;
   product_url: string | null;
-  category?: string | null;
-  discontinued?: boolean;
+  category: string | null;
+  discontinued: boolean;
 };
 
 type RelatedCallout = {
@@ -405,7 +405,8 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
           cpu: d.cpu,
           license_level: d.license_level,
           product_url: d.product_url,
-          ...(m ? { category: m.category, discontinued: m.discontinued } : {}),
+          category: m?.category ?? null,
+          discontinued: m?.discontinued ?? false,
         };
       });
     }
@@ -1885,7 +1886,7 @@ function buildEnrichment(ov: OverviewRow): HardwareEnrichment {
     hardware_page_url: hardwarePageUrl(ov.source_hardware_slug),
     also_known_as: alsoKnownAs(ov),
     ...(ips ? { non_default_ips: ips } : {}),
-    note: `Full specs via routeros_device_lookup rosetta_device_id=${ov.rosetta_device_id} — no need to fetch the URLs.`,
+    note: "This result is the full record; product_page_url and hardware_page_url are for citation — no need to fetch them. rosetta_device_id is a stable handle for this device.",
   };
 }
 
@@ -1918,7 +1919,8 @@ function catalogRowToResult(ov: OverviewRow): CatalogResult {
     name: ov.name,
     category: ov.category,
     discontinued: !!ov.discontinued,
-    product_code: productCode ?? ov.source_www_code,
+    // source_www_code is a URL path segment (e.g. "hap_ax3"), not a product code — leave null if absent.
+    product_code: productCode ?? null,
     product_page_url: productPageUrl(ov.source_www_code),
     hardware_page_url: hardwarePageUrl(ov.source_hardware_slug),
     note: `Not in the RouterOS product matrix — no spec columns. ${kind} entry from manual.mikrotik.com/hardware. Use routeros_device_lookup for matrix devices.`,

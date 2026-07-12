@@ -1457,8 +1457,9 @@ describe("searchDevices — hardware overlay (#49)", () => {
     expect(h?.hardware_page_url).toBe("https://manual.mikrotik.com/hardware/chateau-lte18");
     // genuine subnet deviation surfaced from specs_json (post-#48 filter)
     expect(h?.non_default_ips).toEqual(["192.168.188.1"]);
-    // note steers to the device tool, not page-fetching
-    expect(h?.note).toContain("routeros_device_lookup");
+    // note steers away from page-fetching; no bogus MCP arg (the full record is already here)
+    expect(h?.note).toContain("no need to fetch");
+    expect(h?.note).not.toContain("rosetta_device_id=");
   });
 
   test("also_known_as excludes canonical name/code and slug/table artifacts", () => {
