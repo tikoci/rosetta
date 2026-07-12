@@ -447,6 +447,22 @@ describe("buildCatalog — drops cross-sell hardware-link aliases that name a dr
     expect(checkInvariants(result, www)).toEqual([]);
   });
 
+  test("a matrix-linked device's hardware-link to a dropped www product is filtered (never series-exempt)", () => {
+    // Exercises the attr.linkTokens staging path (a matched page), not just standalone rows: the
+    // chateau-lte12 page links its own product AND the mANT antenna. Matrix rows are never
+    // series-exempt, so the antenna cross-sell alias must be dropped just as on a standalone row.
+    const row = mkMatrixRow("Chateau LTE12", "RBD53iG-5HacD2HnD-TC&EG12-EA");
+    const page = mkPage({ slug: "chateau-lte12", title: "Chateau LTE12", productLinks: ["chateau_lte12", "mant_lte_5o"], matchedMatrixNames: ["Chateau LTE12"], cause: "matched-by-slug" });
+    const www = [mkWww("chateau_lte12", { title: "Chateau LTE12" }), mkWww("mant_lte_5o", { title: "mANT LTE 5o" })];
+
+    const result = buildCatalog([row], new Map([["Chateau LTE12", 1]]), [page], www);
+    expect(result.dropLedger.some((d) => d.kind === "www-product" && d.id === "mant_lte_5o")).toBe(true);
+    const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a]));
+    expect(byAlias.has("mant_lte_5o")).toBe(false); // filtered on the matrix-linked row
+    expect(byAlias.get("chateau_lte12")?.rosettaDeviceId).toBe("chateau-lte12"); // own code kept
+    expect(checkInvariants(result, www)).toEqual([]);
+  });
+
   test("a standalone series page keeps its member/kit link even when that www product is dropped (exemption)", () => {
     // wap-60g-series legitimately lists wap_60g as a member; wap_60g's identity doesn't agree with
     // the series page (so it's dropped), but the series-row exemption keeps the alias.

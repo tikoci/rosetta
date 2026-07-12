@@ -875,8 +875,12 @@ export function checkInvariants(result: BuildResult, wwwProducts: WwwProduct[]):
   //     mant_lte_5o, …) must not leave that accessory code as the device's own alias; only a
   //     standalone series page (hw-*-series) legitimately claims member/kit codes.
   const droppedWwwCodes = new Set(result.dropLedger.filter((d) => d.kind === "www-product").map((d) => normCode(d.id)));
+  // Mirror the staging-time exemption exactly: only STANDALONE series rows are exempt. Standalone
+  // rows are the ones whose id is minted `hw-<slug>` (matrix-linked rows never are), so key off the
+  // `hw-` prefix — not `deviceProductName === null`, which also matches an UNRESOLVED matrix row and
+  // would wrongly exempt it if its spec page happened to be a `-series` page (CodeRabbit PR #48).
   const seriesRow = new Map(
-    result.catalogRows.map((r) => [r.rosettaDeviceId, r.deviceProductName === null && (r.sourceHardwareSlug?.endsWith("-series") ?? false)]),
+    result.catalogRows.map((r) => [r.rosettaDeviceId, r.rosettaDeviceId.startsWith("hw-") && (r.sourceHardwareSlug?.endsWith("-series") ?? false)]),
   );
   const crossSell = result.aliasRows.filter(
     (a) => a.source === "hardware-link" && droppedWwwCodes.has(normCode(a.alias)) && !seriesRow.get(a.rosettaDeviceId),
