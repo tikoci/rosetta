@@ -57,6 +57,7 @@ chipset
 cli
 cmdver
 cmp
+coderabbitai
 configur
 conntrack
 cpe

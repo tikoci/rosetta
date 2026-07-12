@@ -54,7 +54,7 @@ CSS326-24G-2S+RM	CSS326-24G-2S+RM	Switches	auto	https://manual.mikrotik.com/hard
 CSS610-8G-2S+IN	CSS610-8G-2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/css610-8g-2s-plus-in	https://mikrotik.com/product/css610_8g_2s_in		
 CSS610-8P-2S+IN	CSS610-8P-2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/css610-8p-2s-plus-in	https://mikrotik.com/product/css610_8p_2s_in		
 Cube 60Pro ac	CubeG-5ac60ay	60 GHz products	auto	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/cube_60pro_ac		
-CubeSA 60Pro ac	CubeG-5ac60ay-SA		curated-alias	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/cubesa_60pro_ac	curated-alias	MikroTik combines two products on one /hardware page; this SA variant's own www product is cubesa_60pro_ac.
+CubeSA 60Pro ac	CubeG-5ac60ay-SA		curated-alias	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/cubesa_60pro_ac		MikroTik combines two products on one /hardware page; this SA variant's own www product is cubesa_60pro_ac.
 FiberBox Plus	CRS305-1G-4S+OUTr2	Switches	auto	https://manual.mikrotik.com/hardware/fiberbox-plus	https://mikrotik.com/product/fiberboxplus		
 FTC11XG	FTC11XG	Accessories	auto	https://manual.mikrotik.com/hardware/ftc11xg	https://mikrotik.com/product/ftc11xg		
 FTC21-ups	FTC21-ups		no-hardware-page		https://mikrotik.com/product/ftc21_ups	no-hardware-page	www product ftc21_ups exists (was never a fetch candidate); the /hardware/ftc21 page is the non-ups variant, so there is no /hardware page for the -ups SKU.
@@ -85,8 +85,8 @@ hEX refresh	E50UG	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex
 hEX S	RB760iGS	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-s	https://mikrotik.com/product/hex_s		
 hEX S (2025)	E60iUGS	Ethernet routers	auto	https://manual.mikrotik.com/hardware/hex-s-2025	https://mikrotik.com/product/hex_s_2025		
 KNOT	RB924i-2nD-BT5&BG77r2	IoT products	auto	https://manual.mikrotik.com/hardware/rb924i-2nd-bt5-and-bg77	https://mikrotik.com/product/knot		
-KNOT Embedded LTE4	EC25-EU&KNe		curated-alias	https://manual.mikrotik.com/hardware/knot-embedded-lte4-ec25-eu-and-kne	https://mikrotik.com/product/knot_emb_lte4_global	curated-alias	Page slug prefixes the friendly name onto the &-compound code; www uses the shared _global product.
-KNOT Embedded LTE4 Global	EG25-G&KNe		curated-alias	https://manual.mikrotik.com/hardware/knot-embedded-lte4-global-eg25-g-and-kne	https://mikrotik.com/product/knot_emb_lte4_global	curated-alias	Same shared www product as KNOT Embedded LTE4.
+KNOT Embedded LTE4	EC25-EU&KNe		curated-alias	https://manual.mikrotik.com/hardware/knot-embedded-lte4-ec25-eu-and-kne	https://mikrotik.com/product/knot_emb_lte4_global		Page slug prefixes the friendly name onto the &-compound code; www uses the shared _global product.
+KNOT Embedded LTE4 Global	EG25-G&KNe		curated-alias	https://manual.mikrotik.com/hardware/knot-embedded-lte4-global-eg25-g-and-kne	https://mikrotik.com/product/knot_emb_lte4_global		Same shared www product as KNOT Embedded LTE4.
 KNOT LR8G kit	RB924iR-2nD-BT5&BG770A&R11e-LR8G	IoT products	auto	https://manual.mikrotik.com/hardware/rb924i-2nd-bt5-and-bg77	https://mikrotik.com/product/knot_lr8g_kit		
 KNOT LR9G kit	RB924iR-2nD-BT5&BG770A&R11e-LR9G	IoT products	auto	https://manual.mikrotik.com/hardware/rb924i-2nd-bt5-and-bg77	https://mikrotik.com/product/knot_lr9g_kit		
 L009UiGS-2HaxD-IN	L009UiGS-2HaxD-IN	Indoor wireless	auto	https://manual.mikrotik.com/hardware/l009uigs-2haxd-in	https://mikrotik.com/product/l009uigs_2haxd_in		
@@ -138,11 +138,11 @@ RB5009UG+S+IN	RB5009UG+S+IN	Ethernet routers	auto	https://manual.mikrotik.com/ha
 RB5009UPr+S+IN	RB5009UPr+S+IN	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-in	https://mikrotik.com/product/rb5009upr_s_in		
 RB5009UPr+S+OUT	RB5009UPr+S+OUT	Ethernet routers	auto	https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-out	https://mikrotik.com/product/rb5009_out		
 RBM33G	RBM33G	RouterBOARD	auto	https://manual.mikrotik.com/hardware/rbm33g	https://mikrotik.com/product/rbm33g		
-ROSE Data server (RDS)	RDS2216-2XG-4S+4XS-2XQ		curated-alias	https://manual.mikrotik.com/hardware/rose-data-server	https://mikrotik.com/product/rds2216	curated-alias	Marketing name; matrix code RDS2216-2XG-4S+4XS-2XQ, www product rds2216.
+ROSE Data server (RDS)	RDS2216-2XG-4S+4XS-2XQ		curated-alias	https://manual.mikrotik.com/hardware/rose-data-server	https://mikrotik.com/product/rds2216		Marketing name; matrix code RDS2216-2XG-4S+4XS-2XQ, www product rds2216.
 SXT LTE7 kit	SXTR&R11e-LTE7r3	LTE products	auto	https://manual.mikrotik.com/hardware/sxt-r	https://mikrotik.com/product/sxt_r		
 SXT SA5 ac	RBSXTG-5HPacD-SAr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsa-series	https://mikrotik.com/product/RBSXTG-5HPacD-SAr2		
 SXTsq 5 ac	RBSXTsqG-5acDr2	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsq-series	https://mikrotik.com/product/sxtsq_5_ac		
-SXTsq 5 ax	SXTsq-5axD	Wireless systems	curated-alias	https://manual.mikrotik.com/hardware/sxtsq-5axd	https://mikrotik.com/product/sxtsq_5ax	curated-alias	Both pages exist under a slug the matcher can't reach: /hardware/sxtsq-5axd + mikrotik.com/product/sxtsq_5ax (maintainer-confirmed 2026-07-11). The page links only the bogus qm_x, and the www slug drops the trailing 'd', so neither auto-resolves the www side.
+SXTsq 5 ax	SXTsq-5axD	Wireless systems	curated-alias	https://manual.mikrotik.com/hardware/sxtsq-5axd	https://mikrotik.com/product/sxtsq_5ax		Both pages exist under a slug the matcher can't reach: /hardware/sxtsq-5axd + mikrotik.com/product/sxtsq_5ax (maintainer-confirmed 2026-07-11). The page links only the bogus qm_x, and the www slug drops the trailing 'd', so neither auto-resolves the www side.
 SXTsq Embedded LTE4	EC25-EU&SXTsq	LTE products	auto	https://manual.mikrotik.com/hardware/sxtsq-embedded-lte4	https://mikrotik.com/product/sxtsq_emb_lte4		
 SXTsq Embedded LTE4 Global	EG25-G&SXTsq		no-hardware-page		https://mikrotik.com/product/sxtsq_emb_lte4_global	no-hardware-page	www product sxtsq_emb_lte4_global exists; the Global embedded-LTE4 SKU is absent from /hardware (the non-Global SXTsq Embedded LTE4 does have a page).
 SXTsq Lite2	RBSXTsq2nD	Wireless systems	auto	https://manual.mikrotik.com/hardware/sxtsq-series	https://mikrotik.com/product/sxtsq_lite2		

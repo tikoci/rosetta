@@ -652,7 +652,7 @@ Initial public release.
   dev / package at `~/.rosetta/`).
 - Bun tests for the query planner + schema health.
 
-[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.10.0...HEAD
 [0.8.2 – 0.8.3]: https://github.com/tikoci/rosetta/compare/v0.8.1...v0.8.3
 [0.8.0 – 0.8.1]: https://github.com/tikoci/rosetta/compare/v0.7.8...v0.8.1
 [0.7.5 – 0.7.8]: https://github.com/tikoci/rosetta/compare/v0.7.4...v0.7.8

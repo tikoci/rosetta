@@ -150,7 +150,7 @@ async function main() {
   for (const code of codes) {
     const cacheFile = cachePathFor(code);
     let html: string;
-    let status = 200;
+    let status: number;
 
     if (FROM_CACHE) {
       if (!existsSync(cacheFile)) {
