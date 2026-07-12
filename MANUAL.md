@@ -218,6 +218,26 @@ Published artifacts come from the GitHub Actions `Release` workflow (`workflow_d
 
 The legacy Confluence pipeline (`extract-html.ts`/`extract-properties.ts`, `html_url` input) has been retired from `release.yml` (T-0036) — it survives only as the local-only `make extract-legacy-confluence` target for rebuilding historical pre-migration DBs; see "Rebuilding a historical (pre-migration) Confluence release DB" above.
 
+### Rehearsing release quality gates without publishing (`qa.yml`)
+
+Several `VALIDATION.md` invariants (`V-tool-shapes`, `V-tool-budget`, `V-retrieval-floor`, `V-retrieval-self`, `V-db-min-content`, `V-db-meta`, `V-docusaurus-docs-count`) are enforced only *inside* `release.yml` — which live-fetches the manual, pushes OCI images, and publishes an immutable npm package. The **`QA` workflow (`qa.yml`, `workflow_dispatch`)** runs those same checks on any ref with **no npm publish, no OCI push, and no GitHub Release**, so you can ask "would the release gates pass on this branch?" without burning a version. It is the intended way to rehearse changes to the release pipeline (extraction, content floors, eval) before a real dispatch.
+
+Dispatch it from the Actions tab or:
+
+```sh
+gh workflow run qa.yml --ref <branch> \
+  -f test_scope=all -f db_source=local-build
+```
+
+Inputs:
+
+- **`test_scope`** — `all` (default) or a single gate: `contract`, `eval-golden`, `eval-self`, `db-content`, `db-meta`, `docusaurus-count`, `device-map`.
+- **`db_source`** — `local-build` (default; runs the real extraction pipeline — live fetch, minutes — the path that rehearses the build + content floors) or `published` (downloads the latest Release DB).
+- **`full_versions`** — `local-build` only: extract all RouterOS versions vs. the single primary.
+- **`eval_self_blocking`** — treat the self-supervised eval as a hard gate (default `false`, matching `release.yml`'s non-blocking stance).
+
+Caveat: `db_source: published` downloads the latest *non-prerelease* Release DB, which may predate a floor's introduction (today's latest predates the hardware overlay). `db-content` is therefore excluded from an `all` run on `published` and is only meaningful on `local-build`; requesting `test_scope: db-content db_source: published` explicitly will honestly report the unmet floor. `release.yml` keeps its own inline copy of these gates for now — folding it onto `uses: ./.github/workflows/qa.yml` (one definition, no drift) is tracked as follow-up under issue #42.
+
 ### Version bumps are a manual step
 
 CI no longer bumps `package.json` or promotes `CHANGELOG.md` for you, on **any** channel — the old `bump-version` job's blind `PATCH + 1` auto-commit is gone entirely. Before dispatching a release:

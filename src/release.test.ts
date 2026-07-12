@@ -791,6 +791,127 @@ describe("release.yml", () => {
     expect(src).toMatch(/COMMANDS.*-lt 1000/);
     expect(src).toMatch(/DEVICES.*-lt 100/);
     expect(src).toMatch(/PROPERTIES.*-lt 1000/);
+    // Hardware overlay floors (PR #41 / issue #38) — the overlay ran, not empty tables.
+    expect(src).toMatch(/HARDWARE_CATALOG.*-lt 200/);
+    expect(src).toMatch(/DEVICE_ALIASES.*-lt 600/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// qa.yml — dispatchable / callable rehearsal of the release-locked quality
+// gates (issue #40, B-0014 Option B). Standalone this phase; release.yml keeps
+// its own inline gates until the Phase B `uses:` dedup. These anchors pin the
+// dispatch surface and — critically — keep qa.yml's copy of the DB-content
+// floors from silently drifting away from release.yml's.
+// ---------------------------------------------------------------------------
+
+describe("qa.yml", () => {
+  test("workflow file exists", () => {
+    expect(existsSync(path.join(ROOT, ".github/workflows/qa.yml"))).toBe(true);
+  });
+
+  test("is dispatchable and callable, but not push/PR-triggered (no test.yml/codeql duplication)", () => {
+    const src = readText(".github/workflows/qa.yml");
+    expect(src).toContain("workflow_dispatch:");
+    expect(src).toContain("workflow_call:");
+    // Heavy gates must stay off the PR/push path — that's test.yml's job.
+    const onBlock = src.slice(mustIndex(src, "\non:"), mustIndex(src, "\npermissions:"));
+    expect(onBlock).not.toContain("pull_request");
+    expect(onBlock).not.toMatch(/\bpush:/);
+  });
+
+  test("never publishes — read-only permissions, no npm/OCI/release commands", () => {
+    const src = readText(".github/workflows/qa.yml");
+    expect(src).toContain("permissions:\n  contents: read");
+    expect(src).not.toContain("packages: write");
+    // Concrete publish/push commands (not prose) must be absent — this is a
+    // rehearsal, never a release.
+    expect(src).not.toContain("npm publish --");
+    expect(src).not.toContain("docker buildx build");
+    expect(src).not.toContain("gh release create");
+  });
+
+  test("exposes the focused-rehearsal dispatch menu (test_scope / db_source / eval_self_blocking / full_versions)", () => {
+    const src = readText(".github/workflows/qa.yml");
+    for (const scope of [
+      "all",
+      "contract",
+      "eval-golden",
+      "eval-self",
+      "db-content",
+      "db-meta",
+      "docusaurus-count",
+      "device-map",
+    ]) {
+      expect(src).toContain(`- ${scope}`);
+    }
+    expect(src).toContain("- local-build");
+    expect(src).toContain("- published");
+    expect(src).toContain("eval_self_blocking:");
+    expect(src).toContain("full_versions:");
+  });
+
+  test("validates inputs up front so a typo'd scope fails loudly instead of a vacuous green run", () => {
+    const src = readText(".github/workflows/qa.yml");
+    expect(src).toContain("name: Validate inputs");
+    // Allowlist enforced via case; unknown values error out.
+    expect(src).toMatch(/::error::Unknown test_scope/);
+    expect(src).toMatch(/::error::Unknown db_source/);
+    // The one valid-but-empty combination is rejected too.
+    expect(src).toContain("test_scope=docusaurus-count requires db_source=local-build");
+    // Validation runs before anything expensive (setup-bun / install / build).
+    expect(mustIndex(src, "name: Validate inputs")).toBeLessThan(
+      mustIndex(src, "Build DB (local-build)"),
+    );
+  });
+
+  test("acquires the on-disk DB only AFTER the fixture-DB tests (so the :memory: wipe guard can't trip)", () => {
+    const src = readText(".github/workflows/qa.yml");
+    const fixtureTestsIdx = mustIndex(src, "Run tests (fixture DB)");
+    const buildIdx = mustIndex(src, "Build DB (local-build)");
+    const downloadIdx = mustIndex(src, "Download published DB");
+    expect(fixtureTestsIdx).toBeLessThan(buildIdx);
+    expect(fixtureTestsIdx).toBeLessThan(downloadIdx);
+  });
+
+  test("local-build reuses the Makefile pipeline (encodes extract-devices → extract-hardware-catalog order)", () => {
+    const src = readText(".github/workflows/qa.yml");
+    expect(src).toContain("make extract-full");
+    expect(src).toContain("make extract\n");
+    // db_meta stamped so the db-content / db-meta gates have real values to assert.
+    expect(src).toContain("scripts/stamp-db-meta.ts");
+  });
+
+  test("db-content gate carries the SAME floors as release.yml, including the hardware overlay floors (drift guard)", () => {
+    const qa = readText(".github/workflows/qa.yml");
+    const rel = readText(".github/workflows/release.yml");
+    for (const re of [
+      /PAGES.*-lt 200/,
+      /COMMANDS.*-lt 1000/,
+      /DEVICES.*-lt 100/,
+      /PROPERTIES.*-lt 1000/,
+      /HARDWARE_CATALOG.*-lt 200/,
+      /DEVICE_ALIASES.*-lt 600/,
+    ]) {
+      expect(qa).toMatch(re);
+      expect(rel).toMatch(re);
+    }
+  });
+
+  test("eval-self is non-blocking by default, flipped to a hard gate by eval_self_blocking", () => {
+    const src = readText(".github/workflows/qa.yml");
+    expect(src).toMatch(
+      /continue-on-error:\s*\$\{\{\s*!inputs\.eval_self_blocking\s*\}\}/,
+    );
+  });
+
+  test("wires every VALIDATION.md gate this rehearses", () => {
+    const src = readText(".github/workflows/qa.yml");
+    expect(src).toContain("ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts");
+    expect(src).toContain("bun run src/eval/retrieval.ts");
+    expect(src).toContain("bun run src/eval/self-supervised.ts");
+    expect(src).toContain("--check-counts --strict");
+    expect(src).toContain("make device-map-check");
   });
 });
 

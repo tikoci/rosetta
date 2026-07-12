@@ -1,0 +1,352 @@
+name: QA
+run-name: QA • scope=${{ inputs.test_scope }} • db=${{ inputs.db_source }} • ${{ github.ref_name }}
+
+# Dispatchable / callable rehearsal of the release-locked quality gates (issue #40,
+# B-0014 Option B). Roughly 7 VALIDATION.md invariants are provable ONLY inside
+# release.yml today — V-tool-shapes, V-tool-budget, V-retrieval-floor, V-retrieval-self,
+# V-db-min-content, V-db-meta, V-docusaurus-docs-count — because that pipeline live-fetches
+# manual.mikrotik.com, pushes multi-arch OCI images, and publishes an immutable npm package.
+# There is no way to ask "would the release quality gates pass on this branch?" without
+# publishing. qa.yml runs those same checks against a freshly built (local-build) or the
+# published DB, on any ref, with NO npm publish / OCI push / GitHub Release. It is the
+# vehicle for rehearsing release-pipeline changes (e.g. PR #41's hardware-overlay extraction
+# + the hardware_catalog/device_aliases content floors) without cutting a release.
+#
+# Scope boundaries (no duplication): fast typecheck/lint/unit + the device-map drift gate
+# already run on every PR in test.yml; security scanning is codeql.yml. release.yml keeps
+# its own inline copy of these gates for now — folding release.yml onto
+# `uses: ./.github/workflows/qa.yml` (one definition, no drift) is the tracked Phase B
+# follow-up (#42). The workflow_call trigger below already exists so Phase B is a
+# release.yml wiring change, not a qa.yml restructure.
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_scope:
+        description: Which gate(s) to run
+        type: choice
+        options:
+          - all
+          - contract
+          - eval-golden
+          - eval-self
+          - db-content
+          - db-meta
+          - docusaurus-count
+          - device-map
+        default: all
+      db_source:
+        description: >
+          DB to test against. local-build runs the real extraction pipeline (live
+          manual.mikrotik.com fetch, minutes) — the path that rehearses release.yml's
+          build + content floors. published downloads the latest GitHub Release DB.
+        type: choice
+        options:
+          - local-build
+          - published
+        default: local-build
+      full_versions:
+        description: local-build only — extract all RouterOS versions (make extract-full) vs single primary (make extract)
+        type: boolean
+        default: false
+      eval_self_blocking:
+        description: Treat the self-supervised eval as a hard gate (default non-blocking, parity with release.yml's continue-on-error)
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      test_scope:
+        type: string
+        default: all
+      db_source:
+        type: string
+        default: local-build
+      # Intentional asymmetry vs. workflow_dispatch (default false): a manual
+      # rehearsal wants the faster single-version build, but a workflow_call
+      # (release preflight, Phase B) defaults to true to match release.yml's own
+      # full_versions default — so a caller that omits the input rehearses the
+      # full-version extraction the release actually ships, not a lighter variant.
+      full_versions:
+        type: boolean
+        default: true
+      eval_self_blocking:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# A newer dispatch of the same ref cancels a stale in-progress run; a workflow_call
+# (release preflight, Phase B) gets a run-id-unique group so it never cancels — or gets
+# cancelled by — a concurrent manual rehearsal.
+concurrency:
+  group: qa-${{ github.event_name == 'workflow_call' && github.run_id || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
+
+jobs:
+  qa:
+    name: QA • ${{ inputs.test_scope }} • ${{ inputs.db_source }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # workflow_call inputs are free-form strings, so a typo (e.g. test_scope:
+      # db_content with an underscore) would otherwise skip every gated step and
+      # still finish green. Reject anything outside the allowlist — and the one
+      # valid-but-empty combination (docusaurus-count needs the local-build cache)
+      # — up front, so a bad invocation fails loudly instead of vacuously passing.
+      # Inputs arrive via env, never interpolated into the shell (injection guard).
+      - name: Validate inputs
+        env:
+          TEST_SCOPE: ${{ inputs.test_scope }}
+          DB_SOURCE: ${{ inputs.db_source }}
+        run: |
+          set -euo pipefail
+          case "$TEST_SCOPE" in
+            all|contract|eval-golden|eval-self|db-content|db-meta|docusaurus-count|device-map) ;;
+            *) echo "::error::Unknown test_scope '$TEST_SCOPE' — allowed: all, contract, eval-golden, eval-self, db-content, db-meta, docusaurus-count, device-map"; exit 1 ;;
+          esac
+          case "$DB_SOURCE" in
+            local-build|published) ;;
+            *) echo "::error::Unknown db_source '$DB_SOURCE' — allowed: local-build, published"; exit 1 ;;
+          esac
+          if [ "$TEST_SCOPE" = "docusaurus-count" ] && [ "$DB_SOURCE" = "published" ]; then
+            echo "::error::test_scope=docusaurus-count requires db_source=local-build — it re-checks the freshly fetched manual/pages/ cache, which a published DB has no equivalent of."
+            exit 1
+          fi
+          echo "✓ inputs valid: test_scope=$TEST_SCOPE db_source=$DB_SOURCE"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      # ── Fast-fail trio ──
+      # release.yml's rationale: fail a dumb typecheck/lint/unit regression in ~30s,
+      # before the minutes-long local-build extraction. Biome-only lint here (matches
+      # release.yml's fast-fail); the cspell/markdownlint layer already gates PRs via
+      # `make lint` in test.yml. These run against the fixture / in-memory DB and MUST
+      # execute before any on-disk DB is acquired, or query.test.ts's :memory: wipe
+      # guard trips.
+      - name: Type check
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Run tests (fixture DB)
+        run: bun test
+
+      # ── Acquire the DB the gates run against ──
+      # Ordered AFTER the fixture-DB tests above. local-build reuses the Makefile
+      # pipeline (extract-devices → extract-hardware-catalog → …, plus the committed
+      # video/dude caches) so the DB matches what release.yml builds; published pulls
+      # the latest GitHub Release artifact.
+
+      - name: Build DB (local-build)
+        if: inputs.db_source == 'local-build'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # Inputs arrive via env (never interpolated into the shell) so a
+          # workflow_call caller can't inject through them — matches release.yml's
+          # template-injection discipline.
+          FULL_VERSIONS: ${{ inputs.full_versions }}
+        run: |
+          set -euo pipefail
+          if [ "$FULL_VERSIONS" = "true" ]; then
+            make extract-full
+          else
+            make extract
+          fi
+          # release.yml imports video transcripts from the committed cache as a
+          # separate step (videos aren't in `make extract`); mirror it so the
+          # contract/eval gates see the same DB shape a release ships.
+          make extract-videos-from-cache
+          # Stamp db_meta provenance so the db-content / db-meta gates have real
+          # values to assert on (release_tag/built_at/source_commit/schema_version).
+          bun run scripts/stamp-db-meta.ts \
+            --release-tag "qa-${GITHUB_SHA}" \
+            --source-commit "${GITHUB_SHA}"
+
+      - name: Download published DB
+        if: inputs.db_source == 'published'
+        run: |
+          set -euo pipefail
+          # Same artifact users get from `bunx @tikoci/rosetta` — the latest
+          # non-prerelease Release. Landed at repo root so eval/contract resolve it
+          # via paths.ts dev-mode. NOTE: the published DB may predate a floor's
+          # introduction (e.g. today's latest predates the hardware overlay), so
+          # db-content is deliberately NOT part of an `all` run on this source — see
+          # the db-content step's `if`.
+          curl -fSL --max-time 600 -o ros-help.db.gz \
+            https://github.com/tikoci/rosetta/releases/latest/download/ros-help.db.gz
+          gunzip -f ros-help.db.gz
+          ls -lh ros-help.db
+
+      # ── Gates (each guarded by test_scope; db_source applicability noted inline) ──
+
+      # V-db-min-content — the exact floors release.yml enforces, INCLUDING the
+      # hardware-overlay floors PR #41 added (hardware_catalog ≥ 200, device_aliases
+      # ≥ 600). This is the gate that rehearses #41's release.yml code. Kept as a
+      # local-build check under `all` (a build is what these floors validate); an
+      # explicit `test_scope: db-content` still runs it on published, where it will
+      # honestly fail on any floor a pre-built published DB predates.
+      - name: Validate DB has expected content (db-content)
+        if: inputs.test_scope == 'db-content' || (inputs.test_scope == 'all' && inputs.db_source == 'local-build')
+        run: |
+          set -euo pipefail
+          PAGES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM pages")
+          COMMANDS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM commands WHERE type='cmd'")
+          DEVICES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM devices")
+          PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
+          HARDWARE_CATALOG=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM hardware_catalog" 2>/dev/null || echo 0)
+          DEVICE_ALIASES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM device_aliases" 2>/dev/null || echo 0)
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties, $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases"
+          fail=0
+          if [ "${PAGES:-0}" -lt 200 ]; then
+            echo "::error::DB has only ${PAGES} pages — expected ≥200 (Docusaurus /docs export is ~365)."
+            fail=1
+          fi
+          if [ "${COMMANDS:-0}" -lt 1000 ]; then
+            echo "::error::DB has only ${COMMANDS} commands — expected ≥1000."
+            fail=1
+          fi
+          if [ "${DEVICES:-0}" -lt 100 ]; then
+            echo "::error::DB has only ${DEVICES} devices — expected ≥100 (current matrix is 144)."
+            fail=1
+          fi
+          if [ "${PROPERTIES:-0}" -lt 1000 ]; then
+            echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (Docusaurus export is ~4,509)."
+            fail=1
+          fi
+          # Hardware overlay floors (B-0017/B-0018, PR #41 / issue #38): the tables
+          # exist at db.ts init, so a pipeline that skipped extract-hardware-catalog
+          # would ship them empty. Floors sit well below the observed size (~255 / ~772)
+          # so they assert "the overlay ran," not an exact count.
+          if [ "${HARDWARE_CATALOG:-0}" -lt 200 ]; then
+            echo "::error::DB has only ${HARDWARE_CATALOG} hardware_catalog rows — expected ≥200. Did extract-hardware-catalog run after extract-devices?"
+            fail=1
+          fi
+          if [ "${DEVICE_ALIASES:-0}" -lt 600 ]; then
+            echo "::error::DB has only ${DEVICE_ALIASES} device_aliases rows — expected ≥600. Did extract-hardware-catalog run after extract-devices?"
+            fail=1
+          fi
+          if [ "$fail" = "1" ]; then exit 1; fi
+          echo "✓ DB content validation passed"
+
+      # V-tool-shapes / V-tool-budget — MCP contract Blocks B/C against the real DB.
+      - name: MCP contract tests (contract)
+        if: inputs.test_scope == 'contract' || inputs.test_scope == 'all'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## MCP contract test (real DB)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::MCP contract tests (real DB) failed (exit $status) — see the step summary."
+          fi
+          exit "$status"
+
+      # V-retrieval-floor — 20-query golden set; blocking (>2pp regression fails).
+      - name: Retrieval eval — golden (eval-golden)
+        if: inputs.test_scope == 'eval-golden' || inputs.test_scope == 'all'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Retrieval eval — golden (Phase 0)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          bun run src/eval/retrieval.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Golden retrieval eval failed (exit $status) — recall@10 or classifier accuracy likely regressed >2pp vs. baseline (or the eval errored)."
+          fi
+          exit "$status"
+
+      # V-retrieval-self — self-supervised eval. Non-blocking by default (parity with
+      # release.yml); eval_self_blocking=true flips it to a hard gate for an on-demand
+      # blocking rehearsal. See VALIDATION.md for the promotion path.
+      - name: Retrieval eval — self-supervised (eval-self)
+        if: inputs.test_scope == 'eval-self' || inputs.test_scope == 'all'
+        continue-on-error: ${{ !inputs.eval_self_blocking }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Retrieval eval — self-supervised (Phase 1)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Mode: ${{ inputs.eval_self_blocking && 'blocking (hard gate)' || 'non-blocking' }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          set +e
+          bun run src/eval/self-supervised.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
+          status=${PIPESTATUS[0]}
+          set -e
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ "$status" -eq 0 ]; then
+            echo "Result: ✅ pass" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Result: ⚠️ regression (exit $status)" >> "$GITHUB_STEP_SUMMARY"
+            exit "$status"
+          fi
+
+      # V-docusaurus-docs-count — extracted /docs page count vs the scoped llms.txt.
+      # local-build only: needs the manual/pages/ cache the local-build fetch wrote.
+      - name: Docusaurus docs-count (docusaurus-count)
+        if: (inputs.test_scope == 'docusaurus-count' || inputs.test_scope == 'all') && inputs.db_source == 'local-build'
+        run: bun run src/extract-docusaurus.ts --from-cache --check-counts --strict
+
+      # V-device-map-drift — coherence of the committed device→URL artifacts. No DB.
+      # (Also runs on every PR in test.yml; included here so an `all` rehearsal is complete.)
+      - name: Device map drift gate (device-map)
+        if: inputs.test_scope == 'device-map' || inputs.test_scope == 'all'
+        run: make device-map-check
+
+      # V-db-meta — provenance stamping is present and complete.
+      - name: DB provenance (db-meta)
+        if: inputs.test_scope == 'db-meta' || inputs.test_scope == 'all'
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in release_tag built_at source_commit schema_version; do
+            val=$(sqlite3 ros-help.db "SELECT value FROM db_meta WHERE key='$key'" 2>/dev/null || echo "")
+            if [ -z "$val" ]; then
+              echo "::error::db_meta is missing key '$key'"
+              missing=1
+            else
+              echo "✓ db_meta.$key = $val"
+            fi
+          done
+          if [ "$missing" = "1" ]; then exit 1; fi
+          echo "✓ db_meta provenance complete"
+
+      # Rehearsal summary — what ran, against which DB.
+      - name: QA summary
+        if: always()
+        # Inputs + the (user-controllable) ref name arrive via env, never
+        # interpolated into the shell — template-injection guard.
+        env:
+          SCOPE: ${{ inputs.test_scope }}
+          DB_SOURCE: ${{ inputs.db_source }}
+          FULL_VERSIONS: ${{ inputs.full_versions }}
+          EVAL_SELF_BLOCKING: ${{ inputs.eval_self_blocking }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          {
+            echo "## QA rehearsal"
+            echo ""
+            echo "| field | value |"
+            echo "|-------|-------|"
+            echo "| scope | \`${SCOPE}\` |"
+            echo "| db_source | \`${DB_SOURCE}\` |"
+            echo "| full_versions | \`${FULL_VERSIONS}\` |"
+            echo "| eval_self_blocking | \`${EVAL_SELF_BLOCKING}\` |"
+            echo "| ref | \`${REF_NAME}\` |"
+            echo ""
+            echo "No npm publish, OCI push, or GitHub Release was performed — this is a gate rehearsal only."
+          } >> "$GITHUB_STEP_SUMMARY"
