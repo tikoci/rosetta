@@ -382,7 +382,7 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
       );
     }
   } else {
-    return { ...base, skipped: true, skip_reason: `unknown surface "${q.surface}"` };
+    return misconfigured(`unknown surface "${q.surface}"`);
   }
 
   return { ...base, surface_hit: hit, recall_at_5: hit ? 1 : 0, recall_at_3: hit ? 1 : 0, reciprocal_rank: hit ? 1 : 0, notes };
@@ -607,6 +607,12 @@ function checkSurfaceRegression(curr: Report, base: Report): string[] {
   return warns;
 }
 
+function checkFixtureMisconfiguration(report: Report): string[] {
+  return report.results
+    .filter((r) => !r.skipped && r.notes.some((note) => note.startsWith("MISCONFIGURED: ")))
+    .map((r) => `[${r.surface}] ${r.id}: ${r.notes.filter((note) => note.startsWith("MISCONFIGURED: ")).join("; ")}`);
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export function runEval(filterPrefix?: string): Report {
@@ -667,12 +673,16 @@ if (import.meta.main) {
     for (const w of surfaceWarns) console.log(`     surface: ${w}`);
   }
 
-  // Gate: thresholds + regression (search surface only — the durable V-retrieval-floor gate).
+  // Gate: fixture validity + search-surface thresholds/regression. Direct-surface misses stay
+  // informational, but an invalid golden query definition must fail CI instead of reducing
+  // coverage silently.
+  const fixtureFails = checkFixtureMisconfiguration(report);
   const thresholdFails = filter ? [] : checkThresholds(report.metrics, set._thresholds);
   const regressionFails = baseline && !filter ? checkRegression(report, baseline) : [];
 
-  if (thresholdFails.length > 0 || regressionFails.length > 0) {
+  if (fixtureFails.length > 0 || thresholdFails.length > 0 || regressionFails.length > 0) {
     console.log("\n  ❌ FAIL");
+    for (const f of fixtureFails) console.log(`     fixture: ${f}`);
     for (const f of thresholdFails) console.log(`     threshold: ${f}`);
     for (const f of regressionFails) console.log(`     regression: ${f}`);
     console.log("\n  Run with --update-baseline if this is intentional.\n");
