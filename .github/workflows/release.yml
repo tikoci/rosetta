@@ -39,11 +39,37 @@ permissions:
   contents: write
   packages: write
 
+# Phase B (#42) job graph: build → qa → publish → bunx-smoke.
+#
+#   build    extracts + stamps the DB once, runs the fast-fail + preflight gates,
+#            and hands the DB (and the workspace-rewritten package.json) to the
+#            downstream jobs as artifacts.
+#   qa       `uses: ./.github/workflows/qa.yml` with db_source=artifact — the ONE
+#            definition of the release-locked gates (contract, retrieval evals,
+#            DB-content floors, db-meta) now runs here, against the exact DB build
+#            produced. No inline copy of those gates (or the floors) lives in this
+#            file anymore, so there is nothing to drift.
+#   publish  side effects only — OCI push, GitHub Release, npm publish — gated
+#            behind `needs: [build, qa]` so nothing ships unless qa is green.
+#   bunx-smoke  end-to-end install smoke of the just-published npm package.
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
     outputs:
+      channel: ${{ steps.channel.outputs.channel }}
+      stage: ${{ steps.channel.outputs.stage }}
       version: ${{ steps.release_version.outputs.version }}
+      source: ${{ steps.release_version.outputs.source }}
+      short_sha: ${{ steps.image_meta.outputs.short_sha }}
+      pages: ${{ steps.stats.outputs.pages }}
+      commands: ${{ steps.stats.outputs.commands }}
+      versions: ${{ steps.stats.outputs.versions }}
+      devices: ${{ steps.stats.outputs.devices }}
+      properties: ${{ steps.stats.outputs.properties }}
+      videos: ${{ steps.stats.outputs.videos }}
+      segments: ${{ steps.stats.outputs.segments }}
+      hardware_catalog: ${{ steps.stats.outputs.hardware_catalog }}
+      device_aliases: ${{ steps.stats.outputs.device_aliases }}
     steps:
       - uses: actions/checkout@v6
 
@@ -65,9 +91,10 @@ jobs:
       # flag duplicates this. For prerelease channels, package.json's version
       # is rewritten in-place (workspace-only, never committed) to append
       # $GITHUB_RUN_NUMBER, so repeated dispatches of the same stage never
-      # collide on an already-published npm version. Every later step in this
-      # job that reads package.json's version (preflight, "Resolve release
-      # version", publish, OCI tagging, GH Release) sees the rewritten value.
+      # collide on an already-published npm version. The rewritten package.json
+      # is uploaded as an artifact at the end of this job so the `publish` job
+      # (a fresh runner) publishes the exact version this job computed and the
+      # preflight validated.
       - name: Determine npm release channel
         id: channel
         env:
@@ -188,7 +215,8 @@ jobs:
       # ── Fast-fail quality gate ──
       # Run before the ~2-minute extraction pipeline so a typecheck/lint
       # regression that slipped past test.yml fails in ~30s, not ~3min.
-      # DB-touching tests re-run after extraction (the test step below stays).
+      # (The qa job re-runs these against the artifact; harmless, and it can't
+      # fail-fast ahead of this job's extraction since it `needs: build`.)
 
       - name: Type check (fast-fail)
         run: bun run typecheck
@@ -224,9 +252,6 @@ jobs:
           name: coverage-lcov
           path: coverage/lcov.info
           retention-days: 30
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
 
       - name: Resolve release version
         id: release_version
@@ -310,72 +335,6 @@ jobs:
       - name: Run tests (DB-wipe guard)
         run: bun test
 
-      # Runs in a fresh process with the real-DB blocks explicitly enabled.
-      # The main `bun test` above keeps them opt-in so the DB-wipe guard suite
-      # stays on `:memory:`; this step exercises Blocks B/C against the freshly
-      # built DB before eval/release.
-      - name: MCP contract tests (real DB)
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "## MCP contract test (Phase 2, real DB)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          set +e
-          ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
-          status=${PIPESTATUS[0]}
-          set -e
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          if [ "$status" -ne 0 ]; then
-            echo "::error::MCP contract tests (real DB) failed (exit $status) — see the 'MCP contract test (Phase 2, real DB)' step summary above for which test(s) failed."
-          fi
-          exit "$status"
-
-      # ── MCP retrieval eval (Phase 0) ──
-      # Runs the 20-query golden set against the freshly built full DB.
-      # Blocking: regression > 2pp on recall@10 or classifier accuracy
-      # fails the release.
-
-      - name: MCP retrieval eval (Phase 0)
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "## Phase 0 retrieval eval" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          set +e
-          bun run src/eval/retrieval.ts | tee -a "$GITHUB_STEP_SUMMARY"
-          status=${PIPESTATUS[0]}
-          set -e
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          if [ "$status" -ne 0 ]; then
-            echo "::error::Phase 0 retrieval eval failed (exit $status) — recall@10 or classifier accuracy likely regressed >2pp vs. baseline (or the eval script errored). See the 'Phase 0 retrieval eval' step summary above for details."
-          fi
-          exit "$status"
-
-      # ── MCP retrieval eval (Phase 1, self-supervised, non-blocking) ──
-      # Runs the auto-generated query set against the freshly built full DB and
-      # appends the outcome to the workflow summary. Keep non-blocking on first
-      # landing so we can observe real release-build drift before promoting it
-      # to a hard gate.
-      - name: MCP retrieval eval (Phase 1, self-supervised, non-blocking)
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "## Phase 1 retrieval eval (self-supervised)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          set +e
-          bun run src/eval/self-supervised.ts 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
-          status=${PIPESTATUS[0]}
-          set -e
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          echo >> "$GITHUB_STEP_SUMMARY"
-          if [ "$status" -eq 0 ]; then
-            echo "Result: ✅ pass" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Result: ⚠️ non-blocking failure (exit $status)" >> "$GITHUB_STEP_SUMMARY"
-            exit "$status"
-          fi
-
       # ── Build and release ──
 
       - name: Stamp DB provenance (db_meta)
@@ -409,61 +368,86 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases"
 
-      # ── Sanity gate: refuse to publish a degenerate DB ──
-      # Release v0.7.6 shipped with 3 pages because a test wiped the DB after
-      # extract-html. Hard-fail here so a regression of that bug can't ever
-      # reach downstream publishing or upload steps.
-      - name: Validate DB has expected content
-        env:
-          PAGES: ${{ steps.stats.outputs.pages }}
-          COMMANDS: ${{ steps.stats.outputs.commands }}
-          DEVICES: ${{ steps.stats.outputs.devices }}
-          PROPERTIES: ${{ steps.stats.outputs.properties }}
-          HARDWARE_CATALOG: ${{ steps.stats.outputs.hardware_catalog }}
-          DEVICE_ALIASES: ${{ steps.stats.outputs.device_aliases }}
-        run: |
-          set -euo pipefail
-          fail=0
-          if [ "${PAGES:-0}" -lt 200 ]; then
-            echo "::error::DB has only ${PAGES} pages — expected ≥200 (Docusaurus /docs export is ~365). Aborting release."
-            fail=1
-          fi
-          if [ "${COMMANDS:-0}" -lt 1000 ]; then
-            echo "::error::DB has only ${COMMANDS} commands — expected ≥1000. Aborting release."
-            fail=1
-          fi
-          if [ "${DEVICES:-0}" -lt 100 ]; then
-            echo "::error::DB has only ${DEVICES} devices — expected ≥100 (current matrix is 144). Aborting release."
-            fail=1
-          fi
-          if [ "${PROPERTIES:-0}" -lt 1000 ]; then
-            echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (Docusaurus export is ~4,509). Aborting release."
-            fail=1
-          fi
-          # Hardware overlay floors (B-0017/B-0018, issue #38): the tables exist at
-          # db.ts init, so a pipeline that skipped extract-hardware-catalog would ship
-          # them empty. These floors catch that regression. Floors sit well below the
-          # observed catalog size (~255 / ~772 at wiring) so they don't need bumping as
-          # the catalog grows — they only assert "the overlay ran," not an exact count.
-          if [ "${HARDWARE_CATALOG:-0}" -lt 200 ]; then
-            echo "::error::DB has only ${HARDWARE_CATALOG} hardware_catalog rows — expected ≥200. Did extract-hardware-catalog run after extract-devices? Aborting release."
-            fail=1
-          fi
-          if [ "${DEVICE_ALIASES:-0}" -lt 600 ]; then
-            echo "::error::DB has only ${DEVICE_ALIASES} device_aliases rows — expected ≥600. Did extract-hardware-catalog run after extract-devices? Aborting release."
-            fail=1
-          fi
-          if [ "$fail" = "1" ]; then exit 1; fi
-          echo "✓ DB content validation passed"
-
-      - name: Build release artifacts
-        run: bun run scripts/build-release.ts ${{ steps.release_version.outputs.version }}
-
       - name: Compute image metadata
         id: image_meta
         run: |
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-12)
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+      # Hand the freshly extracted + stamped DB to the qa and publish jobs. The
+      # qa job (uses: qa.yml, db_source=artifact) validates THIS artifact — the
+      # DB-content floors, contract tests, and retrieval evals all run against the
+      # exact bytes publish will ship, so the gates can't pass a different DB than
+      # the one released. retention: 7 keeps it downloadable for post-mortem.
+      - name: Upload built DB artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ros-help-db
+          path: ros-help.db
+          retention-days: 7
+
+      # The prerelease version rewrite above is workspace-only; carry the mutated
+      # package.json to the publish job (a fresh runner) so `npm publish` ships the
+      # exact run-numbered version this job computed and the preflight validated —
+      # not the committed (suffix-less) version a fresh checkout would have.
+      - name: Upload resolved package.json
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-package-json
+          path: package.json
+          retention-days: 7
+
+  # ── Release-locked quality gates (one definition) ──
+  # The contract tests, retrieval evals (golden blocking + self-supervised
+  # non-blocking), DB-content floors, and db-meta provenance check all live in
+  # qa.yml now. db_source=artifact points them at the DB `build` just uploaded,
+  # so this is a true gate on the shipped artifact — not a rehearsal copy.
+  # `publish` needs this job, so a red gate blocks every side effect.
+  qa:
+    needs: build
+    uses: ./.github/workflows/qa.yml
+    with:
+      test_scope: all
+      db_source: artifact
+      artifact_name: ros-help-db
+
+  publish:
+    needs: [build, qa]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # The DB that passed the qa gates — the ONLY DB that reaches publishing.
+      - name: Download built DB artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ros-help-db
+          path: .
+
+      # Restore the workspace-rewritten package.json (run-numbered prerelease
+      # version) over the committed one, so npm publishes the exact version
+      # build computed and validated.
+      - name: Download resolved package.json
+        uses: actions/download-artifact@v7
+        with:
+          name: release-package-json
+          path: .
+
+      - run: bun install
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4
@@ -477,6 +461,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Build release artifacts
+        run: bun run scripts/build-release.ts ${{ needs.build.outputs.version }}
 
       # OCI tags mirror the npm dist-tag scheme: $VERSION and sha-$SHORT_SHA
       # always push. republish_assets: true pushes ONLY those two — no
@@ -493,10 +480,10 @@ jobs:
           REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
         run: |
           set -euo pipefail
-          SHORT_SHA="${{ steps.image_meta.outputs.short_sha }}"
-          VERSION="${{ steps.release_version.outputs.version }}"
-          CHANNEL="${{ steps.channel.outputs.channel }}"
-          STAGE="${{ steps.channel.outputs.stage }}"
+          SHORT_SHA="${{ needs.build.outputs.short_sha }}"
+          VERSION="${{ needs.build.outputs.version }}"
+          CHANNEL="${{ needs.build.outputs.channel }}"
+          STAGE="${{ needs.build.outputs.stage }}"
 
           tags=()
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
@@ -523,7 +510,7 @@ jobs:
       - name: Smoke test published OCI images
         run: |
           set -euo pipefail
-          SHA_TAG="sha-${{ steps.image_meta.outputs.short_sha }}"
+          SHA_TAG="sha-${{ needs.build.outputs.short_sha }}"
 
           smoke_test_container() {
             local image="$1"
@@ -573,13 +560,6 @@ jobs:
             }
           done
 
-      - name: Upload DB as workflow artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ros-help-db
-          path: ros-help.db
-          retention-days: 7
-
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -587,27 +567,27 @@ jobs:
           REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
         run: |
           set -euo pipefail
-          VERSION="${{ steps.release_version.outputs.version }}"
+          VERSION="${{ needs.build.outputs.version }}"
 
           # Prerelease runs (including their republish_assets clobbers) mark
           # the GitHub Release as a prerelease so it doesn't show as "Latest".
           PRERELEASE_FLAGS=()
-          if [ "${{ steps.channel.outputs.channel }}" = "prerelease" ]; then
+          if [ "${{ needs.build.outputs.channel }}" = "prerelease" ]; then
             PRERELEASE_FLAGS=(--prerelease)
           fi
 
           NOTES="## Database Stats
-          - **Pages:** ${{ steps.stats.outputs.pages }}
-          - **Commands:** ${{ steps.stats.outputs.commands }}
-          - **RouterOS Versions:** ${{ steps.stats.outputs.versions }}
-          - **Devices:** ${{ steps.stats.outputs.devices }}
-          - **Properties:** ${{ steps.stats.outputs.properties }}
-          - **Videos:** ${{ steps.stats.outputs.videos }} (${{ steps.stats.outputs.segments }} transcript segments)
+          - **Pages:** ${{ needs.build.outputs.pages }}
+          - **Commands:** ${{ needs.build.outputs.commands }}
+          - **RouterOS Versions:** ${{ needs.build.outputs.versions }}
+          - **Devices:** ${{ needs.build.outputs.devices }}
+          - **Properties:** ${{ needs.build.outputs.properties }}
+          - **Videos:** ${{ needs.build.outputs.videos }} (${{ needs.build.outputs.segments }} transcript segments)
 
           ## Build Info
           - **Commit:** ${{ github.sha }}
           - **Docs date:** ${DOCS_DATE:-not specified}
-          - **Release version source:** ${{ steps.release_version.outputs.source }}
+          - **Release version source:** ${{ needs.build.outputs.source }}
           - **Full version extraction:** ${{ inputs.full_versions }}
           - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
@@ -645,10 +625,10 @@ jobs:
         run: |
           set -euo pipefail
           PKG_NAME=$(node -p "require('./package.json').name")
-          NPM_VERSION="${{ steps.release_version.outputs.version }}"
+          NPM_VERSION="${{ needs.build.outputs.version }}"
           NPM_VERSION="${NPM_VERSION#v}"
-          if [ "${{ steps.channel.outputs.channel }}" = "prerelease" ]; then
-            npm publish --access public --tag "${{ steps.channel.outputs.stage }}" --registry https://registry.npmjs.org/
+          if [ "${{ needs.build.outputs.channel }}" = "prerelease" ]; then
+            npm publish --access public --tag "${{ needs.build.outputs.stage }}" --registry https://registry.npmjs.org/
             npm dist-tag add "${PKG_NAME}@${NPM_VERSION}" next --registry https://registry.npmjs.org/
           else
             npm publish --access public --registry https://registry.npmjs.org/
@@ -666,12 +646,12 @@ jobs:
   # the v0.8.x Windows EBUSY / temp-artifact class and the macOS readonly-WAL
   # class are both exercised on the release path.
   #
-  # Consumes needs.build-and-release.outputs.version rather than assuming it
+  # Consumes needs.publish.outputs.version rather than assuming it
   # equals package.json's committed value — prerelease runs rewrite the
   # version in-workspace (with a run-number suffix) before npm publish, so
   # this job output is the only reliable source for "what actually published."
   bunx-smoke:
-    needs: build-and-release
+    needs: publish
     if: inputs.republish_assets != true  # republish_assets skips npm publish, so nothing to smoke
     defaults:
       run:
@@ -686,9 +666,9 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Wait for npm registry to propagate @tikoci/rosetta@${{ needs.build-and-release.outputs.version }}
+      - name: Wait for npm registry to propagate @tikoci/rosetta@${{ needs.publish.outputs.version }}
         env:
-          VERSION: ${{ needs.build-and-release.outputs.version }}
+          VERSION: ${{ needs.publish.outputs.version }}
         run: |
           set -euo pipefail
           # Strip leading v — npm versions are unprefixed.
@@ -706,7 +686,7 @@ jobs:
 
       - name: bunx --refresh exits 0 (DB downloads + opens cleanly)
         env:
-          VERSION: ${{ needs.build-and-release.outputs.version }}
+          VERSION: ${{ needs.publish.outputs.version }}
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"
@@ -722,7 +702,7 @@ jobs:
 
       - name: MCP server starts and DB probe succeeds
         env:
-          VERSION: ${{ needs.build-and-release.outputs.version }}
+          VERSION: ${{ needs.publish.outputs.version }}
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"

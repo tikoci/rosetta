@@ -13,11 +13,12 @@ run-name: QA • scope=${{ inputs.test_scope }} • db=${{ inputs.db_source }} �
 # + the hardware_catalog/device_aliases content floors) without cutting a release.
 #
 # Scope boundaries (no duplication): fast typecheck/lint/unit + the device-map drift gate
-# already run on every PR in test.yml; security scanning is codeql.yml. release.yml keeps
-# its own inline copy of these gates for now — folding release.yml onto
-# `uses: ./.github/workflows/qa.yml` (one definition, no drift) is the tracked Phase B
-# follow-up (#42). The workflow_call trigger below already exists so Phase B is a
-# release.yml wiring change, not a qa.yml restructure.
+# already run on every PR in test.yml; security scanning is codeql.yml. As of Phase B
+# (#42) this workflow is the SINGLE definition of the release-locked gates: release.yml's
+# `qa` job calls it via `uses: ./.github/workflows/qa.yml` with db_source=artifact,
+# validating the exact DB its `build` job extracted before its `publish` job ships it.
+# There is no longer an inline copy of these gates (or the DB-content floors) in
+# release.yml to drift from.
 
 on:
   workflow_dispatch:
@@ -59,8 +60,17 @@ on:
         type: string
         default: all
       db_source:
+        # Adds a third source over the dispatch menu: `artifact` — download a DB
+        # a preceding job in the SAME run uploaded (release.yml's Phase B `build`
+        # job hands its freshly extracted DB here so the gates validate the exact
+        # artifact that gets published, without a second extraction). No dispatch
+        # dropdown entry for it: a manual rehearsal has no upstream artifact.
         type: string
         default: local-build
+      artifact_name:
+        description: db_source=artifact only — name of the workflow artifact holding ros-help.db
+        type: string
+        default: ros-help-db
       # Intentional asymmetry vs. workflow_dispatch (default false): a manual
       # rehearsal wants the faster single-version build, but a workflow_call
       # (release preflight, Phase B) defaults to true to match release.yml's own
@@ -107,8 +117,8 @@ jobs:
             *) echo "::error::Unknown test_scope '$TEST_SCOPE' — allowed: all, contract, eval-golden, eval-self, db-content, db-meta, docusaurus-count, device-map"; exit 1 ;;
           esac
           case "$DB_SOURCE" in
-            local-build|published) ;;
-            *) echo "::error::Unknown db_source '$DB_SOURCE' — allowed: local-build, published"; exit 1 ;;
+            local-build|published|artifact) ;;
+            *) echo "::error::Unknown db_source '$DB_SOURCE' — allowed: local-build, published, artifact"; exit 1 ;;
           esac
           if [ "$TEST_SCOPE" = "docusaurus-count" ] && [ "$DB_SOURCE" = "published" ]; then
             echo "::error::test_scope=docusaurus-count requires db_source=local-build — it re-checks the freshly fetched manual/pages/ cache, which a published DB has no equivalent of."
@@ -184,16 +194,34 @@ jobs:
           gunzip -f ros-help.db.gz
           ls -lh ros-help.db
 
+      # workflow_call only (release.yml Phase B): the caller's `build` job extracted
+      # + stamped the DB and uploaded it as an artifact; download the SAME artifact so
+      # the gates below validate exactly what will be published — no second extraction,
+      # no drift between the gated DB and the shipped DB. Lands at repo root so
+      # eval/contract resolve it via paths.ts dev-mode, same as the other two sources.
+      - name: Download build artifact (artifact)
+        if: inputs.db_source == 'artifact'
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: .
+
+      - name: Show artifact DB (artifact)
+        if: inputs.db_source == 'artifact'
+        run: ls -lh ros-help.db
+
       # ── Gates (each guarded by test_scope; db_source applicability noted inline) ──
 
-      # V-db-min-content — the exact floors release.yml enforces, INCLUDING the
-      # hardware-overlay floors PR #41 added (hardware_catalog ≥ 200, device_aliases
-      # ≥ 600). This is the gate that rehearses #41's release.yml code. Kept as a
-      # local-build check under `all` (a build is what these floors validate); an
-      # explicit `test_scope: db-content` still runs it on published, where it will
-      # honestly fail on any floor a pre-built published DB predates.
+      # V-db-min-content — the single definition of the release DB-content floors,
+      # INCLUDING the hardware-overlay floors PR #41 added (hardware_catalog ≥ 200,
+      # device_aliases ≥ 600). Phase B (#42): release.yml calls this workflow with
+      # db_source=artifact, so this step IS the release's content gate against the
+      # exact DB about to be published — not a copy of it. Runs under `all` for a
+      # built DB (local-build rehearsal OR the release artifact); an explicit
+      # test_scope: db-content still runs it on published, where it will honestly
+      # fail on any floor a pre-built published DB predates.
       - name: Validate DB has expected content (db-content)
-        if: inputs.test_scope == 'db-content' || (inputs.test_scope == 'all' && inputs.db_source == 'local-build')
+        if: inputs.test_scope == 'db-content' || (inputs.test_scope == 'all' && (inputs.db_source == 'local-build' || inputs.db_source == 'artifact'))
         run: |
           set -euo pipefail
           PAGES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM pages")
