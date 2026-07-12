@@ -212,7 +212,10 @@ Published artifacts come from the GitHub Actions `Release` workflow (`workflow_d
 
 - **Inputs:** `version` (optional override — see "npm channel" below for how this interacts with prerelease dispatches), `docs_date`, `full_versions`, and `republish_assets`.
 - **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable, and it never moves a floating OCI tag (`:latest`/`:alpha`/`:beta`/`:rc`/`:next`) on any channel. See "Prerelease republish semantics" below for prerelease-specific caveats.
-- **Traceable pipeline:** npm channel detection → CHANGELOG gate (latest only) → npm publish-access preflight → fast-fail quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → contract/eval steps → `db_meta` stamping → minimum-content validation → build/publish release assets and OCI images.
+- **Job graph (Phase B, #42):** `build` → `qa` → `publish` → `bunx-smoke`.
+  - **`build`:** npm channel detection (+ workspace-only prerelease version rewrite) → CHANGELOG gate (latest only) → npm publish-access preflight → fast-fail quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → `db_meta` stamping → DB-stats collection. Uploads the built DB and the resolved `package.json` as artifacts.
+  - **`qa`:** `uses: ./.github/workflows/qa.yml` with `db_source=artifact` — the single definition of the release-locked gates (contract, retrieval evals, DB-content floors, `db_meta` presence) runs here against the exact DB `build` produced. Nothing publishes if it's red.
+  - **`publish`:** downloads the gated DB + resolved `package.json`, then OCI build/push → GitHub Release → npm publish (side effects only, keyed off `build`'s job outputs).
 - **Provenance:** release notes include DB stats, and the stamped `db_meta` keys (`release_tag`, `built_at`, `source_commit`, `schema_version`) let runtime surfaces report exactly what shipped.
 - **Test coverage:** the fast-fail `bun test` step runs with `--coverage`, prints a per-file table to the workflow's step summary, and uploads `coverage/lcov.info` as a `coverage-lcov` workflow artifact. Informational only — not a gate.
 
@@ -220,7 +223,7 @@ The legacy Confluence pipeline (`extract-html.ts`/`extract-properties.ts`, `html
 
 ### Rehearsing release quality gates without publishing (`qa.yml`)
 
-Several `VALIDATION.md` invariants (`V-tool-shapes`, `V-tool-budget`, `V-retrieval-floor`, `V-retrieval-self`, `V-db-min-content`, `V-db-meta`, `V-docusaurus-docs-count`) are enforced only *inside* `release.yml` — which live-fetches the manual, pushes OCI images, and publishes an immutable npm package. The **`QA` workflow (`qa.yml`, `workflow_dispatch`)** runs those same checks on any ref with **no npm publish, no OCI push, and no GitHub Release**, so you can ask "would the release gates pass on this branch?" without burning a version. It is the intended way to rehearse changes to the release pipeline (extraction, content floors, eval) before a real dispatch.
+Several `VALIDATION.md` invariants (`V-tool-shapes`, `V-tool-budget`, `V-retrieval-floor`, `V-retrieval-self`, `V-db-min-content`, `V-db-meta`, `V-docusaurus-docs-count`) are the release-locked gates — and since Phase B (#42) they live in exactly one place: **`qa.yml`**, which `release.yml`'s `qa` job calls (`db_source=artifact`). The **`QA` workflow (`qa.yml`, `workflow_dispatch`)** runs those *same* checks on any ref with **no npm publish, no OCI push, and no GitHub Release**, so you can ask "would the release gates pass on this branch?" without burning a version — the definition you rehearse is byte-for-byte the one the release runs. It is the intended way to rehearse changes to the release pipeline (extraction, content floors, eval) before a real dispatch.
 
 Dispatch it from the Actions tab or:
 
@@ -236,7 +239,9 @@ Inputs:
 - **`full_versions`** — `local-build` only: extract all RouterOS versions vs. the single primary.
 - **`eval_self_blocking`** — treat the self-supervised eval as a hard gate (default `false`, matching `release.yml`'s non-blocking stance).
 
-Caveat: `db_source: published` downloads the latest *non-prerelease* Release DB, which may predate a floor's introduction (today's latest predates the hardware overlay). `db-content` is therefore excluded from an `all` run on `published` and is only meaningful on `local-build`; requesting `test_scope: db-content db_source: published` explicitly will honestly report the unmet floor. `release.yml` keeps its own inline copy of these gates for now — folding it onto `uses: ./.github/workflows/qa.yml` (one definition, no drift) is tracked as follow-up under issue #42.
+There is a third `db_source` — `artifact` — but it is **`workflow_call`-only** (no dispatch dropdown entry): `release.yml`'s `build` job uploads its freshly extracted DB and the `qa` job pulls it via `artifact_name`, so the gates validate the exact bytes about to publish. A manual dispatch has no upstream artifact, so it stays on `local-build`/`published`.
+
+Caveat: `db_source: published` downloads the latest *non-prerelease* Release DB, which may predate a floor's introduction (today's latest predates the hardware overlay). `db-content` is therefore excluded from an `all` run on `published` and is only meaningful on `local-build` (or the release `artifact` path); requesting `test_scope: db-content db_source: published` explicitly will honestly report the unmet floor.
 
 ### Version bumps are a manual step
 

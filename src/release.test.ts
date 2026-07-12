@@ -505,7 +505,7 @@ describe("release.yml", () => {
       const bunxSmokeIdx = mustIndex(src, "bunx-smoke:");
       const publishBlock = src.slice(publishIdx, bunxSmokeIdx);
       expect(publishBlock).toContain(
-        `npm publish --access public --tag "\${{ steps.channel.outputs.stage }}"`,
+        `npm publish --access public --tag "\${{ needs.build.outputs.stage }}"`,
       );
       // Reads PKG_NAME from package.json dynamically rather than hardcoding
       // the package name, so a rename can't silently drift out of sync.
@@ -538,7 +538,7 @@ describe("release.yml", () => {
       const publishIdx = mustIndex(src, "Publish to npm");
       const releaseBlock = src.slice(releaseIdx, publishIdx);
       expect(releaseBlock).toContain("PRERELEASE_FLAGS=(--prerelease)");
-      expect(releaseBlock).toContain('steps.channel.outputs.channel');
+      expect(releaseBlock).toContain('needs.build.outputs.channel');
       expect(releaseBlock).toContain(`"\${PRERELEASE_FLAGS[@]}"`);
     });
 
@@ -617,12 +617,14 @@ describe("release.yml", () => {
     expect(skillsBlock).toContain("$" + "{{ github.token }}");
   });
 
-  test("runs quality gate before release", () => {
+  test("runs the fast-fail quality gate in the build job (contract/eval moved to the qa job)", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("bun run typecheck");
     expect(src).toContain("bun test");
-    expect(src).toContain("bun test src/mcp-contract.test.ts");
     expect(src).toContain("bun run lint");
+    // The real-DB contract suite is no longer inlined here — it runs once, in
+    // qa.yml, against the artifact DB. Asserted in the qa.yml describe block.
+    expect(src).not.toContain("ROSETTA_REAL_DB_TESTS=1 bun test src/mcp-contract.test.ts");
   });
 
   test("runs early quality gate before Docusaurus extraction", () => {
@@ -683,35 +685,19 @@ describe("release.yml", () => {
     expect(src.slice(gcIdx, statsIdx)).toContain("make gc-versions EXTRA_FLAGS=--verbose");
   });
 
-  test("runs MCP contract tests against the real built DB before eval/release", () => {
+  // The MCP contract suite and the Phase 0/1 retrieval evals are no longer
+  // inlined in release.yml — Phase B (#42) moved them into the single qa.yml
+  // definition, which release.yml's `qa` job calls with db_source=artifact.
+  // The qa.yml describe block below asserts they run there; here we only prove
+  // release.yml delegates to them (and no longer carries a copy).
+  test("delegates contract + retrieval evals to the qa job, not an inline copy", () => {
     const src = readText(".github/workflows/release.yml");
-    const contractIdx = src.indexOf("bun test src/mcp-contract.test.ts");
-    const evalIdx = src.indexOf("MCP retrieval eval (Phase 0)");
-    const buildIdx = src.indexOf("Build release artifacts");
-    expect(contractIdx).toBeGreaterThan(0);
-    expect(contractIdx).toBeLessThan(evalIdx);
-    expect(contractIdx).toBeLessThan(buildIdx);
-  });
-
-  test("runs Phase 1 self-supervised eval against the built DB and appends a summary result", () => {
-    const src = readText(".github/workflows/release.yml");
-    const phase0Idx = mustIndex(src, "MCP retrieval eval (Phase 0)");
-    const phase1Idx = mustIndex(
-      src,
-      "MCP retrieval eval (Phase 1, self-supervised, non-blocking)",
-    );
-    const buildIdx = mustIndex(src, "Build release artifacts");
-    const phase1Block = src.slice(phase1Idx, buildIdx);
-
-    expect(phase1Idx).toBeGreaterThan(phase0Idx);
-    expect(phase1Idx).toBeLessThan(buildIdx);
-    expect(phase1Block).toContain("continue-on-error: true");
-    expect(phase1Block).toContain("bun run src/eval/self-supervised.ts");
-    expect(phase1Block).toContain(
-      "## Phase 1 retrieval eval (self-supervised)",
-    );
-    expect(phase1Block).toContain("Result: ✅ pass");
-    expect(phase1Block).toContain("Result: ⚠️ non-blocking failure");
+    expect(src).not.toContain("MCP retrieval eval (Phase 0)");
+    expect(src).not.toContain("MCP retrieval eval (Phase 1, self-supervised, non-blocking)");
+    expect(src).not.toContain("bun run src/eval/retrieval.ts");
+    expect(src).not.toContain("bun run src/eval/self-supervised.ts");
+    // The delegation itself: a qa job that calls the reusable workflow.
+    expect(src).toContain("uses: ./.github/workflows/qa.yml");
   });
 
   test("creates GitHub Release", () => {
@@ -773,36 +759,67 @@ describe("release.yml", () => {
     expect(bunxBlock).not.toContain("mktemp");
   });
 
-  test("validates DB content before publishing (regression: v0.7.6 shipped 3 pages)", () => {
+  test("gates the DB before any publish side effect via the qa job (regression: v0.7.6 shipped 3 pages)", () => {
     const src = readText(".github/workflows/release.yml");
-    // Hard guard step that hard-fails the workflow if the built DB is degenerate.
-    expect(src).toContain("Validate DB has expected content");
-    // Must run BEFORE the artifact build, container push, GH Release, and npm publish.
-    const validateIdx = src.indexOf("Validate DB has expected content");
-    const buildIdx = src.indexOf("Build release artifacts");
-    const releaseIdx = src.indexOf("gh release create");
-    const npmIdx = src.indexOf("Publish to npm");
-    expect(validateIdx).toBeGreaterThan(0);
-    expect(validateIdx).toBeLessThan(buildIdx);
-    expect(validateIdx).toBeLessThan(releaseIdx);
-    expect(validateIdx).toBeLessThan(npmIdx);
-    // Must check minimum thresholds for the four critical tables.
-    expect(src).toMatch(/PAGES.*-lt 200/);
-    expect(src).toMatch(/COMMANDS.*-lt 1000/);
-    expect(src).toMatch(/DEVICES.*-lt 100/);
-    expect(src).toMatch(/PROPERTIES.*-lt 1000/);
-    // Hardware overlay floors (PR #41 / issue #38) — the overlay ran, not empty tables.
-    expect(src).toMatch(/HARDWARE_CATALOG.*-lt 200/);
-    expect(src).toMatch(/DEVICE_ALIASES.*-lt 600/);
+    // The degenerate-DB guard (the DB-content floors) is no longer inlined here —
+    // it's the db-content gate in qa.yml, which the `qa` job runs against the
+    // artifact build uploaded. Assert release.yml delegates and that publish is
+    // fenced behind qa so nothing ships past a red gate.
+    expect(src).not.toContain("Validate DB has expected content");
+    expect(src).not.toMatch(/PAGES.*-lt 200/);
+
+    // publish depends on BOTH build (the artifact) and qa (the gates).
+    expect(src).toMatch(/publish:\s*\n\s*needs:\s*\[build,\s*qa\]/);
+
+    // The qa job that fences it: uses the reusable workflow against the artifact.
+    const qaIdx = mustIndex(src, "\n  qa:");
+    const publishIdx = mustIndex(src, "\n  publish:");
+    const qaBlock = src.slice(qaIdx, publishIdx);
+    expect(qaBlock).toContain("uses: ./.github/workflows/qa.yml");
+    expect(qaBlock).toContain("db_source: artifact");
+    expect(qaBlock).toContain("artifact_name: ros-help-db");
+
+    // build must exist and hand the DB + resolved package.json downstream before qa/publish.
+    const buildIdx = mustIndex(src, "\n  build:");
+    expect(buildIdx).toBeLessThan(qaIdx);
+    expect(src).toContain("name: Upload built DB artifact");
+    expect(src).toContain("name: Upload resolved package.json");
+  });
+
+  test("publish restores the resolved package.json + DB artifact and needs both build and qa", () => {
+    const src = readText(".github/workflows/release.yml");
+    const publishIdx = mustIndex(src, "\n  publish:");
+    const bunxIdx = mustIndex(src, "\n  bunx-smoke:");
+    const publishBlock = src.slice(publishIdx, bunxIdx);
+
+    // Downloads the exact DB qa validated and the run-numbered package.json.
+    expect(publishBlock).toContain("name: Download built DB artifact");
+    expect(publishBlock).toContain("name: Download resolved package.json");
+    expect(publishBlock).toContain("actions/download-artifact");
+    // Side-effect steps still live here, keyed off build's job outputs.
+    expect(publishBlock).toContain("needs.build.outputs.version");
+    expect(publishBlock).toContain("docker buildx build");
+    expect(publishBlock).toContain("gh release create");
+    expect(publishBlock).toContain("npm publish --access public");
+  });
+
+  test("bunx-smoke depends on publish and reads the published version from its output", () => {
+    const src = readText(".github/workflows/release.yml");
+    const bunxIdx = mustIndex(src, "\n  bunx-smoke:");
+    const bunxBlock = src.slice(bunxIdx);
+    expect(bunxBlock).toMatch(/needs:\s*publish/);
+    expect(bunxBlock).toContain("needs.publish.outputs.version");
+    // The old monolithic job name is gone entirely.
+    expect(src).not.toContain("build-and-release");
   });
 });
 
 // ---------------------------------------------------------------------------
-// qa.yml — dispatchable / callable rehearsal of the release-locked quality
-// gates (issue #40, B-0014 Option B). Standalone this phase; release.yml keeps
-// its own inline gates until the Phase B `uses:` dedup. These anchors pin the
-// dispatch surface and — critically — keep qa.yml's copy of the DB-content
-// floors from silently drifting away from release.yml's.
+// qa.yml — dispatchable / callable definition of the release-locked quality
+// gates (issue #40 Phase A; #42 Phase B). As of Phase B this is the SINGLE
+// definition: release.yml's `qa` job calls it (db_source=artifact) instead of
+// carrying inline copies. These anchors pin the dispatch surface, the artifact
+// (release) path, and that the DB-content floors live here and only here.
 // ---------------------------------------------------------------------------
 
 describe("qa.yml", () => {
@@ -882,9 +899,14 @@ describe("qa.yml", () => {
     expect(src).toContain("scripts/stamp-db-meta.ts");
   });
 
-  test("db-content gate carries the SAME floors as release.yml, including the hardware overlay floors (drift guard)", () => {
+  // Phase B (#42) collapsed the two copies into one: qa.yml is now the SOLE
+  // definition of the DB-content floors, and release.yml calls it (db_source=
+  // artifact) instead of carrying its own copy. So this is no longer a cross-file
+  // drift guard — it just pins that the single definition still enforces every
+  // floor, including the hardware-overlay floors (PR #41 / issue #38). release.yml
+  // is asserted NOT to contain floors over in the release.yml describe block.
+  test("is the single definition of the DB-content floors (incl. hardware overlay floors)", () => {
     const qa = readText(".github/workflows/qa.yml");
-    const rel = readText(".github/workflows/release.yml");
     for (const re of [
       /PAGES.*-lt 200/,
       /COMMANDS.*-lt 1000/,
@@ -894,8 +916,21 @@ describe("qa.yml", () => {
       /DEVICE_ALIASES.*-lt 600/,
     ]) {
       expect(qa).toMatch(re);
-      expect(rel).toMatch(re);
     }
+  });
+
+  test("supports db_source=artifact for the release path — downloads the build artifact and floors it", () => {
+    const src = readText(".github/workflows/qa.yml");
+    // artifact is a valid (workflow_call-only) source with a downloader step.
+    expect(src).toContain("local-build|published|artifact)");
+    expect(src).toContain("name: Download build artifact (artifact)");
+    expect(src).toContain("actions/download-artifact");
+    expect(src).toContain("artifact_name:");
+    // db-content must run for a built DB under `all`, whether local-build OR the
+    // release artifact — otherwise the release path would skip the floors.
+    expect(src).toMatch(
+      /Validate DB has expected content[\s\S]*?inputs\.db_source == 'local-build' \|\| inputs\.db_source == 'artifact'/,
+    );
   });
 
   test("eval-self is non-blocking by default, flipped to a hard gate by eval_self_blocking", () => {
