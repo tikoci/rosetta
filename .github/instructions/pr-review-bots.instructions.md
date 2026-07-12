@@ -32,8 +32,12 @@ Findings live in **inline review comments**, which `gh pr view` does not show. R
 them explicitly, then close the loop:
 
 ```sh
-# All inline review comments (Copilot + CodeRabbit), path:line + body:
-gh api repos/tikoci/rosetta/pulls/N/comments --jq '.[] | "\(.user.login) \(.path):\(.line)\n\(.body)\n"'
+# All inline review comments (Copilot + CodeRabbit), path:line + body.
+# --paginate: the endpoint is paged, so without it you only see the first page.
+# .line // .original_line: outdated comments carry line:null; fall back so the
+# location prints instead of "path:null".
+gh api --paginate repos/tikoci/rosetta/pulls/N/comments \
+  --jq '.[] | "\(.user.login) \(.path):\(.line // .original_line)\n\(.body)\n"'
 ```
 
 For each finding: fix it, or dismiss it with a grounded reason. **Replying to a thread
@@ -42,8 +46,9 @@ does not resolve it** — resolving is a separate, explicit action. You own bot 
 thread on their behalf. List and resolve still-open threads:
 
 ```sh
-# Still-unresolved threads:
-gh api graphql -f query='query{repository(owner:"tikoci",name:"rosetta"){pullRequest(number:N){reviewThreads(first:50){nodes{id isResolved path line}}}}}' \
+# Still-unresolved threads (first:100 is the GraphQL max — on a PR with more
+# threads than that, page with `after:` cursors so none are silently hidden):
+gh api graphql -f query='query{repository(owner:"tikoci",name:"rosetta"){pullRequest(number:N){reviewThreads(first:100){nodes{id isResolved path line}}}}}' \
   --jq '.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved==false)|"\(.id)\t\(.path):\(.line)"'
 # Resolve one (repeat per id):
 gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}' -f id=THREAD_ID

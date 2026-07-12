@@ -163,13 +163,10 @@ for (const r of matrixRows) {
   const hwUrl = autoHw || (exc.hardware_slug ? `${HW_BASE}/${exc.hardware_slug}` : "");
   const wwwUrl = autoWww || (exc.www_code ? `${WWW_BASE}/${exc.www_code}` : "");
   const hasBothUrls = Boolean(hwUrl && wwwUrl);
-  const needsReviewClasses = new Set(["no-hardware-page", "no-www-product", "accessory"]);
+  // A curated-alias row with both URLs resolved is fully mapped and needs no review;
+  // every other class carries its own name into needs_review.
   const needsReview =
-    needsReviewClasses.has(exc.class)
-      ? exc.class
-      : exc.class === "curated-alias"
-        ? (hasBothUrls ? "" : exc.class)
-        : exc.class;
+    exc.class === "curated-alias" && hasBothUrls ? "" : exc.class;
   rows.push({
     name: r.name,
     code: r.code,
@@ -208,7 +205,7 @@ async function emitOrCheck(path: string, content: string, label: string): Promis
 function rowsToTsv(headers: readonly string[], dataRows: readonly (readonly unknown[])[]): string {
   return `${[
     headers.join("\t"),
-    ...dataRows.map((row) => row.map((cell) => String(cell).replace(/\t|\n/g, " ")).join("\t")),
+    ...dataRows.map((row) => row.map((cell) => String(cell).replace(/[\t\r\n]/g, " ")).join("\t")),
   ].join("\n")}\n`;
 }
 
