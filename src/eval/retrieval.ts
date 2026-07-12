@@ -165,6 +165,15 @@ function loadGoldenSet(): GoldenSet {
   return parsed;
 }
 
+function directSurfaceFromShape(shape: Shape): Surface | null {
+  if (shape === "property" || shape === "changelog" || shape === "video") return shape;
+  return null;
+}
+
+function effectiveSurface(q: GoldenQuery): Surface {
+  return directSurfaceFromShape(q.shape) ?? q.surface ?? "search";
+}
+
 // ── Per-query evaluation ───────────────────────────────────────────────────
 
 function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
@@ -289,11 +298,12 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
 // recall_at_5 mirrors the hit (1/0) only so shared per-query printing/failure-detection works.
 
 function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
+  const surface = effectiveSurface(q);
   const base: QueryResult = {
     id: q.id,
     query: q.query,
     shape: q.shape,
-    surface: q.surface ?? "search",
+    surface,
     recall_at_5: 1,
     recall_at_3: 1,
     reciprocal_rank: 1,
@@ -322,7 +332,7 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
     return { ...base, surface_hit: false, recall_at_5: 0, recall_at_3: 0, reciprocal_rank: 0, notes };
   };
 
-  if (q.surface === "property") {
+  if (surface === "property") {
     const ep = q.expected_property;
     if (!ep) return misconfigured("surface=property but no expected_property");
     const rows = lookupProperty(ep.name, ep.path);
@@ -344,7 +354,7 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
         : rows.length > 0;
       if (!hit) notes.push(`property ${ep.name}: ${rows.length} row(s)${ep.page ? `, none on page ${ep.page}` : " (none found)"}`);
     }
-  } else if (q.surface === "changelog") {
+  } else if (surface === "changelog") {
     // Require at least one assertion: the substring, or a version scope (the version filter is
     // applied to searchChangelogs, so "rows exist for vX" is a real, if weak, check). Neither ⇒
     // "any changelog result passes" = vacuous.
@@ -360,7 +370,7 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
           (want ? `, none containing "${q.expected_changelog_contains}"` : ""),
       );
     }
-  } else if (q.surface === "video") {
+  } else if (surface === "video") {
     // Require at least one criterion, else the row predicate collapses to "any result passes".
     if (!q.expected_video_contains && !q.expected_video_id) {
       return misconfigured("surface=video but neither expected_video_contains nor expected_video_id set");
@@ -627,7 +637,7 @@ export function runEval(filterPrefix?: string): Report {
     : set.queries;
 
   const results = queries.map((q) =>
-    (q.surface ?? "search") === "search" ? evalQuery(q, commandsCount) : evalSurfaceQuery(q, commandsCount),
+    effectiveSurface(q) === "search" ? evalQuery(q, commandsCount) : evalSurfaceQuery(q, commandsCount),
   );
   return {
     generated_at: new Date().toISOString(),
