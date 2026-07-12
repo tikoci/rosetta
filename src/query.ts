@@ -1847,11 +1847,13 @@ function alsoKnownAs(ov: OverviewRow, cap = 4): string[] {
   const rows = db
     .prepare("SELECT alias, source FROM device_aliases WHERE rosetta_device_id = ?")
     .all(ov.rosetta_device_id) as Array<{ alias: string; source: string }>;
+  // Normalize the canonical names the same way aliases were normalized (superscript→ASCII,
+  // trim, lowercase) so e.g. "hAP ax³"'s own normalized name "hap ax3" is excluded, not leaked.
   const canonical = new Set(
-    [ov.product_name, ov.product_code, ov.name].filter(Boolean).map((s) => (s as string).toLowerCase()),
+    [ov.product_name, ov.product_code, ov.name].filter(Boolean).map((s) => normAliasKey(s as string)),
   );
   const ranked = rows
-    .filter((r) => AKA_NAME_SOURCES.has(r.source) && !canonical.has(r.alias))
+    .filter((r) => AKA_NAME_SOURCES.has(r.source) && !canonical.has(normAliasKey(r.alias)))
     .sort((a, b) => (ALIAS_SOURCE_RANK[a.source] ?? 9) - (ALIAS_SOURCE_RANK[b.source] ?? 9));
   const out: string[] = [];
   for (const r of ranked) {
@@ -1993,10 +1995,10 @@ function searchDevicesInner(
   //     A matrix-linked alias returns the canonical device enriched; a catalog-only alias
   //     returns a labeled thin row. `alias` is the PK, so there is nothing to rank at read time.
   if (q && Object.keys(filters).length === 0) {
-    const aliasKey = normAliasKey(query);
+    const matchedAlias = query.trim();
     const hit = db
       .prepare("SELECT rosetta_device_id FROM device_aliases WHERE alias = ?")
-      .get(aliasKey) as { rosetta_device_id: string } | undefined;
+      .get(normAliasKey(query)) as { rosetta_device_id: string } | undefined;
     if (hit) {
       const ov = db.prepare(`${OVERVIEW_SELECT} WHERE rosetta_device_id = ?`).get(hit.rosetta_device_id) as OverviewRow | undefined;
       if (ov?.device_id != null) {
@@ -2004,11 +2006,11 @@ function searchDevicesInner(
         if (dev) {
           attachTestResults([dev]);
           dev.hardware = buildEnrichment(ov);
-          return { results: [dev], mode: "alias", total: 1, has_more: false, matched_alias: query };
+          return { results: [dev], mode: "alias", total: 1, has_more: false, matched_alias: matchedAlias };
         }
       }
       if (ov) {
-        return { results: [], catalog: [catalogRowToResult(ov)], mode: "alias", total: 1, has_more: false, matched_alias: query };
+        return { results: [], catalog: [catalogRowToResult(ov)], mode: "alias", total: 1, has_more: false, matched_alias: matchedAlias };
       }
     }
   }
@@ -2161,7 +2163,9 @@ function searchDevicesInner(
     if (rawTerms.length > 0) {
       const conditions = rawTerms.map(() => "(LOWER(hc.name) LIKE ? OR EXISTS (SELECT 1 FROM device_aliases da WHERE da.rosetta_device_id = hc.rosetta_device_id AND da.alias LIKE ?))");
       const params = rawTerms.flatMap((t) => [`%${t.toLowerCase()}%`, `%${t.toLowerCase()}%`]);
-      const sql = `${OVERVIEW_SELECT} hc WHERE ${conditions.join(" AND ")} ORDER BY hc.name LIMIT ?`;
+      // device_id IS NULL: only genuinely catalog-only entities. A matrix-linked row must never
+      // render as a thin "Not in the RouterOS product matrix" result — those go via the device path.
+      const sql = `${OVERVIEW_SELECT} hc WHERE hc.device_id IS NULL AND ${conditions.join(" AND ")} ORDER BY hc.name LIMIT ?`;
       const rows = db.prepare(sql).all(...params, limit + 1) as OverviewRow[];
       if (rows.length > 0) {
         const hasMore = rows.length > limit;

@@ -1294,7 +1294,9 @@ Data: RouterOS product matrix + manual.mikrotik.com/hardware overlay (2026 snaps
     };
     const result = searchDevices(query || "", filters, limit);
 
-    if (result.results.length === 0) {
+    // A hard miss only when neither a matrix device NOR a catalog-only entity resolved —
+    // otherwise fall through and serialize `result` (which carries the `catalog` array).
+    if (result.results.length === 0 && (result.catalog?.length ?? 0) === 0) {
       const hints = [
         query ? "Try a shorter or different product name" : null,
         Object.keys(filters).length > 0 ? "Try removing some filters" : null,

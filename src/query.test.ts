@@ -357,6 +357,7 @@ beforeAll(() => {
     ('chateau lte18 ax', 'chateau-lte18', 'matrix.csv'),
     ('chateau_lte18', 'chateau-lte18', 'www-declared-code'),
     ('hap_ax2', 'hap-ax2', 'hardware-link'),
+    ('hap ax2', 'hap-ax2', 'matrix.csv'),
     ('gper', 'hw-gper', 'hardware-slug')`);
 
   // Device test results fixtures (hAP ax3 = id 1)
@@ -1468,6 +1469,25 @@ describe("searchDevices — hardware overlay (#49)", () => {
     // 'hap-ax3' is a hardware-slug artifact → excluded; canonical code → excluded
     expect(aka).not.toContain("hap-ax3");
     expect(aka).not.toContain("c53uig+5hpaxd2hpaxd");
+  });
+
+  test("also_known_as: superscript canonical name does not leak (normalized exclusion)", () => {
+    // hAP ax² has a matrix.csv alias 'hap ax2' == its own normalized name → must be excluded.
+    const res = searchDevices("hap_ax2");
+    const aka = res.results[0].hardware?.also_known_as ?? [];
+    expect(aka).not.toContain("hap ax2");
+    expect(aka).toContain("hap_ax2");
+  });
+
+  test("matched_alias is trimmed, not the raw padded input", () => {
+    const res = searchDevices("  hap_ax2  ");
+    expect(res.mode).toBe("alias");
+    expect(res.matched_alias).toBe("hap_ax2");
+  });
+
+  test("classifier: common-word families are case-sensitive (no prose false-positives)", () => {
+    expect(searchAll("the audience gave a big cheer", 5).classified.device).toBeUndefined();
+    expect(searchAll("Audience LTE6 kit", 5).classified.device).toBe("Audience");
   });
 
   test("catalog fallback: accessory surfaces as a labeled thin row, not a device", () => {
