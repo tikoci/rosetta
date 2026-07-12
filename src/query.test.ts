@@ -339,6 +339,7 @@ beforeAll(() => {
 
   // hardware_catalog + device_aliases overlay fixtures (#49). Device ids by insert order:
   // 1=hAP ax3, 4=Chateau LTE18 ax, 7=hAP ax². Plus catalog-only entities (no device_id).
+  // cspell:ignore uig hpaxd — normalized (lowercase) product-code fragments in alias fixtures below.
   db.run(`INSERT INTO hardware_catalog
     (rosetta_device_id, device_id, name, category, discontinued, specs_json, source_hardware_slug, source_www_code)
     VALUES
