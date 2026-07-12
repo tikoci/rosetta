@@ -47,6 +47,9 @@ Tasks in `tasks/` reference these IDs in their `validation:` frontmatter. When a
 | V-docusaurus-parse-shape | Docusaurus Markdown parsing (properties incl. malformed-emphasis, admonitions, sections, link resolution) matches fixture-verified expectations | `src/extract-docusaurus.test.ts` against `fixtures/docusaurus/*.md`    | blocking                                     | —          |
 | V-docusaurus-docs-count  | Extracted `/docs` page count exactly matches the scoped `llms.txt` in-scope entry count (B-0012 H8)                  | `Extract Docusaurus pages, properties, callouts` step (`extract-docusaurus.ts --check-counts --strict`) in `.github/workflows/release.yml` | blocking (release.yml) | —          |
 | V-device-map-drift       | Committed device→URL artifacts (`device-map.tsv`, `hardware-unmatched.tsv`, `device-exceptions.toml`, the two assessment JSONs) stay coherent — no device silently stops resolving, no curated exception goes stale, no committed TSV drifts from recomputed output (B-0018) | `make device-map-check` (`build-device-map.ts --check`) step in `.github/workflows/test.yml` | blocking (test.yml, every PR) | —          |
+| V-qa-rehearsal           | The release-locked gates above (V-tool-shapes, V-tool-budget, V-retrieval-floor, V-retrieval-self, V-db-min-content, V-db-meta, V-docusaurus-docs-count) are rehearsable on any ref without publishing — same definitions run against a fresh or published DB with no npm/OCI/Release | `qa.yml` (`workflow_dispatch` + `workflow_call`); anchored by `src/release.test.ts` `describe("qa.yml")` | non-blocking (rehearsal surface) | #42        |
+
+> **`qa.yml` rehearses the release-locked rows.** The seven invariants above marked `release.yml` are also runnable via the `QA` workflow (`qa.yml`) on any branch — no publish. `qa.yml` currently carries its own copy of the DB-content floors; a `src/release.test.ts` drift guard asserts those floors are byte-identical to `release.yml`'s until the Phase B `uses:` dedup (#42) collapses them to one definition. See `MANUAL.md` → "Rehearsing release quality gates without publishing".
 
 ## How to add a row
 
@@ -61,3 +64,12 @@ GAP → non-blocking when the test exists and runs in CI.
 non-blocking → blocking after at least one fully green run with the check on the critical path.
 
 When promoting non-blocking → blocking, remove `continue-on-error: true` from the workflow step in the same PR. If the check is red on the next run, it's surfacing real signal — fix, don't paper over.
+
+### `V-retrieval-self` promotion path (straw man)
+
+`V-retrieval-self` is non-blocking because its first landing suppressed a real −10pp regression (`continue-on-error: true` in `release.yml`; see `briefings/B-0014-ci-testing-qa-cleanup.md`). Promotion criteria, proposed here so the row has an owner and a bar rather than drifting forever:
+
+1. **Rehearse blocking on demand first.** `qa.yml`'s `eval_self_blocking: true` input runs the self-supervised eval as a hard gate against a fresh `local-build` DB without touching the release path — use it to observe real build-to-build drift.
+2. **Bar:** at least 3 consecutive `eval_self_blocking` rehearsals (or release runs) green with no legitimate-drift red, i.e. every red in that window was a genuine retrieval regression that got fixed, not tolerated.
+3. **Owner:** the maintainer flips it, in one PR that removes `continue-on-error` from *both* `release.yml`'s Phase 1 step and `qa.yml`'s eval-self default.
+4. **Prerequisite, not yet built:** trend persistence. Today each run's numbers live only in that run's `$GITHUB_STEP_SUMMARY`; a durable baseline/trend store (cf. centrs' `qa-history` branch pattern) should land before blocking, so a promotion decision reads history instead of one run.

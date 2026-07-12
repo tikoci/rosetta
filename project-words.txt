@@ -82,6 +82,7 @@ dfn
 dfstest
 dhcpv
 diffable
+dispatchable
 dlc
 dlna
 dlp
@@ -303,6 +304,7 @@ rbtoc
 rbwapr
 rbwmk
 recognised
+rehearsable
 reinits
 replac
 repull
