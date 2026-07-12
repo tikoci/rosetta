@@ -21,6 +21,7 @@ briefings/**
 
 # Vendored / generated / live-fetched cache / WIP — never lint
 node_modules/**
+**/node_modules/**
 box/**
 manual/**
 drafts/**

@@ -33,8 +33,11 @@ ignores:
   # multi-H1 (one H1 per section) — agent/research-facing, not rendered docs. Same
   # category as tasks/; the shipped human docs (README/DESIGN/MANUAL/…) stay linted.
   - "briefings/**"
-  # Vendored / generated / WIP — never lint
+  # Vendored / generated / live-fetched cache / WIP — never lint. manual/** is
+  # also covered by gitignore:true above, but listed here so this explicit set
+  # stays identical to .markdownlintignore's.
   - "node_modules/**"
   - "**/node_modules/**"
   - "box/**"
+  - "manual/**"
   - "drafts/**"

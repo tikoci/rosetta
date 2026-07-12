@@ -442,13 +442,15 @@ jobs:
           fi
           # Hardware overlay floors (B-0017/B-0018, issue #38): the tables exist at
           # db.ts init, so a pipeline that skipped extract-hardware-catalog would ship
-          # them empty. These floors catch that regression. Current: 255 / 772.
+          # them empty. These floors catch that regression. Floors sit well below the
+          # observed catalog size (~255 / ~772 at wiring) so they don't need bumping as
+          # the catalog grows — they only assert "the overlay ran," not an exact count.
           if [ "${HARDWARE_CATALOG:-0}" -lt 200 ]; then
-            echo "::error::DB has only ${HARDWARE_CATALOG} hardware_catalog rows — expected ≥200 (current: 255). Did extract-hardware-catalog run after extract-devices? Aborting release."
+            echo "::error::DB has only ${HARDWARE_CATALOG} hardware_catalog rows — expected ≥200. Did extract-hardware-catalog run after extract-devices? Aborting release."
             fail=1
           fi
           if [ "${DEVICE_ALIASES:-0}" -lt 600 ]; then
-            echo "::error::DB has only ${DEVICE_ALIASES} device_aliases rows — expected ≥600 (current: 772). Did extract-hardware-catalog run after extract-devices? Aborting release."
+            echo "::error::DB has only ${DEVICE_ALIASES} device_aliases rows — expected ≥600. Did extract-hardware-catalog run after extract-devices? Aborting release."
             fail=1
           fi
           if [ "$fail" = "1" ]; then exit 1; fi

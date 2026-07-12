@@ -156,9 +156,12 @@ Release CI consumes committed NDJSON via `make extract-videos-from-cache`; it do
 
 ### Hardware catalog refresh
 
-`extract-hardware-catalog` is not part of the default `extract`/`extract-full` pipeline yet — it's a
-standalone build on top of the committed `ros-hardware-assessment.json` / `ros-www-assessment.json`
-research artifacts (see `briefings/B-0017-hardware-overlay-device-resolution.md`):
+`extract-hardware-catalog` runs in the default `extract`/`extract-full` pipeline and in release CI,
+building `hardware_catalog` + `device_aliases` from the **committed** `ros-hardware-assessment.json` /
+`ros-www-assessment.json` research artifacts (no network) — see
+`briefings/B-0017-hardware-overlay-device-resolution.md`. What stays manual/local is **refreshing those
+committed artifacts** via the live-fetch `assess-*` tools; do that when the source pages change, then
+rebuild and review the diff:
 
 ```sh
 make assess-hardware   # refresh ros-hardware-assessment.json (live fetch)
@@ -290,9 +293,9 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `ros_versions` | 46 | Tracked RouterOS versions with channel (stable/development) |
 | `devices` | 156 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
 | `device_test_results` | 2,874 | Ethernet and IPSec throughput benchmarks for 125 devices — packet sizes, modes, Mbps/Kpps |
-| `hardware_catalog` | ~253 | `/hardware` + `mikrotik.com/product` device overlay — superset of `devices` (accessories, legacy/EOL SKUs included); never-null `name`, `category` from the `/hardware` sidebar taxonomy, raw www spec fields + non-default IP + FCC/IC IDs as JSON, optional `device_id` link back |
-| `device_aliases` | ~765 | Every observed device slug/code/name variant (matrix.csv, `/hardware` slug/link/table code, www requested/declared/compare code) resolved to one `hardware_catalog.rosetta_device_id` (priority-ranked, collision-counted) |
-| `device_overview` (view) | ~253 | Documented read surface: `hardware_catalog` joined to `devices` spec columns with per-device alias counts |
+| `hardware_catalog` | ~255 | `/hardware` + `mikrotik.com/product` device overlay — superset of `devices` (accessories, legacy/EOL SKUs included); never-null `name`, `category` from the `/hardware` sidebar taxonomy, raw www spec fields + non-default IP + FCC/IC IDs as JSON, optional `device_id` link back |
+| `device_aliases` | ~772 | Every observed device slug/code/name variant (matrix.csv, `/hardware` slug/link/table code, www requested/declared/compare code) resolved to one `hardware_catalog.rosetta_device_id` (priority-ranked, collision-counted) |
+| `device_overview` (view) | ~255 | Documented read surface: `hardware_catalog` joined to `devices` spec columns with per-device alias counts |
 | `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
 | `videos` | 538 | MikroTik YouTube video metadata — title, description, duration, chapters |
 | `video_segments` | ~1,870 non-empty | Chapter-level transcript segments with timestamps for deep linking |
