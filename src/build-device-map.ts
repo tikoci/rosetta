@@ -197,8 +197,15 @@ async function emitOrCheck(path: string, content: string, label: string): Promis
   }
 }
 
+function rowsToTsv(headers: readonly string[], dataRows: readonly (readonly unknown[])[]): string {
+  return `${[
+    headers.join("\t"),
+    ...dataRows.map((row) => row.map((cell) => String(cell).replace(/\t|\n/g, " ")).join("\t")),
+  ].join("\n")}\n`;
+}
+
 const HEADERS: (keyof MapRow)[] = ["name", "code", "category", "resolution", "hw_url", "www_url", "needs_review", "note"];
-const tsv = `${[HEADERS.join("\t"), ...rows.map((row) => HEADERS.map((h) => String(row[h]).replace(/\t|\n/g, " ")).join("\t"))].join("\n")}\n`;
+const tsv = rowsToTsv(HEADERS, rows.map((row) => HEADERS.map((h) => row[h])));
 
 await emitOrCheck(OUT_TSV, tsv, `${rows.length} device rows`);
 
@@ -219,7 +226,7 @@ const unmatchedRows = hwPages
     p.url ?? `${HW_BASE}/${p.slug}`,
     (p.mentionedCodes ?? []).join(" "),
   ]);
-const unmatchedTsv = `${[UNMATCHED_HEADERS.join("\t"), ...unmatchedRows.map((r) => r.map((c) => String(c).replace(/\t|\n/g, " ")).join("\t"))].join("\n")}\n`;
+const unmatchedTsv = rowsToTsv(UNMATCHED_HEADERS, unmatchedRows);
 await emitOrCheck(OUT_UNMATCHED_TSV, unmatchedTsv, `${unmatchedRows.length} unmatched /hardware pages`);
 
 // ── Summary + drift gate ──
