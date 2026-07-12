@@ -162,6 +162,14 @@ for (const r of matrixRows) {
   usedExceptions.add(r.name);
   const hwUrl = autoHw || (exc.hardware_slug ? `${HW_BASE}/${exc.hardware_slug}` : "");
   const wwwUrl = autoWww || (exc.www_code ? `${WWW_BASE}/${exc.www_code}` : "");
+  const hasBothUrls = Boolean(hwUrl && wwwUrl);
+  const needsReviewClasses = new Set(["no-hardware-page", "no-www-product", "accessory"]);
+  const needsReview =
+    needsReviewClasses.has(exc.class)
+      ? exc.class
+      : exc.class === "curated-alias"
+        ? (hasBothUrls ? "" : exc.class)
+        : exc.class;
   rows.push({
     name: r.name,
     code: r.code,
@@ -169,7 +177,7 @@ for (const r of matrixRows) {
     resolution: exc.class,
     hw_url: hwUrl,
     www_url: wwwUrl,
-    needs_review: exc.class,
+    needs_review: needsReview,
     note: exc.note ?? "",
   });
 }
