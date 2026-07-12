@@ -632,7 +632,11 @@ glossary (
 -- DB provenance and update metadata (key/value to avoid schema churn).
 -- Stamped by scripts/stamp-db-meta.ts in CI; read by mcp.ts startup banner
 -- and the bunx auto-update flow. Standard keys: release_tag, built_at,
--- source_commit, schema_version. Added in SCHEMA_VERSION 5.
+-- source_commit, schema_version. Added in SCHEMA_VERSION 5. The hardware
+-- overlay ETL (extract-hardware-catalog.ts) stamps three more:
+-- hardware_catalog_source, hardware_catalog_built_at, and
+-- hardware_catalog_matrix_snapshot (the dated matrix/<date>/ snapshot the
+-- device_id links were built from).
 db_meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
