@@ -101,7 +101,7 @@
       "name": "CCR2004-16G-2S+",
       "category": "Ethernet routers",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CCR2004-16G-2S+\",\"Suggested price\":\"$465.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL32400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"1700 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"88E6191X\",\"Dimensions\":\"443 x 210 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"48 W\",\"Max power consumption without attachments\":\"35 W\",\"Cooling type\":\"2 fans\",\"10/100/1000 Ethernet ports\":\"16\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CCR2004-16G-2S+\",\"_www_tagline\":\"This powerful and affordable router crushes all previous CCR models in single-core performance. 16x Gigabit Ethernet ports, USB, 2x10G SFP+ cages, active cooling and the best  single-core  performance  per  watt & best  overall  performance  per  watt  among  all  the  CCR  devices.\",\"_hardware_title\":\"CCR2004-16G-2S+\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CCR2004-16G-2S+\",\"Suggested price\":\"$465.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL32400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"1700 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"88E6191X\",\"Dimensions\":\"443 x 210 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"48 W\",\"Max power consumption without attachments\":\"35 W\",\"Cooling type\":\"2 fans\",\"10/100/1000 Ethernet ports\":\"16\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CCR2004-16G-2S+\",\"_www_tagline\":\"This powerful and affordable router crushes all previous CCR models in single-core performance. 16x Gigabit Ethernet ports, USB, 2x10G SFP+ cages, active cooling and the best  single-core  performance  per  watt & best  overall  performance  per  watt  among  all  the  CCR  devices.\",\"_hardware_title\":\"CCR2004-16G-2S+\"}",
       "sourceHardwareSlug": "ccr2004-16g-2s-plus",
       "sourceWwwCode": "ccr2004_16g_2splus"
     },
@@ -141,7 +141,7 @@
       "name": "CCR2116-12G-4S+",
       "category": "Ethernet routers",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CCR2116-12G-4S+\",\"Suggested price\":\"$995.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL73400\",\"CPU core count\":\"16\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"16\",\"Switch chip model\":\"98DX3255\",\"Dimensions\":\"443 x 199 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"16 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"83 W\",\"Max power consumption without attachments\":\"60 W\",\"Cooling type\":\"4 fans\",\"10/100/1000 Ethernet ports\":\"13\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"Number of M.2 slots\":\"1\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"CCR2116-12G-4S+\",\"_www_tagline\":\"Forget about CPU limitations in 10G setups with this powerful 16-core \\r\\nARM CPU based CCR. Double the performance of our previous 36-\\r\\ncore CCR, 6x faster BGP performance. Includes an M.2 PCIe slot.\",\"_hardware_title\":\"CCR2116-12G-4S+\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CCR2116-12G-4S+\",\"Suggested price\":\"$995.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL73400\",\"CPU core count\":\"16\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"16\",\"Switch chip model\":\"98DX3255\",\"Dimensions\":\"443 x 199 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"16 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"83 W\",\"Max power consumption without attachments\":\"60 W\",\"Cooling type\":\"4 fans\",\"10/100/1000 Ethernet ports\":\"13\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"Number of M.2 slots\":\"1\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"CCR2116-12G-4S+\",\"_www_tagline\":\"Forget about CPU limitations in 10G setups with this powerful 16-core \\r\\nARM CPU based CCR. Double the performance of our previous 36-\\r\\ncore CCR, 6x faster BGP performance. Includes an M.2 PCIe slot.\",\"_hardware_title\":\"CCR2116-12G-4S+\"}",
       "sourceHardwareSlug": "ccr2116-12g-4s-plus",
       "sourceWwwCode": "ccr2116_12g_4splus"
     },
@@ -151,7 +151,7 @@
       "name": "CCR2216-1G-12XS-2XQ",
       "category": "Ethernet routers",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CCR2216-1G-12XS-2XQ\",\"Suggested price\":\"$2,795.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL73400\",\"CPU core count\":\"16\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"16\",\"Switch chip model\":\"98DX8525\",\"Dimensions\":\"443 x 367 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"16 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"128 W\",\"Max power consumption without attachments\":\"80 W\",\"Cooling type\":\"4 fans\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"12\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of M.2 slots\":\"2\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CCR2216-1G-12XS-2XQ\",\"_www_tagline\":\"The new MikroTik flagship with the power of a whole fleet.\\r\\nUnleash the power of 100 Gigabit networking with L3 Hardware\\r\\nOffloading! This router can be a handy drop-in upgrade for existing\\r\\nCCR1072 setups.\",\"_hardware_title\":\"CCR2216-1G-12XS-2XQ\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CCR2216-1G-12XS-2XQ\",\"Suggested price\":\"$2,795.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL73400\",\"CPU core count\":\"16\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"16\",\"Switch chip model\":\"98DX8525\",\"Dimensions\":\"443 x 367 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"16 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"128 W\",\"Max power consumption without attachments\":\"80 W\",\"Cooling type\":\"4 fans\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"12\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of M.2 slots\":\"2\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CCR2216-1G-12XS-2XQ\",\"_www_tagline\":\"The new MikroTik flagship with the power of a whole fleet.\\r\\nUnleash the power of 100 Gigabit networking with L3 Hardware\\r\\nOffloading! This router can be a handy drop-in upgrade for existing\\r\\nCCR1072 setups.\",\"_hardware_title\":\"CCR2216-1G-12XS-2XQ\"}",
       "sourceHardwareSlug": "ccr2216-1g-12xs-2xq",
       "sourceWwwCode": "ccr2216_1g_12xs_2xq"
     },
@@ -251,7 +251,7 @@
       "name": "CRS112-8P-4S-IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS112-8P-4S-IN\",\"Suggested price\":\"$209.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA8511\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"400 MHz\",\"Switch chip model\":\"QCA8511\",\"Dimensions\":\"200 x 142 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack)\",\"DC jack input Voltage\":\"18-28 V / 48-57 V\",\"Max power consumption\":\"160 W\",\"Max power consumption without attachments\":\"10 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether8\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1 A\",\"High voltage PoE-Out current limit\":\"450 mA\",\"Max total out (A)\":\"2.8A (18V-28V) & 1.4A (48V-57V) A\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS112-8P-4S-IN\",\"_www_tagline\":\"8x Gigabit Ethernet Smart Switch with PoE-out, 4x SFP cages, 400MHz CPU, 128MB RAM, desktop case, RouterOS L5\",\"_hardware_title\":\"CRS112-8P-4S-IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS112-8P-4S-IN\",\"Suggested price\":\"$209.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA8511\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"400 MHz\",\"Switch chip model\":\"QCA8511\",\"Dimensions\":\"200 x 142 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack)\",\"DC jack input Voltage\":\"18-28 V / 48-57 V\",\"Max power consumption\":\"160 W\",\"Max power consumption without attachments\":\"10 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether8\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1 A\",\"High voltage PoE-Out current limit\":\"450 mA\",\"Max total out (A)\":\"2.8A (18V-28V) & 1.4A (48V-57V) A\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS112-8P-4S-IN\",\"_www_tagline\":\"8x Gigabit Ethernet Smart Switch with PoE-out, 4x SFP cages, 400MHz CPU, 128MB RAM, desktop case, RouterOS L5\",\"_hardware_title\":\"CRS112-8P-4S-IN\"}",
       "sourceHardwareSlug": "crs112-8p-4s-in",
       "sourceWwwCode": "crs112_8p_4s_in"
     },
@@ -261,7 +261,7 @@
       "name": "CRS304-4XG-IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS304-4XG-IN\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"98DX2528\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"1200 MHz\",\"CPU Threads count\":\"2\",\"Switch chip model\":\"98DX2528\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"4 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"12-57 V / 12-57 V\",\"2-pin terminal input Voltage\":\"12-57 V\",\"Max power consumption\":\"21 W\",\"Max power consumption without attachments\":\"15 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"36-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"4\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS304-4XG-IN\",\"_www_tagline\":\"Compact, powerful, and ready to simplify your 10 Gigabit network setups with 4x10G Ethernet ports ready to use out-of-the-box. No extra modules needed!\",\"_hardware_title\":\"CRS304-4XG-IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS304-4XG-IN\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"98DX2528\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"1200 MHz\",\"CPU Threads count\":\"2\",\"Switch chip model\":\"98DX2528\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"4 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"12-57 V / 12-57 V\",\"2-pin terminal input Voltage\":\"12-57 V\",\"Max power consumption\":\"21 W\",\"Max power consumption without attachments\":\"15 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"36-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"4\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS304-4XG-IN\",\"_www_tagline\":\"Compact, powerful, and ready to simplify your 10 Gigabit network setups with 4x10G Ethernet ports ready to use out-of-the-box. No extra modules needed!\",\"_hardware_title\":\"CRS304-4XG-IN\"}",
       "sourceHardwareSlug": "crs304-4xg-in",
       "sourceWwwCode": "crs304_4xg_in"
     },
@@ -271,7 +271,7 @@
       "name": "CRS305-1G-4S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS305-1G-4S+IN\",\"Suggested price\":\"$149.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"141 x 115 x 28 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"18 W\",\"Max power consumption without attachments\":\"10 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"4\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS305-1G-4S+IN\",\"_www_tagline\":\"Five-port desktop switch with one Gigabit Ethernet port and four SFP+ 10Gbps ports\",\"_hardware_title\":\"CRS305-1G-4S+IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS305-1G-4S+IN\",\"Suggested price\":\"$149.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"141 x 115 x 28 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"18 W\",\"Max power consumption without attachments\":\"10 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"4\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS305-1G-4S+IN\",\"_www_tagline\":\"Five-port desktop switch with one Gigabit Ethernet port and four SFP+ 10Gbps ports\",\"_hardware_title\":\"CRS305-1G-4S+IN\"}",
       "sourceHardwareSlug": "crs305-1g-4s-plus-in",
       "sourceWwwCode": "crs305_1g_4s_in"
     },
@@ -281,7 +281,7 @@
       "name": "CRS309-1G-8S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS309-1G-8S+IN\",\"Suggested price\":\"$269.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX8208\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"Switch chip model\":\"98DX8208\",\"Dimensions\":\"272 x 191 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"23 W\",\"Max power consumption without attachments\":\"17 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"8\",\"Serial console port\":\"RS232\",\"CPU temperature monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS309-1G-8S+IN\",\"_www_tagline\":\"Desktop switch with one Gigabit Ethernet port and eight SFP+ 10Gbps ports\",\"_hardware_title\":\"CRS309-1G-8S+IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS309-1G-8S+IN\",\"Suggested price\":\"$269.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX8208\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"Switch chip model\":\"98DX8208\",\"Dimensions\":\"272 x 191 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"23 W\",\"Max power consumption without attachments\":\"17 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"8\",\"Serial console port\":\"RS232\",\"CPU temperature monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS309-1G-8S+IN\",\"_www_tagline\":\"Desktop switch with one Gigabit Ethernet port and eight SFP+ 10Gbps ports\",\"_hardware_title\":\"CRS309-1G-8S+IN\"}",
       "sourceHardwareSlug": "crs309-1g-8s-plus-in",
       "sourceWwwCode": "crs309_1g_8s_in"
     },
@@ -291,7 +291,7 @@
       "name": "CRS310-1G-5S-4S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS310-1G-5S-4S+IN\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"Dimensions\":\"200 x 166 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"20 W\",\"Max power consumption without attachments\":\"8 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"1 fan\",\"PoE in input Voltage\":\"18-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP ports\":\"5\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS310-1G-5S-4S+IN\",\"_www_tagline\":\"10 Gigabit fibre connectivity way over a 100 meters – for small offices or ISPs. Hardware offloaded VLAN-filtering and even some L3 routing on a budget!\",\"_hardware_title\":\"CRS310-1G-5S-4S+IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS310-1G-5S-4S+IN\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"Dimensions\":\"200 x 166 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"20 W\",\"Max power consumption without attachments\":\"8 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"1 fan\",\"PoE in input Voltage\":\"18-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP ports\":\"5\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS310-1G-5S-4S+IN\",\"_www_tagline\":\"10 Gigabit fibre connectivity way over a 100 meters – for small offices or ISPs. Hardware offloaded VLAN-filtering and even some L3 routing on a budget!\",\"_hardware_title\":\"CRS310-1G-5S-4S+IN\"}",
       "sourceHardwareSlug": "crs310-1g-5s-4s-plus-in",
       "sourceWwwCode": "crs310_1g_5s_4s_in"
     },
@@ -301,7 +301,7 @@
       "name": "CRS310-8G+2S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS310-8G+2S+IN\",\"Suggested price\":\"$219.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"Dimensions\":\"200 x 206,1 x 44\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"1 (DC jack)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"34 W\",\"Max power consumption without attachments\":\"21 W\",\"Cooling type\":\"1 fan\",\"Number of 2.5G Ethernet ports\":\"8\",\"SFP+ ports\":\"2\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS310-8G+2S+IN\",\"_www_tagline\":\"Take advantage of the blazing fast 2.5/10 Gigabit combo and upgrade your workspace! This switch can utilize the full potential of RouterOS v7: run VLANs, Jumbo frames, link aggregation, ACL rules, and so much more!\",\"_hardware_title\":\"CRS310-8G+2S+IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS310-8G+2S+IN\",\"Suggested price\":\"$219.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"Dimensions\":\"200 x 206,1 x 44\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"1 (DC jack)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"34 W\",\"Max power consumption without attachments\":\"21 W\",\"Cooling type\":\"1 fan\",\"Number of 2.5G Ethernet ports\":\"8\",\"SFP+ ports\":\"2\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS310-8G+2S+IN\",\"_www_tagline\":\"Take advantage of the blazing fast 2.5/10 Gigabit combo and upgrade your workspace! This switch can utilize the full potential of RouterOS v7: run VLANs, Jumbo frames, link aggregation, ACL rules, and so much more!\",\"_hardware_title\":\"CRS310-8G+2S+IN\"}",
       "sourceHardwareSlug": "crs310-8g-plus-2s-plus-in",
       "sourceWwwCode": "crs310_8g_2s_in"
     },
@@ -311,7 +311,7 @@
       "name": "CRS312-4C+8XG-RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS312-4C+8XG-RM\",\"Suggested price\":\"$699.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8212\",\"Dimensions\":\"443 x 183 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-30°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"60 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of Combo 10G Ethernet/ SFP+ ports\":\"4\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"8\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS312-4C+8XG-RM\",\"_www_tagline\":\"Switch of the future: the first MikroTik product with 10G RJ45 Ethernet ports and SFP+\",\"_hardware_title\":\"CRS312-4C+8XG-RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS312-4C+8XG-RM\",\"Suggested price\":\"$699.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8212\",\"Dimensions\":\"443 x 183 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-30°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"60 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of Combo 10G Ethernet/ SFP+ ports\":\"4\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"8\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS312-4C+8XG-RM\",\"_www_tagline\":\"Switch of the future: the first MikroTik product with 10G RJ45 Ethernet ports and SFP+\",\"_hardware_title\":\"CRS312-4C+8XG-RM\"}",
       "sourceHardwareSlug": "crs312-4c-plus-8xg-rm",
       "sourceWwwCode": "crs312_4c_8xg_rm"
     },
@@ -321,7 +321,7 @@
       "name": "CRS317-1G-16S+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS317-1G-16S+RM\",\"Suggested price\":\"$499.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX8216\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"Switch chip model\":\"98DX8216\",\"Dimensions\":\"443 x 224 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"1 GB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"44 W\",\"Cooling type\":\"2 fans\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"16\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"CRS317-1G-16S+RM\",\"_www_tagline\":\"Smart Switch, 1 x Gigabit LAN, 16 x SFP+ cages, Dual Core 800MHz CPU, 1GB RAM, 1U rackmount passive cooling case, Dual Power Supplies\",\"_hardware_title\":\"CRS317-1G-16S+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS317-1G-16S+RM\",\"Suggested price\":\"$499.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX8216\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"Switch chip model\":\"98DX8216\",\"Dimensions\":\"443 x 224 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"1 GB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"44 W\",\"Cooling type\":\"2 fans\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"16\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"CRS317-1G-16S+RM\",\"_www_tagline\":\"Smart Switch, 1 x Gigabit LAN, 16 x SFP+ cages, Dual Core 800MHz CPU, 1GB RAM, 1U rackmount passive cooling case, Dual Power Supplies\",\"_hardware_title\":\"CRS317-1G-16S+RM\"}",
       "sourceHardwareSlug": "crs317-1g-16s-plus-rm",
       "sourceWwwCode": "crs317_1g_16s_rm"
     },
@@ -331,7 +331,7 @@
       "name": "CRS320-8P-8B-4S+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS320-8P-8B-4S+RM\",\"Suggested price\":\"$489.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-10°C to 50°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"600W (1150W with additional PSU)\",\"Max power consumption without attachments\":\"36 W\",\"Cooling type\":\"3 fans\",\"PoE-out ports\":\"Ether1-Ether8 (af/at), Ether9-Ether16 (bt)\",\"PoE out\":\"802.3af/at/bt\",\"High voltage PoE-Out current limit\":\"560 (af/at) / 1667 (bt) mA\",\"Max total out (A)\":\"17.82 A\",\"Total output current\":\"17.82\",\"Total output power\":\"963\",\"10/100/1000 Ethernet ports\":\"17\",\"Number of 1G Ethernet ports with PoE-out\":\"16\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS320-8P-8B-4S+RM\",\"_www_tagline\":\"The first MikroTik high-power PoE++ switch – for easy\\r\\nand cost-effective powering of industry standard 802.3af/at/bt devices. Forget about countless power cables – create a cleaner space with PoE++!\",\"_hardware_title\":\"CRS320-8P-8B-4S+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS320-8P-8B-4S+RM\",\"Suggested price\":\"$489.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-10°C to 50°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"600W (1150W with additional PSU)\",\"Max power consumption without attachments\":\"36 W\",\"Cooling type\":\"3 fans\",\"PoE-out ports\":\"Ether1-Ether8 (af/at), Ether9-Ether16 (bt)\",\"PoE out\":\"802.3af/at/bt\",\"High voltage PoE-Out current limit\":\"560 (af/at) / 1667 (bt) mA\",\"Max total out (A)\":\"17.82 A\",\"Total output current\":\"17.82\",\"Total output power\":\"963\",\"10/100/1000 Ethernet ports\":\"17\",\"Number of 1G Ethernet ports with PoE-out\":\"16\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS320-8P-8B-4S+RM\",\"_www_tagline\":\"The first MikroTik high-power PoE++ switch – for easy\\r\\nand cost-effective powering of industry standard 802.3af/at/bt devices. Forget about countless power cables – create a cleaner space with PoE++!\",\"_hardware_title\":\"CRS320-8P-8B-4S+RM\"}",
       "sourceHardwareSlug": "crs320-8p-8b-4s-plus-rm",
       "sourceWwwCode": "crs320_8p_8b_4s_rm"
     },
@@ -341,7 +341,7 @@
       "name": "CRS326-24G-2S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS326-24G-2S+IN\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"285 x 144 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-30 V\",\"Max power consumption\":\"21 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-30 V\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS326-24G-2S+IN\",\"_www_tagline\":\"24 Gigabit ports, 2 SFP+ cages and a desktop case – server room power for your home!\",\"_hardware_title\":\"CRS326-24G-2S+IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS326-24G-2S+IN\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"285 x 144 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-30 V\",\"Max power consumption\":\"21 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-30 V\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS326-24G-2S+IN\",\"_www_tagline\":\"24 Gigabit ports, 2 SFP+ cages and a desktop case – server room power for your home!\",\"_hardware_title\":\"CRS326-24G-2S+IN\"}",
       "sourceHardwareSlug": "crs326-24g-2s-plus-in",
       "sourceWwwCode": "crs326_24g_2s_in"
     },
@@ -351,7 +351,7 @@
       "name": "CRS326-24G-2S+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS326-24G-2S+RM\",\"Suggested price\":\"$209.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"443 x 144 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-30 V\",\"Max power consumption\":\"24 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-30 V\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS326-24G-2S+RM\",\"_www_tagline\":\"24 Gigabit port switch with 2 x SFP+ cages in 1U rackmount case, Dual boot (RouterOS or SwitchOS)\",\"_hardware_title\":\"CRS326-24G-2S+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS326-24G-2S+RM\",\"Suggested price\":\"$209.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"443 x 144 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-30 V\",\"Max power consumption\":\"24 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-30 V\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS326-24G-2S+RM\",\"_www_tagline\":\"24 Gigabit port switch with 2 x SFP+ cages in 1U rackmount case, Dual boot (RouterOS or SwitchOS)\",\"_hardware_title\":\"CRS326-24G-2S+RM\"}",
       "sourceHardwareSlug": "crs326-24g-2s-plus-rm",
       "sourceWwwCode": "CRS326-24G-2SplusRM"
     },
@@ -361,7 +361,7 @@
       "name": "CRS326-24S+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS326-24S+2Q+RM\",\"Suggested price\":\"$599.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8332\",\"Dimensions\":\"443 x 200 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"69 W\",\"Max power consumption without attachments\":\"42 W\",\"Cooling type\":\"3 fans\",\"10/100 Ethernet ports\":\"1\",\"SFP+ ports\":\"24\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS326-24S+2Q+RM\",\"_www_tagline\":\"One of our faster switches  for the most demanding setups.\",\"_hardware_title\":\"CRS326-24S+2Q+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS326-24S+2Q+RM\",\"Suggested price\":\"$599.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8332\",\"Dimensions\":\"443 x 200 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"69 W\",\"Max power consumption without attachments\":\"42 W\",\"Cooling type\":\"3 fans\",\"10/100 Ethernet ports\":\"1\",\"SFP+ ports\":\"24\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS326-24S+2Q+RM\",\"_www_tagline\":\"One of our faster switches  for the most demanding setups.\",\"_hardware_title\":\"CRS326-24S+2Q+RM\"}",
       "sourceHardwareSlug": "crs326-24s-plus-2q-plus-rm",
       "sourceWwwCode": "crs326_24s_2q_rm"
     },
@@ -371,7 +371,7 @@
       "name": "CRS326-4C+20G+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS326-4C+20G+2Q+RM\",\"Suggested price\":\"$999.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8332\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"70 W\",\"Max power consumption without attachments\":\"51 W\",\"Cooling type\":\"2 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of 2.5G Ethernet ports\":\"20\",\"Number of Combo 10G Ethernet/ SFP+ ports\":\"4* (2.5G ETH/10G SFP+)\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS326-4C+20G+2Q+RM\",\"_www_tagline\":\"Our top-of-the-line switch with incredible 2.5 Gigabit port density, \\r\\ncombo ports, and even a pair of 40 Gbps QSFP+ cages. Enterprise-level gamechanger… for the price of a smartphone!\",\"_hardware_title\":\"CRS326-4C+20G+2Q+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS326-4C+20G+2Q+RM\",\"Suggested price\":\"$999.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8332\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"70 W\",\"Max power consumption without attachments\":\"51 W\",\"Cooling type\":\"2 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of 2.5G Ethernet ports\":\"20\",\"Number of Combo 10G Ethernet/ SFP+ ports\":\"4* (2.5G ETH/10G SFP+)\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS326-4C+20G+2Q+RM\",\"_www_tagline\":\"Our top-of-the-line switch with incredible 2.5 Gigabit port density, \\r\\ncombo ports, and even a pair of 40 Gbps QSFP+ cages. Enterprise-level gamechanger… for the price of a smartphone!\",\"_hardware_title\":\"CRS326-4C+20G+2Q+RM\"}",
       "sourceHardwareSlug": "crs326-4c-plus-20g-plus-2q-plus-rm",
       "sourceWwwCode": "crs326_4c_20g_2q_rm"
     },
@@ -381,7 +381,7 @@
       "name": "CRS328-24P-4S+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS328-24P-4S+RM\",\"Suggested price\":\"$489.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"443 x 300 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"1\",\"Max power consumption\":\"494 W\",\"Max power consumption without attachments\":\"44 W\",\"Cooling type\":\"2 fans\",\"PoE-out ports\":\"Ether1-Ether24\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1000 mA\",\"High voltage PoE-Out current limit\":\"450 mA\",\"Max total out (A)\":\"20 A\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP00\",\"_www_title\":\"CRS328-24P-4S+RM\",\"_www_tagline\":\"24 port Gigabit Ethernet router/switch with four 10Gbps SFP+ ports in 1U rackmount case, Dual Boot and PoE output, 500W\",\"_hardware_title\":\"CRS328-24P-4S+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS328-24P-4S+RM\",\"Suggested price\":\"$489.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"443 x 300 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"1\",\"Max power consumption\":\"494 W\",\"Max power consumption without attachments\":\"44 W\",\"Cooling type\":\"2 fans\",\"PoE-out ports\":\"Ether1-Ether24\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1000 mA\",\"High voltage PoE-Out current limit\":\"450 mA\",\"Max total out (A)\":\"20 A\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP00\",\"_www_title\":\"CRS328-24P-4S+RM\",\"_www_tagline\":\"24 port Gigabit Ethernet router/switch with four 10Gbps SFP+ ports in 1U rackmount case, Dual Boot and PoE output, 500W\",\"_hardware_title\":\"CRS328-24P-4S+RM\"}",
       "sourceHardwareSlug": "crs328-24p-4s-plus-rm",
       "sourceWwwCode": "crs328_24p_4s_rm"
     },
@@ -391,7 +391,7 @@
       "name": "CRS328-4C-20S-4S+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS328-4C-20S-4S+RM\",\"Suggested price\":\"$449.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"443 x 194 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"43 W\",\"Cooling type\":\"2 fans\",\"Ethernet Combo ports\":\"4\",\"SFP ports\":\"20\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"CRS328-4C-20S-4S+RM\",\"_www_tagline\":\"Smart Switch, 20 x SFP cages, 4 x SFP+ cages, 4 x Combo ports (Gigabit Ethernet or SFP), 800MHz CPU, 512MB RAM, 1U rackmount case, Dual Power Supplies, RouterOS L5 or SwitchOS (Dual Boot)\",\"_hardware_title\":\"CRS328-4C-20S-4S+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS328-4C-20S-4S+RM\",\"Suggested price\":\"$449.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX3236\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX3236\",\"Dimensions\":\"443 x 194 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"512 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"43 W\",\"Cooling type\":\"2 fans\",\"Ethernet Combo ports\":\"4\",\"SFP ports\":\"20\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"_www_title\":\"CRS328-4C-20S-4S+RM\",\"_www_tagline\":\"Smart Switch, 20 x SFP cages, 4 x SFP+ cages, 4 x Combo ports (Gigabit Ethernet or SFP), 800MHz CPU, 512MB RAM, 1U rackmount case, Dual Power Supplies, RouterOS L5 or SwitchOS (Dual Boot)\",\"_hardware_title\":\"CRS328-4C-20S-4S+RM\"}",
       "sourceHardwareSlug": "crs328-4c-20s-4s-plus-rm",
       "sourceWwwCode": "crs328_4c_20s_4s_rm"
     },
@@ -401,7 +401,7 @@
       "name": "CRS354-48G-4S+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS354-48G-4S+2Q+RM\",\"Suggested price\":\"$599.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX3257\",\"Dimensions\":\"297 x 443 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"60 W\",\"Max power consumption without attachments\":\"50 W\",\"Cooling type\":\"3 fans\",\"10/100 Ethernet ports\":\"1\",\"10/100/1000 Ethernet ports\":\"48\",\"SFP+ ports\":\"4\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS354-48G-4S+2Q+RM\",\"_www_tagline\":\"Best price and best performance on the market – this 48 port switch\\r\\nwill rock any setup, including 40 Gbps devices!\",\"_hardware_title\":\"CRS354-48G-4S+2Q+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS354-48G-4S+2Q+RM\",\"Suggested price\":\"$599.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX3257\",\"Dimensions\":\"297 x 443 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"60 W\",\"Max power consumption without attachments\":\"50 W\",\"Cooling type\":\"3 fans\",\"10/100 Ethernet ports\":\"1\",\"10/100/1000 Ethernet ports\":\"48\",\"SFP+ ports\":\"4\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS354-48G-4S+2Q+RM\",\"_www_tagline\":\"Best price and best performance on the market – this 48 port switch\\r\\nwill rock any setup, including 40 Gbps devices!\",\"_hardware_title\":\"CRS354-48G-4S+2Q+RM\"}",
       "sourceHardwareSlug": "crs354-48g-4s-plus-2q-plus-rm",
       "sourceWwwCode": "crs354_48g_4splus2qplusrm"
     },
@@ -411,7 +411,7 @@
       "name": "CRS354-48P-4S+2Q+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS354-48P-4S+2Q+RM\",\"Suggested price\":\"$999.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX3257\",\"Dimensions\":\"443 x 382 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"1\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"800 W\",\"Max power consumption without attachments\":\"85 W\",\"Cooling type\":\"4 fans\",\"PoE-out ports\":\"Ether1-Ether48\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1000 mA\",\"High voltage PoE-Out current limit\":\"570 mA\",\"Total output current\":\"27A at 26V OR 13.2A at 53V\",\"Total output power\":\"700W\",\"10/100 Ethernet ports\":\"1\",\"10/100/1000 Ethernet ports\":\"48\",\"SFP+ ports\":\"4\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS354-48P-4S+2Q+RM\",\"_www_tagline\":\"The 48 port champion you’ve been waiting for - now with PoE-out!\",\"_hardware_title\":\"CRS354-48P-4S+2Q+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS354-48P-4S+2Q+RM\",\"Suggested price\":\"$999.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX3257\",\"Dimensions\":\"443 x 382 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"1\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"800 W\",\"Max power consumption without attachments\":\"85 W\",\"Cooling type\":\"4 fans\",\"PoE-out ports\":\"Ether1-Ether48\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1000 mA\",\"High voltage PoE-Out current limit\":\"570 mA\",\"Total output current\":\"27A at 26V OR 13.2A at 53V\",\"Total output power\":\"700W\",\"10/100 Ethernet ports\":\"1\",\"10/100/1000 Ethernet ports\":\"48\",\"SFP+ ports\":\"4\",\"Number of 40G QSFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CRS354-48P-4S+2Q+RM\",\"_www_tagline\":\"The 48 port champion you’ve been waiting for - now with PoE-out!\",\"_hardware_title\":\"CRS354-48P-4S+2Q+RM\"}",
       "sourceHardwareSlug": "crs354-48p-4s-plus-2q-plus-rm",
       "sourceWwwCode": "crs354_48p_4s_2q_rm"
     },
@@ -431,7 +431,7 @@
       "name": "CRS418-8P-8G-2S+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS418-8P-8G-2S+RM\",\"Suggested price\":\"$449.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"IPQ-8072\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2208 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"1 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"215 W\",\"Max power consumption without attachments\":\"28 W\",\"Cooling type\":\"4 fans\",\"PoE-out ports\":\"Ether9 - Ether16\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1.1 A\",\"High voltage PoE-Out current limit\":\"0.56 A\",\"Max total out (A)\":\"5.4 A\",\"Total output current\":\"5.4\",\"Total output power\":\"150\",\"10/100/1000 Ethernet ports\":\"17\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB 3.0 type A\",\"Max USB current (A)\":\"1\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS418-8P-8G-2S+RM\",\"_www_tagline\":\"You wanted a switch that could do more. So we built one that does everything!\\r\\n\\r\\n16x (+1) Gigabit Ethernet ports (8x with PoE-out), dual 10G uplinks, and a powerful quad-core 2.2 GHz ARM CPU. Powerful enough to replace most small/medium office routers, ~3x faster than a CRS320 or a CRS328… and for a better price!\",\"_hardware_title\":\"CRS418-8P-8G-2S+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS418-8P-8G-2S+RM\",\"Suggested price\":\"$449.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"IPQ-8072\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2208 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"1 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"215 W\",\"Max power consumption without attachments\":\"28 W\",\"Cooling type\":\"4 fans\",\"PoE-out ports\":\"Ether9 - Ether16\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1.1 A\",\"High voltage PoE-Out current limit\":\"0.56 A\",\"Max total out (A)\":\"5.4 A\",\"Total output current\":\"5.4\",\"Total output power\":\"150\",\"10/100/1000 Ethernet ports\":\"17\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP+ ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB 3.0 type A\",\"Max USB current (A)\":\"1\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS418-8P-8G-2S+RM\",\"_www_tagline\":\"You wanted a switch that could do more. So we built one that does everything!\\r\\n\\r\\n16x (+1) Gigabit Ethernet ports (8x with PoE-out), dual 10G uplinks, and a powerful quad-core 2.2 GHz ARM CPU. Powerful enough to replace most small/medium office routers, ~3x faster than a CRS320 or a CRS328… and for a better price!\",\"_hardware_title\":\"CRS418-8P-8G-2S+RM\"}",
       "sourceHardwareSlug": "crs418-8p-8g-2s-plus-rm",
       "sourceWwwCode": "crs418_8p_8g_2s_rm"
     },
@@ -441,7 +441,7 @@
       "name": "CRS504-4XQ-IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS504-4XQ-IN\",\"Suggested price\":\"$799.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"Dimensions\":\"320 x 185 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"Number of PSU slots\":\"2\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"41 W\",\"Max power consumption without attachments\":\"25 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"2 fans\",\"PoE in input Voltage\":\"43-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 100G QSFP28 ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS504-4XQ-IN\",\"_www_tagline\":\"Your most affordable, compact, energy-efficient\\r\\ndoorway to the world of 100 Gigabit networking.\\r\\nThis switch is the next step in upgrading existing 10 or 25 Gigabit networks. Multiple powering options, dual hot-swap power supplies.\",\"_hardware_title\":\"CRS504-4XQ-IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS504-4XQ-IN\",\"Suggested price\":\"$799.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"Dimensions\":\"320 x 185 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"Number of PSU slots\":\"2\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"41 W\",\"Max power consumption without attachments\":\"25 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"2 fans\",\"PoE in input Voltage\":\"43-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 100G QSFP28 ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS504-4XQ-IN\",\"_www_tagline\":\"Your most affordable, compact, energy-efficient\\r\\ndoorway to the world of 100 Gigabit networking.\\r\\nThis switch is the next step in upgrading existing 10 or 25 Gigabit networks. Multiple powering options, dual hot-swap power supplies.\",\"_hardware_title\":\"CRS504-4XQ-IN\"}",
       "sourceHardwareSlug": "crs504-4xq-in",
       "sourceWwwCode": "crs504_4xq_in"
     },
@@ -451,7 +451,7 @@
       "name": "CRS504-4XQ-OUT",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS504-4XQ-OUT\",\"Suggested price\":\"$899.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Max power consumption\":\"44 W\",\"Max power consumption without attachments\":\"25 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"43-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 100G QSFP28 ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"CRS504-4XQ-OUT\",\"_www_tagline\":\"Affordable, compact, energy-efficient 100 Gbps networking anytime, ANYWHERE!\\r\\nIP66 weatherproof enclosure, 4x 100 Gigabit ports, multiple powering options.\",\"_hardware_title\":\"CRS504-4XQ-OUT\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS504-4XQ-OUT\",\"Suggested price\":\"$899.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Max power consumption\":\"44 W\",\"Max power consumption without attachments\":\"25 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"43-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 100G QSFP28 ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"CRS504-4XQ-OUT\",\"_www_tagline\":\"Affordable, compact, energy-efficient 100 Gbps networking anytime, ANYWHERE!\\r\\nIP66 weatherproof enclosure, 4x 100 Gigabit ports, multiple powering options.\",\"_hardware_title\":\"CRS504-4XQ-OUT\"}",
       "sourceHardwareSlug": "crs504-4xq-out",
       "sourceWwwCode": "crs504_4xq_out"
     },
@@ -461,7 +461,7 @@
       "name": "CRS510-8XS-2XQ-IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS510-8XS-2XQ-IN\",\"Suggested price\":\"$999.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"Number of PSU slots\":\"2\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"45 W\",\"Max power consumption without attachments\":\"27 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"2 fans\",\"PoE in input Voltage\":\"42.5-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"8\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS510-8XS-2XQ-IN\",\"_www_tagline\":\"A versatile 100 Gigabit switch that offers speed, value, and diverse connectivity options. 2x 100 Gigabit QSFP28 ports, 8x 25 Gigabit SFP28 ports, dual hot-swap power supplies.\",\"_hardware_title\":\"CRS510-8XS-2XQ-IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS510-8XS-2XQ-IN\",\"Suggested price\":\"$999.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"Number of PSU slots\":\"2\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"45 W\",\"Max power consumption without attachments\":\"27 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"2 fans\",\"PoE in input Voltage\":\"42.5-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"8\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS510-8XS-2XQ-IN\",\"_www_tagline\":\"A versatile 100 Gigabit switch that offers speed, value, and diverse connectivity options. 2x 100 Gigabit QSFP28 ports, 8x 25 Gigabit SFP28 ports, dual hot-swap power supplies.\",\"_hardware_title\":\"CRS510-8XS-2XQ-IN\"}",
       "sourceHardwareSlug": "crs510-8xs-2xq-in",
       "sourceWwwCode": "crs510_8xs_2xq_in"
     },
@@ -471,7 +471,7 @@
       "name": "CRS518-16XS-2XQ-RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS518-16XS-2XQ-RM\",\"Suggested price\":\"$1,595.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8525\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"95 W\",\"Max power consumption without attachments\":\"45 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"16\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS518-16XS-2XQ-RM\",\"_www_tagline\":\"A 100 Gigabit switch for enterprise networks and data centers.\\r\\nHot-swappable parts and insane port density with 1.2 Tbps switching\\r\\ncapacity!\",\"_hardware_title\":\"CRS518-16XS-2XQ-RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS518-16XS-2XQ-RM\",\"Suggested price\":\"$1,595.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8525\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"95 W\",\"Max power consumption without attachments\":\"45 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"16\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS518-16XS-2XQ-RM\",\"_www_tagline\":\"A 100 Gigabit switch for enterprise networks and data centers.\\r\\nHot-swappable parts and insane port density with 1.2 Tbps switching\\r\\ncapacity!\",\"_hardware_title\":\"CRS518-16XS-2XQ-RM\"}",
       "sourceHardwareSlug": "crs518-16xs-2xq-rm",
       "sourceWwwCode": "crs518_16xs_2xq"
     },
@@ -481,7 +481,7 @@
       "name": "CRS520-4XS-16XQ-RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS520-4XS-16XQ-RM\",\"Suggested price\":\"$2,195.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL52400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2 GHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98CX8410\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 50°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"150 W (220 W with both PSUs)\",\"Max power consumption without attachments\":\"123 W\",\"Cooling type\":\"4 fans\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2 (supported: 10M/100M/1G/10G)\",\"Number of 25G SFP28 ports\":\"4\",\"Number of 100G QSFP28 ports\":\"16\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS520-4XS-16XQ-RM\",\"_www_tagline\":\"An ultra-fast enterprise switch with extra processing power due to the CCR series CPU & the best price per 100 Gigabit port on the market!\",\"_hardware_title\":\"CRS520-4XS-16XQ-RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS520-4XS-16XQ-RM\",\"Suggested price\":\"$2,195.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL52400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2 GHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98CX8410\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 50°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"150 W (220 W with both PSUs)\",\"Max power consumption without attachments\":\"123 W\",\"Cooling type\":\"4 fans\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2 (supported: 10M/100M/1G/10G)\",\"Number of 25G SFP28 ports\":\"4\",\"Number of 100G QSFP28 ports\":\"16\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS520-4XS-16XQ-RM\",\"_www_tagline\":\"An ultra-fast enterprise switch with extra processing power due to the CCR series CPU & the best price per 100 Gigabit port on the market!\",\"_hardware_title\":\"CRS520-4XS-16XQ-RM\"}",
       "sourceHardwareSlug": "crs520-4xs-16xq-rm",
       "sourceWwwCode": "crs520_4xs_16xq_rm"
     },
@@ -491,7 +491,7 @@
       "name": "CRS804 DDQ",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS804-4DDQ-hRM\",\"Suggested price\":\"$1,295.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL52400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98DX7335\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"512 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-10°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"123 W\",\"Max power consumption without attachments\":\"92 W\",\"Cooling type\":\"2 fans\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2 (supported: 10M/100M/1G/10G)\",\"Number of 400G QSFP56-DD ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS804 DDQ\",\"_www_tagline\":\"A compact 1U 400G switch built for AI clusters, storage fabrics, and high-speed aggregation, featuring four 400G QSFP56-DD ports, dual 10 Gigabit Ethernet, and RouterOS v7. With hot-swap power supplies, robust cooling, and low power consumption, it delivers ultra-high bandwidth, wire-speed performance, and future-proof scalability at an accessible price point.\",\"_hardware_title\":\"CRS804-4DDQ-hRM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS804-4DDQ-hRM\",\"Suggested price\":\"$1,295.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL52400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98DX7335\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"512 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-10°C to 60°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"123 W\",\"Max power consumption without attachments\":\"92 W\",\"Cooling type\":\"2 fans\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2 (supported: 10M/100M/1G/10G)\",\"Number of 400G QSFP56-DD ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS804 DDQ\",\"_www_tagline\":\"A compact 1U 400G switch built for AI clusters, storage fabrics, and high-speed aggregation, featuring four 400G QSFP56-DD ports, dual 10 Gigabit Ethernet, and RouterOS v7. With hot-swap power supplies, robust cooling, and low power consumption, it delivers ultra-high bandwidth, wire-speed performance, and future-proof scalability at an accessible price point.\",\"_hardware_title\":\"CRS804-4DDQ-hRM\"}",
       "sourceHardwareSlug": "crs804-4ddq-hrm",
       "sourceWwwCode": "crs804_ddq"
     },
@@ -501,7 +501,7 @@
       "name": "CRS812 DDQ",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS812-8DS-2DQ-2DDQ-RM\",\"Suggested price\":\"$1,295.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL52400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98DX7335\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"512 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-10°C to 50°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"134 W\",\"Max power consumption without attachments\":\"81 W\",\"Cooling type\":\"4 fans\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2 (supported: 10M/100M/1G/10G)\",\"Number of 50G SFP56 ports\":\"8\",\"Number of 200G QSFP56 ports\":\"2\",\"Number of 400G QSFP56-DD ports\":\"2\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS812 DDQ\",\"_www_tagline\":\"This switch  is your next leap forward –  a powerful, efficient, and cost-effective way to bring 50G, 200G, and 400G into your rack. Quad-core 2 GHz ARM CPU, dual-redundant power supplies and 4x hot-swap cooling fans, 2x 10G Ethernet, 8x 50G SFP56, 2x 200G QSFP56, and 2x 400G QSFP56-DD ports.\",\"_hardware_title\":\"CRS812-8DS-2DQ-2DDQ-RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS812-8DS-2DQ-2DDQ-RM\",\"Suggested price\":\"$1,295.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL52400\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"98DX7335\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"4 GB\",\"Storage size\":\"512 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-10°C to 50°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"134 W\",\"Max power consumption without attachments\":\"81 W\",\"Cooling type\":\"4 fans\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2 (supported: 10M/100M/1G/10G)\",\"Number of 50G SFP56 ports\":\"8\",\"Number of 200G QSFP56 ports\":\"2\",\"Number of 400G QSFP56-DD ports\":\"2\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS812 DDQ\",\"_www_tagline\":\"This switch  is your next leap forward –  a powerful, efficient, and cost-effective way to bring 50G, 200G, and 400G into your rack. Quad-core 2 GHz ARM CPU, dual-redundant power supplies and 4x hot-swap cooling fans, 2x 10G Ethernet, 8x 50G SFP56, 2x 200G QSFP56, and 2x 400G QSFP56-DD ports.\",\"_hardware_title\":\"CRS812-8DS-2DQ-2DDQ-RM\"}",
       "sourceHardwareSlug": "crs812-8ds-2dq-2ddq-rm",
       "sourceWwwCode": "crs812_ddq"
     },
@@ -511,7 +511,7 @@
       "name": "CSS318-16G-2S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS318-16G-2S+IN\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"98DX2518\",\"Operating System\":\"SwOS\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"13 W\",\"Max power consumption without attachments\":\"10 W\",\"Cooling type\":\"Passive\",\"10/100/1000 Ethernet ports\":\"16\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CSS318-16G-2S+IN\",\"_www_tagline\":\"With 16 Gigabit Ethernet ports and 2 SFP+ 10G uplink ports, you get all the connectivity you need without unnecessary bulk. Stack two units side by side in a single 1U rack space for even greater flexibility and scalability.\",\"_hardware_title\":\"CSS318-16G-2S+IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CSS318-16G-2S+IN\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"98DX2518\",\"Operating System\":\"SwOS\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"13 W\",\"Max power consumption without attachments\":\"10 W\",\"Cooling type\":\"Passive\",\"10/100/1000 Ethernet ports\":\"16\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CSS318-16G-2S+IN\",\"_www_tagline\":\"With 16 Gigabit Ethernet ports and 2 SFP+ 10G uplink ports, you get all the connectivity you need without unnecessary bulk. Stack two units side by side in a single 1U rack space for even greater flexibility and scalability.\",\"_hardware_title\":\"CSS318-16G-2S+IN\"}",
       "sourceHardwareSlug": "css318-16g-2s-plus-in",
       "sourceWwwCode": "css318_16g_2s_in"
     },
@@ -521,7 +521,7 @@
       "name": "CSS326-24G-2S+RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS326-24G-2S+RM\",\"Suggested price\":\"$159.00\",\"Switch chip model\":\"98DX3216\",\"Dimensions\":\"443 x 144 x 44 mm\",\"Operating System\":\"SwOS\",\"Storage size\":\"2 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-30 V\",\"Max power consumption\":\"19 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-30 V\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"2\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CSS326-24G-2S+RM\",\"_www_tagline\":\"SwOS powered 24 port Gigabit Ethernet switch with two SFP+ ports in 1U rackmount case\",\"_hardware_title\":\"CSS326-24G-2S+RM\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CSS326-24G-2S+RM\",\"Suggested price\":\"$159.00\",\"Switch chip model\":\"98DX3216\",\"Dimensions\":\"443 x 144 x 44 mm\",\"Operating System\":\"SwOS\",\"Storage size\":\"2 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-30 V\",\"Max power consumption\":\"19 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-30 V\",\"10/100/1000 Ethernet ports\":\"24\",\"SFP+ ports\":\"2\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CSS326-24G-2S+RM\",\"_www_tagline\":\"SwOS powered 24 port Gigabit Ethernet switch with two SFP+ ports in 1U rackmount case\",\"_hardware_title\":\"CSS326-24G-2S+RM\"}",
       "sourceHardwareSlug": "css326-24g-2s-plus-rm",
       "sourceWwwCode": "CSS326-24G-2SplusRM"
     },
@@ -531,7 +531,7 @@
       "name": "CSS610-8G-2S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS610-8G-2S+IN\",\"Suggested price\":\"$119.00\",\"Switch chip model\":\"88E6193X\",\"Dimensions\":\"200 x 164 x 44 mm\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"11 W\",\"Max power consumption without attachments\":\"5 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"10/100/1000 Ethernet ports\":\"8\",\"SFP+ ports\":\"2\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CSS610-8G-2S+IN\",\"_www_tagline\":\"Eight 1G Ethernet ports and two SFP+ ports for 10G fiber connectivity.\\r\\nPortable, powerful and extremely cost-effective – this switch is an instant classic!\",\"_hardware_title\":\"CSS610-8G-2S+IN\",\"_non_default_ips\":[\"192.168.88.2\",\"192.168.88.3\"]}",
+      "specsJson": "{\"Product code\":\"CSS610-8G-2S+IN\",\"Suggested price\":\"$119.00\",\"Switch chip model\":\"88E6193X\",\"Dimensions\":\"200 x 164 x 44 mm\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 60°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"11 W\",\"Max power consumption without attachments\":\"5 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"10/100/1000 Ethernet ports\":\"8\",\"SFP+ ports\":\"2\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"CSS610-8G-2S+IN\",\"_www_tagline\":\"Eight 1G Ethernet ports and two SFP+ ports for 10G fiber connectivity.\\r\\nPortable, powerful and extremely cost-effective – this switch is an instant classic!\",\"_hardware_title\":\"CSS610-8G-2S+IN\"}",
       "sourceHardwareSlug": "css610-8g-2s-plus-in",
       "sourceWwwCode": "css610_8g_2s_in"
     },
@@ -541,7 +541,7 @@
       "name": "CSS610-8P-2S+IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS610-8P-2S+IN\",\"Suggested price\":\"$229.00\",\"Switch chip model\":\"88E6193X\",\"Dimensions\":\"272x208x44mm\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"1 (DC jack)\",\"DC jack input Voltage\":\"48-57 V\",\"Number of PSU slots\":\"1\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"162 W\",\"Max power consumption without attachments\":\"12 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether8\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1000 mA\",\"High voltage PoE-Out current limit\":\"625 mA\",\"Total output power\":\"140\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CSS610-8P-2S+IN\",\"_www_tagline\":\"Your compact, affordable PoE powerhouse with 8x Gigabit PoE-out ports and 2x 10 Gigabit SFP+ ports.\",\"_hardware_title\":\"CSS610-8P-2S+IN\",\"_non_default_ips\":[\"192.168.88.3\"]}",
+      "specsJson": "{\"Product code\":\"CSS610-8P-2S+IN\",\"Suggested price\":\"$229.00\",\"Switch chip model\":\"88E6193X\",\"Dimensions\":\"272x208x44mm\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"1\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"1 (DC jack)\",\"DC jack input Voltage\":\"48-57 V\",\"Number of PSU slots\":\"1\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"162 W\",\"Max power consumption without attachments\":\"12 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether8\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1000 mA\",\"High voltage PoE-Out current limit\":\"625 mA\",\"Total output power\":\"140\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CSS610-8P-2S+IN\",\"_www_tagline\":\"Your compact, affordable PoE powerhouse with 8x Gigabit PoE-out ports and 2x 10 Gigabit SFP+ ports.\",\"_hardware_title\":\"CSS610-8P-2S+IN\"}",
       "sourceHardwareSlug": "css610-8p-2s-plus-in",
       "sourceWwwCode": "css610_8p_2s_in"
     },
@@ -571,7 +571,7 @@
       "name": "FiberBox Plus",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS305-1G-4S+OUT\",\"Suggested price\":\"$229.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"24-57 V\",\"2-pin terminal input Voltage\":\"24-57 V\",\"Max power consumption\":\"17 W\",\"Max power consumption without attachments\":\"7 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"42-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP66\",\"_www_title\":\"FiberBox Plus\",\"_www_tagline\":\"Ultimate value pick for 10 Gigabit outdoor networking. High masts, poles, or towers – your connection will be safe! A powerful budget version of the netFiber 9.\",\"_hardware_title\":\"FiberBox Plus\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS305-1G-4S+OUT\",\"Suggested price\":\"$229.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"24-57 V\",\"2-pin terminal input Voltage\":\"24-57 V\",\"Max power consumption\":\"17 W\",\"Max power consumption without attachments\":\"7 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"42-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP66\",\"_www_title\":\"FiberBox Plus\",\"_www_tagline\":\"Ultimate value pick for 10 Gigabit outdoor networking. High masts, poles, or towers – your connection will be safe! A powerful budget version of the netFiber 9.\",\"_hardware_title\":\"FiberBox Plus\"}",
       "sourceHardwareSlug": "fiberbox-plus",
       "sourceWwwCode": "fiberboxplus"
     },
@@ -581,7 +581,7 @@
       "name": "FTC11XG",
       "category": "Accessories",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"FTC11XG\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"88E6193\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"10 W\",\"Max power consumption without attachments\":\"9 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"43-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"1\",\"SFP+ ports\":\"1\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"55\",\"_www_title\":\"FTC11XG\",\"_www_tagline\":\"A weatherproof IP55 Fiber-to-Copper converter to transform your 10 Gigabit SFP+ fiber connections into RJ45 10 Gigabit Ethernet. It runs a full version of SwOS Lite and has its own switch-chip!\",\"_hardware_title\":\"FTC11XG\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"FTC11XG\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"88E6193\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"10 W\",\"Max power consumption without attachments\":\"9 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"43-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"1\",\"SFP+ ports\":\"1\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"55\",\"_www_title\":\"FTC11XG\",\"_www_tagline\":\"A weatherproof IP55 Fiber-to-Copper converter to transform your 10 Gigabit SFP+ fiber connections into RJ45 10 Gigabit Ethernet. It runs a full version of SwOS Lite and has its own switch-chip!\",\"_hardware_title\":\"FTC11XG\"}",
       "sourceHardwareSlug": "ftc11xg",
       "sourceWwwCode": "ftc11xg"
     },
@@ -611,7 +611,7 @@
       "name": "GPERx6",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS606-1G-2Gi-3S+OUT\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"88E6193X\",\"Operating System\":\"SwOS\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"160 W\",\"Max power consumption without attachments\":\"6 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"42-57 V\",\"PoE-out ports\":\"Ether2-Ether3\",\"PoE out\":\"Passive PoE up to 57V\",\"Low voltage PoE-Out current limit\":\"1.2 A\",\"High voltage PoE-Out current limit\":\"0.625 A\",\"Max total out (A)\":\"2.4 A\",\"Total output power\":\"150\",\"10/100/1000 Ethernet ports\":\"3\",\"Number of 1G Ethernet ports with Reverse PoE (PoE-in)\":\"1\",\"Number of 1G Ethernet ports with PoE-out\":\"2\",\"SFP+ ports\":\"3\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"GPERx6\",\"_www_tagline\":\"Cut the cable clutter – extend power and fiber together, anywhere – with a single hybrid cable. At the far end, the GPERx6 splits it all neatly: SFP+ for further long-distance uplinks, PoE-out for powering other switches or access points, and DC outputs for IoT gear or specialized devices.\",\"_hardware_title\":\"GPERx6\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CSS606-1G-2Gi-3S+OUT\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"88E6193X\",\"Operating System\":\"SwOS\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"160 W\",\"Max power consumption without attachments\":\"6 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"42-57 V\",\"PoE-out ports\":\"Ether2-Ether3\",\"PoE out\":\"Passive PoE up to 57V\",\"Low voltage PoE-Out current limit\":\"1.2 A\",\"High voltage PoE-Out current limit\":\"0.625 A\",\"Max total out (A)\":\"2.4 A\",\"Total output power\":\"150\",\"10/100/1000 Ethernet ports\":\"3\",\"Number of 1G Ethernet ports with Reverse PoE (PoE-in)\":\"1\",\"Number of 1G Ethernet ports with PoE-out\":\"2\",\"SFP+ ports\":\"3\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"GPERx6\",\"_www_tagline\":\"Cut the cable clutter – extend power and fiber together, anywhere – with a single hybrid cable. At the far end, the GPERx6 splits it all neatly: SFP+ for further long-distance uplinks, PoE-out for powering other switches or access points, and DC outputs for IoT gear or specialized devices.\",\"_hardware_title\":\"GPERx6\"}",
       "sourceHardwareSlug": "gperx6",
       "sourceWwwCode": "gperx6"
     },
@@ -1051,7 +1051,7 @@
       "name": "CRS112-8G-4S-IN",
       "category": "Switches",
       "discontinued": 1,
-      "specsJson": "{\"Product code\":\"CRS112-8G-4S-IN\",\"Suggested price\":\"$153.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA8511\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"400 MHz\",\"Switch chip model\":\"QCA8511-AL1C\",\"Dimensions\":\"200x143x44mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-57 V\",\"Max power consumption\":\"10 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-57 V\",\"10/100/1000 Ethernet ports\":\"8\",\"SFP ports\":\"4\",\"Serial console port\":\"RJ45\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"_www_title\":\"CRS112-8G-4S-IN\",\"_www_tagline\":\"8x Gigabit Ethernet Smart Switch, 4x SFP cages, 400MHz CPU, 128MB RAM, desktop case, RouterOS L5\",\"_hardware_title\":\"CRS112-8G-4S-IN\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS112-8G-4S-IN\",\"Suggested price\":\"$153.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA8511\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"400 MHz\",\"Switch chip model\":\"QCA8511-AL1C\",\"Dimensions\":\"200x143x44mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"10-57 V\",\"Max power consumption\":\"10 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-57 V\",\"10/100/1000 Ethernet ports\":\"8\",\"SFP ports\":\"4\",\"Serial console port\":\"RJ45\",\"Current Monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"_www_title\":\"CRS112-8G-4S-IN\",\"_www_tagline\":\"8x Gigabit Ethernet Smart Switch, 4x SFP cages, 400MHz CPU, 128MB RAM, desktop case, RouterOS L5\",\"_hardware_title\":\"CRS112-8G-4S-IN\"}",
       "sourceHardwareSlug": "crs112-8g-4s-in",
       "sourceWwwCode": "CRS112-8G-4S-IN"
     },
@@ -1141,7 +1141,7 @@
       "name": "FTC21",
       "category": "Accessories",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"FTC21\",\"Suggested price\":\"$59.00\",\"Switch chip model\":\"88E6341\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"24-57 V\",\"Max power consumption\":\"4 W\",\"Max power consumption without attachments\":\"3 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"24-57 V\",\"10/100/1000 Ethernet ports\":\"2\",\"SFP ports\":\"1 (2.5G supported)\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"55\",\"_www_title\":\"FTC21\",\"_www_tagline\":\"A weatherproof IP55 Fiber-to-Copper converter with smart management capabilities for your fiber and Ethernet setups.\",\"_hardware_title\":\"FTC21\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"FTC21\",\"Suggested price\":\"$59.00\",\"Switch chip model\":\"88E6341\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"24-57 V\",\"Max power consumption\":\"4 W\",\"Max power consumption without attachments\":\"3 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"24-57 V\",\"10/100/1000 Ethernet ports\":\"2\",\"SFP ports\":\"1 (2.5G supported)\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"55\",\"_www_title\":\"FTC21\",\"_www_tagline\":\"A weatherproof IP55 Fiber-to-Copper converter with smart management capabilities for your fiber and Ethernet setups.\",\"_hardware_title\":\"FTC21\"}",
       "sourceHardwareSlug": "ftc21",
       "sourceWwwCode": "ftc21"
     },
@@ -1191,7 +1191,7 @@
       "name": "GPeRx4",
       "category": "Accessories",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"GPeRx4\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"_hardware_title\":\"GPeRx4\"}",
       "sourceHardwareSlug": "gperx4",
       "sourceWwwCode": null
     },
@@ -1281,7 +1281,7 @@
       "name": "LHG Lite60",
       "category": "60 GHz products",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"LHG Lite60\",\"_non_default_ips\":[\"192.168.88.0\"],\"_fcc_id\":[\"TV7LHG60AD\"],\"_ic\":[\"7442A-LHG60AD\"]}",
+      "specsJson": "{\"_hardware_title\":\"LHG Lite60\",\"_fcc_id\":[\"TV7LHG60AD\"],\"_ic\":[\"7442A-LHG60AD\"]}",
       "sourceHardwareSlug": "lhg-lite60",
       "sourceWwwCode": null
     },
@@ -1401,7 +1401,7 @@
       "name": "MQS",
       "category": "Accessories",
       "discontinued": 1,
-      "specsJson": "{\"Product code\":\"RBMQS\",\"Suggested price\":\"$30.00\",\"Frequency\":\"2.4 GHz 802.11b/g/n\",\"Wi-Fi generation\":\"Wi-Fi 4\",\"Number of DC inputs\":\"2 (PoE-IN, MicroUSB)\",\"MicroUSB input Voltage\":\"5 V\",\"Input voltage\":\"Passive PoE, 5 - 30 V\",\"Max power consumption\":\"7 W\",\"Max power consumption without attachments\":\"1 W\",\"Tested ambient temperature\":\"-20°C .. +70°C\",\"Output Voltage\":\"Passive PoE, 12 V 400 mA (when USB 5 V input is used)\",\"_www_title\":\"MQS\",\"_www_tagline\":\"Mobile Quick Setup - system administrator’s best friend\",\"_hardware_title\":\"MQS\",\"_non_default_ips\":[\"192.168.88.3\"],\"_fcc_id\":[\"TV7MQS\"]}",
+      "specsJson": "{\"Product code\":\"RBMQS\",\"Suggested price\":\"$30.00\",\"Frequency\":\"2.4 GHz 802.11b/g/n\",\"Wi-Fi generation\":\"Wi-Fi 4\",\"Number of DC inputs\":\"2 (PoE-IN, MicroUSB)\",\"MicroUSB input Voltage\":\"5 V\",\"Input voltage\":\"Passive PoE, 5 - 30 V\",\"Max power consumption\":\"7 W\",\"Max power consumption without attachments\":\"1 W\",\"Tested ambient temperature\":\"-20°C .. +70°C\",\"Output Voltage\":\"Passive PoE, 12 V 400 mA (when USB 5 V input is used)\",\"_www_title\":\"MQS\",\"_www_tagline\":\"Mobile Quick Setup - system administrator’s best friend\",\"_hardware_title\":\"MQS\",\"_fcc_id\":[\"TV7MQS\"]}",
       "sourceHardwareSlug": "mqs",
       "sourceWwwCode": "mqs"
     },
@@ -1431,7 +1431,7 @@
       "name": "nRAY series",
       "category": "60 GHz products",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"nRAY series\",\"_non_default_ips\":[\"192.168.88.2\",\"192.168.88.3\"]}",
+      "specsJson": "{\"_hardware_title\":\"nRAY series\"}",
       "sourceHardwareSlug": "nray-series",
       "sourceWwwCode": null
     },
@@ -1741,7 +1741,7 @@
       "name": "wAP 60G series",
       "category": "60 GHz products",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"wAP 60G series\",\"_non_default_ips\":[\"192.168.88.2\"],\"_fcc_id\":[\"TV7WAPG60AD\",\"TV7WAPG60ADM\"]}",
+      "specsJson": "{\"_hardware_title\":\"wAP 60G series\",\"_fcc_id\":[\"TV7WAPG60AD\",\"TV7WAPG60ADM\"]}",
       "sourceHardwareSlug": "wap-60g-series",
       "sourceWwwCode": null
     },
@@ -1811,7 +1811,7 @@
       "name": "Wireless Wire Cube",
       "category": "60 GHz products",
       "discontinued": null,
-      "specsJson": "{\"_hardware_title\":\"Wireless Wire Cube\",\"_non_default_ips\":[\"192.168.88.2\",\"192.168.88.3\"],\"_fcc_id\":[\"TV7CB5A60\"]}",
+      "specsJson": "{\"_hardware_title\":\"Wireless Wire Cube\",\"_fcc_id\":[\"TV7CB5A60\"]}",
       "sourceHardwareSlug": "wireless-wire-cube",
       "sourceWwwCode": null
     },
@@ -1821,7 +1821,7 @@
       "name": "Wireless Wire Dish",
       "category": "60 GHz products",
       "discontinued": 1,
-      "specsJson": "{\"Product code\":\"RBLHGG-60adkit\",\"Suggested price\":\"$298.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"448-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Dimensions\":\"Ø 391 x 222 mm\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"5 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP55\",\"_www_title\":\"Wireless Wire Dish\",\"_www_tagline\":\"2 Gb/s aggregate link up to 1500m without cables!\",\"_hardware_title\":\"Wireless Wire Dish\",\"_non_default_ips\":[\"192.168.88.2\",\"192.168.88.3\"]}",
+      "specsJson": "{\"Product code\":\"RBLHGG-60adkit\",\"Suggested price\":\"$298.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"448-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Dimensions\":\"Ø 391 x 222 mm\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"5 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP55\",\"_www_title\":\"Wireless Wire Dish\",\"_www_tagline\":\"2 Gb/s aggregate link up to 1500m without cables!\",\"_hardware_title\":\"Wireless Wire Dish\"}",
       "sourceHardwareSlug": "wireless-wire-dish",
       "sourceWwwCode": "wireless_wire_dish"
     },
@@ -2121,7 +2121,7 @@
       "name": "netFiber 9",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS310-1G-5S-4S+OUT\",\"Suggested price\":\"$249.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"17 W\",\"Max power consumption without attachments\":\"10 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP ports\":\"5\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netFiber 9\",\"_www_tagline\":\"A remarkable outdoor switch for setting up an optical 10G network that can \\r\\neven perform some light routing. The spiritual successor to the beloved \\r\\nFiberBox. Gigabit Ethernet, SFP/SFP+, PoE.\",\"_hardware_title\":\"netFiber 9\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS310-1G-5S-4S+OUT\",\"Suggested price\":\"$249.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"17 W\",\"Max power consumption without attachments\":\"10 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP ports\":\"5\",\"SFP+ ports\":\"4\",\"Serial console port\":\"RJ45\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netFiber 9\",\"_www_tagline\":\"A remarkable outdoor switch for setting up an optical 10G network that can \\r\\neven perform some light routing. The spiritual successor to the beloved \\r\\nFiberBox. Gigabit Ethernet, SFP/SFP+, PoE.\",\"_hardware_title\":\"netFiber 9\"}",
       "sourceHardwareSlug": "netfiber-9",
       "sourceWwwCode": "netfiber_9"
     },
@@ -2151,7 +2151,7 @@
       "name": "netPower 15FR",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS318-1Fi-15Fr-2S-OUT\",\"Suggested price\":\"$169.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX224S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX224S\",\"Dimensions\":\"304 x 212 x 71 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"16 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"29 W\",\"Max power consumption without attachments\":\"10 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V (recommended 36-57V)\",\"PoE-out ports\":\"Ether15\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"0.75 A\",\"High voltage PoE-Out current limit\":\"0.5 A\",\"Max total out (A)\":\"0.75 A\",\"10/100 Ethernet ports\":\"16\",\"SFP ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netPower 15FR\",\"_www_tagline\":\"An outdoor 18 port switch with 15 reverse PoE ports and SFP. Cut costs, not speed – choose GPEN over GPON!\",\"_hardware_title\":\"netPower 15FR\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS318-1Fi-15Fr-2S-OUT\",\"Suggested price\":\"$169.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX224S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX224S\",\"Dimensions\":\"304 x 212 x 71 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"16 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"18-57 V\",\"Max power consumption\":\"29 W\",\"Max power consumption without attachments\":\"10 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V (recommended 36-57V)\",\"PoE-out ports\":\"Ether15\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"0.75 A\",\"High voltage PoE-Out current limit\":\"0.5 A\",\"Max total out (A)\":\"0.75 A\",\"10/100 Ethernet ports\":\"16\",\"SFP ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netPower 15FR\",\"_www_tagline\":\"An outdoor 18 port switch with 15 reverse PoE ports and SFP. Cut costs, not speed – choose GPEN over GPON!\",\"_hardware_title\":\"netPower 15FR\"}",
       "sourceHardwareSlug": "netpower-15fr",
       "sourceWwwCode": "crs318_1fi_15fr_2s_out"
     },
@@ -2161,7 +2161,7 @@
       "name": "netPower 16P",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS318-16P-2S+OUT\",\"Suggested price\":\"$279.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"Dimensions\":\"303 x 212 x 78 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack)\",\"DC jack input Voltage\":\"18-30 V / 48-57 V\",\"Max power consumption\":\"316 W\",\"Max power consumption without attachments\":\"16 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether16\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1.1 A\",\"High voltage PoE-Out current limit\":\"0.6 A\",\"Max total out (A)\":\"2.8A (18V-30V) & 1.4A (48V-57V) x2\",\"10/100/1000 Ethernet ports\":\"16\",\"Number of 1G Ethernet ports with PoE-out\":\"16\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netPower 16P\",\"_www_tagline\":\"An outdoor 18 port switch with 16 Gigabit PoE-out ports and 2 SFP+. Power all your access points anywhere!\",\"_hardware_title\":\"netPower 16P\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CRS318-16P-2S+OUT\",\"Suggested price\":\"$279.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"98DX226S\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"Switch chip model\":\"98DX226S\",\"Dimensions\":\"303 x 212 x 78 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS / SwitchOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack)\",\"DC jack input Voltage\":\"18-30 V / 48-57 V\",\"Max power consumption\":\"316 W\",\"Max power consumption without attachments\":\"16 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether16\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1.1 A\",\"High voltage PoE-Out current limit\":\"0.6 A\",\"Max total out (A)\":\"2.8A (18V-30V) & 1.4A (48V-57V) x2\",\"10/100/1000 Ethernet ports\":\"16\",\"Number of 1G Ethernet ports with PoE-out\":\"16\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netPower 16P\",\"_www_tagline\":\"An outdoor 18 port switch with 16 Gigabit PoE-out ports and 2 SFP+. Power all your access points anywhere!\",\"_hardware_title\":\"netPower 16P\"}",
       "sourceHardwareSlug": "netpower-16p",
       "sourceWwwCode": "netpower_16p"
     },
@@ -2171,7 +2171,7 @@
       "name": "netPower Lite 7R",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS610-1Gi-7R-2S+OUT\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"88E6193X\",\"Dimensions\":\"303.5 x 211.9 x 71.3/72.3 (left/right) mm\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"12-57 V\",\"2-pin terminal input Voltage\":\"12-57 V\",\"Max power consumption\":\"29 W\",\"Max power consumption without attachments\":\"7 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"PoE-out ports\":\"Ether8\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"600 mA\",\"High voltage PoE-Out current limit\":\"450 mA\",\"Max total out (A)\":\"600 mA\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with Reverse PoE (PoE-in)\":\"7\",\"Number of 1G Ethernet ports with PoE-out\":\"1\",\"SFP+ ports\":\"2\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netPower Lite 7R\",\"_www_tagline\":\"An outdoor reverse PoE switch with Gigabit Ethernet and 10G SFP+ ports.\",\"_hardware_title\":\"netPower Lite 7R\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CSS610-1Gi-7R-2S+OUT\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"88E6193X\",\"Dimensions\":\"303.5 x 211.9 x 71.3/72.3 (left/right) mm\",\"Operating System\":\"SwitchOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"12-57 V\",\"2-pin terminal input Voltage\":\"12-57 V\",\"Max power consumption\":\"29 W\",\"Max power consumption without attachments\":\"7 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"PoE-out ports\":\"Ether8\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"600 mA\",\"High voltage PoE-Out current limit\":\"450 mA\",\"Max total out (A)\":\"600 mA\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with Reverse PoE (PoE-in)\":\"7\",\"Number of 1G Ethernet ports with PoE-out\":\"1\",\"SFP+ ports\":\"2\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"netPower Lite 7R\",\"_www_tagline\":\"An outdoor reverse PoE switch with Gigabit Ethernet and 10G SFP+ ports.\",\"_hardware_title\":\"netPower Lite 7R\"}",
       "sourceHardwareSlug": "netpower-lite-7r",
       "sourceWwwCode": "netpower_lite_7r"
     },
@@ -2181,7 +2181,7 @@
       "name": "netPower Lite 8P",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS610-8P-2S+OUT\",\"Suggested price\":\"$199.00\",\"Switch chip model\":\"88E6193\",\"Operating System\":\"SwOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (2-pin terminal)\",\"2-pin terminal input Voltage\":\"24-57 V (Battery 22-30 V)\",\"Max power consumption\":\"208 W\",\"Max power consumption without attachments\":\"9 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether8\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1.0 A\",\"High voltage PoE-Out current limit\":\"0.64 A\",\"Total output power\":\"120\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"54\",\"_www_title\":\"netPower Lite 8P\",\"_www_tagline\":\"Low-cost. Tough. And always ON! Compact PoE switch with built-in UPS and smart battery charger – because your CCTV cameras and access points deserve true off-the-grid resilience.\",\"_hardware_title\":\"netPower Lite 8P\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CSS610-8P-2S+OUT\",\"Suggested price\":\"$199.00\",\"Switch chip model\":\"88E6193\",\"Operating System\":\"SwOS Lite\",\"Storage size\":\"64 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (2-pin terminal)\",\"2-pin terminal input Voltage\":\"24-57 V (Battery 22-30 V)\",\"Max power consumption\":\"208 W\",\"Max power consumption without attachments\":\"9 W\",\"Cooling type\":\"Passive\",\"PoE-out ports\":\"Ether1-Ether8\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"1.0 A\",\"High voltage PoE-Out current limit\":\"0.64 A\",\"Total output power\":\"120\",\"10/100/1000 Ethernet ports\":\"8\",\"Number of 1G Ethernet ports with PoE-out\":\"8\",\"SFP+ ports\":\"2\",\"CPU temperature monitor\":\"Yes\",\"Current Monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"54\",\"_www_title\":\"netPower Lite 8P\",\"_www_tagline\":\"Low-cost. Tough. And always ON! Compact PoE switch with built-in UPS and smart battery charger – because your CCTV cameras and access points deserve true off-the-grid resilience.\",\"_hardware_title\":\"netPower Lite 8P\"}",
       "sourceHardwareSlug": "netpower-lite-8p",
       "sourceWwwCode": "netpower_lite_ups"
     },
@@ -2251,7 +2251,7 @@
       "name": "RB260GS",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS106-5G-1S\",\"Suggested price\":\"$39.95\",\"Switch chip model\":\"QCA8337\",\"Dimensions\":\"113x139x28mm\",\"Operating System\":\"MikroTik SwOS\",\"Storage size\":\"128 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"11-30 V\",\"Max power consumption\":\"5 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"11-30 V\",\"10/100/1000 Ethernet ports\":\"5\",\"SFP DDMI\":\"Yes\",\"SFP ports\":\"1\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"RB260GS\",\"_www_tagline\":\"5x Gigabit Ethernet Smart Switch,\\r\\nSFP cage, \\r\\nplastic case,\\r\\nSwOS\",\"_hardware_title\":\"RB260-series\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CSS106-5G-1S\",\"Suggested price\":\"$39.95\",\"Switch chip model\":\"QCA8337\",\"Dimensions\":\"113x139x28mm\",\"Operating System\":\"MikroTik SwOS\",\"Storage size\":\"128 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"11-30 V\",\"Max power consumption\":\"5 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"11-30 V\",\"10/100/1000 Ethernet ports\":\"5\",\"SFP DDMI\":\"Yes\",\"SFP ports\":\"1\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"RB260GS\",\"_www_tagline\":\"5x Gigabit Ethernet Smart Switch,\\r\\nSFP cage, \\r\\nplastic case,\\r\\nSwOS\",\"_hardware_title\":\"RB260-series\"}",
       "sourceHardwareSlug": "rb260-series",
       "sourceWwwCode": "RB260GS"
     },
@@ -2261,7 +2261,7 @@
       "name": "RB260GSP",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CSS106-1G-4P-1S\",\"Suggested price\":\"$55.95\",\"Switch chip model\":\"QCA8337\",\"Dimensions\":\"113x139x28mm\",\"Operating System\":\"MikroTik SwOS\",\"Storage size\":\"128 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"11-30 V\",\"Max power consumption\":\"53 W\",\"Max power consumption without attachments\":\"5 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"11-30 V\",\"PoE-out ports\":\"Ether2-Ether5\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"1 A\",\"Max total out (A)\":\"2 A\",\"10/100/1000 Ethernet ports\":\"5\",\"SFP DDMI\":\"Yes\",\"SFP ports\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"RB260GSP\",\"_www_tagline\":\"5x Gigabit PoE out Ethernet Smart Switch,\\r\\nSFP cage, \\r\\nplastic case,\\r\\nSwOS\",\"_hardware_title\":\"RB260-series\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"CSS106-1G-4P-1S\",\"Suggested price\":\"$55.95\",\"Switch chip model\":\"QCA8337\",\"Dimensions\":\"113x139x28mm\",\"Operating System\":\"MikroTik SwOS\",\"Storage size\":\"128 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"11-30 V\",\"Max power consumption\":\"53 W\",\"Max power consumption without attachments\":\"5 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"11-30 V\",\"PoE-out ports\":\"Ether2-Ether5\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"1 A\",\"Max total out (A)\":\"2 A\",\"10/100/1000 Ethernet ports\":\"5\",\"SFP DDMI\":\"Yes\",\"SFP ports\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"IP20\",\"_www_title\":\"RB260GSP\",\"_www_tagline\":\"5x Gigabit PoE out Ethernet Smart Switch,\\r\\nSFP cage, \\r\\nplastic case,\\r\\nSwOS\",\"_hardware_title\":\"RB260-series\"}",
       "sourceHardwareSlug": "rb260-series",
       "sourceWwwCode": "RB260GSP"
     },
@@ -2391,7 +2391,7 @@
       "name": "ROSE Data server (RDS)",
       "category": "Ethernet routers",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"RDS2216-2XG-4S+4XS-2XQ\",\"Suggested price\":\"$1,950.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL73400\",\"CPU core count\":\"16\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"16\",\"Switch chip model\":\"98DX4310\",\"Dimensions\":\"476 x 443 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7 (Special ROSE edition)\",\"Size of RAM\":\"32 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 50°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"286 W\",\"Max power consumption without attachments\":\"105 W\",\"Cooling type\":\"10 fans\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2\",\"SFP+ ports\":\"4\",\"Number of 25G SFP28 ports\":\"4\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"2\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB 3.0 type A\",\"Max USB current (A)\":\"1\",\"Number of M.2 slots\":\"2\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"ROSE Data server (RDS)\",\"_www_tagline\":\"RDS is a high-performance, all-in-one storage, 100G networking, and container\\r\\nplatform designed for enterprise environments.  Featuring 20 U.2 NVMe storage slots and a special RouterOS Edition for Storage & Compute (ROSE).\",\"_hardware_title\":\"ROSE Data Server\",\"_non_default_ips\":[\"192.168.88.2\"]}",
+      "specsJson": "{\"Product code\":\"RDS2216-2XG-4S+4XS-2XQ\",\"Suggested price\":\"$1,950.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"AL73400\",\"CPU core count\":\"16\",\"CPU nominal frequency\":\"2000 MHz\",\"CPU Threads count\":\"16\",\"Switch chip model\":\"98DX4310\",\"Dimensions\":\"476 x 443 x 44 mm\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7 (Special ROSE edition)\",\"Size of RAM\":\"32 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 50°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"286 W\",\"Max power consumption without attachments\":\"105 W\",\"Cooling type\":\"10 fans\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"2\",\"SFP+ ports\":\"4\",\"Number of 25G SFP28 ports\":\"4\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"2\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB 3.0 type A\",\"Max USB current (A)\":\"1\",\"Number of M.2 slots\":\"2\",\"CPU temperature monitor\":\"Yes\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"ROSE Data server (RDS)\",\"_www_tagline\":\"RDS is a high-performance, all-in-one storage, 100G networking, and container\\r\\nplatform designed for enterprise environments.  Featuring 20 U.2 NVMe storage slots and a special RouterOS Edition for Storage & Compute (ROSE).\",\"_hardware_title\":\"ROSE Data Server\"}",
       "sourceHardwareSlug": "rose-data-server",
       "sourceWwwCode": "rds2216"
     },
@@ -2558,34 +2558,9 @@
   ],
   "aliases": [
     {
-      "alias": "868_omni_antenna",
-      "rosettaDeviceId": "wap-lr8g-kit",
-      "source": "hardware-link"
-    },
-    {
-      "alias": "915_omni_antenna",
-      "rosettaDeviceId": "wap-lr9g-kit",
-      "source": "hardware-link"
-    },
-    {
       "alias": "a42g-hbep",
       "rosettaDeviceId": "hap-be-lite",
       "source": "matrix.csv"
-    },
-    {
-      "alias": "acgpsa",
-      "rosettaDeviceId": "ltap-mini",
-      "source": "hardware-link"
-    },
-    {
-      "alias": "acrpsma",
-      "rosettaDeviceId": "netbox-5-ax",
-      "source": "hardware-link"
-    },
-    {
-      "alias": "acsmaufl",
-      "rosettaDeviceId": "ltap-mini",
-      "source": "hardware-link"
     },
     {
       "alias": "apa_1",
@@ -3713,11 +3688,6 @@
       "source": "www-declared-code"
     },
     {
-      "alias": "dinrail_pro",
-      "rosettaDeviceId": "ltap-mini",
-      "source": "hardware-link"
-    },
-    {
       "alias": "disc_lite5_ac",
       "rosettaDeviceId": "hw-disc-lite5-ac",
       "source": "hardware-link"
@@ -3886,11 +3856,6 @@
       "alias": "gper",
       "rosettaDeviceId": "hw-gper",
       "source": "hardware-slug"
-    },
-    {
-      "alias": "gper_ip67_case",
-      "rosettaDeviceId": "hw-gper",
-      "source": "hardware-link"
     },
     {
       "alias": "gperx4",
@@ -4358,11 +4323,6 @@
       "source": "hardware-link"
     },
     {
-      "alias": "ldf_5_ac",
-      "rosettaDeviceId": "ldf-5",
-      "source": "hardware-link"
-    },
-    {
       "alias": "ldf_lte6_kit",
       "rosettaDeviceId": "hw-ldf-lte6-kit",
       "source": "hardware-link"
@@ -4431,16 +4391,6 @@
       "alias": "lhg xl hp5",
       "rosettaDeviceId": "lhg-xl-hp5",
       "source": "matrix.csv"
-    },
-    {
-      "alias": "lhg_2",
-      "rosettaDeviceId": "lhg-5",
-      "source": "hardware-link"
-    },
-    {
-      "alias": "lhg_5_ac",
-      "rosettaDeviceId": "lhg-5",
-      "source": "hardware-link"
     },
     {
       "alias": "lhg_5_ax",
@@ -4578,11 +4528,6 @@
       "source": "matrix.csv"
     },
     {
-      "alias": "lora_antenna_kit",
-      "rosettaDeviceId": "hw-ltap-lr8-lte-kit",
-      "source": "hardware-link"
-    },
-    {
       "alias": "lr8g",
       "rosettaDeviceId": "hw-ltap-lr8g-lte6-kit",
       "source": "www-declared-code"
@@ -4615,11 +4560,6 @@
     {
       "alias": "ltap_mini",
       "rosettaDeviceId": "ltap-mini",
-      "source": "hardware-link"
-    },
-    {
-      "alias": "ltap_mini_lte_kit",
-      "rosettaDeviceId": "ltap-mini-lte-kit",
       "source": "hardware-link"
     },
     {
@@ -4681,11 +4621,6 @@
       "alias": "ma53ug+hbeh",
       "rosettaDeviceId": "hap-be3-media",
       "source": "matrix.csv"
-    },
-    {
-      "alias": "mant_lte_5o",
-      "rosettaDeviceId": "hw-chateau-lte12",
-      "source": "hardware-link"
     },
     {
       "alias": "mant-series",
@@ -4946,11 +4881,6 @@
       "alias": "pwr-line-pro",
       "rosettaDeviceId": "hw-pwr-line-pro",
       "source": "hardware-slug"
-    },
-    {
-      "alias": "qm_x",
-      "rosettaDeviceId": "sxtsq-5-ax",
-      "source": "hardware-link"
     },
     {
       "alias": "qrt 5",
@@ -5568,11 +5498,6 @@
       "source": "hardware-slug"
     },
     {
-      "alias": "rbgesp",
-      "rosettaDeviceId": "hw-intercell",
-      "source": "hardware-link"
-    },
-    {
       "alias": "rbgroove52hpn",
       "rosettaDeviceId": "groove-52",
       "source": "www-declared-code"
@@ -5621,11 +5546,6 @@
       "alias": "rbldfr&r11e-lte6",
       "rosettaDeviceId": "hw-ldf-lte6-kit",
       "source": "hardware-table"
-    },
-    {
-      "alias": "rblhg-5hpnd",
-      "rosettaDeviceId": "lhg-5",
-      "source": "hardware-link"
     },
     {
       "alias": "rblhg-5hpnd-xl",
@@ -5903,11 +5823,6 @@
       "source": "hardware-table"
     },
     {
-      "alias": "rbwmk",
-      "rosettaDeviceId": "hw-rb2011il-in",
-      "source": "hardware-link"
-    },
-    {
       "alias": "rbwsap-5hac2nd",
       "rosettaDeviceId": "hw-wsap-ac-lite",
       "source": "www-declared-code"
@@ -5946,11 +5861,6 @@
       "alias": "rose-data-server",
       "rosettaDeviceId": "rose-data-server-rds",
       "source": "hardware-slug"
-    },
-    {
-      "alias": "s-31dlc20d-181",
-      "rosettaDeviceId": "hw-intercell",
-      "source": "hardware-link"
     },
     {
       "alias": "s-3553lc20d",
@@ -6148,11 +6058,6 @@
       "source": "hardware-slug"
     },
     {
-      "alias": "tof_2400_8v_4",
-      "rosettaDeviceId": "wap-lr2-kit",
-      "source": "hardware-link"
-    },
-    {
       "alias": "up1302c_12",
       "rosettaDeviceId": "hw-up1302c-12",
       "source": "hardware-link"
@@ -6245,11 +6150,6 @@
     {
       "alias": "wap_ax_lte7",
       "rosettaDeviceId": "wap-ax-lte7-kit",
-      "source": "hardware-link"
-    },
-    {
-      "alias": "wap_lte_kit",
-      "rosettaDeviceId": "wap-lte-kit",
       "source": "hardware-link"
     },
     {
@@ -6572,62 +6472,6 @@
   ],
   "aliasCollisions": [
     {
-      "alias": "acgpsa",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "ltap-mini-lte-kit",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "acrpsma",
-      "kept": "netbox-5-ax",
-      "keptSource": "hardware-link",
-      "dropped": "hw-netbox-5",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "acsmaufl",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "ltap-mini-lte-kit",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "acsmaufl",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "wap-lr2-kit",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "acsmaufl",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "hw-r11e-lr8",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "acsmaufl",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "hw-r11e-lr8g",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "acsmaufl",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "hw-r11e-lr9",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "acsmaufl",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "hw-r11e-lr9g",
-      "droppedSource": "hardware-link"
-    },
-    {
       "alias": "atlgm",
       "kept": "atl-5g-r16",
       "keptSource": "matrix.csv",
@@ -6710,13 +6554,6 @@
       "keptSource": "matrix.csv",
       "dropped": "hw-chateau-5g-r16",
       "droppedSource": "www-declared-code"
-    },
-    {
-      "alias": "dinrail_pro",
-      "kept": "ltap-mini",
-      "keptSource": "hardware-link",
-      "dropped": "ltap-mini-lte-kit",
-      "droppedSource": "hardware-link"
     },
     {
       "alias": "ec200a-eu",
@@ -6845,46 +6682,11 @@
       "droppedSource": "www-declared-code"
     },
     {
-      "alias": "lora_antenna_kit",
-      "kept": "hw-ltap-lr8-lte-kit",
-      "keptSource": "hardware-link",
-      "dropped": "hw-wap-lr9-kit",
-      "droppedSource": "hardware-link"
-    },
-    {
       "alias": "ltap-2hnd",
       "kept": "ltap-lte7-kit",
       "keptSource": "matrix.csv",
       "dropped": "hw-ltap-lr8g-lte6-kit",
       "droppedSource": "www-declared-code"
-    },
-    {
-      "alias": "mant_lte_5o",
-      "kept": "hw-chateau-lte12",
-      "keptSource": "hardware-link",
-      "dropped": "hw-chateau-lte6",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "qm_x",
-      "kept": "sxtsq-5-ax",
-      "keptSource": "hardware-link",
-      "dropped": "hw-cube-60g-ac",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "qm_x",
-      "kept": "sxtsq-5-ax",
-      "keptSource": "hardware-link",
-      "dropped": "hw-cube-lite60",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "qm_x",
-      "kept": "sxtsq-5-ax",
-      "keptSource": "hardware-link",
-      "dropped": "hw-wireless-wire-cube",
-      "droppedSource": "hardware-link"
     },
     {
       "alias": "r11e-lr8g",
@@ -7095,20 +6897,6 @@
       "keptSource": "matrix.csv",
       "dropped": "wap-lr2-kit",
       "droppedSource": "matrix.csv"
-    },
-    {
-      "alias": "rbwmk",
-      "kept": "hw-rb2011il-in",
-      "keptSource": "hardware-link",
-      "dropped": "hw-rb2011ils-in",
-      "droppedSource": "hardware-link"
-    },
-    {
-      "alias": "rbwmk",
-      "kept": "hw-rb2011il-in",
-      "keptSource": "hardware-link",
-      "dropped": "hw-rb2011uias-in",
-      "droppedSource": "hardware-link"
     },
     {
       "alias": "rg502q-ea",

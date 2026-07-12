@@ -430,6 +430,86 @@ describe("buildCatalog — lands nonDefaultIps and FCC/IC regulatory ids into sp
   });
 });
 
+// ── INVARIANT: cross-sell hardware-link alias filter (B-0017 item 1) ───────────
+
+describe("buildCatalog — drops cross-sell hardware-link aliases that name a dropped www product", () => {
+  test("a foreign accessory link (qm_x) does NOT survive as the device's alias, but its own code does", () => {
+    // sxtsq-5-ax page links its own product AND the QM-X bracket. QM-X's identity disagrees, so it
+    // attaches to nothing (dropped) — and must not leave `qm_x` as an alias of the sxtsq row.
+    const page = mkPage({ slug: "sxtsq-5-ax", title: "SXTsq 5 ax", productLinks: ["sxtsq_5_ax", "qm_x"], cause: "unmatched" });
+    const www = [mkWww("sxtsq_5_ax", { title: "SXTsq 5 ax" }), mkWww("qm_x", { title: "QM-X mount" })];
+
+    const result = buildCatalog([], new Map(), [page], www);
+    expect(result.dropLedger.some((d) => d.kind === "www-product" && d.id === "qm_x")).toBe(true);
+    const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a]));
+    expect(byAlias.has("qm_x")).toBe(false); // filtered
+    expect(byAlias.get("sxtsq_5_ax")?.rosettaDeviceId).toBe("hw-sxtsq-5-ax"); // own code kept
+    expect(checkInvariants(result, www)).toEqual([]);
+  });
+
+  test("a standalone series page keeps its member/kit link even when that www product is dropped (exemption)", () => {
+    // wap-60g-series legitimately lists wap_60g as a member; wap_60g's identity doesn't agree with
+    // the series page (so it's dropped), but the series-row exemption keeps the alias.
+    const page = mkPage({ slug: "wap-60g-series", title: "wAP 60G series", productLinks: ["wap_60g"], cause: "unmatched" });
+    const www = [mkWww("wap_60g", { title: "wAP 60G" })];
+
+    const result = buildCatalog([], new Map(), [page], www);
+    expect(result.dropLedger.some((d) => d.id === "wap_60g")).toBe(true);
+    const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a]));
+    expect(byAlias.get("wap_60g")).toMatchObject({ rosettaDeviceId: "hw-wap-60g-series", source: "hardware-link" });
+    expect(checkInvariants(result, www)).toEqual([]);
+  });
+
+  test("checkInvariants #8 flags a cross-sell alias on a non-series row, but exempts a series row", () => {
+    const base: BuildResult = {
+      catalogRows: [{ rosettaDeviceId: "sxtsq-5-ax", deviceProductName: null, name: "SXTsq 5 ax", category: null, discontinued: null, specsJson: null, sourceHardwareSlug: "sxtsq-5-ax", sourceWwwCode: null }],
+      aliasRows: [{ alias: "qm_x", rosettaDeviceId: "sxtsq-5-ax", source: "hardware-link" }],
+      unresolvedDevices: [],
+      ambiguousTokens: [],
+      dropLedger: [{ kind: "www-product", id: "qm_x", reason: "x" }],
+      aliasCollisions: [],
+    };
+    expect(checkInvariants(base, []).some((f) => f.includes("cross-sell pollution"))).toBe(true);
+
+    const seriesOwner: BuildResult = {
+      ...base,
+      catalogRows: [{ ...base.catalogRows[0], rosettaDeviceId: "hw-wap-60g-series", sourceHardwareSlug: "wap-60g-series" }],
+      aliasRows: [{ alias: "qm_x", rosettaDeviceId: "hw-wap-60g-series", source: "hardware-link" }],
+    };
+    expect(checkInvariants(seriesOwner, []).some((f) => f.includes("cross-sell"))).toBe(false);
+  });
+});
+
+// ── INVARIANT: _non_default_ips is filtered to genuine deviations (B-0017 item 2) ──
+
+describe("buildCatalog — _non_default_ips filtered to genuine subnet deviations", () => {
+  test("same-subnet 192.168.88.x secondaries are dropped; a real deviation (192.168.188.1) survives", () => {
+    const page = mkPage({ slug: "x", title: "X", productLinks: ["x"], nonDefaultIps: ["192.168.88.2", "192.168.188.1", "192.168.88.0"], cause: "unmatched" });
+    const result = buildCatalog([], new Map(), [page], [mkWww("x", { title: "X" })]);
+    const specs = JSON.parse(result.catalogRows[0].specsJson ?? "{}");
+    expect(specs._non_default_ips).toEqual(["192.168.188.1"]);
+    expect(checkInvariants(result, [mkWww("x", { title: "X" })])).toEqual([]);
+  });
+
+  test("a row whose only non-default IPs are same-subnet secondaries drops the field entirely", () => {
+    const page = mkPage({ slug: "y", title: "Y", productLinks: ["y"], nonDefaultIps: ["192.168.88.2", "192.168.88.3"], cause: "unmatched" });
+    const result = buildCatalog([], new Map(), [page], [mkWww("y", { title: "Y" })]);
+    expect(JSON.parse(result.catalogRows[0].specsJson ?? "{}")._non_default_ips).toBeUndefined();
+  });
+
+  test("checkInvariants #9 flags a same-subnet IP that leaked into a specs blob", () => {
+    const corrupt: BuildResult = {
+      catalogRows: [{ rosettaDeviceId: "z", deviceProductName: null, name: "Z", category: null, discontinued: null, specsJson: JSON.stringify({ _non_default_ips: ["192.168.88.2"] }), sourceHardwareSlug: "z", sourceWwwCode: null }],
+      aliasRows: [],
+      unresolvedDevices: [],
+      ambiguousTokens: [],
+      dropLedger: [],
+      aliasCollisions: [],
+    };
+    expect(checkInvariants(corrupt, []).some((f) => f.includes("default subnet"))).toBe(true);
+  });
+});
+
 // ── compound (kit) declared codes ─────────────────────────────────────────────
 
 describe("buildCatalog — compound (kit) declared codes", () => {
