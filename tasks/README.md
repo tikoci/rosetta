@@ -28,9 +28,6 @@ Do **not** create new `T-*.md` files.
   the body stating the disposition: done, superseded, won't-fix, migrated to an issue, or
   folded into a briefing/umbrella. The frontmatter (`status: done` etc.) is frozen historical
   metadata.
-- `T-0037-npm-prerelease-dist-tag-channel.md` — the **one exception**: still `in-progress`
-  in place, finishing under the old scheme (its release-channel validation was mid-flight
-  when the migration happened). Its PR closes it the old way; the file then moves to `done/`.
 
 Keep the archive: task files are cited by `CHANGELOG.md` entries, briefings, and commit
 messages, and several (e.g. `T-0038`) remain the full spec for the issue that replaced them.
