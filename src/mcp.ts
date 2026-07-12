@@ -332,6 +332,8 @@ Read \`rosetta://schema.sql\` for full DDL. This guide explains relationships, F
 | \`command_versions\` | 1.67M | Junction: which command paths exist in which RouterOS versions. |
 | \`ros_versions\` | 46 | Metadata per extracted RouterOS version (7.9–7.23beta2). |
 | \`devices\` | 144 | MikroTik hardware specs from product matrix CSV. |
+| \`hardware_catalog\` | ~255 | Wider device universe (matrix + accessories/series/legacy) from manual.mikrotik.com/hardware + mikrotik.com/product. |
+| \`device_aliases\` | ~750 | Normalized alias/slug/code → canonical device, for free-form device resolution. |
 | \`device_test_results\` | 2,874 | Ethernet/IPSec benchmark rows from mikrotik.com product pages. |
 | \`changelogs\` | varies | Parsed per-entry changelog lines from MikroTik download server. |
 | \`videos\` | 518 | MikroTik YouTube video metadata. |
@@ -1187,12 +1189,20 @@ server.registerTool(
   {
     description: `Look up MikroTik hardware specs, performance benchmarks, or search for devices matching criteria.
 
-144 products from mikrotik.com (March 2026). Returns hardware specs, official test results,
-block diagram URLs, and pricing.
+Two layers: the RouterOS **product matrix** (devices with full structured specs + test results) plus a
+wider **hardware catalog** (accessories, series, and legacy/discontinued entries) overlaid from
+manual.mikrotik.com/hardware + mikrotik.com/product. Returns hardware specs, official test results,
+block diagram URLs, and pricing. (Use routeros_stats for live corpus counts.)
 
 **How it works:**
-- If query matches a product name or code exactly → returns full specs + test results + block diagram
-- Otherwise → FTS search + optional structured filters → returns matching devices (compact)
+- Exact product name/code → full specs + test results + block diagram
+- **Alias resolution** — old names, product codes, and www/hardware slugs resolve to the canonical
+  device (e.g. "RB750Gr3" → hEX, "cap_ac" → cAP ac). A resolved single device carries a \`hardware\`
+  overlay block (category, discontinued, also_known_as, product/hardware page URLs) — use the
+  \`rosetta_device_id\` in it for a stable, persistable device key; no need to fetch the page URLs.
+- Non-matrix entities (accessories/series/legacy) return in \`catalog\` as labeled thin rows with a
+  \`kind\` field, so an accessory is never mistaken for a router.
+- Otherwise → FTS search + optional structured filters → matching devices (compact)
 - Filters can be used alone (no query) to find devices by capability
 
 **Test results** (from mikrotik.com per-product pages):
@@ -1224,7 +1234,7 @@ Workflow — combine with other tools:
 → routeros_command_tree: check commands available for a feature
 → routeros_current_versions: check latest firmware for the device
 
-Data: 144 products, March 2026 snapshot. Not all MikroTik products ever made — only currently listed products.`,
+Data: RouterOS product matrix + manual.mikrotik.com/hardware overlay (2026 snapshot). See routeros_stats for counts.`,
     inputSchema: {
       query: z
         .string()
@@ -1284,7 +1294,9 @@ Data: 144 products, March 2026 snapshot. Not all MikroTik products ever made —
     };
     const result = searchDevices(query || "", filters, limit);
 
-    if (result.results.length === 0) {
+    // A hard miss only when neither a matrix device NOR a catalog-only entity resolved —
+    // otherwise fall through and serialize `result` (which carries the `catalog` array).
+    if (result.results.length === 0 && (result.catalog?.length ?? 0) === 0) {
       const hints = [
         query ? "Try a shorter or different product name" : null,
         Object.keys(filters).length > 0 ? "Try removing some filters" : null,

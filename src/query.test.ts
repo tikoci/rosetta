@@ -337,6 +337,29 @@ beforeAll(() => {
      NULL, 7, 1, NULL, 1,
      NULL, 1, NULL, 299.00)`);
 
+  // hardware_catalog + device_aliases overlay fixtures (#49). Device ids by insert order:
+  // 1=hAP ax3, 4=Chateau LTE18 ax, 7=hAP ax². Plus catalog-only entities (no device_id).
+  // cspell:ignore uig hpaxd — normalized (lowercase) product-code fragments in alias fixtures below.
+  db.run(`INSERT INTO hardware_catalog
+    (rosetta_device_id, device_id, name, category, discontinued, specs_json, source_hardware_slug, source_www_code)
+    VALUES
+    ('hap-ax3', 1, 'hAP ax3', 'Indoor wireless', 0, '{"Product code":"C53UiG+5HPaxD2HPaxD"}', 'hap-ax3', 'hap_ax3'),
+    ('chateau-lte18', 4, 'Chateau LTE18 ax', 'LTE products', 0, '{"_non_default_ips":["192.168.188.1"]}', 'chateau-lte18', 'chateau_lte18'),
+    ('hap-ax2', 7, 'hAP ax2', 'Indoor wireless', 0, '{}', 'hap-ax2', 'hap_ax2'),
+    ('hw-gper', NULL, 'GPeR', 'Accessories', 0, '{"Product code":"GPeR"}', 'gper', 'gper'),
+    ('hw-wap-60g-series', NULL, 'wAP 60G series', 'Wireless wire', 0, '{}', 'wap-60g-series', NULL),
+    ('hw-zenith-legacy', NULL, 'Zenith Legacy', 'Routers', 1, '{}', 'zenith-legacy', 'zenith_legacy')`);
+
+  db.run(`INSERT INTO device_aliases (alias, rosetta_device_id, source) VALUES
+    ('c53uig+5hpaxd2hpaxd', 'hap-ax3', 'matrix.csv'),
+    ('hap_ax3', 'hap-ax3', 'hardware-link'),
+    ('hap-ax3', 'hap-ax3', 'hardware-slug'),
+    ('chateau lte18 ax', 'chateau-lte18', 'matrix.csv'),
+    ('chateau_lte18', 'chateau-lte18', 'www-declared-code'),
+    ('hap_ax2', 'hap-ax2', 'hardware-link'),
+    ('hap ax2', 'hap-ax2', 'matrix.csv'),
+    ('gper', 'hw-gper', 'hardware-slug')`);
+
   // Device test results fixtures (hAP ax3 = id 1)
   db.run(`INSERT INTO device_test_results
     (device_id, test_type, mode, configuration, packet_size, throughput_kpps, throughput_mbps)
@@ -1312,20 +1335,22 @@ describe("searchDevices", () => {
     expect(res.results[0].product_name).toBe("hAP ax3"); // fixture uses ASCII 3
   });
 
-  test("dash-split LIKE finds hap-ax3 → hAP ax3", () => {
-    // Dash as separator: split → ['hap','ax3'] → LIKE '%hap%' AND '%ax3%'
-    const res = searchDevices("hap-ax3");
+  test("dash-split LIKE finds hap-ac3 → hAP ac³", () => {
+    // Dash as separator: split → ['hap','ac3'] → LIKE '%hap%' AND '%ac3%'.
+    // (hap-ax3 now resolves via the authoritative alias stage; see the overlay describe block.)
+    const res = searchDevices("hap-ac3");
     expect(res.mode).toBe("like");
     expect(res.results).toHaveLength(1);
-    expect(res.results[0].product_name).toBe("hAP ax3");
+    expect(res.results[0].product_name).toBe("hAP ac³");
   });
 
-  test("underscore-split LIKE finds hap_ax3 → hAP ax3", () => {
-    // Underscore-separated slug form
-    const res = searchDevices("hap_ax3");
+  test("underscore-split LIKE finds hap_ac3 → hAP ac³", () => {
+    // Underscore-separated slug form with no device_aliases entry — exercises the LIKE path.
+    // (hap_ax3 now resolves via the authoritative alias stage; see the overlay describe block.)
+    const res = searchDevices("hap_ac3");
     expect(res.mode).toBe("like");
     expect(res.results).toHaveLength(1);
-    expect(res.results[0].product_name).toBe("hAP ax3");
+    expect(res.results[0].product_name).toBe("hAP ac³");
   });
 
   // ── Unicode superscript normalization ──
@@ -1399,6 +1424,115 @@ describe("searchDevices", () => {
     const res = searchDevices("CCR2216");
     expect(res.results).toHaveLength(1);
     expect(res.note).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// hardware_catalog overlay: alias resolution, enrichment, catalog fallback (#49)
+// ---------------------------------------------------------------------------
+describe("searchDevices — hardware overlay (#49)", () => {
+  test("alias stage (hardware-link) resolves a code the matrix name misses", () => {
+    // "hap_ax2" is not the product_name ("hAP ax²") or code — it resolves via device_aliases.
+    const res = searchDevices("hap_ax2");
+    expect(res.mode).toBe("alias");
+    expect(res.matched_alias).toBe("hap_ax2");
+    expect(res.results).toHaveLength(1);
+    expect(res.results[0].product_name).toBe("hAP ax²");
+  });
+
+  test("alias stage (declared code) resolves to the canonical device", () => {
+    const res = searchDevices("chateau_lte18");
+    expect(res.mode).toBe("alias");
+    expect(res.results[0].product_name).toBe("Chateau LTE18 ax");
+  });
+
+  test("enrichment: single result carries a hardware block with reconstructed URLs", () => {
+    const res = searchDevices("chateau_lte18");
+    const h = res.results[0].hardware;
+    expect(h).toBeDefined();
+    expect(h?.rosetta_device_id).toBe("chateau-lte18");
+    expect(h?.category).toBe("LTE products");
+    expect(h?.discontinued).toBe(false);
+    expect(h?.product_page_url).toBe("https://mikrotik.com/product/chateau_lte18");
+    expect(h?.hardware_page_url).toBe("https://manual.mikrotik.com/hardware/chateau-lte18");
+    // genuine subnet deviation surfaced from specs_json (post-#48 filter)
+    expect(h?.non_default_ips).toEqual(["192.168.188.1"]);
+    // note steers away from page-fetching; no bogus MCP arg (the full record is already here)
+    expect(h?.note).toContain("no need to fetch");
+    expect(h?.note).not.toContain("rosetta_device_id=");
+  });
+
+  test("also_known_as excludes canonical name/code and slug/table artifacts", () => {
+    const res = searchDevices("C53UiG+5HPaxD2HPaxD"); // exact → hAP ax3, still enriched
+    const aka = res.results[0].hardware?.also_known_as ?? [];
+    // 'hap_ax3' is a hardware-link name-like alias → kept
+    expect(aka).toContain("hap_ax3");
+    // 'hap-ax3' is a hardware-slug artifact → excluded; canonical code → excluded
+    expect(aka).not.toContain("hap-ax3");
+    expect(aka).not.toContain("c53uig+5hpaxd2hpaxd");
+  });
+
+  test("also_known_as: superscript canonical name does not leak (normalized exclusion)", () => {
+    // hAP ax² has a matrix.csv alias 'hap ax2' == its own normalized name → must be excluded.
+    const res = searchDevices("hap_ax2");
+    const aka = res.results[0].hardware?.also_known_as ?? [];
+    expect(aka).not.toContain("hap ax2");
+    expect(aka).toContain("hap_ax2");
+  });
+
+  test("matched_alias is trimmed, not the raw padded input", () => {
+    const res = searchDevices("  hap_ax2  ");
+    expect(res.mode).toBe("alias");
+    expect(res.matched_alias).toBe("hap_ax2");
+  });
+
+  test("classifier: common-word families are case-sensitive (no prose false-positives)", () => {
+    expect(searchAll("the audience gave a big cheer", 5).classified.device).toBeUndefined();
+    expect(searchAll("Audience LTE6 kit", 5).classified.device).toBe("Audience");
+  });
+
+  test("catalog fallback: accessory surfaces as a labeled thin row, not a device", () => {
+    const res = searchDevices("GPeR");
+    expect(res.results).toHaveLength(0);
+    expect(res.catalog).toHaveLength(1);
+    expect(res.catalog?.[0].kind).toBe("accessory");
+    expect(res.catalog?.[0].rosetta_device_id).toBe("hw-gper");
+    expect(res.catalog?.[0].note).toContain("Not in the RouterOS product matrix");
+  });
+
+  test("catalog kind: standalone -series slug → series", () => {
+    const res = searchDevices("wAP 60G series");
+    expect(res.catalog?.[0].kind).toBe("series");
+  });
+
+  test("catalog kind: discontinued non-accessory → discontinued", () => {
+    const res = searchDevices("Zenith Legacy");
+    expect(res.catalog?.[0].kind).toBe("discontinued");
+  });
+
+  test("pollution guard: a dropped cross-sell code resolves to nothing", () => {
+    // qm_x was a mounting-bracket cross-sell alias dropped at ETL (#48). It must not
+    // resolve to any device (least of all sxtsq-5-ax) via the read path.
+    const res = searchDevices("qm_x");
+    expect(res.results).toHaveLength(0);
+    expect(res.catalog ?? []).toHaveLength(0);
+  });
+
+  test("classifier whole-input probe: a bare alias populates related.devices", () => {
+    // "hap_ax2" is not matched by the device regexes (lowercase) — the searchAll alias
+    // probe resolves it so related.devices still surfaces the device.
+    const resp = searchAll("hap_ax2", 8);
+    expect(resp.classified.device).toBeUndefined();
+    const names = (resp.related.devices ?? []).map((d) => d.product_name);
+    expect(names).toContain("hAP ax²");
+  });
+
+  test("related.devices carries category + discontinued", () => {
+    const resp = searchAll("Chateau", 8);
+    const d = (resp.related.devices ?? [])[0];
+    expect(d).toBeDefined();
+    expect(d).toHaveProperty("category");
+    expect(d).toHaveProperty("discontinued");
   });
 });
 

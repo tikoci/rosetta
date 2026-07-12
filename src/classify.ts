@@ -113,6 +113,16 @@ const DEVICE_PATTERNS: RegExp[] = [
   /\bnetPower[A-Za-z0-9+-]*\b/i,       // netPower 15FR
   /\bnetMetal[A-Za-z0-9+-]*\b/i,       // netMetal 5
   /\bGroove[A-Za-z0-9+-]*\b/i,         // Groove A-52HPn
+  // Catalog-prominent families the model-number regexes miss (B-0019 / #49). Family token
+  // only — searchDevices() disambiguates (e.g. "Chateau" → Chateau LTE12 / 5G ax3).
+  /\bChateau\w*\b/i,                   // Chateau LTE12, Chateau 5G ax3 (not an English word)
+  /\bOmniTIK\w*\b/i,                   // OmniTik 5, OmniTik ac (not an English word)
+  /\bPowerBox\w*\b/i,                  // PowerBox, PowerBox Pro (not an English word)
+  // Common English words → case-sensitive on the product's styled form to avoid prose matches.
+  /\bAudience\w*\b/,                   // Audience, Audience LTE6 kit
+  /\bKNOT\b/,                          // KNOT (IoT gateway)
+  /\bCube\b/,                          // Cube Lite60, Cube 60G
+  /\bDISC\b/,                          // DISC Lite5
 ];
 
 const VERB_TOKENS = new Set([

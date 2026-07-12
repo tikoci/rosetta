@@ -257,6 +257,8 @@ type RelatedDevice = {
   cpu: string | null;
   license_level: number | null;
   product_url: string | null;
+  category: string | null;
+  discontinued: boolean;
 };
 
 type RelatedCallout = {
@@ -381,17 +383,32 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
   }
 
   // ── Device side query ───────────────────────────────────────────────────
-  if (classified.device) {
-    const devResp = searchDevices(classified.device, {}, RELATED_CAP);
+  // Regex classification (classified.device) handles named families; when it finds nothing
+  // and the whole input is a single token that exactly matches an alias (a bare product code
+  // like "cap_ac" the regexes miss), probe once and resolve it — no fuzz, one indexed lookup.
+  let deviceQuery = classified.device;
+  if (!deviceQuery && /^[\w.+-]{3,40}$/.test(query.trim())) {
+    const aliasHit = db.prepare("SELECT 1 FROM device_aliases WHERE alias = ? LIMIT 1").get(normAliasKey(query));
+    if (aliasHit) deviceQuery = query.trim();
+  }
+  if (deviceQuery) {
+    const devResp = searchDevices(deviceQuery, {}, RELATED_CAP);
     if (devResp.results.length > 0) {
-      related.devices = devResp.results.slice(0, RELATED_CAP).map((d) => ({
-        product_name: d.product_name,
-        product_code: d.product_code,
-        architecture: d.architecture,
-        cpu: d.cpu,
-        license_level: d.license_level,
-        product_url: d.product_url,
-      }));
+      const capped = devResp.results.slice(0, RELATED_CAP);
+      const meta = catalogMetaForDeviceIds(capped.map((d) => d.id));
+      related.devices = capped.map((d) => {
+        const m = meta.get(d.id);
+        return {
+          product_name: d.product_name,
+          product_code: d.product_code,
+          architecture: d.architecture,
+          cpu: d.cpu,
+          license_level: d.license_level,
+          product_url: d.product_url,
+          category: m?.category ?? null,
+          discontinued: m?.discontinued ?? false,
+        };
+      });
     }
   }
 
@@ -1650,6 +1667,39 @@ export type DeviceResult = {
   product_url: string | null;
   block_diagram_url: string | null;
   test_results?: DeviceTestResult[];
+  /** hardware_catalog overlay enrichment — attached to single-device (matrix-linked) results. */
+  hardware?: HardwareEnrichment;
+};
+
+/** Compact hardware_catalog overlay block on a single matrix-linked device result (B-0019/#49).
+ *  Carries category/lifecycle/aliases + provenance URLs; deliberately NOT a specs_json flatten.
+ *  URLs are provenance/human links — `note` steers agents to the device tool, not page-fetching. */
+export type HardwareEnrichment = {
+  rosetta_device_id: string;
+  category: string | null;
+  discontinued: boolean;
+  /** mikrotik.com/product page (usually richer than /hardware); null when no www code. */
+  product_page_url: string | null;
+  /** manual.mikrotik.com/hardware page (often boilerplate); null when no slug. */
+  hardware_page_url: string | null;
+  also_known_as: string[];
+  /** Genuine subnet deviations only (post-#48 filter); omitted when none. */
+  non_default_ips?: string[];
+  note: string;
+};
+
+/** A hardware_catalog entry that is NOT in the RouterOS product matrix (accessory / series /
+ *  discontinued / legacy). Surfaced labeled so an agent never treats a GPeR as a router. */
+export type CatalogResult = {
+  kind: "accessory" | "series" | "discontinued" | "device";
+  rosetta_device_id: string;
+  name: string;
+  category: string | null;
+  discontinued: boolean;
+  product_code: string | null;
+  product_page_url: string | null;
+  hardware_page_url: string | null;
+  note: string;
 };
 
 export type DeviceFilters = {
@@ -1733,12 +1783,198 @@ function disambiguationNote(query: string, results: DeviceResult[]): string {
   return `${results.length} devices match "${family}".${diffStr} Use the full product name for a specific device.`;
 }
 
-/** Look up a device by exact name or product code, then fall back to LIKE/FTS + filters. */
+// ── hardware_catalog overlay (B-0019 / #49) ─────────────────────────────────
+//
+// The catalog is read at two points inside searchDevices(): an alias stage before
+// LIKE (exact-normalized, authoritative) and a catalog fallback after everything.
+// Matrix-linked hits get a `hardware` enrichment block; catalog-only entities are
+// returned as labeled CatalogResult rows. All of it lives here so MCP + TUI inherit
+// identically (query-core-not-adapter). No FTS/prose ingest — fields only.
+
+/** Normalize a token to the alias-table key: superscript→ASCII, then trim + lowercase.
+ *  Matches the normalization the ETL applied when writing device_aliases (normCode). */
+function normAliasKey(query: string): string {
+  return normalizeDeviceQuery(query).trim().toLowerCase();
+}
+
+/** Alias source → priority (lower = more authoritative), mirroring the ETL rank matrix.
+ *  Used only to order `also_known_as`; read-time resolution never ranks (alias is the PK). */
+const ALIAS_SOURCE_RANK: Record<string, number> = {
+  "matrix.csv": 1,
+  "www-declared-code": 2,
+  "www-code": 2,
+  "www-compare-id": 2,
+  "hardware-slug": 3,
+  "hardware-link": 4,
+  "hardware-table": 5,
+};
+
+/** device_overview columns this overlay reads. */
+type OverviewRow = {
+  rosetta_device_id: string;
+  name: string;
+  category: string | null;
+  discontinued: number | null;
+  device_id: number | null;
+  product_name: string | null;
+  product_code: string | null;
+  source_hardware_slug: string | null;
+  source_www_code: string | null;
+  specs_json: string | null;
+};
+
+const OVERVIEW_SELECT = `SELECT rosetta_device_id, name, category, discontinued, device_id,
+    product_name, product_code, source_hardware_slug, source_www_code, specs_json
+  FROM device_overview`;
+
+/** mikrotik.com/product URL — sourceWwwCode is exactly the path assess-www.ts fetches. */
+function productPageUrl(wwwCode: string | null): string | null {
+  return wwwCode ? `https://mikrotik.com/product/${encodeURIComponent(wwwCode)}` : null;
+}
+
+/** manual.mikrotik.com/hardware URL from the /hardware page slug. */
+function hardwarePageUrl(slug: string | null): string | null {
+  return slug ? `https://manual.mikrotik.com/hardware/${slug}` : null;
+}
+
+/** Sources that carry alternate *product names/codes* an agent would recognize. Excludes
+ *  `hardware-slug`/`hardware-table` — those are URL-slug / spec-table artifacts (e.g. the
+ *  disambiguation slug `hap-ax-2` for hAP ax³), not names anyone calls the device. */
+const AKA_NAME_SOURCES = new Set(["matrix.csv", "www-declared-code", "www-code", "www-compare-id", "hardware-link"]);
+
+/** Top aliases for a device, most-authoritative first, excluding the canonical name/code and
+ *  slug/table artifacts. Empty is fine — the result already carries product_name + product_code. */
+function alsoKnownAs(ov: OverviewRow, cap = 4): string[] {
+  const rows = db
+    .prepare("SELECT alias, source FROM device_aliases WHERE rosetta_device_id = ?")
+    .all(ov.rosetta_device_id) as Array<{ alias: string; source: string }>;
+  // Normalize the canonical names the same way aliases were normalized (superscript→ASCII,
+  // trim, lowercase) so e.g. "hAP ax³"'s own normalized name "hap ax3" is excluded, not leaked.
+  const canonical = new Set(
+    [ov.product_name, ov.product_code, ov.name].filter(Boolean).map((s) => normAliasKey(s as string)),
+  );
+  const ranked = rows
+    .filter((r) => AKA_NAME_SOURCES.has(r.source) && !canonical.has(normAliasKey(r.alias)))
+    .sort((a, b) => (ALIAS_SOURCE_RANK[a.source] ?? 9) - (ALIAS_SOURCE_RANK[b.source] ?? 9));
+  const out: string[] = [];
+  for (const r of ranked) {
+    if (out.includes(r.alias)) continue;
+    out.push(r.alias);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+/** Parse genuine non-default IPs from specs_json (already filtered at ETL, #48). */
+function nonDefaultIps(specsJson: string | null): string[] | undefined {
+  if (!specsJson) return undefined;
+  try {
+    const ips = (JSON.parse(specsJson) as { _non_default_ips?: unknown })._non_default_ips;
+    if (Array.isArray(ips) && ips.length > 0) return ips.map(String);
+  } catch { /* malformed specs_json — no IPs */ }
+  return undefined;
+}
+
+/** Build the `hardware` enrichment block from a device_overview row. */
+function buildEnrichment(ov: OverviewRow): HardwareEnrichment {
+  const ips = nonDefaultIps(ov.specs_json);
+  return {
+    rosetta_device_id: ov.rosetta_device_id,
+    category: ov.category,
+    discontinued: !!ov.discontinued,
+    product_page_url: productPageUrl(ov.source_www_code),
+    hardware_page_url: hardwarePageUrl(ov.source_hardware_slug),
+    also_known_as: alsoKnownAs(ov),
+    ...(ips ? { non_default_ips: ips } : {}),
+    note: "This result is the full record; product_page_url and hardware_page_url are for citation — no need to fetch them. rosetta_device_id is a stable handle for this device.",
+  };
+}
+
+/** Attach a `hardware` block to a single matrix-linked device result (mutates in place). */
+function enrichSingle(dev: DeviceResult): void {
+  const ov = db.prepare(`${OVERVIEW_SELECT} WHERE device_id = ? LIMIT 1`).get(dev.id) as OverviewRow | undefined;
+  if (ov) dev.hardware = buildEnrichment(ov);
+}
+
+/** Read-time kind derivation for a catalog-only entity (no matrix row). */
+function deriveKind(ov: OverviewRow): CatalogResult["kind"] {
+  const cat = (ov.category ?? "").toLowerCase();
+  if (cat === "accessories" || cat === "antennas" || cat === "interfaces") return "accessory";
+  if (ov.device_id == null && (ov.source_hardware_slug ?? "").endsWith("-series")) return "series";
+  if (ov.discontinued) return "discontinued";
+  return "device";
+}
+
+/** Convert a catalog-only overview row into a labeled thin result. */
+function catalogRowToResult(ov: OverviewRow): CatalogResult {
+  const kind = deriveKind(ov);
+  let productCode = ov.product_code;
+  if (!productCode && ov.specs_json) {
+    try { productCode = (JSON.parse(ov.specs_json) as { "Product code"?: string })["Product code"] ?? null; }
+    catch { /* ignore */ }
+  }
+  return {
+    kind,
+    rosetta_device_id: ov.rosetta_device_id,
+    name: ov.name,
+    category: ov.category,
+    discontinued: !!ov.discontinued,
+    // source_www_code is a URL path segment (e.g. "hap_ax3"), not a product code — leave null if absent.
+    product_code: productCode ?? null,
+    product_page_url: productPageUrl(ov.source_www_code),
+    hardware_page_url: hardwarePageUrl(ov.source_hardware_slug),
+    note: `Not in the RouterOS product matrix — no spec columns. ${kind} entry from manual.mikrotik.com/hardware. Use routeros_device_lookup for matrix devices.`,
+  };
+}
+
+/** Load a full matrix DeviceResult by devices.id (for alias hits resolved via the catalog). */
+function loadDeviceById(deviceId: number): DeviceResult | undefined {
+  return db.prepare(`${DEVICE_SELECT} WHERE id = ?`).get(deviceId) as DeviceResult | undefined;
+}
+
+/** category + discontinued for a set of device ids, for related.devices enrichment. */
+export function catalogMetaForDeviceIds(ids: number[]): Map<number, { category: string | null; discontinued: boolean }> {
+  const out = new Map<number, { category: string | null; discontinued: boolean }>();
+  if (ids.length === 0) return out;
+  const placeholders = ids.map(() => "?").join(",");
+  const rows = db
+    .prepare(`SELECT device_id, category, discontinued FROM device_overview WHERE device_id IN (${placeholders})`)
+    .all(...ids) as Array<{ device_id: number; category: string | null; discontinued: number | null }>;
+  for (const r of rows) out.set(r.device_id, { category: r.category, discontinued: !!r.discontinued });
+  return out;
+}
+
+export type SearchDevicesResult = {
+  results: DeviceResult[];
+  /** Catalog-only (non-matrix) entities — accessories, series, discontinued/legacy. */
+  catalog?: CatalogResult[];
+  mode: "exact" | "fts" | "like" | "filter" | "fts+or" | "alias" | "catalog";
+  total: number;
+  has_more: boolean;
+  note?: string;
+  /** The query token that resolved via device_aliases (mode "alias"). */
+  matched_alias?: string;
+};
+
+/** Look up a device by exact name, alias, code, then LIKE/FTS + filters, then catalog fallback.
+ *  A single matrix-linked result is enriched with a `hardware` overlay block here (one place). */
 export function searchDevices(
   query: string,
   filters: DeviceFilters = {},
   limit = 10,
-): { results: DeviceResult[]; mode: "exact" | "fts" | "like" | "filter" | "fts+or"; total: number; has_more: boolean; note?: string } {
+): SearchDevicesResult {
+  const res = searchDevicesInner(query, filters, limit);
+  // Enrich single-device (matrix-linked) responses. The alias stage builds its own block
+  // from the resolving row; every other single-result path is enriched here.
+  if (res.results.length === 1 && !res.results[0].hardware) enrichSingle(res.results[0]);
+  return res;
+}
+
+function searchDevicesInner(
+  query: string,
+  filters: DeviceFilters = {},
+  limit = 10,
+): SearchDevicesResult {
   // Normalize Unicode superscripts → ASCII digits for all matching stages.
   // Users type "ax3" for "ax³", "ac2" for "ac²" — normalize once, use everywhere.
   const q = normalizeDeviceQuery(query);
@@ -1751,7 +1987,33 @@ export function searchDevices(
       .prepare(`${DEVICE_SELECT} WHERE product_name = ? COLLATE NOCASE OR product_code = ? COLLATE NOCASE OR ${normalizedName} = ? COLLATE NOCASE`)
       .all(q, q, q) as DeviceResult[];
     if (exact.length > 0) {
-      return { results: attachTestResults(exact), mode: "exact", total: exact.length, has_more: false };
+      attachTestResults(exact);
+      return { results: exact, mode: "exact", total: exact.length, has_more: false };
+    }
+  }
+
+  // 1.5 Alias stage: exact-normalized device_aliases hit (authoritative, never fuzzy).
+  //     Catches codes/slugs/old names that stage 1 misses (RB750Gr3→hEX, cap_ac→cAP ac).
+  //     A matrix-linked alias returns the canonical device enriched; a catalog-only alias
+  //     returns a labeled thin row. `alias` is the PK, so there is nothing to rank at read time.
+  if (q && Object.keys(filters).length === 0) {
+    const matchedAlias = query.trim();
+    const hit = db
+      .prepare("SELECT rosetta_device_id FROM device_aliases WHERE alias = ?")
+      .get(normAliasKey(query)) as { rosetta_device_id: string } | undefined;
+    if (hit) {
+      const ov = db.prepare(`${OVERVIEW_SELECT} WHERE rosetta_device_id = ?`).get(hit.rosetta_device_id) as OverviewRow | undefined;
+      if (ov?.device_id != null) {
+        const dev = loadDeviceById(ov.device_id);
+        if (dev) {
+          attachTestResults([dev]);
+          dev.hardware = buildEnrichment(ov);
+          return { results: [dev], mode: "alias", total: 1, has_more: false, matched_alias: matchedAlias };
+        }
+      }
+      if (ov) {
+        return { results: [], catalog: [catalogRowToResult(ov)], mode: "alias", total: 1, has_more: false, matched_alias: matchedAlias };
+      }
     }
   }
 
@@ -1893,6 +2155,26 @@ export function searchDevices(
     const hasMore = results.length > limit;
     const trimmed = hasMore ? results.slice(0, limit) : results;
     return { results: trimmed, mode: "filter", total: trimmed.length, has_more: hasMore };
+  }
+
+  // 5. Catalog fallback: nothing matched in `devices` — try the wider hardware_catalog
+  //    (accessories, series, discontinued/legacy entries the matrix doesn't carry). Returns
+  //    labeled thin CatalogResult rows so an agent never mistakes an accessory for a router.
+  if (q && Object.keys(filters).length === 0) {
+    const rawTerms = q.trim().split(/[\s\-_]+/).filter((t) => t.length >= 2);
+    if (rawTerms.length > 0) {
+      const conditions = rawTerms.map(() => "(LOWER(hc.name) LIKE ? OR EXISTS (SELECT 1 FROM device_aliases da WHERE da.rosetta_device_id = hc.rosetta_device_id AND da.alias LIKE ?))");
+      const params = rawTerms.flatMap((t) => [`%${t.toLowerCase()}%`, `%${t.toLowerCase()}%`]);
+      // device_id IS NULL: only genuinely catalog-only entities. A matrix-linked row must never
+      // render as a thin "Not in the RouterOS product matrix" result — those go via the device path.
+      const sql = `${OVERVIEW_SELECT} hc WHERE hc.device_id IS NULL AND ${conditions.join(" AND ")} ORDER BY hc.name LIMIT ?`;
+      const rows = db.prepare(sql).all(...params, limit + 1) as OverviewRow[];
+      if (rows.length > 0) {
+        const hasMore = rows.length > limit;
+        const trimmed = hasMore ? rows.slice(0, limit) : rows;
+        return { results: [], catalog: trimmed.map(catalogRowToResult), mode: "catalog", total: trimmed.length, has_more: hasMore };
+      }
+    }
   }
 
   return { results: [], mode: "fts", total: 0, has_more: false };
