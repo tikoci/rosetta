@@ -4,11 +4,11 @@ MCP server that gives AI assistants searchable access to MikroTik RouterOS docum
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation. **No AI required** — rosetta includes a [terminal browser](#browse-without-ai) for searching the database directly.
 
-### SQL-as-RAG
+## SQL-as-RAG
 
 Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.org/fts5.html) full-text search** as the retrieval layer — SQL-as-RAG. For structured technical docs, [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function) with [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer) beats vector similarity: terms like `dhcp-snooping` and `/ip/firewall/filter` are exact tokens, not fuzzy embeddings. No API keys, no vector database — just a single SQLite file that searches in milliseconds.
 
-### What's Inside
+## What's Inside
 
 | Data Source | Coverage |
 |-------------|----------|
@@ -92,10 +92,11 @@ Point any HTTP-capable MCP client at the URL from the previous step:
 ```
 
 > **CHR note:** Cloud Hosted Router in free or trial mode does not include the `/ip/cloud` service needed for HTTPS certificates. Set `use-https=no` on the /app — the URL will use HTTP instead. The UI URL always reflects the correct protocol.
-
+>
 > **HTTP option:** On any platform, you may choose `use-https=no` if you prefer HTTP or are on an isolated network.
-
+>
 > **Browse the database from the router:** If rosetta is running as a `/app`, you can use `/container/shell` to access the TUI browser directly:
+>
 > ```routeros
 > /container/shell app-rosetta
 > # /app/rosetta browse
@@ -171,6 +172,7 @@ claude mcp add rosetta -- bunx @tikoci/rosetta
 <summary><b>Claude Desktop</b></summary>
 
 Edit your Claude Desktop config file:
+
 - **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
@@ -313,8 +315,8 @@ Each tool description includes workflow arrows (`→ next_tool`) and empty-resul
 
 The server also exposes **MCP Resources** for bulk data and supplemental content — CSV datasets (`rosetta://datasets/...`), schema documentation (`rosetta://schema...`), and **agent skill guides** (`rosetta://skills/{name}`) from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills). Skills are community-created, human-reviewed guides served with provenance attribution. See [MANUAL.md](MANUAL.md) for details.
 
-
 ## RTFM for Details
+
 For additional install options, HTTP transport configuration, data source details, and the database schema, see [MANUAL.md](MANUAL.md).
 
 ## Contributing

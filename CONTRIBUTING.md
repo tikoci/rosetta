@@ -12,6 +12,7 @@ Development guide for building, testing, and releasing.
 ### Optional system dependencies
 
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — required only for `make extract-videos` (YouTube transcript extraction). Install with:
+
   ```sh
   brew install yt-dlp          # macOS
   apt install yt-dlp           # Debian/Ubuntu

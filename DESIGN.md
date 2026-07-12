@@ -185,6 +185,7 @@ The documentation pages cover all packages regardless of architecture, so the HT
 `deep-inspect.json` files from [tikoci/restraml](https://github.com/tikoci/restraml) carry richer data than `inspect.json`: dual-arch (x86/arm64) command trees, `_completion` objects with valid argument values (11K+ args), and extended `_meta` provenance. The `schema_nodes` table stores this enriched data alongside the existing `commands` table.
 
 **Key design decisions:**
+
 - **`commands` regenerated, not replaced.** `extract-schema.ts` populates `schema_nodes` first, then regenerates `commands` + `command_versions` from it (Option B from the plan). This is the zero-downstream-churn path — all existing queries in `query.ts`, `browse.ts`, and `link-commands.ts` work unchanged.
 - **Sparse `_arch` column.** NULL means both architectures have the node; `'x86'`/`'arm64'` means platform-specific. No per-arch row duplication in `schema_node_presence`.
 - **`_attrs` catch-all for completion.** `_completion` data stores as `{ completion: { "no": { style: "arg", preference: 96 }, ... } }` in `_attrs` JSON. Shape is stable but could evolve, so it lives in the catch-all until we're confident enough to promote to columns.
@@ -391,6 +392,7 @@ OCI images are built with a standard `Dockerfile.release` + `docker buildx build
 **Why not crane:** Multiple approaches using crane (single-layer hand-crafted tars; `crane append` + jq config modification) were tried and all failed identically on Docker 28's containerd image store — every exec call failed with `no such file or directory` despite `crane export` confirming file contents were correct. The root cause was never diagnosed. Docker buildx is the correct tool for standard images.
 
 **Two Dockerfiles:**
+
 - `Dockerfile` — base image without DB (for local dev use, DB mounted via `-v`)
 - `Dockerfile.release` — release image with DB baked in (`COPY ros-help.db /app/`), used by `release.yml` CI
 
@@ -485,11 +487,13 @@ Never return bare empty results. Run OR fallback → re-run classifier side quer
 Baker's-dozen-ish ceiling is now 14 tools: the surface was consolidated from 15 to 13, then `routeros_explain_command` was added deliberately as a read-only bridge for write-shaped CLI questions. Lower targets (~8–10) would require merging structural drill-downs like `routeros_command_tree`, `routeros_lookup_property`, or `routeros_command_diff` into `routeros_search`, which trades clarity for compression. Not pursuing.
 
 **Folded into `routeros_search` side queries (shipped — no longer standalone MCP tools):**
+
 - `routeros_search_properties` — removed: useless without command-tree context (function kept internally for TUI)
 - `routeros_search_callouts` — surfaces in `related.callouts`. `searchCallouts()` kept as internal helper.
 - `routeros_search_videos` — surfaces in `related.videos`. `searchVideos()` kept as internal helper and also used by `routeros_get_page` TOC-mode `related_videos`.
 
 **Keep as standalone drill-downs:**
+
 - `routeros_search_changelogs` — version range + category filters are too specific
 - `routeros_search_tests` — packet-size + config combinatorics
 - `routeros_get_page`, `routeros_device_lookup`, `routeros_command_tree`, `routeros_command_version_check`, `routeros_command_diff`, `routeros_lookup_property`, `routeros_stats`, `routeros_current_versions`
