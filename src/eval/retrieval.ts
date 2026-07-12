@@ -314,11 +314,17 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
   const notes: string[] = [];
   let hit = false;
 
+  // A surface query with no expectation asserts nothing — a fixture-author mistake that must
+  // show RED (drag surface_matrix down + appear in the failures block), never pass for free or
+  // quietly skip. Hard-fail loudly rather than skip, so silent coverage loss can't merge.
+  const misconfigured = (reason: string): QueryResult => {
+    notes.push(`MISCONFIGURED: ${reason}`);
+    return { ...base, surface_hit: false, recall_at_5: 0, recall_at_3: 0, reciprocal_rank: 0, notes };
+  };
+
   if (q.surface === "property") {
     const ep = q.expected_property;
-    if (!ep) {
-      return { ...base, skipped: true, skip_reason: "surface=property but no expected_property" };
-    }
+    if (!ep) return misconfigured("surface=property but no expected_property");
     const rows = lookupProperty(ep.name, ep.path);
     if (ep.path) {
       // path given → require a high-confidence (path→page-linked) row, else the link/property is broken
@@ -339,6 +345,12 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
       if (!hit) notes.push(`property ${ep.name}: ${rows.length} row(s)${ep.page ? `, none on page ${ep.page}` : " (none found)"}`);
     }
   } else if (q.surface === "changelog") {
+    // Require at least one assertion: the substring, or a version scope (the version filter is
+    // applied to searchChangelogs, so "rows exist for vX" is a real, if weak, check). Neither ⇒
+    // "any changelog result passes" = vacuous.
+    if (!q.expected_changelog_contains && !q.expected_version) {
+      return misconfigured("surface=changelog but neither expected_changelog_contains nor expected_version set");
+    }
     const rows = searchChangelogs(q.query, { version: q.expected_version, limit: k });
     const want = q.expected_changelog_contains?.toLowerCase();
     hit = rows.length > 0 && (want ? rows.some((r) => r.description.toLowerCase().includes(want)) : true);
@@ -349,6 +361,10 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
       );
     }
   } else if (q.surface === "video") {
+    // Require at least one criterion, else the row predicate collapses to "any result passes".
+    if (!q.expected_video_contains && !q.expected_video_id) {
+      return misconfigured("surface=video but neither expected_video_contains nor expected_video_id set");
+    }
     const rows = searchVideos(q.query, k);
     const want = q.expected_video_contains?.toLowerCase();
     hit =
@@ -356,9 +372,7 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
       rows.some(
         (r) =>
           (q.expected_video_id ? r.video_id === q.expected_video_id : false) ||
-          (want
-            ? `${r.title} ${r.chapter_title ?? ""} ${r.excerpt}`.toLowerCase().includes(want)
-            : !q.expected_video_id),
+          (want ? `${r.title} ${r.chapter_title ?? ""} ${r.excerpt}`.toLowerCase().includes(want) : false),
       );
     if (!hit) {
       notes.push(
