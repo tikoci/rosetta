@@ -17,6 +17,7 @@ import { MCP_INSTRUCTIONS, MCP_STATIC_RESOURCES } from "./mcp-meta.ts";
 import { resolveVersion } from "./paths.ts";
 import type {
   CalloutResult,
+  CatalogResult,
   ChangelogResult,
   DeviceResult,
   DeviceTestRow,
@@ -766,6 +767,17 @@ function renderDeviceCard(d: DeviceResult): string {
   out.push(`  ${bold("══")} ${bold(d.product_name)} ${bold("══")}`);
   if (d.product_code) out.push(`  ${dim(`Code: ${d.product_code}`)}`);
   if (d.product_url) out.push(`  ${cyan(link(d.product_url))}`);
+  // hardware_catalog overlay (single-device lookups) — category/lifecycle/aliases + provenance.
+  if (d.hardware) {
+    const h = d.hardware;
+    if (h.category || h.discontinued) {
+      out.push(`  ${dim("Category:")} ${h.category ?? "—"}${h.discontinued ? red(" [discontinued]") : ""}`);
+    }
+    if (h.also_known_as.length) out.push(`  ${dim("Also known as:")} ${h.also_known_as.join(", ")}`);
+    if (h.non_default_ips?.length) out.push(`  ${yellow("Non-default IP:")} ${h.non_default_ips.join(", ")}`);
+    if (h.product_page_url) out.push(`  ${dim("Product page:")} ${cyan(link(h.product_page_url))}`);
+    if (h.hardware_page_url) out.push(`  ${dim("Hardware page:")} ${cyan(link(h.hardware_page_url))}`);
+  }
   out.push("");
 
   const kv = (label: string, value: string | number | null | undefined) => {
@@ -824,6 +836,24 @@ function renderDeviceCard(d: DeviceResult): string {
   out.push("");
   out.push(`  ${cyan("[tests]")} benchmarks  ${cyan("[s <query>]")} search docs  ${cyan("[b]")} back`);
   return out.join("\n");
+}
+
+/** Thin card list for catalog-only entities (accessories/series/legacy — not in the matrix). */
+function renderCatalogResults(rows: CatalogResult[], mode: string, total: number): string {
+  const out: string[] = [];
+  const shown = rows.length === total ? `${rows.length}` : `${rows.length} of ${total}`;
+  out.push(`  ${bold(shown)} catalog ${rows.length === 1 ? "entry" : "entries"} ${dim(`(${mode} — not in RouterOS product matrix)`)}`);
+  out.push("");
+  for (const r of rows) {
+    out.push(`  ${bold(r.name)}  ${yellow(`[${r.kind}]`)}${r.discontinued && r.kind !== "discontinued" ? red(" discontinued") : ""}`);
+    if (r.category) out.push(`  ${dim("Category:")} ${r.category}`);
+    if (r.product_code) out.push(`  ${dim("Code:")} ${r.product_code}`);
+    const url = r.product_page_url ?? r.hardware_page_url;
+    if (url) out.push(`  ${cyan(link(url))}`);
+    out.push(`  ${dim(r.note)}`);
+    out.push("");
+  }
+  return out.join("\n").trimEnd();
 }
 
 function renderTests(results: DeviceTestRow[], total: number): string {
@@ -1080,6 +1110,8 @@ function renderStats(): string {
   kv("Commands", stats.commands);
   kv("Commands linked", stats.commands_linked);
   kv("Devices", stats.devices);
+  kv("Hardware catalog", stats.hardware_catalog);
+  kv("Device aliases", stats.device_aliases);
   kv("Device test results", stats.device_test_results);
   kv("Devices with tests", stats.devices_with_tests);
   kv("Changelogs", stats.changelogs);
@@ -1989,6 +2021,10 @@ async function doCommandTree(path: string): Promise<void> {
 async function doDeviceLookup(query: string): Promise<void> {
   const result = searchDevices(query, {});
   if (result.results.length === 0) {
+    if (result.catalog && result.catalog.length > 0) {
+      await paged(renderCatalogResults(result.catalog, result.mode, result.total));
+      return;
+    }
     console.log(dim(`  No devices found for "${query}".`));
     return;
   }
