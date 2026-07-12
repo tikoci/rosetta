@@ -80,6 +80,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0016 | CLI-Reference overlay: precursor ETL design (issue [#33](https://github.com/tikoci/rosetta/issues/33)) | open |
 | B-0017 | `/hardware` overlay: device-resolution research (issue [#34](https://github.com/tikoci/rosetta/issues/34); absorbs B-0006/B-0007) | open |
 | B-0018 | Product-naming ↔ three-source map: human/MikroTik guide to `device-map.tsv`, parsing tricks, and known `/hardware` gaps (companion to B-0017) | open |
+| B-0019 | Hardware overlay Phase 2: surfacing `hardware_catalog`/`device_aliases` in MCP/TUI — design pre-plan for issue [#39](https://github.com/tikoci/rosetta/issues/39) (prerequisites 1–2 land via #47/#48) | open |
 
 ## Done index
 

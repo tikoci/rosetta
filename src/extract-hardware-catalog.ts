@@ -33,8 +33,11 @@
  * Alias assignment is priority-ranked (matrix sole code < matrix name/subcode < www
  * spec-source code < /hardware slug < link token < table token); collisions keep the
  * higher-priority claim and are COUNTED (BuildResult.aliasCollisions), never silently
- * swallowed. Every input entity (www product, /hardware page, matrix row) is either
- * attached to a row or recorded in the drop ledger with a reason — zero silently lost.
+ * swallowed. A `hardware-link` token that names a DROPPED www product is filtered as
+ * cross-sell pollution (B-0017 item 1) — a page merely linking an accessory does not make
+ * that code the device's alias — except on standalone series pages, which legitimately
+ * claim member/kit codes. Every input entity (www product, /hardware page, matrix row) is
+ * either attached to a row or recorded in the drop ledger with a reason — zero silently lost.
  *
  * The built catalog is serialized to a committed, deterministic intermediate JSON
  * (fixtures/hardware-catalog/catalog.json — sorted rows + aliases + drop ledger +
@@ -94,7 +97,11 @@ export interface HardwarePage {
   category: string | null;
   cause: "matched-by-code" | "matched-by-table" | "matched-by-slug" | "no-product-link" | "unmatched";
   matchedMatrixNames: string[];
-  /** Management IPs that deviate from the 192.168.88.1 default (B-0017 surface-worthy). */
+  /**
+   * Raw management IPs that are not literally 192.168.88.1 (assess-hardware.ts). This still
+   * includes same-subnet secondaries (`.88.2`/`.88.3`/`.88.0`); the surface-worthy-deviation
+   * classification (isGenuineIpDeviation) is applied at extract time, not here — B-0017 item 2.
+   */
   nonDefaultIps?: string[];
   /** FCC/IC/CE identifiers read off Model-column regulatory tables (assess-hardware.ts). */
   regulatoryIds?: RegulatoryId[];
@@ -266,6 +273,17 @@ function findAgreeingWww(keys: string[], wwwByKey: Map<string, WwwProduct>, ownF
   return null;
 }
 
+/**
+ * A management IP is a genuine, surface-worthy deviation only when it falls OUTSIDE the device
+ * default subnet 192.168.88.0/24. B-0017 classified same-subnet secondaries (`192.168.88.2`/`.3`/`.0`)
+ * as not surface-worthy — they are just extra addresses on the default LAN, not a different default.
+ * The real deviations are the 192.168.188.1 embedded-LTE cluster, intercell (`.200.x`), woobm-usb (`.4.x`).
+ */
+const DEFAULT_MANAGEMENT_SUBNET_PREFIX = "192.168.88.";
+export function isGenuineIpDeviation(ip: string): boolean {
+  return !ip.startsWith(DEFAULT_MANAGEMENT_SUBNET_PREFIX);
+}
+
 /** Merge www spec fields + titles + /hardware page metadata (IPs, regulatory ids) into one JSON blob. */
 function buildSpecsJson(
   www: WwwProduct | null,
@@ -418,22 +436,41 @@ class AliasBook {
   }
 }
 
+/**
+ * One staged alias, awaiting replay into the AliasBook. Aliases are collected in exact add-order
+ * across the whole build, then replayed once the drop ledger is known — because the cross-sell
+ * filter (B-0017 item 1) keys on which www products ended up dropped, which is only settled after
+ * every row's attachment is resolved. Staging the FULL order (not just the filtered link tokens)
+ * keeps every surviving alias's provenance `source` label identical to a pre-filter build.
+ */
+interface StagedAlias {
+  alias: string;
+  rosettaDeviceId: string;
+  source: string;
+  rank: number;
+  /** hardware-link tokens are the only ones the cross-sell filter can drop. */
+  isLink: boolean;
+  /** owning row is a standalone series page (hw-*-series) → exempt from the cross-sell filter. */
+  ownerIsSeries: boolean;
+}
+type AliasSink = (alias: string, rosettaDeviceId: string, source: string, rank: number, isLink?: boolean, ownerIsSeries?: boolean) => void;
+
 /** www requested code, declared "Product code" (+ `&`-split parts), and compareId as aliases. */
-function addWwwAliases(book: AliasBook, www: WwwProduct | null, rosettaDeviceId: string): void {
+function addWwwAliases(stage: AliasSink, www: WwwProduct | null, rosettaDeviceId: string): void {
   if (!www) return;
-  book.add(www.code, rosettaDeviceId, "www-code", RANK_WWW);
+  stage(www.code, rosettaDeviceId, "www-code", RANK_WWW);
   const declared = www.specs["Product code"];
   if (declared && normCode(declared) !== normCode(www.code)) {
-    book.add(declared, rosettaDeviceId, "www-declared-code", RANK_WWW);
+    stage(declared, rosettaDeviceId, "www-declared-code", RANK_WWW);
     for (const part of declared.split("&").map((s) => s.trim())) {
-      if (part && normCode(part) !== normCode(declared)) book.add(part, rosettaDeviceId, "www-declared-code", RANK_WWW);
+      if (part && normCode(part) !== normCode(declared)) stage(part, rosettaDeviceId, "www-declared-code", RANK_WWW);
     }
   }
   // Decode compareId's HTML entities before aliasing; skip it when it just re-spells the
   // requested or declared code (the common case — otherwise it only inflates alias counts).
   const compareId = www.compareId ? decodeEntities(www.compareId) : "";
   if (compareId && normCode(compareId) !== normCode(www.code) && normCode(compareId) !== normCode(declared ?? "")) {
-    book.add(compareId, rosettaDeviceId, "www-compare-id", RANK_WWW);
+    stage(compareId, rosettaDeviceId, "www-compare-id", RANK_WWW);
   }
 }
 
@@ -535,6 +572,11 @@ export function buildCatalog(
 
   const catalogRows: CatalogRow[] = [];
   const book = new AliasBook();
+  // All aliases are STAGED in exact add-order and replayed into the book after the drop ledger is
+  // known (see StagedAlias). stage() is the single sink every alias source funnels through.
+  const stagedAliases: StagedAlias[] = [];
+  const stage: AliasSink = (alias, rosettaDeviceId, source, rank, isLink = false, ownerIsSeries = false) =>
+    void stagedAliases.push({ alias, rosettaDeviceId, source, rank, isLink, ownerIsSeries });
   const usedIds = new Set<string>();
   const unresolvedDevices: string[] = [];
   const attachedWwwCodes = new Set<string>(); // normCode(source_www_code) of every row that got specs
@@ -550,7 +592,9 @@ export function buildCatalog(
     const regulatory: RegulatoryId[] = [];
     for (const c of codes) for (const r of regulatoryByModel.get(normCode(c)) ?? []) regulatory.push(r);
     const nonDefaultIps = new Set<string>();
-    for (const s of slugs) for (const ip of pageBySlug.get(s)?.nonDefaultIps ?? []) nonDefaultIps.add(ip);
+    for (const s of slugs) for (const ip of pageBySlug.get(s)?.nonDefaultIps ?? []) {
+      if (isGenuineIpDeviation(ip)) nonDefaultIps.add(ip); // B-0017 item 2: drop same-subnet .88.x secondaries
+    }
     return { regulatory, nonDefaultIps: [...nonDefaultIps] };
   };
 
@@ -604,16 +648,18 @@ export function buildCatalog(
       sourceWwwCode: www?.code ?? null,
     });
 
-    book.add(row.name, id, "matrix.csv", RANK_MATRIX);
+    stage(row.name, id, "matrix.csv", RANK_MATRIX);
     for (const c of row.subCodes) {
-      book.add(c, id, "matrix.csv", row.subCodes.length === 1 ? RANK_MATRIX_SOLE_CODE : RANK_MATRIX);
+      stage(c, id, "matrix.csv", row.subCodes.length === 1 ? RANK_MATRIX_SOLE_CODE : RANK_MATRIX);
     }
     if (attr) {
-      for (const s of attr.slugs) book.add(s, id, "hardware-slug", RANK_HW_SLUG);
-      for (const t of attr.linkTokens) book.add(t, id, "hardware-link", RANK_HW_LINK);
-      for (const t of attr.tableTokens) book.add(t, id, "hardware-table", RANK_HW_TABLE);
+      for (const s of attr.slugs) stage(s, id, "hardware-slug", RANK_HW_SLUG);
+      // Matrix-linked rows are never series rows (a series aggregate has no matrix identity), so a
+      // link token naming a dropped www product here is always cross-sell — never exempt.
+      for (const t of attr.linkTokens) stage(t, id, "hardware-link", RANK_HW_LINK, true, false);
+      for (const t of attr.tableTokens) stage(t, id, "hardware-table", RANK_HW_TABLE);
     }
-    addWwwAliases(book, www, id);
+    addWwwAliases(stage, www, id);
   }
 
   // ── Standalone /hardware-only rows (accessories, legacy/EOL — no current matrix row) ──
@@ -640,13 +686,26 @@ export function buildCatalog(
       sourceWwwCode: www?.code ?? null,
     });
 
-    book.add(page.slug, id, "hardware-slug", RANK_HW_SLUG);
-    for (const t of page.productLinks) book.add(t, id, "hardware-link", RANK_HW_LINK);
-    for (const t of page.tableModelCodes) book.add(t, id, "hardware-table", RANK_HW_TABLE);
-    addWwwAliases(book, www, id);
+    stage(page.slug, id, "hardware-slug", RANK_HW_SLUG);
+    // A standalone series page (hw-<slug>-series) legitimately claims its members'/kits' codes,
+    // so its link tokens are exempt from the cross-sell filter; ordinary pages are not.
+    const ownerIsSeries = page.slug.endsWith("-series");
+    for (const t of page.productLinks) stage(t, id, "hardware-link", RANK_HW_LINK, true, ownerIsSeries);
+    for (const t of page.tableModelCodes) stage(t, id, "hardware-table", RANK_HW_TABLE);
+    addWwwAliases(stage, www, id);
   }
 
   const dropLedger = buildDropLedger(sortedPages, sortedMatrix, wwwProducts, attachedWwwCodes);
+
+  // Replay every staged alias into the book in exact add-order, dropping any hardware-link alias
+  // whose token names a dropped www product on a non-series row — the cross-sell pollution B-0017
+  // item 1 filters (e.g. qm_x -> sxtsq-5-ax, mant_lte_5o -> chateau-lte12). Replaying the full order
+  // (not just the filtered tokens) keeps every surviving alias's `source` label byte-identical.
+  const droppedWwwCodes = new Set(dropLedger.filter((d) => d.kind === "www-product").map((d) => normCode(d.id)));
+  for (const a of stagedAliases) {
+    if (a.isLink && !a.ownerIsSeries && droppedWwwCodes.has(normCode(a.alias))) continue;
+    book.add(a.alias, a.rosettaDeviceId, a.source, a.rank);
+  }
 
   return {
     catalogRows,
@@ -809,6 +868,38 @@ export function checkInvariants(result: BuildResult, wwwProducts: WwwProduct[]):
   const marked = [...new Set(result.aliasRows.filter((a) => entityRe.test(a.alias)).map((a) => a.alias))];
   if (marked.length > 0) {
     failures.push(`${marked.length} alias(es) contain an undecoded HTML entity: ${marked.slice(0, 10).join(", ")}`);
+  }
+
+  // (8) No hardware-link alias names a drop-ledger www product on a NON-series row — the B-0017
+  //     item-1 cross-sell cleanup. A device's /hardware page merely LINKING an accessory (qm_x,
+  //     mant_lte_5o, …) must not leave that accessory code as the device's own alias; only a
+  //     standalone series page (hw-*-series) legitimately claims member/kit codes.
+  const droppedWwwCodes = new Set(result.dropLedger.filter((d) => d.kind === "www-product").map((d) => normCode(d.id)));
+  // Mirror the staging-time exemption exactly: only STANDALONE series rows are exempt. Standalone
+  // rows are the ones whose id is minted `hw-<slug>` (matrix-linked rows never are), so key off the
+  // `hw-` prefix — not `deviceProductName === null`, which also matches an UNRESOLVED matrix row and
+  // would wrongly exempt it if its spec page happened to be a `-series` page (CodeRabbit PR #48).
+  const seriesRow = new Map(
+    result.catalogRows.map((r) => [r.rosettaDeviceId, r.rosettaDeviceId.startsWith("hw-") && (r.sourceHardwareSlug?.endsWith("-series") ?? false)]),
+  );
+  const crossSell = result.aliasRows.filter(
+    (a) => a.source === "hardware-link" && droppedWwwCodes.has(normCode(a.alias)) && !seriesRow.get(a.rosettaDeviceId),
+  );
+  if (crossSell.length > 0) {
+    failures.push(`${crossSell.length} hardware-link alias(es) name a dropped www product on a non-series row (cross-sell pollution): ${crossSell.slice(0, 10).map((a) => `${a.alias} -> ${a.rosettaDeviceId}`).join(", ")}`);
+  }
+
+  // (9) No _non_default_ips value is in the device default subnet 192.168.88.0/24 — B-0017 item 2.
+  //     Same-subnet secondaries are not surface-worthy deviations and are filtered at extract time,
+  //     so any that survive into a specs blob mean the filter regressed.
+  const inSubnetIps: string[] = [];
+  for (const row of result.catalogRows) {
+    if (!row.specsJson) continue;
+    const ips = (JSON.parse(row.specsJson) as Record<string, unknown>)._non_default_ips as string[] | undefined;
+    for (const ip of ips ?? []) if (!isGenuineIpDeviation(ip)) inSubnetIps.push(`${row.rosettaDeviceId}:${ip}`);
+  }
+  if (inSubnetIps.length > 0) {
+    failures.push(`${inSubnetIps.length} _non_default_ips value(s) inside the default subnet (should be filtered): ${inSubnetIps.slice(0, 10).join(", ")}`);
   }
 
   void rowById;
