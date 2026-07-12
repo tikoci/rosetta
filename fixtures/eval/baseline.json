@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-07-09T03:33:23.963Z",
-  "total_queries": 21,
+  "generated_at": "2026-07-12T22:55:35.870Z",
+  "total_queries": 35,
   "metrics": {
-    "recall_at_5": 0.9047619047619048,
-    "recall_at_3": 0.9047619047619048,
-    "mrr": 0.8492063492063492,
+    "recall_at_5": 0.9259259259259259,
+    "recall_at_3": 0.9259259259259259,
+    "mrr": 0.882716049382716,
     "classifier_accuracy": 1,
     "related_block_accuracy": 1,
     "topics_accuracy": 1
   },
   "per_shape": {
     "nl-question": {
-      "count": 12,
-      "recall_at_5": 0.8333333333333334,
-      "mrr": 0.736111111111111
+      "count": 15,
+      "recall_at_5": 0.8666666666666667,
+      "mrr": 0.7888888888888889
     },
     "command-path": {
       "count": 3,
@@ -26,7 +26,7 @@
       "mrr": 1
     },
     "device": {
-      "count": 2,
+      "count": 5,
       "recall_at_5": 1,
       "mrr": 1
     },
@@ -41,11 +41,26 @@
       "mrr": 1
     }
   },
+  "surface_matrix": {
+    "property": {
+      "count": 3,
+      "hit_at_5": 0.6666666666666666
+    },
+    "changelog": {
+      "count": 3,
+      "hit_at_5": 1
+    },
+    "video": {
+      "count": 2,
+      "hit_at_5": 1
+    }
+  },
   "results": [
     {
       "id": "nl-dhcp-server",
       "query": "how do I set up a DHCP server",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -55,7 +70,7 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 235,
+          "id": 233,
           "title": "DHCP",
           "rosetta_id": "docs/network-management/dhcp"
         },
@@ -65,17 +80,17 @@
           "rosetta_id": "docs/getting-started/manual-network-setup"
         },
         {
-          "id": 362,
+          "id": 360,
           "title": "Configuring outdoor CPE to AP links",
           "rosetta_id": "docs/wireless/wifi/configuring-outdoor-cpe-to-ap-links"
         },
         {
-          "id": 327,
+          "id": 325,
           "title": "IPv6 PD over PPP",
           "rosetta_id": "docs/virtual-private-networks/pppoe/ipv6-pd-over-ppp"
         },
         {
-          "id": 364,
+          "id": 362,
           "title": "Configuring standalone access point",
           "rosetta_id": "docs/wireless/wifi/configuring-standalone-access-point"
         }
@@ -98,6 +113,7 @@
       "id": "nl-firewall-filter",
       "query": "block traffic from a specific IP address",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 0,
       "recall_at_3": 0,
       "reciprocal_rank": 0,
@@ -107,24 +123,24 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 251,
-          "title": "NVMe over TCP",
-          "rosetta_id": "docs/storage/nvme-over-tcp"
-        },
-        {
           "id": 190,
           "title": "General Properties",
           "rosetta_id": "docs/internet-of-things/lora/general-properties"
         },
         {
-          "id": 52,
-          "title": "Scripting",
-          "rosetta_id": "docs/developer-guides/scripting"
+          "id": 249,
+          "title": "NVMe over TCP",
+          "rosetta_id": "docs/storage/nvme-over-tcp"
         },
         {
           "id": 19,
           "title": "CRS3xx and CSS3xx Series Manual",
           "rosetta_id": "docs/bridging-and-switching/swos/crs3"
+        },
+        {
+          "id": 52,
+          "title": "Scripting",
+          "rosetta_id": "docs/developer-guides/scripting"
         },
         {
           "id": 30,
@@ -139,13 +155,14 @@
         ]
       },
       "notes": [
-        "top-5 pages: docs/storage/nvme-over-tcp, docs/internet-of-things/lora/general-properties, docs/developer-guides/scripting, docs/bridging-and-switching/swos/crs3, docs/bridging-and-switching/user-guides/layer2-misconfiguration (none of expected docs/firewall-and-quality-of-service/firewall/filter, docs/firewall-and-quality-of-service/firewall/address-lists, docs/firewall-and-quality-of-service/firewall/common-firewall-matchers-and-actions, docs/firewall-and-quality-of-service/firewall/nat, docs/firewall-and-quality-of-service/firewall/mangle)"
+        "top-5 pages: docs/internet-of-things/lora/general-properties, docs/storage/nvme-over-tcp, docs/bridging-and-switching/swos/crs3, docs/developer-guides/scripting, docs/bridging-and-switching/user-guides/layer2-misconfiguration (none of expected docs/firewall-and-quality-of-service/firewall/filter, docs/firewall-and-quality-of-service/firewall/address-lists, docs/firewall-and-quality-of-service/firewall/common-firewall-matchers-and-actions, docs/firewall-and-quality-of-service/firewall/nat, docs/firewall-and-quality-of-service/firewall/mangle)"
       ]
     },
     {
       "id": "nl-bridge-vlan",
       "query": "bridge vlan filtering on a switch",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -165,7 +182,7 @@
           "rosetta_id": "docs/bridging-and-switching/user-guides/wireless-vlan-trunk"
         },
         {
-          "id": 346,
+          "id": 344,
           "title": "VLANs on Wireless",
           "rosetta_id": "docs/wireless/abgn/vlans-on-wireless"
         },
@@ -196,6 +213,7 @@
       "id": "nl-wireguard",
       "query": "configure wireguard peer with preshared key",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 0.5,
@@ -210,7 +228,7 @@
           "rosetta_id": "docs/getting-started/configuration-management/list-of-menus-with-sensitive-parameters"
         },
         {
-          "id": 331,
+          "id": 329,
           "title": "WireGuard",
           "rosetta_id": "docs/virtual-private-networks/wireguard"
         }
@@ -227,6 +245,7 @@
       "id": "nl-container",
       "query": "run a docker container on RouterOS",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -279,6 +298,7 @@
       "id": "nl-bgp",
       "query": "establish a BGP peer with my upstream",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 0,
       "recall_at_3": 0,
       "reciprocal_rank": 0,
@@ -288,12 +308,12 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 314,
+          "id": 312,
           "title": "VRF",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/vrf"
         },
         {
-          "id": 235,
+          "id": 233,
           "title": "DHCP",
           "rosetta_id": "docs/network-management/dhcp"
         }
@@ -312,6 +332,7 @@
       "id": "nl-ospf",
       "query": "ospf area type stub",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -321,7 +342,7 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 307,
+          "id": 305,
           "title": "Areas and Virtual Links",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/ospf/areas-and-virtual-links"
         }
@@ -338,6 +359,7 @@
       "id": "nl-scheduler",
       "query": "run a script every hour",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -347,12 +369,12 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 274,
+          "id": 272,
           "title": "Scheduler",
           "rosetta_id": "docs/system-information-and-utilities/scheduler"
         },
         {
-          "id": 263,
+          "id": 261,
           "title": "E-mail",
           "rosetta_id": "docs/system-information-and-utilities/e-mail"
         },
@@ -362,7 +384,7 @@
           "rosetta_id": "docs/internet-of-things/bluetooth/user-guides/https-post-and-azure-configuration"
         },
         {
-          "id": 220,
+          "id": 218,
           "title": "WWAN and GNSS priority automatization",
           "rosetta_id": "docs/mobile-networking/bg77-modem-at-commands/wwan-and-gnss-priority-automatization"
         },
@@ -388,6 +410,7 @@
       "id": "nl-routerboot",
       "query": "reset device to factory defaults from routerboot",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 0.3333333333333333,
@@ -412,7 +435,7 @@
           "rosetta_id": "docs/getting-started/installation-and-upgrade/routerboot"
         },
         {
-          "id": 208,
+          "id": 206,
           "title": "FlashFig",
           "rosetta_id": "docs/management-tools/flashfig"
         },
@@ -438,6 +461,7 @@
       "id": "nl-capsman",
       "query": "centrally manage wifi access points",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -447,27 +471,27 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 361,
+          "id": 359,
           "title": "WiFi CAPsMAN",
           "rosetta_id": "docs/wireless/wifi/capsman"
         },
         {
-          "id": 341,
+          "id": 339,
           "title": "CAPsMAN with VLANs",
           "rosetta_id": "docs/wireless/abgn/capsman/capsman-with-vlans"
         },
         {
-          "id": 211,
+          "id": 209,
           "title": "Quick Set",
           "rosetta_id": "docs/management-tools/quick-set"
         },
         {
-          "id": 359,
+          "id": 357,
           "title": "Wi-Fi 6 / 7 (802.11ax/be)",
           "rosetta_id": "docs/wireless/wifi"
         },
         {
-          "id": 339,
+          "id": 337,
           "title": "CAPsMAN",
           "rosetta_id": "docs/wireless/abgn/capsman"
         }
@@ -484,6 +508,7 @@
       "id": "nl-ipsec",
       "query": "site-to-site IPsec tunnel between two routers",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -493,12 +518,12 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 320,
+          "id": 318,
           "title": "IPsec",
           "rosetta_id": "docs/virtual-private-networks/ipsec"
         },
         {
-          "id": 331,
+          "id": 329,
           "title": "WireGuard",
           "rosetta_id": "docs/virtual-private-networks/wireguard"
         }
@@ -515,6 +540,7 @@
       "id": "nl-vlan",
       "query": "tag vlan on an ethernet interface",
       "shape": "nl-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -563,6 +589,7 @@
       "id": "cmd-path-firewall-filter",
       "query": "/ip/firewall/filter",
       "shape": "command-path",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -613,6 +640,7 @@
       "id": "cmd-path-routing-bgp",
       "query": "/routing/bgp",
       "shape": "command-path",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -622,27 +650,27 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 302,
+          "id": 300,
           "title": "Peering Sessions",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/bgp/peering-sessions"
         },
         {
-          "id": 300,
+          "id": 298,
           "title": "FAQ",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/bgp/faq"
         },
         {
-          "id": 303,
+          "id": 301,
           "title": "Understanding BGP",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/bgp/understanding-bgp"
         },
         {
-          "id": 304,
+          "id": 302,
           "title": "EVPN",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/unicast/evpn"
         },
         {
-          "id": 281,
+          "id": 279,
           "title": "Moving from ROSv6 to ROSv7",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/moving-from-rosv6-to-rosv7"
         }
@@ -662,6 +690,7 @@
       "id": "cmd-path-container",
       "query": "/container",
       "shape": "command-path",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -710,6 +739,7 @@
       "id": "version-7-22-1",
       "query": "what changed in 7.22.1",
       "shape": "version-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -719,7 +749,7 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 319,
+          "id": 317,
           "title": "IPIP",
           "rosetta_id": "docs/virtual-private-networks/ipip"
         },
@@ -755,6 +785,7 @@
       "id": "version-7-22",
       "query": "what changed in 7.22",
       "shape": "version-question",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -764,7 +795,7 @@
       "skipped": false,
       "top_pages": [
         {
-          "id": 319,
+          "id": 317,
           "title": "IPIP",
           "rosetta_id": "docs/virtual-private-networks/ipip"
         },
@@ -800,6 +831,7 @@
       "id": "device-ccr2216",
       "query": "CCR2216 specs",
       "shape": "device",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -814,22 +846,22 @@
           "rosetta_id": "docs/containers/user-guides/container-homeassistant"
         },
         {
-          "id": 237,
+          "id": 235,
           "title": "Openflow",
           "rosetta_id": "docs/network-management/openflow"
         },
         {
-          "id": 335,
+          "id": 333,
           "title": "MikroTik wired interface compatibility",
           "rosetta_id": "docs/wired-connections/mikrotik-wired-interface-compatibility"
         },
         {
-          "id": 269,
+          "id": 267,
           "title": "Neighbor discovery",
           "rosetta_id": "docs/system-information-and-utilities/neighbor-discovery"
         },
         {
-          "id": 273,
+          "id": 271,
           "title": "Precision Time Protocol",
           "rosetta_id": "docs/system-information-and-utilities/precision-time-protocol"
         }
@@ -845,6 +877,7 @@
       "id": "device-hap-ax3",
       "query": "hAP ax3 wifi performance",
       "shape": "device",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -859,22 +892,22 @@
           "rosetta_id": "docs/getting-started/configuration-management/default-configuration-passwords"
         },
         {
-          "id": 337,
+          "id": 335,
           "title": "Wireless",
           "rosetta_id": "docs/wireless"
         },
         {
-          "id": 360,
+          "id": 358,
           "title": "Wi-Fi 5 (802.11ac)",
           "rosetta_id": "docs/wireless/wifi-ac"
         },
         {
-          "id": 359,
+          "id": 357,
           "title": "Wi-Fi 6 / 7 (802.11ax/be)",
           "rosetta_id": "docs/wireless/wifi"
         },
         {
-          "id": 361,
+          "id": 359,
           "title": "WiFi CAPsMAN",
           "rosetta_id": "docs/wireless/wifi/capsman"
         }
@@ -889,9 +922,127 @@
       "notes": []
     },
     {
+      "id": "device-code-rb750gr3",
+      "query": "RB750Gr3",
+      "shape": "device",
+      "surface": "search",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 210,
+          "title": "RoMON",
+          "rosetta_id": "docs/management-tools/romon"
+        },
+        {
+          "id": 155,
+          "title": "MTU in RouterOS",
+          "rosetta_id": "docs/hardware/mtu-in-routeros"
+        },
+        {
+          "id": 160,
+          "title": "RouterBOARD",
+          "rosetta_id": "docs/hardware/routerboard"
+        },
+        {
+          "id": 17,
+          "title": "Switch Chip Features",
+          "rosetta_id": "docs/bridging-and-switching/switch-chip-features"
+        }
+      ],
+      "classified_actual": {
+        "input": "RB750Gr3",
+        "topics": [],
+        "device": "RB750Gr3"
+      },
+      "notes": []
+    },
+    {
+      "id": "device-alias-cap-ac",
+      "query": "cap_ac",
+      "shape": "device",
+      "surface": "search",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 358,
+          "title": "Wi-Fi 5 (802.11ac)",
+          "rosetta_id": "docs/wireless/wifi-ac"
+        },
+        {
+          "id": 154,
+          "title": "LEDs",
+          "rosetta_id": "docs/hardware/leds"
+        },
+        {
+          "id": 335,
+          "title": "Wireless",
+          "rosetta_id": "docs/wireless"
+        },
+        {
+          "id": 157,
+          "title": "PoE-Out",
+          "rosetta_id": "docs/hardware/poe-out"
+        },
+        {
+          "id": 155,
+          "title": "MTU in RouterOS",
+          "rosetta_id": "docs/hardware/mtu-in-routeros"
+        }
+      ],
+      "classified_actual": {
+        "input": "cap_ac",
+        "topics": []
+      },
+      "notes": []
+    },
+    {
+      "id": "device-family-chateau",
+      "query": "chateau lte12",
+      "shape": "device",
+      "surface": "search",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 223,
+          "title": "LTE/5G",
+          "rosetta_id": "docs/mobile-networking/lte-5g"
+        },
+        {
+          "id": 17,
+          "title": "Switch Chip Features",
+          "rosetta_id": "docs/bridging-and-switching/switch-chip-features"
+        }
+      ],
+      "classified_actual": {
+        "input": "chateau lte12",
+        "topics": [],
+        "device": "chateau"
+      },
+      "notes": []
+    },
+    {
       "id": "topic-firewall-classify",
       "query": "firewall mangle action mark-connection",
       "shape": "topic-multi",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -916,7 +1067,7 @@
           "rosetta_id": "docs/firewall-and-quality-of-service/user-guides/connection-rate"
         },
         {
-          "id": 321,
+          "id": 319,
           "title": "IKEv2 EAP between NordVPN and RouterOS",
           "rosetta_id": "docs/virtual-private-networks/ipsec/ikev2-eap-between-nordvpn-and-routeros"
         },
@@ -939,6 +1090,7 @@
       "id": "ambiguous-disabled",
       "query": "what does the disabled property do",
       "shape": "ambiguous",
+      "surface": "search",
       "recall_at_5": 1,
       "recall_at_3": 1,
       "reciprocal_rank": 1,
@@ -953,7 +1105,7 @@
           "rosetta_id": "docs/diagnostics-monitoring-and-troubleshooting/resource"
         },
         {
-          "id": 294,
+          "id": 292,
           "title": "Route Selection and Filtering",
           "rosetta_id": "docs/user-guides/routing-and-networking-protocols/route-selection-and-filtering"
         },
@@ -968,7 +1120,7 @@
           "rosetta_id": "docs/hardware/ports"
         },
         {
-          "id": 347,
+          "id": 345,
           "title": "Wireless Interface",
           "rosetta_id": "docs/wireless/abgn/wireless-interface"
         }
@@ -977,6 +1129,290 @@
         "input": "what does the disabled property do",
         "topics": []
       },
+      "notes": []
+    },
+    {
+      "id": "nl-pppoe",
+      "query": "set up a pppoe client",
+      "shape": "nl-question",
+      "surface": "search",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 324,
+          "title": "PPPoE",
+          "rosetta_id": "docs/virtual-private-networks/pppoe"
+        },
+        {
+          "id": 325,
+          "title": "IPv6 PD over PPP",
+          "rosetta_id": "docs/virtual-private-networks/pppoe/ipv6-pd-over-ppp"
+        },
+        {
+          "id": 326,
+          "title": "MLPPP over single and multiple links",
+          "rosetta_id": "docs/virtual-private-networks/pppoe/mlppp-over-single-and-multiple-links"
+        },
+        {
+          "id": 322,
+          "title": "LAC and LNS setup with Cisco as LAC",
+          "rosetta_id": "docs/virtual-private-networks/l2tp/lac-and-lns-setup-with-cisco-as-lac"
+        },
+        {
+          "id": 53,
+          "title": "Scripting examples",
+          "rosetta_id": "docs/developer-guides/scripting/scripting-examples"
+        }
+      ],
+      "classified_actual": {
+        "input": "set up a pppoe client",
+        "topics": [
+          "pppoe"
+        ],
+        "command_fragment": {
+          "pairs": [],
+          "verbs": [
+            "set"
+          ]
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "nl-dns",
+      "query": "configure a dns server",
+      "shape": "nl-question",
+      "surface": "search",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 234,
+          "title": "DNS",
+          "rosetta_id": "docs/network-management/dns"
+        },
+        {
+          "id": 59,
+          "title": "Dynamic DNS",
+          "rosetta_id": "docs/diagnostics-monitoring-and-troubleshooting/dynamic-dns"
+        },
+        {
+          "id": 68,
+          "title": "Netwatch",
+          "rosetta_id": "docs/diagnostics-monitoring-and-troubleshooting/netwatch"
+        },
+        {
+          "id": 134,
+          "title": "Upgrade Server",
+          "rosetta_id": "docs/getting-started/installation-and-upgrade/upgrade-server"
+        },
+        {
+          "id": 138,
+          "title": "IPv6 Neighbor Discovery",
+          "rosetta_id": "docs/getting-started/networking-fundamentals/ipv6-neighbor-discovery"
+        }
+      ],
+      "classified_actual": {
+        "input": "configure a dns server",
+        "topics": [
+          "dns"
+        ]
+      },
+      "notes": []
+    },
+    {
+      "id": "prop-search-mtu",
+      "query": "mtu",
+      "shape": "nl-question",
+      "surface": "search",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "skipped": false,
+      "top_pages": [
+        {
+          "id": 155,
+          "title": "MTU in RouterOS",
+          "rosetta_id": "docs/hardware/mtu-in-routeros"
+        },
+        {
+          "id": 119,
+          "title": "CHR: VMWare ESXi Installation",
+          "rosetta_id": "docs/getting-started/installation-and-upgrade/install/chr-installation/esxi"
+        },
+        {
+          "id": 324,
+          "title": "PPPoE",
+          "rosetta_id": "docs/virtual-private-networks/pppoe"
+        },
+        {
+          "id": 327,
+          "title": "PPTP",
+          "rosetta_id": "docs/virtual-private-networks/pptp"
+        },
+        {
+          "id": 315,
+          "title": "EoIP",
+          "rosetta_id": "docs/virtual-private-networks/eoip"
+        }
+      ],
+      "classified_actual": {
+        "input": "mtu",
+        "topics": [],
+        "property": "mtu"
+      },
+      "notes": []
+    },
+    {
+      "id": "prop-wireguard-listen-port",
+      "query": "wireguard listen-port property",
+      "shape": "property",
+      "surface": "property",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": true,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": []
+    },
+    {
+      "id": "prop-vxlan-vni",
+      "query": "vxlan vni property",
+      "shape": "property",
+      "surface": "property",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": true,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": []
+    },
+    {
+      "id": "prop-firewall-filter-action",
+      "query": "firewall filter action property",
+      "shape": "property",
+      "surface": "property",
+      "recall_at_5": 0,
+      "recall_at_3": 0,
+      "reciprocal_rank": 0,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": false,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": [
+        "property /ip/firewall/filter → action: 19 row(s), 0 high-confidence"
+      ]
+    },
+    {
+      "id": "changelog-cve",
+      "query": "CVE",
+      "shape": "changelog",
+      "surface": "changelog",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": true,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": []
+    },
+    {
+      "id": "changelog-rose-storage",
+      "query": "rose-storage package",
+      "shape": "changelog",
+      "surface": "changelog",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": true,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": []
+    },
+    {
+      "id": "changelog-wireguard-7-4",
+      "query": "wireguard",
+      "shape": "changelog",
+      "surface": "changelog",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": true,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": []
+    },
+    {
+      "id": "video-container",
+      "query": "run docker containers on mikrotik",
+      "shape": "video",
+      "surface": "video",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": true,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
+      "notes": []
+    },
+    {
+      "id": "video-wireguard",
+      "query": "wireguard vpn setup on smartphone",
+      "shape": "video",
+      "surface": "video",
+      "recall_at_5": 1,
+      "recall_at_3": 1,
+      "reciprocal_rank": 1,
+      "classifier_ok": true,
+      "related_ok": true,
+      "topics_ok": true,
+      "surface_hit": true,
+      "skipped": false,
+      "top_pages": [],
+      "classified_actual": {},
       "notes": []
     }
   ]

@@ -314,6 +314,7 @@ restraml
 romon
 ros
 routerboard
+routerboot
 routeros
 routingthecloud
 rowids
