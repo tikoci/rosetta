@@ -61,13 +61,16 @@ joined from `device_overview`, not a flattening of `specs_json`:
   "rosetta_device_id": "hap-ax3",          // the stable, agent-persistable key (B-0017 Q3)
   "category": "Indoor wireless",            // /hardware sidebar taxonomy, 12 values
   "discontinued": false,
-  "hardware_page_url": "https://manual.mikrotik.com/hardware/hap-ax3",  // from source_hardware_slug
+  "product_page_url": "https://mikrotik.com/product/hap_ax3",  // = mikrotik.com/product/<sourceWwwCode>, 209/255 rows; richer than /hardware (feedback #1)
+  "hardware_page_url": "https://manual.mikrotik.com/hardware/hap-ax3",  // from source_hardware_slug; often boilerplate
   "also_known_as": ["C53UiG+5HPaxD2HPaxD", "hap_ax3"],  // top aliases by source rank, cap ~4
-  "non_default_ip": "192.168.188.1"         // ONLY when a genuine deviation (see prerequisites)
+  "non_default_ip": "192.168.188.1",        // ONLY when a genuine deviation (see prerequisites)
+  "note": "Full specs: routeros_device_lookup rosetta_device_id=hap-ax3 (don't fetch the URLs)"  // steer to tool, not page (feedback #2)
 }
 ```
 
-~60–120 tokens per single-device response — fits comfortably inside the existing `"hAP ax3"` 6,000-token
+URLs are provenance/human links only — the `note` steers agents to the device tool rather than
+re-tokenizing a page (feedback #2). ~60–120 tokens per single-device response — fits comfortably inside the existing `"hAP ax3"` 6,000-token
 budget (`mcp-contract.test.ts` Block B). Multi-result compact lists get only `category` +
 `discontinued` per row.
 
@@ -168,7 +171,7 @@ resolution for free. Surface-level work in `browse.ts`:
 
 # Prerequisites cleared before Phase 2
 
-B-0017 carried two cleanup items that Phase 2 should treat as already handled once #48 lands:
+B-0017 carried two cleanup items that Phase 2 can now treat as done — **#48 merged 2026-07-12** (`main` @ 1c9ed20):
 
 1. **`hardware-link` alias pollution** (B-0017 "lingering items"): before #48, 27 of 30 drop-ledger
    www-product codes still existed as `hardware-link` aliases pointing at the device whose page merely
@@ -187,7 +190,7 @@ before the surfacing work starts, so Phase 2 reads clean data instead of re-deri
 
 # Proposed build-issue split (the 1–2 issues #39 must spawn)
 
-**Issue A — "Alias-aware device lookup + catalog enrichment (MCP + TUI)"** — `agent-ready` candidate:
+**Issue A → spawned as [#49](https://github.com/tikoci/rosetta/issues/49) (`agent-ready`, 2026-07-12).** "Alias-aware device lookup + catalog enrichment (MCP + TUI)":
 depends on the clean catalog from #48; `searchDevices()` stage 1.5 + stage 5 + `hardware` enrichment
 block + thin-row `kind` labeling; classifier pattern additions + whole-input alias probe in `searchAll()`;
 `related.devices` +category/+discontinued; TUI card/stats updates; contract snapshot + budget
@@ -195,7 +198,7 @@ re-baseline; anchor tests + device golden queries; tool-description refresh; cha
 Acceptance: the anchor-test list above green; `V-tool-registry` diff empty; parity test green;
 `"hAP ax3"` within budget.
 
-**Issue B — "`category` filter arg + category navigation"** — smaller, separable (it's the only
+**Issue B → spawned as [#50](https://github.com/tikoci/rosetta/issues/50) (2026-07-12, sequenced after A).** "`category` filter arg + category navigation" — smaller, separable (it's the only
 schema-key change): `category` arg on `routeros_device_lookup` (validated against the 12 values, hint
 on miss), dot-command passthrough, `device categories` TUI listing, `next_steps` hints from
 single-device responses, changelog. Sequenced after A (A defines the thin-row shape that category
@@ -204,11 +207,44 @@ enumeration returns). Could fold into A if the maintainer prefers one PR — fla
 Out of scope for both (already deferred above): `specs_json` passthrough, `/hardware` prose ingest,
 `&`-compound SELECT side (B-0006), the 30 dropped www products as rows, Track B capability surfacing.
 
-# Open decisions for the maintainer
+# Maintainer feedback (2026-07-12) — folded into the build issues
 
-1. Enrichment block name and placement: `hardware: {…}` sub-object on `DeviceResult` (proposed) vs
-   flattened top-level fields. Sub-object keeps the matrix shape untouched and snapshots readable.
-2. Issue A+B as one PR or two (recommendation: two issues, A first; fold only if review bandwidth
-   prefers one).
-3. Whether `mode: "alias"` is worth exposing as a distinct search mode string (proposed: yes — free
-   observability for evals) or alias hits should report `"exact"`.
+Reviewed on #39. The steering shifts the emphasis of Phase 2 **away from surfacing the `/hardware`
+page and toward using the overlay to resolve the right device(s) from free-form input** — the alias/
+fuzzy path is the priority, the page URL is a low-value byproduct. Concrete changes to the design above:
+
+1. **Product-page URL beats the `/hardware` URL for humans.** `/hardware` pages are often boilerplate
+   ("Accessing RouterOS", regulatory/safety) and thin; the mikrotik.com **product page** usually has
+   more real detail. So the enrichment block surfaces `product_page_url` — reconstructed as
+   `https://mikrotik.com/product/<sourceWwwCode>` (grounded: `assess-www.ts` fetches exactly that path,
+   so any attached www code is a valid URL segment; 209/255 rows have one) — preferred over
+   `hardware_page_url` (`manual.mikrotik.com/hardware/<sourceHardwareSlug>`, 242/255). Neither is the
+   point, though — see #2. Where only one exists, surface that one; where neither, omit. **No ETL change
+   needed** — both derive from columns already in `hardware_catalog`.
+2. **Steer to the device tool, not to URL-fetching.** rosetta exists to spare agents from fetching and
+   re-tokenizing pages. So URLs surface but are explicitly framed as *provenance/human links*, and the
+   `note` + `next_steps` nudge the agent to call `routeros_device_lookup rosetta_device_id=…` for more
+   specs rather than fetching either URL. The enrichment must carry enough (category, discontinued, AKA,
+   the resolved id) that a follow-up tool call — not a page fetch — is the natural next step.
+3. **Optional per-device detail level on `routeros_search`** (`device_detail: "brief" | "full"`, brief =
+   today's enrichment). Motivation: let an agent get fuller device data inline and skip a second
+   `routeros_device_lookup` round-trip. Kept **out of Issue A's core** to keep A shippable and budget-safe;
+   recorded as a scoped follow-up (Issue A "possible extension" + BACKLOG) so it isn't lost.
+4. **Doc → device cross-referencing** (routeros_get_page gains a "references devices" / "references
+   pivots-like-switch-chips" block; main-doc prose becomes a *test corpus* for how well the alias/fuzzy
+   path surfaces devices from free-form text, and a way to scope how often devices are mentioned in main
+   docs). This is **research, not Phase 2** — routed to `briefings/B-0007-special-hardware-pages.md`
+   (Track B, "free-form text → device" is already its remit) + a BACKLOG line. It also validates the
+   priority in the opening paragraph: free-form resolution quality is the real deliverable.
+
+# Resolved decisions (was: open for the maintainer)
+
+1. **Enrichment block placement** → `hardware: {…}` sub-object on `DeviceResult` (matrix shape untouched,
+   snapshots readable). Confirmed.
+2. **Issue A+B split** → two issues, A first. Confirmed.
+3. **`mode: "alias"` as a distinct search mode** → yes (free eval observability). Confirmed.
+4. **Series-row exemption in the drop-ledger alias filter** → confirmed correct in merged #48: the
+   `page.slug.endsWith("-series")` exemption fires only in the standalone-row loop (the matrix loop always
+   passes `ownerIsSeries=false`), and invariant #8 re-derives it tightly as
+   `rosettaDeviceId.startsWith("hw-") && sourceHardwareSlug endsWith "-series"`. So `ldf_5_ac`→ldf-5
+   correctly filters while `hw-wap-60g-series` stays exempt.

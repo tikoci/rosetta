@@ -49,6 +49,23 @@ Several hardware-specific HTML pages (Switch Chip Features, Marvell Prestera, Br
 
 Watch for user-visible misses: agents asking "what switch chip is in CCR-X?" returning nothing useful from existing tools. If those misses become a pattern, it's worth a dedicated extractor.
 
+## Doc → device cross-referencing (routed here from #39, 2026-07-12)
+
+Maintainer feedback on #39 (Phase 2 hardware surfacing) parked a related idea here because it's the
+"free-form text → device/pivot" direction Track B already owns:
+
+- **`routeros_get_page` gains a "references devices" (and "references pivots" — e.g. switch chips) block.**
+  Recursively scan main-doc prose for device/alias/chip mentions and link them to `hardware_catalog` /
+  `device_aliases` rows, so a doc page surfaces the concrete devices it talks about.
+- **Main docs as a test corpus, two ways:** (1) they're a realistic stress test for how well the
+  Phase 2 alias/fuzzy resolver surfaces devices from unconstrained prose (the actual Phase 2 deliverable,
+  per its opening); (2) counting how often devices are *actually mentioned* in main docs scopes whether a
+  doc→device index is worth building at all — the "trigger to act" evidence this briefing already asks for.
+- **Sequencing:** downstream of Phase 2 (#39 → the alias resolver must exist first) and of a decision on
+  the generic page-tables extractor below. Not `agent-ready`; research/scoping first. Promote to an issue
+  once the Phase 2 resolver lands and a mention-frequency probe shows the payoff.
+
 ## Open questions
 
 - Would a generic "page tables" extractor (one row per `<table>` in pages, structured) cover this and other future cases more cheaply than per-page extractors?
+- What precision does prose device-mention detection need before a "references devices" block helps more than it misleads? (An over-eager match that links every "hAP" mention is noise; the alias table's exact-normalized keys are the conservative starting point.)
