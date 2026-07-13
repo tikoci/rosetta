@@ -5,6 +5,11 @@ on:
   pull_request_review:
     types: [submitted, dismissed]
 
+# Minimal token scope: the gate only reads PR requested-reviewer state via `gh api`.
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   check-pending:
     runs-on: ubuntu-latest

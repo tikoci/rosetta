@@ -392,7 +392,7 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
       );
     }
   } else {
-    return misconfigured(`unknown surface "${q.surface}"`);
+    return misconfigured(`unknown surface "${surface}"`);
   }
 
   return { ...base, surface_hit: hit, recall_at_5: hit ? 1 : 0, recall_at_3: hit ? 1 : 0, reciprocal_rank: hit ? 1 : 0, notes };

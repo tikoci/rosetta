@@ -49,11 +49,18 @@ function emit(): void {
   const { searchAll } = require("../query.ts") as typeof import("../query.ts");
   const fixture = JSON.parse(
     readFileSync(join(import.meta.dir, "../../fixtures/eval/queries.json"), "utf-8"),
-  ) as { queries: { id: string; query: string; surface?: string }[] };
+  ) as { queries: { id: string; query: string; surface?: string; shape?: string }[] };
+
+  // Mirror retrieval.ts's effectiveSurface(): a property/changelog/video SHAPE is a direct
+  // surface even if `surface` is unset, so a fixture that sets shape but forgets surface can't
+  // sneak into the search comparison here.
+  const directShapes = new Set(["property", "changelog", "video"]);
+  const effectiveSurface = (q: { surface?: string; shape?: string }): string =>
+    (q.shape && directShapes.has(q.shape) ? q.shape : q.surface) ?? "search";
 
   const out: EmitRow[] = [];
   for (const q of fixture.queries) {
-    if ((q.surface ?? "search") !== "search") continue;
+    if (effectiveSurface(q) !== "search") continue;
     const topics = TOPICS[q.id];
     if (!topics) continue;
     const resp = searchAll(q.query, 5);
