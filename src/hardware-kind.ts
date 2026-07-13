@@ -53,7 +53,7 @@ export function classifyHardwareKind(
   category: string | null,
   isSeries: boolean,
 ): HardwareKind {
-  if (OVERRIDES[slug]) return OVERRIDES[slug];
+  if (Object.hasOwn(OVERRIDES, slug)) return OVERRIDES[slug];
   if (isSeries || slug.endsWith("-series") || DOC_SLUGS.has(slug)) return "series-or-doc";
   if (MODULE_SLUG_RE.test(slug)) return "module";
   if (category && ACCESSORY_CATEGORIES.has(category)) return "accessory";
