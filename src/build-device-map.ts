@@ -24,6 +24,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import exceptions from "../device-exceptions.toml";
 import { canonForms, loadMatrixRows, type MatrixRow } from "./assess-hardware.ts";
+import { classifyHardwareKind } from "./hardware-kind.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 const MATRIX_CSV = resolve(PROJECT_ROOT, "matrix", "2026-07-07", "matrix.csv");
@@ -215,16 +216,22 @@ const tsv = rowsToTsv(HEADERS, rows.map((row) => HEADERS.map((h) => row[h])));
 await emitOrCheck(OUT_TSV, tsv, `${rows.length} device rows`);
 
 // ── Audit view: /hardware pages that map to NO matrix device ──
-// The reverse of device-map.tsv. A /hardware page with no matrix row is usually a genuine
-// non-device (accessory, antenna, interface) or a series/index page — but it can also be a
-// real device MISSING from matrix.csv. This artifact makes that set human-auditable instead of
-// invisible (B-0018 "How to audit"). Not a drift gate: MikroTik adds/retires pages routinely.
-const UNMATCHED_HEADERS = ["slug", "category", "is_series", "cause", "url", "mentioned_codes"] as const;
+// The reverse of device-map.tsv, reframed as a CLASSIFIED inventory rather than an
+// undifferentiated "unmatched" pile. A /hardware page with no matrix row is a superset of
+// four different things — see the `kind` column (classifyHardwareKind, src/hardware-kind.ts):
+//   device        — a real off-matrix router/switch/AP/CPE (discontinued or a matrix gap)
+//   accessory     — PSU / antenna / PoE / SFP / OOB-management dongle, not a device
+//   module        — a plug-in LoRa/LTE/BT radio SKU (the `&`-compound-code targets)
+//   series-or-doc — a series/index landing page or doc subpage; never an individual product
+// This makes the set human-auditable and lets downstream surfaces filter it (B-0018 "How to
+// audit"). Not a drift gate: MikroTik adds/retires pages routinely.
+const UNMATCHED_HEADERS = ["slug", "kind", "category", "is_series", "cause", "url", "mentioned_codes"] as const;
 const unmatchedRows = hwPages
   .filter((p) => !p.matchedMatrixNames?.length)
   .sort((a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.slug.localeCompare(b.slug))
   .map((p) => [
     p.slug,
+    classifyHardwareKind(p.slug, p.category, p.isSeries),
     p.category ?? "",
     p.isSeries ? "yes" : "",
     p.cause,
@@ -233,6 +240,11 @@ const unmatchedRows = hwPages
   ]);
 const unmatchedTsv = rowsToTsv(UNMATCHED_HEADERS, unmatchedRows);
 await emitOrCheck(OUT_UNMATCHED_TSV, unmatchedTsv, `${unmatchedRows.length} unmatched /hardware pages`);
+
+const byKind: Record<string, number> = {};
+for (const row of unmatchedRows) byKind[row[1]] = (byKind[row[1]] || 0) + 1;
+console.log(`Unmatched /hardware pages by kind (${unmatchedRows.length} total):`);
+for (const [k, v] of Object.entries(byKind).sort(([, a], [, b]) => b - a)) console.log(`  ${k}: ${v}`);
 
 // ── Summary + drift gate ──
 const byRes: Record<string, number> = {};

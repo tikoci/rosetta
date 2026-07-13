@@ -267,6 +267,7 @@ oid
 oldswitch
 ollama
 onsessioninitialized
+oob
 oom
 openflow
 ospf
@@ -295,6 +296,7 @@ preflights
 prestera
 printfooter
 prioritise
+psu
 ptp
 pvid
 pwr
@@ -362,6 +364,7 @@ strawman
 streamable
 subcodes
 subdirs
+subpages
 subshell
 subshells
 subvolume

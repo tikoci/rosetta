@@ -127,13 +127,27 @@ once its www slug `sxtsq_5ax` was confirmed.)
 
 The reverse view, so the "why isn't this page in the map?" set is auditable instead of invisible.
 102 pages as of 2026-07-13 (was 100 on 2026-07-11; not a drift gate, so small counts move between
-audits — see below). Columns: `slug, category, is_series, cause, url, mentioned_codes`. A row here
-is usually one of:
+audits — see below). Columns: `slug, kind, category, is_series, cause, url, mentioned_codes`.
 
-- a genuine **non-device** — `Accessories`/`Antennas`/`Interfaces` (e.g. `gper`, `mqs`, `mant-series`);
-- a **series/index** page (`is_series = yes`) that fronts several real devices;
-- a legacy/**EOL** device dropped from the current matrix;
-- **or a real device missing from matrix.csv** — the audit-worthy case (see "matrix gaps" below).
+The `kind` column (from `classifyHardwareKind`, `src/hardware-kind.ts`) reframes this from an
+undifferentiated "unmatched" pile into a **classified inventory**, because a row here is one of four
+structurally different things — and each wants different downstream handling:
+
+- **`device`** (66) — a real off-matrix router/switch/AP/CPE, either discontinued or an active
+  product the matrix doesn't carry yet. The audit-worthy case for "matrix gaps" (see below), and the
+  candidate set for surfacing off-matrix devices in search.
+- **`accessory`** (12) — `Accessories`/`Antennas`/`Interfaces` hardware that is not itself a device
+  (PSU, PoE injector, antenna, SFP optic, OOB dongle — e.g. `gper`, `mqs`, `woobm-usb`).
+- **`module`** (8) — a plug-in LoRa/LTE/BT radio SKU (`r11e-lr*`, `tg-*`); the target a device's
+  `&`-compound product code points at.
+- **`series-or-doc`** (16) — a series/index landing page (`is_series = yes` or `*-series`) or a doc
+  subpage (`compliance`); never an individual product.
+
+The classification is rule-based (category + slug shape); as of the 2026-07 review every page
+classifies correctly with **zero per-slug overrides** (`OVERRIDES` in `src/hardware-kind.ts` is the
+escape hatch if that changes). `kind` is shared logic so any DB/MCP/TUI surface that filters this set
+(e.g. an `include-accessories` argument, or "include module" cross-links) reuses the same call rather
+than re-deriving it.
 
 ## How to audit the mapping
 
@@ -141,8 +155,8 @@ is usually one of:
    resolves by rule or a live curated exception.
 2. Open `device-map.tsv`, sort/scan the `needs_review` column — every non-blank row is a curated call you
    can double-check against the two URLs.
-3. Open `hardware-unmatched.tsv`, filter `category` to the device-ish buckets (LTE/Ethernet/Wireless);
-   anything there that *is* a current product is a matrix gap to file.
+3. Open `hardware-unmatched.tsv`, filter `kind = device`; anything there that *is* a current product is
+   a matrix gap to file. `series-or-doc`/`accessory`/`module` rows are expected non-devices — skip them.
 4. Spot-check URLs: both `hw_url` and `www_url` should return HTTP 200. (The 12 exception www codes were
    HTTP-checked 2026-07-11.)
 5. `bun test src/assess-hardware.test.ts` — the parsing tricks are anchored; a regression trips here.
