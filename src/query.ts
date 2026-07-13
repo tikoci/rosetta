@@ -1806,19 +1806,20 @@ function normAliasKey(query: string): string {
   return normalizeDeviceQuery(query).trim().toLowerCase();
 }
 
-/** Collapse a token to its concatenated alias key: `+`→plus, `&`→and, strip every other
+/** Collapse a normalized alias key to its concatenated form: `+`→plus, `&`→and, strip every other
  *  non-alphanumeric — so "hAP-ax3"/"hap ax3"/"hapax3" all probe the same row. Matches
  *  canon() in assess-hardware.ts, which the ETL applied when deriving the source
  *  `collapsed` alias rows (#67); keep the two in sync. */
-function collapseAliasKey(query: string): string {
-  return normAliasKey(query).replace(/\+/g, "plus").replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+function collapseAliasKey(normalizedKey: string): string {
+  return normalizedKey.replace(/\+/g, "plus").replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
 }
 
 /** Probe device_aliases by exact normalized key, then by collapsed key (#67).
  *  Returns the owning rosetta_device_id, or undefined. Indexed point lookups, never fuzzy. */
 function probeAlias(token: string): string | undefined {
   const stmt = db.prepare("SELECT rosetta_device_id FROM device_aliases WHERE alias = ?");
-  for (const key of new Set([normAliasKey(token), collapseAliasKey(token)])) {
+  const normalizedKey = normAliasKey(token);
+  for (const key of new Set([normalizedKey, collapseAliasKey(normalizedKey)])) {
     if (!key) continue;
     const hit = stmt.get(key) as { rosetta_device_id: string } | undefined;
     if (hit) return hit.rosetta_device_id;

@@ -1,14 +1,13 @@
+# rosetta project dictionary (cspell)
 #
 # Domain vocabulary absent from cspell's default en dictionary: RouterOS/MikroTik
+# terms, product codes, networking protocols, tikoci project names, code
+# identifiers, and a few intentional test sentinels (nonexistentterm, skipme, …).
 # Referenced from cspell.json so both the editor extension and `make lint`'s
 # `cspell lint` read it. cSpell matches case-insensitively, so the lowercase form
 # covers all casings. Keep sorted; add a word rather than tolerate noise. British
-# cspell.json `ignoreWords` for true throwaways (see `behaviour` there).
-# identifiers, and a few intentional test sentinels (nonexistentterm, skipme, …).
 # locale variants (normalise, behavioural, …) are also kept here; reserve
-# rosetta project dictionary (cspell)
-# terms, product codes, networking protocols, tikoci project names, code
-DOCCARDLIST
+# cspell.json `ignoreWords` for true throwaways (see `behaviour` there).
 acd
 acrpsma
 acsmaufl
@@ -91,6 +90,7 @@ dispatchable
 dlc
 dlna
 dlp
+doccardlist
 dockerfiles
 dockerhub
 docu
