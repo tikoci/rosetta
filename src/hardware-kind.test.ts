@@ -31,10 +31,15 @@ describe("classifyHardwareKind", () => {
   });
 
   test("series/index and doc pages are series-or-doc", () => {
-    expect(classifyHardwareKind("nray-series", "60 GHz products", true)).toBe("series-or-doc");
+    expect(classifyHardwareKind("wap-60g-series", "60 GHz products", true)).toBe("series-or-doc");
     // `-series` slug alone classifies even if the isSeries flag is missing
     expect(classifyHardwareKind("crs-series", "Switches", false)).toBe("series-or-doc");
     expect(classifyHardwareKind("compliance", "Wireless systems", false)).toBe("series-or-doc");
+  });
+
+  test("OVERRIDES wins over every rule (nray-series is one kit, not a family)", () => {
+    // `-series` suffix + isSeries would say series-or-doc, but the override forces device.
+    expect(classifyHardwareKind("nray-series", "60 GHz products", true)).toBe("device");
   });
 
   test("series wins over the category rule (an accessory/antenna series page is still series-or-doc)", () => {

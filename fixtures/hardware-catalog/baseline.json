@@ -4,12 +4,12 @@
   "coreFieldFrequencyPct": {
     "Product code": 100,
     "CPU": 82,
-    "Architecture": 82
+    "Architecture": 81
   },
   "matrixCoveragePct": 88,
-  "www404RatePct": 41,
-  "aliasCollisions": 74,
-  "droppedWwwProducts": 30,
+  "www404RatePct": 36,
+  "aliasCollisions": 81,
+  "droppedWwwProducts": 67,
   "resolvedDeviceIds": [
     "atl-5g-r16",
     "atl-lte18-kit",

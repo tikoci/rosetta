@@ -160,16 +160,20 @@ the file view matches the DB rather than approximating it):
   `0` accompanies a blank `www_code`.
 
 **The spec-backfill worklist** is `kind = device` + blank `www_code` — a real device the ETL couldn't
-attach specs to (15 as of 2026-07-13: e.g. `dynadish-6`, `sxt-2`, `lhg-xl-2`, `chateau-lte6`,
-`chateau-lte12`, the `ltap-lr8-*` LoRa kits). These almost always *do* have a `mikrotik.com/product`
-page that `assess-www` simply never fetched (no candidate seed — the page has no product link and the
-device isn't in `matrix.csv`). Supplying the code is how a human closes the gap: the 2026-07 maintainer
-review captured those codes in the curated **`hardware-www-map.toml`** (slug → `www_code`/`www_codes`,
-plus `status`/`note` for the odd ones). That file is the answer key; wiring it into
-`assess-www` (candidate seeding) + `extract-hardware-catalog` (force-attach past the identity gate) so
-the specs actually land is the ETL task tracked in #70 — the file is inert until then. Blank `www_code`
-on `series-or-doc`/`module`/`accessory` rows is otherwise expected (a series page has no single product;
-a bare LoRa module often has no standalone www page) and is **not** a backfill target.
+attach specs to. The 2026-07 maintainer review captured the missing codes in the curated
+**`hardware-www-map.toml`** (slug → `www_code`/`www_codes`, plus `status`/`seed_only`/`note` for the odd
+ones), grounded against `mikrotik.com/sitemap.xml`; that file is now **wired into the ETL** through a
+shared loader `src/hardware-www-map.ts` (#70 first task): `assess-www` seeds every code into its
+candidate fetch, and `extract-hardware-catalog` force-attaches single-code products past the identity
+gate. The worklist dropped **15 → 4** as of 2026-07-13 — 14 off-matrix devices (`sxt-2`, `dynadish-6`,
+`cube-60g-ac`, `chateau-lte6`/`-lte12`, `intercell`, `lhg-xl-2`, `wireless-wire-cube`, …) gained full
+spec sheets. The 4 that remain are genuinely un-single-attachable: `seed_only` module/kit pages
+(`r11e-lr8`/`-lr8g`, `ltap-lr8-lte6-kit`, `knot-embedded-lte4-*`) whose product identity is owned at
+matrix rank by the kits that embed it — attaching would trip the catalog's one-product-one-row /
+declared-code invariants — plus series-style multi-variant pages (`pwr-line`/`-ap`). Their specs are
+still **seeded** (fetched into `ros-www-assessment.json`) for the deferred module/series surfacing work,
+just not force-attached. Blank `www_code` on `series-or-doc`/`accessory` rows is otherwise expected and
+**not** a backfill target.
 
 > `make device-map` reads `catalog.json` for these two columns; run `make extract-hardware-catalog`
 > first if the assessment JSON changed, so the www status reflects the current scrape. If
@@ -185,7 +189,9 @@ a bare LoRa module often has no standalone www page) and is **not** a backfill t
 3. Open `hardware-unmatched.tsv`, filter `kind = device`; anything there that *is* a current product is
    a matrix gap to file. `series-or-doc`/`accessory`/`module` rows are expected non-devices — skip them.
    Then filter `kind = device` + blank `www_code` for the **spec-backfill worklist** — real devices the
-   ETL attached no www specs to; find each one's `mikrotik.com/product` code (feedback mechanism: #70).
+   ETL attached no www specs to; add each one's `mikrotik.com/product` code to `hardware-www-map.toml`
+   (mark `seed_only` if it's a module/kit whose identity is owned by a bundling kit), then re-run the
+   live refresh (`make assess-www extract-hardware-catalog device-map`) to attach it.
 4. Spot-check URLs: both `hw_url` and `www_url` should return HTTP 200. (The 12 exception www codes were
    HTTP-checked 2026-07-11.)
 5. `bun test src/assess-hardware.test.ts` — the parsing tricks are anchored; a regression trips here.

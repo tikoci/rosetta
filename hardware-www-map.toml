@@ -8,18 +8,23 @@
 # RBSXTG-2HnDr2-168) and the identity-agreement gate correctly refuses to guess. This file is
 # the hand-verified answer key: each `[key]` is a manual.mikrotik.com/hardware/<slug>.
 #
-# HOW IT WILL BE CONSUMED (intended wiring — nothing reads this file yet; tracked in #70):
-#   1. assess-www.ts will seed these codes into its candidate fetch, so mikrotik.com/product/<code>
-#      gets scraped and its specs land in ros-www-assessment.json.
-#   2. extract-hardware-catalog.ts will force-attach the curated product to the row (bypassing the
-#      identity-agreement gate — a human vouched for it), so specs_json + source_www_code fill in.
-# Then `make device-map` will reflect it in hardware-unmatched.tsv's www_code/www_specs columns.
+# HOW IT'S CONSUMED (both, in refresh order — wired in #70, via src/hardware-www-map.ts):
+#   1. assess-www.ts seeds every code (curatedWwwCodes()) into its candidate fetch, so
+#      mikrotik.com/product/<code> gets scraped and its specs land in ros-www-assessment.json.
+#   2. extract-hardware-catalog.ts force-attaches the single-code products (curatedWwwCodeForSlug())
+#      to their row, bypassing the identity-agreement gate — a human vouched for it — so specs_json
+#      + source_www_code fill in.
+# Then `make device-map` reflects it in hardware-unmatched.tsv's www_code/www_specs columns.
 #
 # FIELDS:
-#   www_code   — the single marketing product a device page maps to.
+#   www_code   — the single marketing product a device page maps to (force-attached, unless seed_only).
 #   www_codes  — for a series/index page that fronts SEVERAL member products; list every member.
-#                (Whether members become individual searchable device rows is a separate call —
-#                see #70; for now this fetches their specs and records the membership.)
+#                Series pages are never force-attached (no single canonical product); members are
+#                fetched for specs and become individual searchable rows later (#70).
+#   seed_only  — fetch the code's specs but do NOT force-attach it. For radio-module / bundled-kit
+#                pages whose product identity is owned at matrix rank by the kits that embed it
+#                (e.g. R11e-LR8G is a subcode of the wAP/KNOT LR8G kits) — attaching would trip the
+#                catalog's one-product-one-row / declared-code invariants.
 #   status     — "no-www" (verified absent from mikrotik.com) | "skip" (not a product page at
 #                all) | "verify" (maintainer flagged for a second look). A status entry needs no
 #                code.
@@ -48,20 +53,24 @@ www_code = "gperx4"
 
 ["knot-embedded-lte4-ec25-eu-and-kne"]
 www_code = "knot_emb_lte4_global"
-note = "Shared _global product; matches the curated alias in device-exceptions.toml / device-map.tsv."
+seed_only = true
+note = "Shared _global product, already owned by the knot-embedded-lte4-global sibling row and mapped as a curated-alias in device-exceptions.toml/device-map.tsv. seed_only: force-attaching here would multi-attach the shared product (and this is an exception-linked row, not an hw-only one)."
 
 ["ltap-lr8-lte-kit"]
 www_code = "ltap_lr8_lte_kit"
 
 ["r11e-lr8"]
-status = "verify"
-note = "LR8 (non-G). No r11e_lr8* product appears in ros-www-assessment.json, and r11e-lr8g below is flagged no-www — so no code is asserted here. Confirm during ETL (see #70) whether LR8 has any product page or shares LR8G's."
+www_code = "r11e_lr8g"
+seed_only = true
+note = "LR8 (non-G) shares the LR8G product page: sitemap lists only r11e_lr8g (no bare r11e_lr8), a plain LR8 would be long discontinued (#70). seed_only: R11e-LR8G is a subcode of the wAP/KNOT LR8G kits, which own that identity at matrix rank — can't force-attach the module row."
 
 ["r11e-lr9"]
 www_code = "r11e_lr9"
 
 ["r11e-lr9g"]
 www_code = "r11e_lr9g"
+seed_only = true
+note = "seed_only: R11e-LR9G is a subcode of the wAP/KNOT LR9G kits, which own that identity at matrix rank — attaching the module row trips the declared-code invariant. Specs still fetched for #70."
 
 ["wap-lr9-kit"]
 www_code = "wap_lr9_kit"
@@ -86,8 +95,7 @@ www_code = "RBSXTG-2HnDr2-168"
 
 ["nray-series"]
 www_code = "wireless_wire_nray"
-status = "verify"
-note = "? It's one kit… not series/'sold separately' + discontinued"
+note = "One kit, not a true series (maintainer, #70); reclassified device via OVERRIDES in src/hardware-kind.ts. www code confirmed in mikrotik.com/sitemap.xml."
 
 # ── Series / index pages (one page → several member products) ──
 
@@ -139,15 +147,19 @@ www_codes = ["CRS109-8G-1S-2HnD-IN", "CRS112-8G-4S-IN", "CRS210-8G-2SplusIN", "C
 ["crs125-24g-1s-series"]
 www_codes = ["CRS125-24G-1S-IN", "CRS125-24G-1S-2HnD-IN", "crs125_24g_1s_rm"]
 
-# ── Flagged: no product / skip / needs a decision (no code attached yet) ──
+# ── Resolved LR8/LR8G kits (bare page shares the -G product; sitemap-grounded) ──
 
 ["r11e-lr8g"]
-status = "no-www"
-note = "? Seemingly not on www.mikrotik.com"
+www_code = "r11e_lr8g"
+seed_only = true
+note = "Direct match — sitemap lists r11e_lr8g (earlier no-www flag was wrong; the code was simply never fetched). seed_only: R11e-LR8G is a subcode of the wAP/KNOT LR8G kits, which own that identity at matrix rank."
 
 ["ltap-lr8-lte6-kit"]
-status = "verify"
-note = "? Duplicate of ltap_lr8g_lte6_kit ?"
+www_code = "ltap_lr8g_lte6_kit"
+seed_only = true
+note = "Bare LR8 page shares the LR8G kit product: sitemap lists only ltap_lr8g_lte6_kit. seed_only: hw-ltap-lr8g-lte6-kit already owns that product, so force-attaching here would multi-attach it. Assume same product (#70)."
+
+# ── Skip: not a product page at all ──
 
 ["compliance"]
 status = "skip"
