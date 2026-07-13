@@ -7,15 +7,23 @@ name: Device Map Refresh
 # `make device-map-check` on every PR only proves the *committed* snapshot is internally
 # consistent, it can't detect upstream drift on its own.
 #
-# On drift, pushes the regenerated artifacts to a fixed branch and opens (or updates) a PR
-# so a human reviews via the normal PR diff view — briefings/B-0018-product-naming-three-source-map.md
-# "How to audit" is the reviewer's checklist. No diff = no PR, silent success.
+# This job DETECTS drift; it does not fix it. On drift (regenerated artifacts differ from
+# committed) it fails the run (red check + GitHub's scheduled-workflow-failure notification),
+# uploads the regenerated artifacts, and opens/refreshes ONE tracking issue with the diff.
+# A human then resolves it through the *normal* flow — regenerate locally, review against
+# briefings/B-0018-product-naming-three-source-map.md "How to audit", open a standard PR
+# that runs the required `device-map-check` gate like any other. No drift = green, silent.
 #
-# `build-device-map.ts` also hard-fails (exit 1) when a device no longer auto-resolves and
-# has no matching `device-exceptions.toml` entry, or an exception has gone stale — a
-# genuine curation gap, not routine drift. It still writes the regenerated TSVs before
-# exiting, so this workflow still opens the PR in that case, then fails the run afterward
-# so the red check + GitHub's scheduled-workflow-failure notification both fire.
+# Why detect-and-notify rather than auto-open a PR: a PR pushed with the default GITHUB_TOKEN
+# does not trigger `test.yml`, so it could never satisfy main's required `test` check — it
+# would be unmergeable without a human nudging CI anyway. Filing an issue matches the repo's
+# own "committed work → issue → normal PR" convention and keeps this workflow to read-only
+# checkout + no branch/force-push machinery. (Design decision on PR #69.)
+#
+# `build-device-map.ts` hard-fails (exit 1) when a device no longer auto-resolves and has no
+# matching `device-exceptions.toml` entry, or an exception has gone stale — a genuine curation
+# gap, not routine drift. That case is folded into the same failure path (the issue body calls
+# it out), since it also writes regenerated TSVs and needs the same human resolution.
 
 on:
   schedule:
@@ -24,8 +32,8 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  issues: write
 
 concurrency:
   group: device-map-refresh
@@ -70,88 +78,93 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Open or update refresh PR
-        if: steps.diff.outputs.changed == 'true'
+      # Everything below fires when the committed artifacts drifted OR the regen hit a
+      # curation gap (which also rewrites the TSVs, so it usually shows as drift too — the
+      # `||` guards the rare case where it doesn't).
+      - name: Upload regenerated artifacts
+        if: steps.diff.outputs.changed == 'true' || steps.regen.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: device-map-regenerated
+          path: |
+            device-map.tsv
+            hardware-unmatched.tsv
+            ros-hardware-assessment.json
+            ros-www-assessment.json
+          retention-days: 30
+
+      - name: Open or refresh drift issue
+        if: steps.diff.outputs.changed == 'true' || steps.regen.outputs.exit_code != '0'
         env:
           GH_TOKEN: ${{ github.token }}
           REGEN_EXIT: ${{ steps.regen.outputs.exit_code }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          branch="device-map-refresh"
           files=(device-map.tsv hardware-unmatched.tsv ros-hardware-assessment.json ros-www-assessment.json)
+          stat=$(git diff --stat -- "${files[@]}")
+          [ -n "$stat" ] || stat="(no committed-artifact drift — flagged by the curation-gap exit below)"
 
-          # Squirrel away the freshly regenerated content before switching branches —
-          # actions/checkout's shallow clone has no local knowledge of an existing
-          # origin/$branch, so a bare `git checkout -B "$branch"` here would always
-          # reset to main and discard any commit already on that branch (e.g. a
-          # human's device-exceptions.toml fix made directly on an open refresh PR).
-          tmpdir=$(mktemp -d)
-          for f in "${files[@]}"; do cp "$f" "$tmpdir/$(basename "$f")"; done
-
-          # Fetch the remote branch explicitly (not covered by the default shallow
-          # fetch) and base the local branch on its actual tip when it exists, so
-          # (a) --force-with-lease below has a real remote-tracking ref to compare
-          # against instead of racing a stale/absent one, and (b) anything already
-          # committed on that branch survives instead of being silently overwritten
-          # (CodeRabbit review on #69). Falls back to branching from main on the
-          # first-ever run, when the remote branch doesn't exist yet.
-          git fetch origin "$branch:refs/remotes/origin/$branch" 2>/dev/null || true
-          if git rev-parse --verify --quiet "refs/remotes/origin/$branch" >/dev/null; then
-            git checkout -B "$branch" "refs/remotes/origin/$branch"
-          else
-            git checkout -B "$branch"
-          fi
-
-          for f in "${files[@]}"; do cp "$tmpdir/$(basename "$f")" "$f"; done
-          rm -rf "$tmpdir"
-
-          git add "${files[@]}"
-          # The existing branch tip can already hold this exact content (e.g. a prior
-          # run's PR is still open and unmerged, so today's regen matches it even
-          # though it still differs from main) — nothing to commit is a valid outcome,
-          # not an error.
-          if git diff --cached --quiet; then
-            echo "No change from existing $branch tip — leaving it as-is."
-          else
-            git commit -m "chore: refresh device-map from live manual.mikrotik.com + mikrotik.com scrape
-
-          Scheduled run of \`make assess-hardware assess-www device-map\` (B-0018). Review
-          against briefings/B-0018-product-naming-three-source-map.md \"How to audit\" before
-          merging: check any non-blank needs_review rows in device-map.tsv, and scan new
-          hardware-unmatched.tsv rows for real devices missing from matrix.csv."
-            git push --force-with-lease origin "$branch"
-          fi
-
-          body="Automated weekly refresh via \`make assess-hardware assess-www device-map\` (see briefings/B-0018-product-naming-three-source-map.md).
-
-          Review checklist (from B-0018 \"How to audit\"):
-          - Scan \`device-map.tsv\`'s \`needs_review\` column — every non-blank row is a curated call to double-check.
-          - Scan new rows in \`hardware-unmatched.tsv\` for real devices missing from \`matrix.csv\`.
-          - \`make device-map-check\` (test.yml) re-validates coherence on this PR automatically."
+          gap_note=""
           if [ "$REGEN_EXIT" != "0" ]; then
-            body="$body
-
-          ⚠️ \`make device-map\` exited $REGEN_EXIT — at least one device no longer auto-resolves
-          and has no (or a stale) \`device-exceptions.toml\` entry. Run \`make device-map-check\`
-          locally after pulling this branch to see the exact problem list, then hand-edit
-          \`device-exceptions.toml\` in this PR before merging."
+            gap_note="> ⚠️ **Curation gap:** \`make device-map\` exited $REGEN_EXIT — a device no longer
+          > auto-resolves and has no (or a stale) \`device-exceptions.toml\` entry. Regenerate locally,
+          > then hand-edit \`device-exceptions.toml\` as part of the fix PR. \`device-exceptions.toml\` is
+          > hand-curated and was NOT touched by this run."
           fi
 
-          if gh pr view "$branch" --json state -q .state 2>/dev/null | grep -q OPEN; then
-            gh pr edit "$branch" --body "$body"
-            echo "PR already open for $branch — pushed new commits and refreshed the body."
+          issue_title="Scheduled device-map refresh: committed artifacts drifted from live sources"
+          body="The scheduled **Device Map Refresh** run re-scraped manual.mikrotik.com (\`/hardware\`) and
+          mikrotik.com (\`/product\`) and found the committed device-map artifacts no longer match live
+          upstream data.
+
+          **Run:** $RUN_URL
+
+          $gap_note
+
+          **What changed** (\`git diff --stat\`):
+
+          \`\`\`
+          $stat
+          \`\`\`
+
+          ### How to resolve (normal flow)
+
+          1. \`make assess-hardware assess-www device-map\` locally to regenerate the artifacts.
+          2. Review per \`briefings/B-0018-product-naming-three-source-map.md\` \"How to audit\": scan
+             \`device-map.tsv\`'s \`needs_review\` column, and new \`hardware-unmatched.tsv\` rows for real
+             devices missing from \`matrix.csv\`.
+          3. Open a normal PR with the regenerated artifacts (plus any \`device-exceptions.toml\`
+             curation) — it runs the required \`device-map-check\` drift gate like any other PR.
+
+          The full diff and regenerated artifacts are attached to the run above. This issue is reused
+          (one new comment per run) until the drift is resolved and the issue is closed."
+
+          existing=$(gh issue list --state open --limit 100 --json number,title \
+            --jq ".[] | select(.title == \"$issue_title\") | .number" | head -n1)
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still drifting as of $RUN_URL
+
+          $gap_note
+
+          \`\`\`
+          $stat
+          \`\`\`"
+            echo "Refreshed existing drift issue #$existing."
           else
-            gh pr create \
-              --head "$branch" \
-              --title "chore: refresh device-map (scheduled live re-scrape)" \
-              --body "$body"
+            gh issue create --title "$issue_title" --body "$body"
           fi
 
-      - name: Fail the run on an unresolved curation gap
-        if: steps.regen.outputs.exit_code != '0'
+      - name: Fail the run on drift
+        if: steps.diff.outputs.changed == 'true' || steps.regen.outputs.exit_code != '0'
         run: |
-          echo "::error::make device-map exited ${{ steps.regen.outputs.exit_code }} — a device needs a new/updated device-exceptions.toml entry. See the opened/updated PR for the regenerated artifacts; device-exceptions.toml itself is hand-curated and was NOT touched by this run."
+          echo "::group::Full device-map diff"
+          git --no-pager diff -- device-map.tsv hardware-unmatched.tsv ros-hardware-assessment.json ros-www-assessment.json
+          echo "::endgroup::"
+          if [ "${{ steps.regen.outputs.exit_code }}" != "0" ]; then
+            echo "::error::make device-map exited ${{ steps.regen.outputs.exit_code }} — a device needs a new/updated device-exceptions.toml entry, and/or committed artifacts drifted from live sources. See the opened/refreshed tracking issue and the uploaded artifacts."
+          else
+            echo "::error::Committed device-map artifacts drifted from live manual.mikrotik.com/mikrotik.com sources. See the opened/refreshed tracking issue and the uploaded artifacts."
+          fi
           exit 1

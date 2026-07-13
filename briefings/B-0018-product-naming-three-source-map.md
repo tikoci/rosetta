@@ -199,10 +199,16 @@ B-0017 doesn't keep absorbing scope.
    hardware-unmatched.tsv, device-exceptions.toml, both assessment JSONs) against each other, no network.
    `make assess-hardware` / `make assess-www` (the live-fetch re-scrape of manual.mikrotik.com /
    mikrotik.com) deliberately stay manual/local — see the comment in `test.yml` above the drift-gate step.
-1a. **✅ Scheduled live-refresh — shipped in PR #69.** `.github/workflows/device-map-refresh.yml` runs
-    `make assess-hardware assess-www device-map` live on a weekly cron (+ manual dispatch) and opens/updates
-    a PR when the regenerated artifacts drift from committed, so upstream changes (new/moved `/hardware` or
-    www pages) surface without a human remembering to re-run the "How to audit" steps by hand.
+1a. **✅ Scheduled live-refresh — `.github/workflows/device-map-refresh.yml`.** Runs
+    `make assess-hardware assess-www device-map` live on a weekly cron (+ manual dispatch). It *detects*
+    drift, it doesn't fix it: when the regenerated artifacts differ from committed (or a device no longer
+    resolves without a `device-exceptions.toml` entry), it fails the run (red check + scheduled-failure
+    notification), uploads the regenerated artifacts, and opens/refreshes one tracking issue with the diff —
+    so upstream changes (new/moved/removed `/hardware` or www pages) surface without a human remembering to
+    re-run the "How to audit" steps by hand. Fixing it is the normal flow: regenerate locally, review per
+    "How to audit" below, and open a standard PR (which runs the required `device-map-check` gate). It files
+    an issue rather than an auto-PR because a PR pushed with the default `GITHUB_TOKEN` can't trigger
+    `test.yml`, so it could never satisfy `main`'s required `test` check.
 2. **✅ `hardware_catalog` + `device_aliases` schema/ETL — shipped in PR #36** (`src/extract-hardware-catalog.ts`).
    `device-map.tsv` stays as the human-reviewable artifact; the DB overlay answers the same joins for the MCP.
 3. **Matrix gaps — devices in `/hardware` but not matrix.csv.** Audit `hardware-unmatched.tsv`'s
