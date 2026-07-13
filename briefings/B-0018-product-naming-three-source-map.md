@@ -199,13 +199,10 @@ B-0017 doesn't keep absorbing scope.
    hardware-unmatched.tsv, device-exceptions.toml, both assessment JSONs) against each other, no network.
    `make assess-hardware` / `make assess-www` (the live-fetch re-scrape of manual.mikrotik.com /
    mikrotik.com) deliberately stay manual/local — see the comment in `test.yml` above the drift-gate step.
-   **Open sub-question:** nothing yet re-runs the live scrape on a schedule to catch upstream drift
-   (new/moved `/hardware` or www pages) — see item below.
-1a. **No scheduled live-refresh exists yet.** All six workflows (`test.yml`, `qa.yml`, `release.yml`,
-    `codeql.yml`, `dependency-review.yml`, `copilot-gate.yml`) were checked 2026-07-13; only `codeql.yml`
-    has a `schedule:` trigger. A periodic (e.g. weekly) job that runs `make assess-hardware assess-www`
-    live, diffs against committed artifacts, and opens a PR (or issue) when they drift would close the
-    loop this briefing's "How to audit" section still describes as a manual, human-run process.
+1a. **✅ Scheduled live-refresh — shipped in PR #69.** `.github/workflows/device-map-refresh.yml` runs
+    `make assess-hardware assess-www device-map` live on a weekly cron (+ manual dispatch) and opens/updates
+    a PR when the regenerated artifacts drift from committed, so upstream changes (new/moved `/hardware` or
+    www pages) surface without a human remembering to re-run the "How to audit" steps by hand.
 2. **✅ `hardware_catalog` + `device_aliases` schema/ETL — shipped in PR #36** (`src/extract-hardware-catalog.ts`).
    `device-map.tsv` stays as the human-reviewable artifact; the DB overlay answers the same joins for the MCP.
 3. **Matrix gaps — devices in `/hardware` but not matrix.csv.** Audit `hardware-unmatched.tsv`'s

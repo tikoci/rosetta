@@ -45,11 +45,18 @@ jobs:
 
       # No `manual/pages/{hardware,www}` cache exists on a fresh checkout (gitignored,
       # local-only), so this is always a full live re-fetch — every run starts clean.
-      - name: Live re-scrape + regenerate device map
+      #
+      # Split from `make device-map` deliberately: this step's exit code is NOT captured,
+      # so a network/HTTP failure here fails the job outright instead of being confused
+      # with the device-map curation-gap signal below (Copilot review on PR #69).
+      - name: Live re-scrape manual.mikrotik.com + mikrotik.com
+        run: make assess-hardware assess-www
+
+      - name: Regenerate device map
         id: regen
         run: |
           set +e
-          make assess-hardware assess-www device-map
+          make device-map
           echo "exit_code=$?" >> "$GITHUB_OUTPUT"
           exit 0
 
