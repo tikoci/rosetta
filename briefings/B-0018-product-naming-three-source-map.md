@@ -127,7 +127,8 @@ once its www slug `sxtsq_5ax` was confirmed.)
 
 The reverse view, so the "why isn't this page in the map?" set is auditable instead of invisible.
 102 pages as of 2026-07-13 (was 100 on 2026-07-11; not a drift gate, so small counts move between
-audits — see below). Columns: `slug, kind, category, is_series, cause, url, mentioned_codes`.
+audits — see below). Columns: `slug, kind, category, www_code, www_specs, is_series, cause, url,
+mentioned_codes`.
 
 The `kind` column (from `classifyHardwareKind`, `src/hardware-kind.ts`) reframes this from an
 undifferentiated "unmatched" pile into a **classified inventory**, because a row here is one of four
@@ -149,6 +150,29 @@ escape hatch if that changes). `kind` is shared logic so any DB/MCP/TUI surface 
 (e.g. an `include-accessories` argument, or "include module" cross-links) reuses the same call rather
 than re-deriving it.
 
+The `www_code`/`www_specs` columns expose the **actual ETL spec-mapping result** (read from the
+committed `fixtures/hardware-catalog/catalog.json` — the same data that builds `hardware_catalog`, so
+the file view matches the DB rather than approximating it):
+
+- **`www_code`** — the `mikrotik.com/product/<code>` the catalog row pulled specs from. **Blank means
+  the ETL mapped no marketing product to this page**, so it carries no www specs.
+- **`www_specs`** — how many real spec fields were captured (`_`-prefixed provenance keys excluded);
+  `0` accompanies a blank `www_code`.
+
+**The spec-backfill worklist** is `kind = device` + blank `www_code` — a real device the ETL couldn't
+attach specs to (15 as of 2026-07-13: e.g. `dynadish-6`, `sxt-2`, `lhg-xl-2`, `chateau-lte6`,
+`chateau-lte12`, the `ltap-lr8-*` LoRa kits). These almost always *do* have a `mikrotik.com/product`
+page that `assess-www` simply never fetched (no candidate seed — the page has no product link and the
+device isn't in `matrix.csv`). Supplying the code is how a human closes the gap; the mechanism to feed
+those codes back into `assess-www`/`extract-hardware-catalog` is tracked in #70. Blank `www_code` on
+`series-or-doc`/`module`/`accessory` rows is expected (a series page has no single product; a bare
+LoRa module often has no standalone www page) and is **not** a backfill target.
+
+> `make device-map` reads `catalog.json` for these two columns; run `make extract-hardware-catalog`
+> first if the assessment JSON changed, so the www status reflects the current scrape. If
+> `catalog.json` is absent both columns are left blank (the console prints a note) — the rest of the
+> artifact still regenerates.
+
 ## How to audit the mapping
 
 1. `make device-map` — regenerates both TSVs and runs the drift gate. Clean exit = every matrix device
@@ -157,6 +181,8 @@ than re-deriving it.
    can double-check against the two URLs.
 3. Open `hardware-unmatched.tsv`, filter `kind = device`; anything there that *is* a current product is
    a matrix gap to file. `series-or-doc`/`accessory`/`module` rows are expected non-devices — skip them.
+   Then filter `kind = device` + blank `www_code` for the **spec-backfill worklist** — real devices the
+   ETL attached no www specs to; find each one's `mikrotik.com/product` code (feedback mechanism: #70).
 4. Spot-check URLs: both `hw_url` and `www_url` should return HTTP 200. (The 12 exception www codes were
    HTTP-checked 2026-07-11.)
 5. `bun test src/assess-hardware.test.ts` — the parsing tricks are anchored; a regression trips here.

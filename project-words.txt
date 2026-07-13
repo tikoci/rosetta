@@ -439,6 +439,7 @@ winrun
 wip
 wol
 woobm
+worklist
 wps
 xattr
 xdg

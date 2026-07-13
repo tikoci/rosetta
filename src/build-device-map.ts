@@ -32,6 +32,10 @@ const HARDWARE_ASSESSMENT = resolve(PROJECT_ROOT, "ros-hardware-assessment.json"
 const WWW_ASSESSMENT = resolve(PROJECT_ROOT, "ros-www-assessment.json");
 const OUT_TSV = resolve(PROJECT_ROOT, "device-map.tsv");
 const OUT_UNMATCHED_TSV = resolve(PROJECT_ROOT, "hardware-unmatched.tsv");
+// The committed extract-hardware-catalog output — the FAITHFUL record of which www product
+// (if any) the ETL resolved specs from for each /hardware page. Read (not the DB) so the
+// drift gate stays network-free and DB-free; blank columns if absent.
+const CATALOG_JSON = resolve(PROJECT_ROOT, "fixtures", "hardware-catalog", "catalog.json");
 
 const CHECK_ONLY = process.argv.includes("--check");
 
@@ -64,6 +68,34 @@ interface WwwProduct {
 function loadJson<T>(path: string): T {
   if (!existsSync(path)) throw new Error(`Missing ${path} — run 'make assess-hardware' / 'make assess-www' first.`);
   return JSON.parse(readFileSync(path, "utf-8")) as T;
+}
+
+interface CatalogRow {
+  sourceHardwareSlug: string | null;
+  sourceWwwCode: string | null;
+  specsJson: string | null;
+}
+/** Per-slug www-mapping status from the committed catalog: which www code the ETL resolved
+ * (blank = none → the specs gap a human can close with a URL) and how many real spec fields it
+ * captured (`_`-prefixed provenance keys excluded). Best-effort: blank if catalog.json is absent. */
+function loadCatalogWwwStatus(): Map<string, { wwwCode: string; wwwSpecs: number }> {
+  const map = new Map<string, { wwwCode: string; wwwSpecs: number }>();
+  if (!existsSync(CATALOG_JSON)) {
+    console.warn(`Note: ${CATALOG_JSON} absent — www_code/www_specs left blank. Run 'make extract-hardware-catalog'.`);
+    return map;
+  }
+  const { rows } = JSON.parse(readFileSync(CATALOG_JSON, "utf-8")) as { rows: CatalogRow[] };
+  for (const r of rows) {
+    if (!r.sourceHardwareSlug) continue;
+    let wwwSpecs = 0;
+    try {
+      wwwSpecs = Object.keys(JSON.parse(r.specsJson ?? "{}")).filter((k) => !k.startsWith("_")).length;
+    } catch {
+      /* malformed specs_json → treat as zero fields */
+    }
+    map.set(r.sourceHardwareSlug, { wwwCode: r.sourceWwwCode ?? "", wwwSpecs });
+  }
+  return map;
 }
 
 // ── Resolve helpers ──
@@ -225,19 +257,31 @@ await emitOrCheck(OUT_TSV, tsv, `${rows.length} device rows`);
 //   series-or-doc — a series/index landing page or doc subpage; never an individual product
 // This makes the set human-auditable and lets downstream surfaces filter it (B-0018 "How to
 // audit"). Not a drift gate: MikroTik adds/retires pages routinely.
-const UNMATCHED_HEADERS = ["slug", "kind", "category", "is_series", "cause", "url", "mentioned_codes"] as const;
+//
+// `www_code`/`www_specs` mirror the actual ETL result from catalog.json: `www_code` is the www
+// product the hardware_catalog row pulled specs from (blank = the ETL found none — this page has
+// NO marketing product mapped, so it carries no www specs), `www_specs` is how many real spec
+// fields it captured. Filter `kind = device` + blank `www_code` for the real spec-backfill
+// worklist (a human supplies the missing mikrotik.com/product code). See B-0018 "How to audit".
+const wwwStatusBySlug = loadCatalogWwwStatus();
+const UNMATCHED_HEADERS = ["slug", "kind", "category", "www_code", "www_specs", "is_series", "cause", "url", "mentioned_codes"] as const;
 const unmatchedRows = hwPages
   .filter((p) => !p.matchedMatrixNames?.length)
   .sort((a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.slug.localeCompare(b.slug))
-  .map((p) => [
-    p.slug,
-    classifyHardwareKind(p.slug, p.category, p.isSeries),
-    p.category ?? "",
-    p.isSeries ? "yes" : "",
-    p.cause,
-    p.url ?? `${HW_BASE}/${p.slug}`,
-    (p.mentionedCodes ?? []).join(" "),
-  ]);
+  .map((p) => {
+    const www = wwwStatusBySlug.get(p.slug);
+    return [
+      p.slug,
+      classifyHardwareKind(p.slug, p.category, p.isSeries),
+      p.category ?? "",
+      www?.wwwCode ?? "",
+      www ? String(www.wwwSpecs) : "",
+      p.isSeries ? "yes" : "",
+      p.cause,
+      p.url ?? `${HW_BASE}/${p.slug}`,
+      (p.mentionedCodes ?? []).join(" "),
+    ];
+  });
 const unmatchedTsv = rowsToTsv(UNMATCHED_HEADERS, unmatchedRows);
 await emitOrCheck(OUT_UNMATCHED_TSV, unmatchedTsv, `${unmatchedRows.length} unmatched /hardware pages`);
 
@@ -245,6 +289,13 @@ const byKind: Record<string, number> = {};
 for (const row of unmatchedRows) byKind[row[1]] = (byKind[row[1]] || 0) + 1;
 console.log(`Unmatched /hardware pages by kind (${unmatchedRows.length} total):`);
 for (const [k, v] of Object.entries(byKind).sort(([, a], [, b]) => b - a)) console.log(`  ${k}: ${v}`);
+if (existsSync(CATALOG_JSON)) {
+  // row[3] = www_code; row[1] = kind. A blank www_code is a page with no marketing product mapped.
+  const noWww = unmatchedRows.filter((row) => !row[3]);
+  const deviceGap = noWww.filter((row) => row[1] === "device");
+  console.log(`No www product mapped (spec gap): ${noWww.length} total, ${deviceGap.length} of kind=device`);
+  if (deviceGap.length) console.log(`  kind=device gaps: ${deviceGap.map((row) => row[0]).join(", ")}`);
+}
 
 // ── Summary + drift gate ──
 const byRes: Record<string, number> = {};
