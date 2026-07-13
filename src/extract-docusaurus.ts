@@ -474,7 +474,7 @@ export interface DocCard {
 }
 
 const DOCCARDLIST_TAG = /<DocCardList\b[^>]*\/>|<DocCardList\b[^>]*>[\s\S]*?<\/DocCardList>/g;
-const DOCCARDLIST_IMPORT = /^[ \t]*import\s+DocCardList\s+from\s+['"]@theme\/DocCardList['"];?[ \t]*\r?\n?/m;
+const DOCCARDLIST_IMPORT = /^[ \t]*import\s+DocCardList\s+from\s+['"]@theme\/DocCardList['"];?[ \t]*\r?\n?/gm;
 
 /**
  * Replace every `<DocCardList />` with a Markdown bullet list of `children`, and drop the
