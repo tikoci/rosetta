@@ -1,0 +1,171 @@
+name: Device Map Refresh
+
+# Weekly LIVE re-scrape of manual.mikrotik.com (/hardware) and mikrotik.com (www product
+# pages) via `make assess-hardware assess-www device-map` — the live-fetch path that
+# test.yml's drift gate deliberately does NOT run (see the comment on that step). This is
+# the "how do we notice MikroTik added/moved/removed a page" half of B-0018's audit loop;
+# `make device-map-check` on every PR only proves the *committed* snapshot is internally
+# consistent, it can't detect upstream drift on its own.
+#
+# This job DETECTS drift; it does not fix it. On drift (regenerated artifacts differ from
+# committed) it fails the run (red check + GitHub's scheduled-workflow-failure notification),
+# uploads the regenerated artifacts, and opens/refreshes ONE tracking issue with a diff-stat
+# summary (the full diff is in the run logs).
+# A human then resolves it through the *normal* flow — regenerate locally, review against
+# briefings/B-0018-product-naming-three-source-map.md "How to audit", open a standard PR
+# that runs the required `device-map-check` gate like any other. No drift = green, silent.
+#
+# Why detect-and-notify rather than auto-open a PR: a PR pushed with the default GITHUB_TOKEN
+# does not trigger `test.yml`, so it could never satisfy main's required `test` check — it
+# would be unmergeable without a human nudging CI anyway. Filing an issue matches the repo's
+# own "committed work → issue → normal PR" convention and keeps this workflow to read-only
+# checkout + no branch/force-push machinery. (Design decision on PR #69.)
+#
+# `build-device-map.ts` hard-fails (exit 1) when a device no longer auto-resolves and has no
+# matching `device-exceptions.toml` entry, or an exception has gone stale — a genuine curation
+# gap, not routine drift. That case is folded into the same failure path (the issue body calls
+# it out), since it also writes regenerated TSVs and needs the same human resolution.
+
+on:
+  schedule:
+    # Monday 09:17 UTC — off the hour to dodge the top-of-hour GH Actions queue.
+    - cron: '17 9 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: device-map-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      # No `manual/pages/{hardware,www}` cache exists on a fresh checkout (gitignored,
+      # local-only), so this is always a full live re-fetch — every run starts clean.
+      #
+      # Split from `make device-map` deliberately: this step's exit code is NOT captured,
+      # so a network/HTTP failure here fails the job outright instead of being confused
+      # with the device-map curation-gap signal below (Copilot review on PR #69).
+      - name: Live re-scrape manual.mikrotik.com + mikrotik.com
+        run: make assess-hardware assess-www
+
+      - name: Regenerate device map
+        id: regen
+        run: |
+          set +e
+          make device-map
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Check for drift in committed artifacts
+        id: diff
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- device-map.tsv hardware-unmatched.tsv ros-hardware-assessment.json ros-www-assessment.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Everything below fires when the committed artifacts drifted OR the regen hit a
+      # curation gap (which also rewrites the TSVs, so it usually shows as drift too — the
+      # `||` guards the rare case where it doesn't).
+      - name: Upload regenerated artifacts
+        if: steps.diff.outputs.changed == 'true' || steps.regen.outputs.exit_code != '0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: device-map-regenerated
+          path: |
+            device-map.tsv
+            hardware-unmatched.tsv
+            ros-hardware-assessment.json
+            ros-www-assessment.json
+          retention-days: 30
+
+      - name: Open or refresh drift issue
+        if: steps.diff.outputs.changed == 'true' || steps.regen.outputs.exit_code != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REGEN_EXIT: ${{ steps.regen.outputs.exit_code }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          files=(device-map.tsv hardware-unmatched.tsv ros-hardware-assessment.json ros-www-assessment.json)
+          stat=$(git diff --stat -- "${files[@]}")
+          [ -n "$stat" ] || stat="(no committed-artifact drift — flagged by the curation-gap exit below)"
+
+          gap_note=""
+          if [ "$REGEN_EXIT" != "0" ]; then
+            gap_note="> ⚠️ **Curation gap:** \`make device-map\` exited $REGEN_EXIT — a device no longer
+          > auto-resolves and has no (or a stale) \`device-exceptions.toml\` entry. Regenerate locally,
+          > then hand-edit \`device-exceptions.toml\` as part of the fix PR. \`device-exceptions.toml\` is
+          > hand-curated and was NOT touched by this run."
+          fi
+
+          issue_title="Scheduled device-map refresh: committed artifacts drifted from live sources"
+          body="The scheduled **Device Map Refresh** run re-scraped manual.mikrotik.com (\`/hardware\`) and
+          mikrotik.com (\`/product\`) and found the committed device-map artifacts no longer match live
+          upstream data.
+
+          **Run:** $RUN_URL
+
+          $gap_note
+
+          **What changed** (\`git diff --stat\`):
+
+          \`\`\`
+          $stat
+          \`\`\`
+
+          ### How to resolve (normal flow)
+
+          1. \`make assess-hardware assess-www device-map\` locally to regenerate the artifacts.
+          2. Review per \`briefings/B-0018-product-naming-three-source-map.md\` \"How to audit\": scan
+             \`device-map.tsv\`'s \`needs_review\` column, and new \`hardware-unmatched.tsv\` rows for real
+             devices missing from \`matrix.csv\`.
+          3. Open a normal PR with the regenerated artifacts (plus any \`device-exceptions.toml\`
+             curation) — it runs the required \`device-map-check\` drift gate like any other PR.
+
+          The full diff is in the run logs; regenerated artifacts are attached to the run above. This issue
+          is reused (one new comment per run) until the drift is resolved and the issue is closed."
+
+          existing=$(gh issue list --state open --limit 100 --json number,title \
+            --jq ".[] | select(.title == \"$issue_title\") | .number" | head -n1)
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still drifting as of $RUN_URL
+
+          $gap_note
+
+          \`\`\`
+          $stat
+          \`\`\`"
+            echo "Refreshed existing drift issue #$existing."
+          else
+            gh issue create --title "$issue_title" --body "$body"
+          fi
+
+      - name: Fail the run on drift
+        if: steps.diff.outputs.changed == 'true' || steps.regen.outputs.exit_code != '0'
+        run: |
+          echo "::group::Full device-map diff"
+          git --no-pager diff -- device-map.tsv hardware-unmatched.tsv ros-hardware-assessment.json ros-www-assessment.json
+          echo "::endgroup::"
+          if [ "${{ steps.regen.outputs.exit_code }}" != "0" ]; then
+            echo "::error::make device-map exited ${{ steps.regen.outputs.exit_code }} — a device needs a new/updated device-exceptions.toml entry, and/or committed artifacts drifted from live sources. See the opened/refreshed tracking issue and the uploaded artifacts."
+          else
+            echo "::error::Committed device-map artifacts drifted from live manual.mikrotik.com/mikrotik.com sources. See the opened/refreshed tracking issue and the uploaded artifacts."
+          fi
+          exit 1

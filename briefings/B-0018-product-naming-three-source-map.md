@@ -5,7 +5,7 @@ status: open
 related_tasks:
   - "#34"
 created: 2026-07-11
-last_revisited: 2026-07-11
+last_revisited: 2026-07-13
 ---
 
 # Purpose & audience
@@ -126,7 +126,8 @@ once its www slug `sxtsq_5ax` was confirmed.)
 ### hardware-unmatched.tsv — /hardware pages with no matrix device
 
 The reverse view, so the "why isn't this page in the map?" set is auditable instead of invisible.
-100 pages as of 2026-07-11. Columns: `slug, category, is_series, cause, url, mentioned_codes`. A row here
+102 pages as of 2026-07-13 (was 100 on 2026-07-11; not a drift gate, so small counts move between
+audits — see below). Columns: `slug, category, is_series, cause, url, mentioned_codes`. A row here
 is usually one of:
 
 - a genuine **non-device** — `Accessories`/`Antennas`/`Interfaces` (e.g. `gper`, `mqs`, `mant-series`);
@@ -192,9 +193,22 @@ not rosetta bugs. All are grounded in the artifacts above.
 Ordered roughly by leverage. Promote to GitHub issues when picked up; this section is the holding pen so
 B-0017 doesn't keep absorbing scope.
 
-1. **Wire the drift gate + assessments into CI.** `make assess-hardware assess-www device-map-check` should
-   run on PRs touching matrix/assessment data (B-0014 notes CI is currently release-locked, not PR-gated).
-   This is the "loose end" of CI building `/hardware`.
+1. **✅ Drift gate wired into CI on every PR — shipped in PR #41 (2026-07-11)** (`.github/workflows/test.yml`
+   "Device map drift gate" step, also rehearsed in `qa.yml`'s `device-map` scope). Scope is deliberately
+   coherence-only: `make device-map-check` validates the *committed* snapshot (device-map.tsv,
+   hardware-unmatched.tsv, device-exceptions.toml, both assessment JSONs) against each other, no network.
+   `make assess-hardware` / `make assess-www` (the live-fetch re-scrape of manual.mikrotik.com /
+   mikrotik.com) deliberately stay manual/local — see the comment in `test.yml` above the drift-gate step.
+1a. **✅ Scheduled live-refresh — `.github/workflows/device-map-refresh.yml`.** Runs
+    `make assess-hardware assess-www device-map` live on a weekly cron (+ manual dispatch). It *detects*
+    drift, it doesn't fix it: when the regenerated artifacts differ from committed (or a device no longer
+    resolves without a `device-exceptions.toml` entry), it fails the run (red check + scheduled-failure
+    notification), uploads the regenerated artifacts, and opens/refreshes one tracking issue with the diff —
+    so upstream changes (new/moved/removed `/hardware` or www pages) surface without a human remembering to
+    re-run the "How to audit" steps by hand. Fixing it is the normal flow: regenerate locally, review per
+    "How to audit" below, and open a standard PR (which runs the required `device-map-check` gate). It files
+    an issue rather than an auto-PR because a PR pushed with the default `GITHUB_TOKEN` can't trigger
+    `test.yml`, so it could never satisfy `main`'s required `test` check.
 2. **✅ `hardware_catalog` + `device_aliases` schema/ETL — shipped in PR #36** (`src/extract-hardware-catalog.ts`).
    `device-map.tsv` stays as the human-reviewable artifact; the DB overlay answers the same joins for the MCP.
 3. **Matrix gaps — devices in `/hardware` but not matrix.csv.** Audit `hardware-unmatched.tsv`'s
