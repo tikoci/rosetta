@@ -53,3 +53,23 @@ gh api graphql -f query='query{repository(owner:"tikoci",name:"rosetta"){pullReq
 # Resolve one (repeat per id):
 gh api graphql -f query='mutation($id:ID!){resolveReviewThread(input:{threadId:$id}){thread{isResolved}}}' -f id=THREAD_ID
 ```
+
+### After you push a fix (the part that keeps biting)
+
+Resolution is the **last** step before merge, run against the *live* thread list — not
+a one-shot you do once and forget. Two behaviors trip agents up:
+
+- **A fix push does not resolve threads for you.** When your commit changes the
+  commented line, GitHub marks that thread **outdated** — which looks handled in the web
+  UI but is **not** `isResolved`; `mergeStateStatus` stays `BLOCKED` until you resolve it
+  explicitly. Some threads *do* drop off the unresolved list on their own (GitHub
+  auto-resolves a subset when the anchored lines move), so the unresolved count will
+  often be **smaller than the comment count** — reconcile against the GraphQL
+  `isResolved==false` list above, never against `pulls/N/comments`.
+- **Your fix push triggers a fresh bot pass that can open *new* threads.** CodeRabbit
+  re-reviews on push (Copilot may too), so re-run the unresolved-threads query **after**
+  the re-review settles, not the moment you push. Reply-then-resolve each new thread; only
+  when that list is empty *and* the re-review check is green is the conversation gate clear.
+
+Reply to a bot thread with the fixing commit SHA before resolving it — it leaves an audit
+trail of *why* it was closed, and mirrors the flow used across recent rosetta PRs.
