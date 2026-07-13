@@ -134,6 +134,29 @@ const VERB_TOKENS = new Set([
 /** Single-word tokens that look like a potential property name. */
 const PROPERTY_CANDIDATE_RE = /^[a-z][a-z0-9-]{2,30}$/;
 
+/** A bare RouterOS menu segment: lowercase identifier, hyphens allowed (`dhcp-server`, `caps-man`). */
+const MENU_SEGMENT_RE = /^[a-z][a-z0-9-]*$/;
+
+/**
+ * Prose function words that betray a natural-language question wearing a
+ * command-word hat — e.g. "port forward to an internal server" (BL-4 / #59).
+ * Real space-separated navigation ("ip firewall filter", "interface wifi") is
+ * built only from menu-segment tokens; any of these (or a token that isn't a
+ * bare {@link MENU_SEGMENT_RE} identifier) means the trailing input is prose,
+ * so `detectCommandPath` refuses to pathify it and lets FTS handle the query.
+ * Function words only — never content words that could be real menu segments.
+ */
+const PROSE_STOPWORDS = new Set([
+  "a", "an", "the", "to", "of", "for", "my", "your", "our", "their", "its",
+  "with", "without", "from", "on", "in", "into", "onto", "at", "by", "as",
+  "and", "or", "but", "is", "are", "was", "were", "be", "been", "being",
+  "do", "does", "did", "how", "what", "why", "when", "where", "which", "who",
+  "i", "me", "we", "you", "can", "could", "should", "would", "will", "want",
+  "need", "use", "using", "via", "over", "under", "up", "out", "off", "that",
+  "this", "these", "those", "all", "any", "some", "per", "so", "than", "then",
+  "if", "about",
+]);
+
 const MAX_TOPICS = 5;
 
 /** Tokenize input into lowercase alphanumeric words, preserving dashes. */
@@ -163,9 +186,22 @@ function detectCommandPath(input: string, options: CanonicalizeOptions): Command
   // query would be classified as a command path.
   const trimmed = input.trim();
   const hasSlash = trimmed.includes("/");
-  const firstToken = trimmed.split(/\s+/)[0]?.toLowerCase();
+  const tokens = trimmed.split(/\s+/);
+  const firstToken = tokens[0]?.toLowerCase();
   const topLevels = new Set(["ip", "ipv6", "interface", "routing", "system", "bridge", "container", "port", "radius", "snmp", "tool", "user", "queue", "certificate", "file", "log", "disk", "caps-man", "mpls", "ppp", "special-login", "app"]);
   if (!hasSlash && (!firstToken || !topLevels.has(firstToken))) return undefined;
+
+  // No-slash input starting with a top-level word is only *navigation* if every
+  // trailing token is a bare menu segment. A prose stopword or non-identifier
+  // token means it's a natural-language question ("port forward to an internal
+  // server", "port 8291 access") — refuse rather than greedily pathify the prose
+  // (BL-4 / #59). Slash input is explicit navigation intent and skips this gate.
+  if (!hasSlash) {
+    for (let i = 1; i < tokens.length; i++) {
+      const t = tokens[i].toLowerCase();
+      if (PROSE_STOPWORDS.has(t) || !MENU_SEGMENT_RE.test(t)) return undefined;
+    }
+  }
 
   try {
     // Prefer the parsed command's dir path if a verb was recognized; otherwise
