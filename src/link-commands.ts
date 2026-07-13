@@ -3,9 +3,11 @@
 /**
  * link-commands.ts — Link commands to documentation pages.
  *
- * Strategies:
- * 1. Code block paths: extract RouterOS menu paths from code blocks in each page
- * 2. Known mappings: hardcoded path prefixes to page slugs
+ * For each page, extract RouterOS menu paths mentioned in its code blocks (and, for
+ * the legacy HTML corpus, <strong>/<code> elements), then link each command dir to the
+ * most *authoritative* mentioning page — the one whose own slug/breadcrumb trails the
+ * command path (see link-ranking.ts). A dir with no aligned page is left unlinked rather
+ * than pointed at a page that merely mentions it in an example.
  *
  * The linking is page_id on the `commands` table (nullable, many commands per page).
  *
@@ -16,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
 import { db, initDb } from "./db.ts";
+import { type PageCandidate, pageIdentitySegs, pickBestPageId } from "./link-ranking.ts";
 
 const HTML_DIR =
   process.argv[2] || resolve(import.meta.dirname, "../box/latest/ROS");
@@ -25,8 +28,25 @@ initDb();
 // Reset all links
 db.run("UPDATE commands SET page_id = NULL;");
 
-type PageRef = { id: number; title: string; html_file: string; code: string; path: string };
-const pages = db.prepare("SELECT id, title, html_file, code, path FROM pages").all() as PageRef[];
+type PageRef = { id: number; title: string; html_file: string; code: string; path: string; url: string };
+const pages = db.prepare("SELECT id, title, html_file, code, path, url FROM pages").all() as PageRef[];
+
+// Per-page metadata used to rank candidate pages for a command (see linkDir below).
+// `segs` are the page's identity segments (link-ranking.pageIdentitySegs); `propCount`
+// is how many property rows the page has — a tie-breaker favouring the page that
+// actually documents the menu over one that merely mentions it in an example.
+const propCounts = new Map<number, number>();
+for (const r of db.prepare("SELECT page_id, COUNT(*) AS c FROM properties GROUP BY page_id").all() as Array<{
+  page_id: number;
+  c: number;
+}>) {
+  propCounts.set(r.page_id, r.c);
+}
+
+const pageMeta = new Map<number, { segs: string[]; propCount: number }>();
+for (const p of pages) {
+  pageMeta.set(p.id, { segs: pageIdentitySegs(p.url, p.path), propCount: propCounts.get(p.id) ?? 0 });
+}
 
 type DirCmd = { id: number; path: string };
 const dirCommands = db
@@ -150,12 +170,20 @@ for (const [pageId, paths] of pageToCommandPaths) {
   }
 }
 
-// For each command dir, pick the page that seems most authoritative:
-// - Prefer the page whose breadcrumb path is closest to the command path
-// - If tied, prefer the page with more property tables
+// For each command dir, link the most authoritative mentioning page — the one whose
+// own slug/breadcrumb trails the command path (link-ranking.pickBestPageId). A dir with
+// no aligned candidate is left unlinked rather than asserting a wrong page, so
+// lookupProperty falls back to an honest low-confidence global search instead of a
+// high-confidence lie (BL-1/BL-2).
 const linkDir = db.transaction(() => {
   for (const [cmdPath, candidatePageIds] of cmdToCandidatePages) {
-    const pageId = candidatePageIds[0];
+    const candidates: PageCandidate[] = candidatePageIds.map((id) => ({
+      id,
+      segs: pageMeta.get(id)?.segs ?? [],
+      propCount: pageMeta.get(id)?.propCount ?? 0,
+    }));
+    const pageId = pickBestPageId(cmdPath, candidates);
+    if (pageId === null) continue;
 
     // Link the dir itself
     if (cmdPathToId.has(cmdPath)) {
