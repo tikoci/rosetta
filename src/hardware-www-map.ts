@@ -3,7 +3,7 @@
  *
  * The TOML file (see its header) maps off-matrix `manual.mikrotik.com/hardware/<slug>`
  * pages to the `mikrotik.com/product/<code>` codes the auto-resolver can't derive on its
- * own (e.g. hap-mini -> RB931-2nD). Both ETL consumers read it through here so the shape
+ * own (e.g. sxt-2 -> RBSXTG-2HnDr2-168). Both ETL consumers read it through here so the shape
  * and the "which codes does a human vouch for" question have a single home — same pattern
  * as hardware-kind.ts and device-exceptions.toml.
  *
@@ -66,6 +66,9 @@ export function curatedWwwCodes(): string[] {
  */
 export function curatedWwwCodeForSlug(slug: string): string | undefined {
   const e = MAP[slug];
-  if (!e || e.seed_only) return undefined;
+  // Enforce the contract explicitly: only a plain single-code entry force-attaches. A series
+  // (`www_codes`), a status-only entry, or a `seed_only` module/kit page returns undefined even
+  // if some future edit also set `www_code` on it.
+  if (!e || e.seed_only || e.status || e.www_codes) return undefined;
   return e.www_code;
 }

@@ -68,7 +68,7 @@ function loadCandidateCodes(): string[] {
   }
   // Curated backfill (hardware-www-map.toml): off-matrix product codes a maintainer
   // vouched for that neither matrix.csv nor any /hardware page links directly (e.g.
-  // hap-mini -> RB931-2nD). Without this seed the page never gets fetched and its specs
+  // sxt-2 -> RBSXTG-2HnDr2-168). Without this seed the page never gets fetched and its specs
   // stay blank. Series members (www_codes) are seeded too so their specs land as well.
   for (const c of curatedWwwCodes()) codes.add(c);
   return [...codes];

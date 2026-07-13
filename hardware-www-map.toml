@@ -4,8 +4,8 @@
 # WHY THIS EXISTS. `hardware-unmatched.tsv` (the reverse-audit view) shows a `www_code` column
 # that comes from the ETL's own resolution (extract-hardware-catalog → catalog.json). For many
 # off-matrix devices that resolution finds nothing, because the marketing product code isn't
-# derivable from the /hardware slug (e.g. hap-mini's product is RB931-2nD; sxt-2's is
-# RBSXTG-2HnDr2-168) and the identity-agreement gate correctly refuses to guess. This file is
+# derivable from the /hardware slug (e.g. sxt-2's product is RBSXTG-2HnDr2-168; dynadish-6's
+# is dynadish_6) and the identity-agreement gate correctly refuses to guess. This file is
 # the hand-verified answer key: each `[key]` is a manual.mikrotik.com/hardware/<slug>.
 #
 # HOW IT'S CONSUMED (both, in refresh order — wired in #70, via src/hardware-www-map.ts):

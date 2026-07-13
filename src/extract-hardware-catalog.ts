@@ -688,7 +688,7 @@ export function buildCatalog(
 
     const ownFamily = identSlugs(page.slug, page.title);
     // Curated force-attach (hardware-www-map.toml): a maintainer vouched for a specific
-    // product whose code the slug can't derive (e.g. hap-mini -> RB931-2nD), so bypass the
+    // product whose code the slug can't derive (e.g. sxt-2 -> RBSXTG-2HnDr2-168), so bypass the
     // identity-agreement gate for it. Resolves only if assess-www actually fetched the code
     // (it seeds the same curated list); otherwise falls back to normal agreement, blank
     // until the next live scrape — the pipeline order in #70 keeps these in step.
