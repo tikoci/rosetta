@@ -458,6 +458,67 @@ export function parsePage(md: string, pageUrl: string): ParsedPage {
   return { rosettaId, url: pageUrl, slug, title, path, depth, text, code, codeLang, wordCount, codeLines, sections, properties, callouts };
 }
 
+// ── DocCardList expansion (issue #65) ──
+//
+// manual.mikrotik.com's Docusaurus `.md` (llms.txt) output leaks `<DocCardList />`
+// unrendered: the `@theme/DocCardList` category-index component emits nothing, so index
+// pages (e.g. bgp.md) arrive with their entire child-page navigation missing — the single
+// MDX leak that is real data loss rather than cosmetic scaffolding. We reconstruct the
+// child list from the rosetta-id path tree the extractor already has in hand, upstream of
+// parsePage, so the links flow into page text/sections exactly like ordinary prose.
+
+export interface DocCard {
+  title: string;
+  url: string;
+  summary?: string;
+}
+
+const DOCCARDLIST_TAG = /<DocCardList\b[^>]*\/>|<DocCardList\b[^>]*>[\s\S]*?<\/DocCardList>/g;
+const DOCCARDLIST_IMPORT = /^[ \t]*import\s+DocCardList\s+from\s+['"]@theme\/DocCardList['"];?[ \t]*\r?\n?/m;
+
+/**
+ * Replace every `<DocCardList />` with a Markdown bullet list of `children`, and drop the
+ * now-orphaned `import DocCardList …` line.
+ *
+ * Honest fallback: if `children` is empty we return `md` untouched rather than silently
+ * erasing a DocCardList we could not expand — the visible leak is better than fabricated
+ * emptiness (grounding: don't mask a signal we can't explain).
+ */
+export function expandDocCardLists(md: string, children: DocCard[]): string {
+  if (!md.includes("<DocCardList")) return md;
+  if (children.length === 0) return md;
+
+  const list = children
+    .map((c) => `- [${c.title}](${c.url})${c.summary ? ` — ${c.summary}` : ""}`)
+    .join("\n");
+
+  return md.replace(DOCCARDLIST_IMPORT, "").replace(DOCCARDLIST_TAG, list);
+}
+
+/** Title (page H1) + summary (the AI-summary blockquote) used to label a DocCard entry. */
+export function cardMetaFor(md: string, fallbackTitle: string): { title: string; summary?: string } {
+  const h1 = md.match(/^#\s+(.+)$/m);
+  const title = h1 ? h1[1].trim() : fallbackTitle;
+  const bq = md.match(/^>\s?(.+?)\s*$/m);
+  return { title, summary: bq ? bq[1].trim() : undefined };
+}
+
+/**
+ * Direct children of `parentId` in the rosetta-id path tree: ids exactly one segment
+ * deeper whose prefix is `${parentId}/`. Operates purely on id strings, so it is correct
+ * for both leaf-named parents (`…/bgp` ← `…/bgp/faq`) and index parents (`…/unicast` ←
+ * `…/unicast/bgp`). The .md stream carries no sidebar position, so callers sort by title.
+ */
+export function directChildIds(parentId: string, allIds: Iterable<string>): string[] {
+  const prefix = `${parentId}/`;
+  const childDepth = parentId.split("/").length + 1;
+  const out: string[] = [];
+  for (const id of allIds) {
+    if (id.startsWith(prefix) && id.split("/").length === childDepth) out.push(id);
+  }
+  return out;
+}
+
 // ── Fetching / caching ──
 
 function cachePathFor(rosettaId: string): string {
@@ -564,7 +625,7 @@ async function main() {
 
   console.log(`Pages in scope: ${rosettaIds.length}`);
 
-  const parsedPages: ParsedPage[] = [];
+  const rawPages: Array<{ rosettaId: string; url: string; md: string }> = [];
   let fetchErrors = 0;
 
   for (const rosettaId of rosettaIds) {
@@ -587,10 +648,32 @@ async function main() {
       }
     }
 
-    parsedPages.push(parsePage(md, url));
+    rawPages.push({ rosettaId, url, md });
   }
 
-  console.log(`Fetched/read: ${parsedPages.length}, errors: ${fetchErrors}`);
+  // Expand leaked `<DocCardList />` into real child-link lists (issue #65). Built from the
+  // full page set BEFORE parsing so the reconstructed links land in page text/sections.
+  const allIds = rawPages.map((p) => p.rosettaId);
+  const metaById = new Map(rawPages.map((p) => [p.rosettaId, cardMetaFor(p.md, p.rosettaId.split("/").at(-1) ?? p.rosettaId)]));
+  let docCardListExpansions = 0;
+
+  const parsedPages: ParsedPage[] = [];
+  for (const { rosettaId, url, md } of rawPages) {
+    let effectiveMd = md;
+    if (md.includes("<DocCardList")) {
+      const children = directChildIds(rosettaId, allIds)
+        .map((cid) => {
+          const meta = metaById.get(cid) ?? { title: cid, summary: undefined };
+          return { title: meta.title, url: urlByRosettaId.get(cid) ?? rosettaIdToUrl(cid), summary: meta.summary };
+        })
+        .sort((a, b) => a.title.localeCompare(b.title));
+      effectiveMd = expandDocCardLists(md, children);
+      if (effectiveMd !== md) docCardListExpansions++;
+    }
+    parsedPages.push(parsePage(effectiveMd, url));
+  }
+
+  console.log(`Fetched/read: ${parsedPages.length}, errors: ${fetchErrors}, DocCardList expanded: ${docCardListExpansions}`);
 
   // Guard BEFORE the destructive rebuild below: if every fetch failed (network/sitemap
   // outage) or the cache was empty, bail without wiping an existing, good DB. Deleting
