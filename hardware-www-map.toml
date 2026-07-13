@@ -1,0 +1,154 @@
+# hardware-www-map.toml — curated /hardware-slug → mikrotik.com/product code(s) for the
+# off-matrix pages the auto-resolver can't reach on its own.
+#
+# WHY THIS EXISTS. `hardware-unmatched.tsv` (the reverse-audit view) shows a `www_code` column
+# that comes from the ETL's own resolution (extract-hardware-catalog → catalog.json). For many
+# off-matrix devices that resolution finds nothing, because the marketing product code isn't
+# derivable from the /hardware slug (e.g. hap-mini's product is RB931-2nD; sxt-2's is
+# RBSXTG-2HnDr2-168) and the identity-agreement gate correctly refuses to guess. This file is
+# the hand-verified answer key: each `[key]` is a manual.mikrotik.com/hardware/<slug>.
+#
+# HOW IT WILL BE CONSUMED (intended wiring — nothing reads this file yet; tracked in #70):
+#   1. assess-www.ts will seed these codes into its candidate fetch, so mikrotik.com/product/<code>
+#      gets scraped and its specs land in ros-www-assessment.json.
+#   2. extract-hardware-catalog.ts will force-attach the curated product to the row (bypassing the
+#      identity-agreement gate — a human vouched for it), so specs_json + source_www_code fill in.
+# Then `make device-map` will reflect it in hardware-unmatched.tsv's www_code/www_specs columns.
+#
+# FIELDS:
+#   www_code   — the single marketing product a device page maps to.
+#   www_codes  — for a series/index page that fronts SEVERAL member products; list every member.
+#                (Whether members become individual searchable device rows is a separate call —
+#                see #70; for now this fetches their specs and records the membership.)
+#   status     — "no-www" (verified absent from mikrotik.com) | "skip" (not a product page at
+#                all) | "verify" (maintainer flagged for a second look). A status entry needs no
+#                code.
+#   note       — maintainer commentary (verbatim where it was a judgement call).
+#
+# Source: 2026-07 maintainer review of hardware-unmatched.tsv. Keep entries only for pages the
+# auto-resolver can't reach — a slug that starts resolving on its own should be removed here (a
+# future drift check can flag stale entries, mirroring device-exceptions.toml).
+
+# ── Single off-matrix devices / accessories (one page → one product) ──
+
+["cube-60g-ac"]
+www_code = "cube_60g_ac"
+
+["lhg-lite60"]
+www_code = "lhg_lite60"
+
+["wireless-wire-cube"]
+www_code = "wireless_wire_cube"
+
+["g1040a-60wn"]
+www_code = "g1040a_60wf"
+
+["gperx4"]
+www_code = "gperx4"
+
+["knot-embedded-lte4-ec25-eu-and-kne"]
+www_code = "knot_emb_lte4_global"
+note = "Shared _global product; matches the curated alias in device-exceptions.toml / device-map.tsv."
+
+["ltap-lr8-lte-kit"]
+www_code = "ltap_lr8_lte_kit"
+
+["r11e-lr8"]
+status = "verify"
+note = "LR8 (non-G). No r11e_lr8* product appears in ros-www-assessment.json, and r11e-lr8g below is flagged no-www — so no code is asserted here. Confirm during ETL (see #70) whether LR8 has any product page or shares LR8G's."
+
+["r11e-lr9"]
+www_code = "r11e_lr9"
+
+["r11e-lr9g"]
+www_code = "r11e_lr9g"
+
+["wap-lr9-kit"]
+www_code = "wap_lr9_kit"
+
+["chateau-lte12"]
+www_code = "chateau_lte12"
+
+["chateau-lte6"]
+www_code = "chateau_lte6"
+
+["intercell"]
+www_code = "intercell_10_b38_b39"
+
+["dynadish-6"]
+www_code = "dynadish_6"
+
+["lhg-xl-2"]
+www_code = "lhg_xl_2"
+
+["sxt-2"]
+www_code = "RBSXTG-2HnDr2-168"
+
+["nray-series"]
+www_code = "wireless_wire_nray"
+status = "verify"
+note = "? It's one kit… not series/'sold separately' + discontinued"
+
+# ── Series / index pages (one page → several member products) ──
+
+["wap-60g-series"]
+www_codes = ["wap_60g_ap", "wap_60g", "wap_60gx3_ap"]
+
+["mtp250-series"]
+www_codes = ["mtp250_53v47_od", "mtp250_26v94_od"]
+
+["mant-series"]
+www_codes = ["mantbox_52_15s", "RB921GS-5HPacD-15S", "RB921GS-5HPacD-19S"]
+
+["pwr-line"]
+www_codes = ["pwr_line_us", "pwr_line_eu"]
+
+["pwr-line-ap"]
+www_codes = ["pwr_line_ap", "pwr_line_ap_us_plug"]
+
+["ccr1036-12g-4s-series"]
+www_codes = ["CCR1036-12G-4S-149", "CCR1036-12G-4S-EM"]
+
+["ccr1036-8g-2s-plus-series"]
+www_codes = ["CCR1036-8G-2Splus", "CCR1036-8G-2SplusEM"]
+
+["wap-series"]
+www_codes = ["RBwAP2nD", "RBwAP2nD-BE"]
+
+["lhg-kit-series"]
+www_codes = ["lhg_lte_kit", "lhg_lte_kit_us", "lhg_lte6_kit", "lhg_4g_kit"]
+
+["ltap-kit-series"]
+www_codes = ["ltap_lte_kit", "ltap_4g_kit", "ltap_lte6_kit"]
+
+["r11e-series"]
+www_codes = ["r11e_lte", "r11e_lte_us", "r11e_lte6"]
+
+["sxt-kit-series"]
+www_codes = ["sxt_lte_kit", "sxt_lte_kit_us", "sxt_4g_kit", "sxt_lte6_kit", "sxt_lte6_kit_us"]
+
+["wap-ac-kit-series"]
+www_codes = ["wap_ac_lte_kit", "wap_ac_4g_kit", "wap_ac_lte6_kit"]
+
+["wap-kit-series"]
+www_codes = ["wap_lte_kit", "wap_lte_kit_us", "wap_4g_kit"]
+
+["crs-series"]
+www_codes = ["CRS109-8G-1S-2HnD-IN", "CRS112-8G-4S-IN", "CRS210-8G-2SplusIN", "CRS212-1G-10S-1SplusIN"]
+
+["crs125-24g-1s-series"]
+www_codes = ["CRS125-24G-1S-IN", "CRS125-24G-1S-2HnD-IN", "crs125_24g_1s_rm"]
+
+# ── Flagged: no product / skip / needs a decision (no code attached yet) ──
+
+["r11e-lr8g"]
+status = "no-www"
+note = "? Seemingly not on www.mikrotik.com"
+
+["ltap-lr8-lte6-kit"]
+status = "verify"
+note = "? Duplicate of ltap_lr8g_lte6_kit ?"
+
+["compliance"]
+status = "skip"
+note = "?? Special skip from /hardware pages — looks like a MikroTik Docusaurus oddity, not a product"
