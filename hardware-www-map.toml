@@ -8,12 +8,12 @@
 # RBSXTG-2HnDr2-168) and the identity-agreement gate correctly refuses to guess. This file is
 # the hand-verified answer key: each `[key]` is a manual.mikrotik.com/hardware/<slug>.
 #
-# HOW IT'S CONSUMED (both, in refresh order):
-#   1. assess-www.ts seeds these codes into its candidate fetch, so mikrotik.com/product/<code>
-#      is actually scraped and its specs land in ros-www-assessment.json.
-#   2. extract-hardware-catalog.ts force-attaches the curated product to the row (bypassing the
+# HOW IT WILL BE CONSUMED (intended wiring — nothing reads this file yet; tracked in #70):
+#   1. assess-www.ts will seed these codes into its candidate fetch, so mikrotik.com/product/<code>
+#      gets scraped and its specs land in ros-www-assessment.json.
+#   2. extract-hardware-catalog.ts will force-attach the curated product to the row (bypassing the
 #      identity-agreement gate — a human vouched for it), so specs_json + source_www_code fill in.
-# Then `make device-map` reflects it in hardware-unmatched.tsv's www_code/www_specs columns.
+# Then `make device-map` will reflect it in hardware-unmatched.tsv's www_code/www_specs columns.
 #
 # FIELDS:
 #   www_code   — the single marketing product a device page maps to.
@@ -47,15 +47,15 @@ www_code = "g1040a_60wf"
 www_code = "gperx4"
 
 ["knot-embedded-lte4-ec25-eu-and-kne"]
-www_code = "knot_embedded_lte4"
+www_code = "knot_emb_lte4_global"
+note = "Shared _global product; matches the curated alias in device-exceptions.toml / device-map.tsv."
 
 ["ltap-lr8-lte-kit"]
 www_code = "ltap_lr8_lte_kit"
 
 ["r11e-lr8"]
-www_code = "r11e_lr8g"
 status = "verify"
-note = "Maps LR8 (non-G) to the LR8G product code — confirm LR8 has no separate product page and legitimately shares LR8G."
+note = "LR8 (non-G). No r11e_lr8* product appears in ros-www-assessment.json, and r11e-lr8g below is flagged no-www — so no code is asserted here. Confirm during ETL (see #70) whether LR8 has any product page or shares LR8G's."
 
 ["r11e-lr9"]
 www_code = "r11e_lr9"
