@@ -200,6 +200,7 @@ lte
 macsec
 macvlan
 mant
+mantbox
 mbim
 mbps
 mcp

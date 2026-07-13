@@ -163,10 +163,13 @@ the file view matches the DB rather than approximating it):
 attach specs to (15 as of 2026-07-13: e.g. `dynadish-6`, `sxt-2`, `lhg-xl-2`, `chateau-lte6`,
 `chateau-lte12`, the `ltap-lr8-*` LoRa kits). These almost always *do* have a `mikrotik.com/product`
 page that `assess-www` simply never fetched (no candidate seed — the page has no product link and the
-device isn't in `matrix.csv`). Supplying the code is how a human closes the gap; the mechanism to feed
-those codes back into `assess-www`/`extract-hardware-catalog` is tracked in #70. Blank `www_code` on
-`series-or-doc`/`module`/`accessory` rows is expected (a series page has no single product; a bare
-LoRa module often has no standalone www page) and is **not** a backfill target.
+device isn't in `matrix.csv`). Supplying the code is how a human closes the gap: the 2026-07 maintainer
+review captured those codes in the curated **`hardware-www-map.toml`** (slug → `www_code`/`www_codes`,
+plus `status`/`note` for the odd ones). That file is the answer key; wiring it into
+`assess-www` (candidate seeding) + `extract-hardware-catalog` (force-attach past the identity gate) so
+the specs actually land is the ETL task tracked in #70 — the file is inert until then. Blank `www_code`
+on `series-or-doc`/`module`/`accessory` rows is otherwise expected (a series page has no single product;
+a bare LoRa module often has no standalone www page) and is **not** a backfill target.
 
 > `make device-map` reads `catalog.json` for these two columns; run `make extract-hardware-catalog`
 > first if the assessment JSON changed, so the www status reflects the current scrape. If
