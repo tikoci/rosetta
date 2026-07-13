@@ -9,7 +9,8 @@ name: Device Map Refresh
 #
 # This job DETECTS drift; it does not fix it. On drift (regenerated artifacts differ from
 # committed) it fails the run (red check + GitHub's scheduled-workflow-failure notification),
-# uploads the regenerated artifacts, and opens/refreshes ONE tracking issue with the diff.
+# uploads the regenerated artifacts, and opens/refreshes ONE tracking issue with a diff-stat
+# summary (the full diff is in the run logs).
 # A human then resolves it through the *normal* flow — regenerate locally, review against
 # briefings/B-0018-product-naming-three-source-map.md "How to audit", open a standard PR
 # that runs the required `device-map-check` gate like any other. No drift = green, silent.
@@ -137,8 +138,8 @@ jobs:
           3. Open a normal PR with the regenerated artifacts (plus any \`device-exceptions.toml\`
              curation) — it runs the required \`device-map-check\` drift gate like any other PR.
 
-          The full diff and regenerated artifacts are attached to the run above. This issue is reused
-          (one new comment per run) until the drift is resolved and the issue is closed."
+          The full diff is in the run logs; regenerated artifacts are attached to the run above. This issue
+          is reused (one new comment per run) until the drift is resolved and the issue is closed."
 
           existing=$(gh issue list --state open --limit 100 --json number,title \
             --jq ".[] | select(.title == \"$issue_title\") | .number" | head -n1)
