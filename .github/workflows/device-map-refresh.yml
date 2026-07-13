@@ -1,0 +1,116 @@
+name: Device Map Refresh
+
+# Weekly LIVE re-scrape of manual.mikrotik.com (/hardware) and mikrotik.com (www product
+# pages) via `make assess-hardware assess-www device-map` — the live-fetch path that
+# test.yml's drift gate deliberately does NOT run (see the comment on that step). This is
+# the "how do we notice MikroTik added/moved/removed a page" half of B-0018's audit loop;
+# `make device-map-check` on every PR only proves the *committed* snapshot is internally
+# consistent, it can't detect upstream drift on its own.
+#
+# On drift, pushes the regenerated artifacts to a fixed branch and opens (or updates) a PR
+# so a human reviews via the normal PR diff view — briefings/B-0018-product-naming-three-source-map.md
+# "How to audit" is the reviewer's checklist. No diff = no PR, silent success.
+#
+# `build-device-map.ts` also hard-fails (exit 1) when a device no longer auto-resolves and
+# has no matching `device-exceptions.toml` entry, or an exception has gone stale — a
+# genuine curation gap, not routine drift. It still writes the regenerated TSVs before
+# exiting, so this workflow still opens the PR in that case, then fails the run afterward
+# so the red check + GitHub's scheduled-workflow-failure notification both fire.
+
+on:
+  schedule:
+    # Monday 09:17 UTC — off the hour to dodge the top-of-hour GH Actions queue.
+    - cron: '17 9 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: device-map-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      # No `manual/pages/{hardware,www}` cache exists on a fresh checkout (gitignored,
+      # local-only), so this is always a full live re-fetch — every run starts clean.
+      - name: Live re-scrape + regenerate device map
+        id: regen
+        run: |
+          set +e
+          make assess-hardware assess-www device-map
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Check for drift in committed artifacts
+        id: diff
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- device-map.tsv hardware-unmatched.tsv ros-hardware-assessment.json ros-www-assessment.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update refresh PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REGEN_EXIT: ${{ steps.regen.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          branch="device-map-refresh"
+          git checkout -B "$branch"
+          git add device-map.tsv hardware-unmatched.tsv ros-hardware-assessment.json ros-www-assessment.json
+          git commit -m "chore: refresh device-map from live manual.mikrotik.com + mikrotik.com scrape
+
+          Scheduled run of \`make assess-hardware assess-www device-map\` (B-0018). Review
+          against briefings/B-0018-product-naming-three-source-map.md \"How to audit\" before
+          merging: check any non-blank needs_review rows in device-map.tsv, and scan new
+          hardware-unmatched.tsv rows for real devices missing from matrix.csv."
+          git push --force-with-lease origin "$branch"
+
+          body="Automated weekly refresh via \`make assess-hardware assess-www device-map\` (see briefings/B-0018-product-naming-three-source-map.md).
+
+          Review checklist (from B-0018 \"How to audit\"):
+          - Scan \`device-map.tsv\`'s \`needs_review\` column — every non-blank row is a curated call to double-check.
+          - Scan new rows in \`hardware-unmatched.tsv\` for real devices missing from \`matrix.csv\`.
+          - \`make device-map-check\` (test.yml) re-validates coherence on this PR automatically."
+          if [ "$REGEN_EXIT" != "0" ]; then
+            body="$body
+
+          ⚠️ \`make device-map\` exited $REGEN_EXIT — at least one device no longer auto-resolves
+          and has no (or a stale) \`device-exceptions.toml\` entry. Run \`make device-map-check\`
+          locally after pulling this branch to see the exact problem list, then hand-edit
+          \`device-exceptions.toml\` in this PR before merging."
+          fi
+
+          if gh pr view "$branch" --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$branch" --body "$body"
+            echo "PR already open for $branch — pushed new commits and refreshed the body."
+          else
+            gh pr create \
+              --head "$branch" \
+              --title "chore: refresh device-map (scheduled live re-scrape)" \
+              --body "$body"
+          fi
+
+      - name: Fail the run on an unresolved curation gap
+        if: steps.regen.outputs.exit_code != '0'
+        run: |
+          echo "::error::make device-map exited ${{ steps.regen.outputs.exit_code }} — a device needs a new/updated device-exceptions.toml entry. See the opened/updated PR for the regenerated artifacts; device-exceptions.toml itself is hand-curated and was NOT touched by this run."
+          exit 1
