@@ -2563,6 +2563,11 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "a42ghbep",
+      "rosettaDeviceId": "hap-be-lite",
+      "source": "collapsed"
+    },
+    {
       "alias": "apa_1",
       "rosettaDeviceId": "hw-apa-1",
       "source": "hardware-link"
@@ -2571,6 +2576,11 @@
       "alias": "apa-1",
       "rosettaDeviceId": "hw-apa-1",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "apa1",
+      "rosettaDeviceId": "hw-apa-1",
+      "source": "collapsed"
     },
     {
       "alias": "atl 5g r16",
@@ -2591,6 +2601,11 @@
       "alias": "atl18",
       "rosettaDeviceId": "atl-lte18-kit",
       "source": "hardware-link"
+    },
+    {
+      "alias": "atl5gr16",
+      "rosettaDeviceId": "atl-5g-r16",
+      "source": "collapsed"
     },
     {
       "alias": "atlgm",
@@ -2618,6 +2633,21 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "atlgmandeg18ea",
+      "rosettaDeviceId": "atl-lte18-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "atlgmandrg520feu",
+      "rosettaDeviceId": "atl-5g-r16",
+      "source": "collapsed"
+    },
+    {
+      "alias": "atllte18kit",
+      "rosettaDeviceId": "atl-lte18-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "audience",
       "rosettaDeviceId": "hw-audience",
       "source": "hardware-slug"
@@ -2631,6 +2661,11 @@
       "alias": "audience-lte6-kit",
       "rosettaDeviceId": "hw-audience-lte6-kit",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "audiencelte6kit",
+      "rosettaDeviceId": "hw-audience-lte6-kit",
+      "source": "collapsed"
     },
     {
       "alias": "basebox 2",
@@ -2651,6 +2686,11 @@
       "alias": "basebox-series",
       "rosettaDeviceId": "basebox-5",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "basebox5",
+      "rosettaDeviceId": "basebox-5",
+      "source": "collapsed"
     },
     {
       "alias": "bg77",
@@ -2678,9 +2718,19 @@
       "source": "hardware-table"
     },
     {
+      "alias": "c52ig5haxd2haxdtc",
+      "rosettaDeviceId": "hap-ax2",
+      "source": "collapsed"
+    },
+    {
       "alias": "c53uig+5hpaxd2hpaxd",
       "rosettaDeviceId": "hap-ax3",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "c53uigplus5hpaxd2hpaxd",
+      "rosettaDeviceId": "hap-ax3",
+      "source": "collapsed"
     },
     {
       "alias": "cap",
@@ -2758,6 +2808,16 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "capac",
+      "rosettaDeviceId": "cap-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "capax",
+      "rosettaDeviceId": "cap-ax",
+      "source": "collapsed"
+    },
+    {
       "alias": "capgi-5haxd2haxd",
       "rosettaDeviceId": "cap-ax",
       "source": "matrix.csv"
@@ -2766,6 +2826,31 @@
       "alias": "capgi-5haxd2haxd&eg12-ea",
       "rosettaDeviceId": "cap-lte12-ax",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "capgi5haxd2haxd",
+      "rosettaDeviceId": "cap-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "capgi5haxd2haxdandeg12ea",
+      "rosettaDeviceId": "cap-lte12-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "caplite",
+      "rosettaDeviceId": "cap-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "caplte12ax",
+      "rosettaDeviceId": "cap-lte12-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "capxlac",
+      "rosettaDeviceId": "cap-xl-ac",
+      "source": "collapsed"
     },
     {
       "alias": "ccr1009-7g-1c-1s-plus",
@@ -2803,6 +2888,21 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "ccr10097g1c1splus",
+      "rosettaDeviceId": "hw-ccr1009-7g-1c-1s-plus",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr10097g1c1spluspc",
+      "rosettaDeviceId": "hw-ccr1009-7g-1c-1s-plus-pc",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr10097g1cpc",
+      "rosettaDeviceId": "hw-ccr1009-7g-1c-pc",
+      "source": "collapsed"
+    },
+    {
       "alias": "ccr1016-12g",
       "rosettaDeviceId": "hw-ccr1016-12g",
       "source": "hardware-slug"
@@ -2833,6 +2933,26 @@
       "source": "hardware-link"
     },
     {
+      "alias": "ccr101612g",
+      "rosettaDeviceId": "hw-ccr1016-12g",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr101612gr2",
+      "rosettaDeviceId": "hw-ccr1016-12g",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr101612s1splus",
+      "rosettaDeviceId": "hw-ccr1016-12s-1s-plus",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr101612s1splusr2",
+      "rosettaDeviceId": "hw-ccr1016-12s-1s-plus",
+      "source": "collapsed"
+    },
+    {
       "alias": "ccr1036-12g-4s-series",
       "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
       "source": "hardware-slug"
@@ -2841,6 +2961,16 @@
       "alias": "ccr1036-8g-2s-plus-series",
       "rosettaDeviceId": "hw-ccr1036-8g-2s-plus-series",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "ccr103612g4sseries",
+      "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr10368g2splusseries",
+      "rosettaDeviceId": "hw-ccr1036-8g-2s-plus-series",
+      "source": "collapsed"
     },
     {
       "alias": "ccr1072-1g-8s-plus",
@@ -2856,6 +2986,11 @@
       "alias": "ccr1072-1g-8splus",
       "rosettaDeviceId": "hw-ccr1072-1g-8s-plus",
       "source": "hardware-link"
+    },
+    {
+      "alias": "ccr10721g8splus",
+      "rosettaDeviceId": "hw-ccr1072-1g-8s-plus",
+      "source": "collapsed"
     },
     {
       "alias": "ccr2004_16g_2s_pc",
@@ -2918,6 +3053,41 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "ccr200416g2spc",
+      "rosettaDeviceId": "ccr2004-16g-2s-plus-pc",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr200416g2splus",
+      "rosettaDeviceId": "ccr2004-16g-2s-plus",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr200416g2spluspc",
+      "rosettaDeviceId": "ccr2004-16g-2s-plus-pc",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr200416g2splusr2",
+      "rosettaDeviceId": "ccr2004-16g-2s-plus",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr20041g12s2xs",
+      "rosettaDeviceId": "ccr2004-1g-12s-plus-2xs",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr20041g12splus2xs",
+      "rosettaDeviceId": "ccr2004-1g-12s-plus-2xs",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr20041g2xspcie",
+      "rosettaDeviceId": "ccr2004-1g-2xs-pcie",
+      "source": "collapsed"
+    },
+    {
       "alias": "ccr2116_12g_4splus",
       "rosettaDeviceId": "ccr2116-12g-4s-plus",
       "source": "hardware-link"
@@ -2933,6 +3103,11 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "ccr211612g4splus",
+      "rosettaDeviceId": "ccr2116-12g-4s-plus",
+      "source": "collapsed"
+    },
+    {
       "alias": "ccr2216_1g_12xs_2xq",
       "rosettaDeviceId": "ccr2216-1g-12xs-2xq",
       "source": "hardware-link"
@@ -2941,6 +3116,11 @@
       "alias": "ccr2216-1g-12xs-2xq",
       "rosettaDeviceId": "ccr2216-1g-12xs-2xq",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "ccr22161g12xs2xq",
+      "rosettaDeviceId": "ccr2216-1g-12xs-2xq",
+      "source": "collapsed"
     },
     {
       "alias": "chateau 5g r17 ax",
@@ -3078,14 +3258,74 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "chateau5g",
+      "rosettaDeviceId": "hw-chateau-5g",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateau5gax",
+      "rosettaDeviceId": "hw-chateau-5g-ax",
+      "source": "collapsed"
+    },
+    {
       "alias": "chateau5gr16",
       "rosettaDeviceId": "hw-chateau-5g-r16",
       "source": "hardware-link"
     },
     {
+      "alias": "chateau5gr17ax",
+      "rosettaDeviceId": "chateau-5g-r17-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateaulte12",
+      "rosettaDeviceId": "hw-chateau-lte12",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateaulte122025",
+      "rosettaDeviceId": "chateau-lte12-2025",
+      "source": "collapsed"
+    },
+    {
       "alias": "chateaulte18_ax",
       "rosettaDeviceId": "chateau-lte18-ax",
       "source": "hardware-link"
+    },
+    {
+      "alias": "chateaulte18ax",
+      "rosettaDeviceId": "chateau-lte18-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateaulte6",
+      "rosettaDeviceId": "hw-chateau-lte6",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateaulte6ax",
+      "rosettaDeviceId": "hw-chateau-lte6-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateaulte6us",
+      "rosettaDeviceId": "chateau-lte6-us",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateaulte7",
+      "rosettaDeviceId": "chateau-lte7",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateaulte7ax",
+      "rosettaDeviceId": "chateau-lte7-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "chateauproax",
+      "rosettaDeviceId": "chateau-pro-ax",
+      "source": "collapsed"
     },
     {
       "alias": "cme gateway",
@@ -3103,6 +3343,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "cme222nbg77",
+      "rosettaDeviceId": "cme-gateway",
+      "source": "collapsed"
+    },
+    {
+      "alias": "cmegateway",
+      "rosettaDeviceId": "cme-gateway",
+      "source": "collapsed"
+    },
+    {
       "alias": "compliance",
       "rosettaDeviceId": "hw-compliance",
       "source": "hardware-slug"
@@ -3118,9 +3368,19 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "crs1055sfb",
+      "rosettaDeviceId": "hw-fiberbox",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs106-1c-5s",
       "rosettaDeviceId": "crs106-1c-5s",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs1061c5s",
+      "rosettaDeviceId": "crs106-1c-5s",
+      "source": "collapsed"
     },
     {
       "alias": "crs112_8p_4s_in",
@@ -3138,9 +3398,24 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs1128g4sin",
+      "rosettaDeviceId": "hw-crs112-8g-4s-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs1128p4sin",
+      "rosettaDeviceId": "crs112-8p-4s-in",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs125-24g-1s-series",
       "rosettaDeviceId": "hw-crs125-24g-1s-series",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "crs12524g1sseries",
+      "rosettaDeviceId": "hw-crs125-24g-1s-series",
+      "source": "collapsed"
     },
     {
       "alias": "crs304_4xg_in",
@@ -3151,6 +3426,11 @@
       "alias": "crs304-4xg-in",
       "rosettaDeviceId": "crs304-4xg-in",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs3044xgin",
+      "rosettaDeviceId": "crs304-4xg-in",
+      "source": "collapsed"
     },
     {
       "alias": "crs305_1g_4s_in",
@@ -3178,6 +3458,26 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs3051g4sin",
+      "rosettaDeviceId": "crs305-1g-4s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3051g4splusin",
+      "rosettaDeviceId": "crs305-1g-4s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3051g4splusout",
+      "rosettaDeviceId": "fiberbox-plus",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3051g4splusoutr2",
+      "rosettaDeviceId": "fiberbox-plus",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs309_1g_8s_in",
       "rosettaDeviceId": "crs309-1g-8s-plus-in",
       "source": "hardware-link"
@@ -3191,6 +3491,16 @@
       "alias": "crs309-1g-8s+in",
       "rosettaDeviceId": "crs309-1g-8s-plus-in",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs3091g8sin",
+      "rosettaDeviceId": "crs309-1g-8s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3091g8splusin",
+      "rosettaDeviceId": "crs309-1g-8s-plus-in",
+      "source": "collapsed"
     },
     {
       "alias": "crs310_1g_5s_4s_in",
@@ -3228,6 +3538,31 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs3101g5s4sin",
+      "rosettaDeviceId": "crs310-1g-5s-4s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3101g5s4splusin",
+      "rosettaDeviceId": "crs310-1g-5s-4s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3101g5s4splusout",
+      "rosettaDeviceId": "netfiber-9",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3108g2sin",
+      "rosettaDeviceId": "crs310-8g-plus-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3108gplus2splusin",
+      "rosettaDeviceId": "crs310-8g-plus-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs312_4c_8xg_rm",
       "rosettaDeviceId": "crs312-4c-plus-8xg-rm",
       "source": "hardware-link"
@@ -3241,6 +3576,16 @@
       "alias": "crs312-4c+8xg-rm",
       "rosettaDeviceId": "crs312-4c-plus-8xg-rm",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs3124c8xgrm",
+      "rosettaDeviceId": "crs312-4c-plus-8xg-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3124cplus8xgrm",
+      "rosettaDeviceId": "crs312-4c-plus-8xg-rm",
+      "source": "collapsed"
     },
     {
       "alias": "crs317_1g_16s_rm",
@@ -3258,6 +3603,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs3171g16splusrm",
+      "rosettaDeviceId": "crs317-1g-16s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3171g16srm",
+      "rosettaDeviceId": "crs317-1g-16s-plus-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs318_1fi_15fr_2s_out",
       "rosettaDeviceId": "netpower-15fr",
       "source": "hardware-link"
@@ -3273,6 +3628,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs31816p2splusout",
+      "rosettaDeviceId": "netpower-16p",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3181fi15fr2sout",
+      "rosettaDeviceId": "netpower-15fr",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs320_8p_8b_4s_rm",
       "rosettaDeviceId": "crs320-8p-8b-4s-plus-rm",
       "source": "hardware-link"
@@ -3286,6 +3651,16 @@
       "alias": "crs320-8p-8b-4s+rm",
       "rosettaDeviceId": "crs320-8p-8b-4s-plus-rm",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs3208p8b4splusrm",
+      "rosettaDeviceId": "crs320-8p-8b-4s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3208p8b4srm",
+      "rosettaDeviceId": "crs320-8p-8b-4s-plus-rm",
+      "source": "collapsed"
     },
     {
       "alias": "crs326_24g_2s_in",
@@ -3353,6 +3728,46 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs32624g2sin",
+      "rosettaDeviceId": "crs326-24g-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs32624g2splusin",
+      "rosettaDeviceId": "crs326-24g-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs32624g2splusinr2",
+      "rosettaDeviceId": "crs326-24g-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs32624g2splusrm",
+      "rosettaDeviceId": "crs326-24g-2s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs32624s2qrm",
+      "rosettaDeviceId": "crs326-24s-plus-2q-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs32624splus2qplusrm",
+      "rosettaDeviceId": "crs326-24s-plus-2q-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3264c20g2qrm",
+      "rosettaDeviceId": "crs326-4c-plus-20g-plus-2q-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3264cplus20gplus2qplusrm",
+      "rosettaDeviceId": "crs326-4c-plus-20g-plus-2q-plus-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs328_24p_4s_rm",
       "rosettaDeviceId": "crs328-24p-4s-plus-rm",
       "source": "hardware-link"
@@ -3381,6 +3796,26 @@
       "alias": "crs328-4c-20s-4s+rm",
       "rosettaDeviceId": "crs328-4c-20s-4s-plus-rm",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs32824p4splusrm",
+      "rosettaDeviceId": "crs328-24p-4s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs32824p4srm",
+      "rosettaDeviceId": "crs328-24p-4s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3284c20s4splusrm",
+      "rosettaDeviceId": "crs328-4c-20s-4s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs3284c20s4srm",
+      "rosettaDeviceId": "crs328-4c-20s-4s-plus-rm",
+      "source": "collapsed"
     },
     {
       "alias": "crs354_48g_4splus2qplusrm",
@@ -3413,6 +3848,21 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs35448g4splus2qplusrm",
+      "rosettaDeviceId": "crs354-48g-4s-plus-2q-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs35448p4s2qrm",
+      "rosettaDeviceId": "crs354-48p-4s-plus-2q-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs35448p4splus2qplusrm",
+      "rosettaDeviceId": "crs354-48p-4s-plus-2q-plus-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs418_8p_8g_2s_rm",
       "rosettaDeviceId": "crs418-8p-8g-2s-plus-rm",
       "source": "hardware-link"
@@ -3443,6 +3893,26 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs4188p8g2splus5axq2axqrm",
+      "rosettaDeviceId": "crs418-8p-8g-2s-plus-5axq2axq-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs4188p8g2splusrm",
+      "rosettaDeviceId": "crs418-8p-8g-2s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs4188p8g2srm",
+      "rosettaDeviceId": "crs418-8p-8g-2s-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs4188p8g2swifi",
+      "rosettaDeviceId": "crs418-8p-8g-2s-plus-5axq2axq-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs504_4xq_in",
       "rosettaDeviceId": "crs504-4xq-in",
       "source": "hardware-link"
@@ -3463,6 +3933,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs5044xqin",
+      "rosettaDeviceId": "crs504-4xq-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs5044xqout",
+      "rosettaDeviceId": "crs504-4xq-out",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs510_8xs_2xq_in",
       "rosettaDeviceId": "crs510-8xs-2xq-in",
       "source": "hardware-link"
@@ -3471,6 +3951,11 @@
       "alias": "crs510-8xs-2xq-in",
       "rosettaDeviceId": "crs510-8xs-2xq-in",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs5108xs2xqin",
+      "rosettaDeviceId": "crs510-8xs-2xq-in",
+      "source": "collapsed"
     },
     {
       "alias": "crs518_16xs_2xq",
@@ -3483,6 +3968,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs51816xs2xq",
+      "rosettaDeviceId": "crs518-16xs-2xq-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs51816xs2xqrm",
+      "rosettaDeviceId": "crs518-16xs-2xq-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs520_4xs_16xq_rm",
       "rosettaDeviceId": "crs520-4xs-16xq-rm",
       "source": "hardware-link"
@@ -3491,6 +3986,11 @@
       "alias": "crs520-4xs-16xq-rm",
       "rosettaDeviceId": "crs520-4xs-16xq-rm",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "crs5204xs16xqrm",
+      "rosettaDeviceId": "crs520-4xs-16xq-rm",
+      "source": "collapsed"
     },
     {
       "alias": "crs804 ddq",
@@ -3508,6 +4008,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs8044ddqhrm",
+      "rosettaDeviceId": "crs804-ddq",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs804ddq",
+      "rosettaDeviceId": "crs804-ddq",
+      "source": "collapsed"
+    },
+    {
       "alias": "crs812 ddq",
       "rosettaDeviceId": "crs812-ddq",
       "source": "matrix.csv"
@@ -3523,6 +4033,21 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "crs8128ds2dq2ddqrm",
+      "rosettaDeviceId": "crs812-ddq",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crs812ddq",
+      "rosettaDeviceId": "crs812-ddq",
+      "source": "collapsed"
+    },
+    {
+      "alias": "crsseries",
+      "rosettaDeviceId": "hw-crs-series",
+      "source": "collapsed"
+    },
+    {
       "alias": "css106-1g-4p-1s",
       "rosettaDeviceId": "rb260gsp",
       "source": "matrix.csv"
@@ -3531,6 +4056,16 @@
       "alias": "css106-5g-1s",
       "rosettaDeviceId": "rb260gs",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "css1061g4p1s",
+      "rosettaDeviceId": "rb260gsp",
+      "source": "collapsed"
+    },
+    {
+      "alias": "css1065g1s",
+      "rosettaDeviceId": "rb260gs",
+      "source": "collapsed"
     },
     {
       "alias": "css318_16g_2s_in",
@@ -3548,6 +4083,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "css31816g2sin",
+      "rosettaDeviceId": "css318-16g-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "css31816g2splusin",
+      "rosettaDeviceId": "css318-16g-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
       "alias": "css326-24g-2s-plus-rm",
       "rosettaDeviceId": "css326-24g-2s-plus-rm",
       "source": "hardware-slug"
@@ -3563,9 +4108,19 @@
       "source": "hardware-link"
     },
     {
+      "alias": "css32624g2splusrm",
+      "rosettaDeviceId": "css326-24g-2s-plus-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "css606-1g-2gi-3s+out",
       "rosettaDeviceId": "gperx6",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "css6061g2gi3splusout",
+      "rosettaDeviceId": "gperx6",
+      "source": "collapsed"
     },
     {
       "alias": "css610_8g_2s_in",
@@ -3608,6 +4163,36 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "css6101gi7r2splusout",
+      "rosettaDeviceId": "netpower-lite-7r",
+      "source": "collapsed"
+    },
+    {
+      "alias": "css6108g2sin",
+      "rosettaDeviceId": "css610-8g-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "css6108g2splusin",
+      "rosettaDeviceId": "css610-8g-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "css6108p2sin",
+      "rosettaDeviceId": "css610-8p-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "css6108p2splusin",
+      "rosettaDeviceId": "css610-8p-2s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "css6108p2splusout",
+      "rosettaDeviceId": "netpower-lite-8p",
+      "source": "collapsed"
+    },
+    {
       "alias": "cube 60pro ac",
       "rosettaDeviceId": "cube-60pro-ac",
       "source": "matrix.csv"
@@ -3631,6 +4216,16 @@
       "alias": "cube-lite60",
       "rosettaDeviceId": "hw-cube-lite60",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "cube60gac",
+      "rosettaDeviceId": "hw-cube-60g-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "cube60proac",
+      "rosettaDeviceId": "cube-60pro-ac",
+      "source": "collapsed"
     },
     {
       "alias": "cubeg-5ac60ad",
@@ -3658,9 +4253,34 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "cubeg5ac60ay",
+      "rosettaDeviceId": "cube-60pro-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "cubeg5ac60aypair",
+      "rosettaDeviceId": "wireless-wire-cube-pro",
+      "source": "collapsed"
+    },
+    {
+      "alias": "cubeg5ac60aysa",
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "cubelite60",
+      "rosettaDeviceId": "hw-cube-lite60",
+      "source": "collapsed"
+    },
+    {
       "alias": "cubesa 60pro ac",
       "rosettaDeviceId": "cubesa-60pro-ac",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "cubesa60proac",
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "source": "collapsed"
     },
     {
       "alias": "d53g-5hacd2hnd-tc",
@@ -3688,6 +4308,26 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "d53g5hacd2hndtc",
+      "rosettaDeviceId": "chateau-lte12-2025",
+      "source": "collapsed"
+    },
+    {
+      "alias": "d53g5hacd2hndtcandr11elte7",
+      "rosettaDeviceId": "chateau-lte7",
+      "source": "collapsed"
+    },
+    {
+      "alias": "d53g5hacd2hndtcandrg502qea",
+      "rosettaDeviceId": "hw-chateau-5g",
+      "source": "collapsed"
+    },
+    {
+      "alias": "d53g5hacd2hndtcandrg520feu",
+      "rosettaDeviceId": "hw-chateau-5g-r16",
+      "source": "collapsed"
+    },
+    {
       "alias": "disc_lite5_ac",
       "rosettaDeviceId": "hw-disc-lite5-ac",
       "source": "hardware-link"
@@ -3703,6 +4343,16 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "disclite5",
+      "rosettaDeviceId": "hw-disc-lite5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "disclite5ac",
+      "rosettaDeviceId": "hw-disc-lite5-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "dynadish-5",
       "rosettaDeviceId": "hw-dynadish-5",
       "source": "hardware-slug"
@@ -3711,6 +4361,16 @@
       "alias": "dynadish-6",
       "rosettaDeviceId": "hw-dynadish-6",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "dynadish5",
+      "rosettaDeviceId": "hw-dynadish-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "dynadish6",
+      "rosettaDeviceId": "hw-dynadish-6",
+      "source": "collapsed"
     },
     {
       "alias": "e50ug",
@@ -3728,6 +4388,11 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "e62iugs2axd5axt",
+      "rosettaDeviceId": "hap-ax-s",
+      "source": "collapsed"
+    },
+    {
       "alias": "ec200a-eu",
       "rosettaDeviceId": "ltap-mini-lte-kit",
       "source": "www-declared-code"
@@ -3743,6 +4408,21 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "ec200aeu",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ec200aeur2",
+      "rosettaDeviceId": "wap-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ec200aeur3",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "ec25-eu",
       "rosettaDeviceId": "knot-embedded-lte4",
       "source": "matrix.csv"
@@ -3753,9 +4433,24 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "ec25eu",
+      "rosettaDeviceId": "knot-embedded-lte4",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ec25euandsxtsq",
+      "rosettaDeviceId": "sxtsq-embedded-lte4",
+      "source": "collapsed"
+    },
+    {
       "alias": "eg06-a",
       "rosettaDeviceId": "chateau-lte6-us",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "eg06a",
+      "rosettaDeviceId": "chateau-lte6-us",
+      "source": "collapsed"
     },
     {
       "alias": "eg12-ea",
@@ -3768,9 +4463,24 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "eg120kea",
+      "rosettaDeviceId": "chateau-lte12-2025",
+      "source": "collapsed"
+    },
+    {
+      "alias": "eg12ea",
+      "rosettaDeviceId": "cap-lte12-ax",
+      "source": "collapsed"
+    },
+    {
       "alias": "eg18-ea",
       "rosettaDeviceId": "atl-lte18-kit",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "eg18ea",
+      "rosettaDeviceId": "atl-lte18-kit",
+      "source": "collapsed"
     },
     {
       "alias": "eg25-g",
@@ -3783,9 +4493,24 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "eg25g",
+      "rosettaDeviceId": "knot-embedded-lte4-global",
+      "source": "collapsed"
+    },
+    {
+      "alias": "eg25gandkne",
+      "rosettaDeviceId": "knot-embedded-lte4-global",
+      "source": "collapsed"
+    },
+    {
       "alias": "fg621-ea",
       "rosettaDeviceId": "hw-chateau-lte6-ax",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "fg621ea",
+      "rosettaDeviceId": "hw-chateau-lte6-ax",
+      "source": "collapsed"
     },
     {
       "alias": "fiberbox",
@@ -3823,9 +4548,19 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "ftc21ups",
+      "rosettaDeviceId": "ftc21-ups",
+      "source": "collapsed"
+    },
+    {
       "alias": "g1040a-60wn",
       "rosettaDeviceId": "hw-g1040a-60wn",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "g1040a60wn",
+      "rosettaDeviceId": "hw-g1040a-60wn",
+      "source": "collapsed"
     },
     {
       "alias": "gesp_poe_in",
@@ -3841,6 +4576,16 @@
       "alias": "gesp+poe-in",
       "rosettaDeviceId": "hw-gesp-plus-poe-in",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "gesppluspoein",
+      "rosettaDeviceId": "hw-gesp-plus-poe-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "gesppoein",
+      "rosettaDeviceId": "hw-gesp-plus-poe-in",
+      "source": "collapsed"
     },
     {
       "alias": "gpen11",
@@ -3878,6 +4623,11 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "groove52",
+      "rosettaDeviceId": "groove-52",
+      "source": "collapsed"
+    },
+    {
       "alias": "groovea 52",
       "rosettaDeviceId": "groovea-52",
       "source": "matrix.csv"
@@ -3888,9 +4638,24 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "groovea52",
+      "rosettaDeviceId": "groovea-52",
+      "source": "collapsed"
+    },
+    {
+      "alias": "groovea52ac",
+      "rosettaDeviceId": "groovea-52-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "h53uig-5haxq2haxq",
       "rosettaDeviceId": "chateau-pro-ax",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "h53uig5haxq2haxq",
+      "rosettaDeviceId": "chateau-pro-ax",
+      "source": "collapsed"
     },
     {
       "alias": "hap",
@@ -4093,6 +4858,86 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "hapac",
+      "rosettaDeviceId": "hap-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapac2",
+      "rosettaDeviceId": "hap-ac2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapac3",
+      "rosettaDeviceId": "hap-ac3",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapac3lte6kit",
+      "rosettaDeviceId": "hw-hap-ac3-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapaclite",
+      "rosettaDeviceId": "hap-ac-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapaclitetc",
+      "rosettaDeviceId": "hap-ac-lite-tc",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapax2",
+      "rosettaDeviceId": "hap-ax2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapax3",
+      "rosettaDeviceId": "hap-ax3",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapaxlite",
+      "rosettaDeviceId": "hap-ax-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapaxlitelte6",
+      "rosettaDeviceId": "hw-hap-ax-lite-lte6",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapaxs",
+      "rosettaDeviceId": "hap-ax-s",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapbe3media",
+      "rosettaDeviceId": "hap-be3-media",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapbelite",
+      "rosettaDeviceId": "hap-be-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "haplite",
+      "rosettaDeviceId": "hap-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "haplitetc",
+      "rosettaDeviceId": "hap-lite-tc",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hapmini",
+      "rosettaDeviceId": "hw-hap-mini",
+      "source": "collapsed"
+    },
+    {
       "alias": "hex",
       "rosettaDeviceId": "hex",
       "source": "matrix.csv"
@@ -4173,6 +5018,41 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "hex2024",
+      "rosettaDeviceId": "hex-refresh",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hexlite",
+      "rosettaDeviceId": "hex-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hexpoe",
+      "rosettaDeviceId": "hex-poe",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hexpoelite",
+      "rosettaDeviceId": "hex-poe-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hexrefresh",
+      "rosettaDeviceId": "hex-refresh",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hexs",
+      "rosettaDeviceId": "hex-s",
+      "source": "collapsed"
+    },
+    {
+      "alias": "hexs2025",
+      "rosettaDeviceId": "hex-s-2025",
+      "source": "collapsed"
+    },
+    {
       "alias": "intercell",
       "rosettaDeviceId": "hw-intercell",
       "source": "hardware-slug"
@@ -4233,6 +5113,31 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "knotembeddedlte4",
+      "rosettaDeviceId": "knot-embedded-lte4",
+      "source": "collapsed"
+    },
+    {
+      "alias": "knotembeddedlte4global",
+      "rosettaDeviceId": "knot-embedded-lte4-global",
+      "source": "collapsed"
+    },
+    {
+      "alias": "knotemblte4global",
+      "rosettaDeviceId": "knot-embedded-lte4-global",
+      "source": "collapsed"
+    },
+    {
+      "alias": "knotlr8gkit",
+      "rosettaDeviceId": "knot-lr8g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "knotlr9gkit",
+      "rosettaDeviceId": "knot-lr9g-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "l009uigs_2haxd_in",
       "rosettaDeviceId": "l009uigs-2haxd-in",
       "source": "hardware-link"
@@ -4253,6 +5158,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "l009uigs2haxdin",
+      "rosettaDeviceId": "l009uigs-2haxd-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "l009uigsrm",
+      "rosettaDeviceId": "l009uigs-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "l11ug_5haxd",
       "rosettaDeviceId": "l11ug-5haxd",
       "source": "hardware-link"
@@ -4268,9 +5183,24 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "l11ug5haxd",
+      "rosettaDeviceId": "l11ug-5haxd",
+      "source": "collapsed"
+    },
+    {
+      "alias": "l11ug5haxdnb",
+      "rosettaDeviceId": "netbox-5-ax",
+      "source": "collapsed"
+    },
+    {
       "alias": "l22ugs-5haxd2haxd-15s",
       "rosettaDeviceId": "mantbox-ax-15s",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "l22ugs5haxd2haxd15s",
+      "rosettaDeviceId": "mantbox-ax-15s",
+      "source": "collapsed"
     },
     {
       "alias": "l23ugsr_5haxd2haxd",
@@ -4288,6 +5218,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "l23ugsr5haxd2haxd",
+      "rosettaDeviceId": "l23ugsr-5haxd2haxd",
+      "source": "collapsed"
+    },
+    {
+      "alias": "l23ugsr5haxd2haxdnm",
+      "rosettaDeviceId": "netmetal-ax",
+      "source": "collapsed"
+    },
+    {
       "alias": "l41g-2axd",
       "rosettaDeviceId": "hap-ax-lite",
       "source": "matrix.csv"
@@ -4298,9 +5238,24 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "l41g2axd",
+      "rosettaDeviceId": "hap-ax-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "l41g2axdandfg621ea",
+      "rosettaDeviceId": "hw-hap-ax-lite-lte6",
+      "source": "collapsed"
+    },
+    {
       "alias": "lamp 5g r16",
       "rosettaDeviceId": "lamp-5g-r16",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "lamp5gr16",
+      "rosettaDeviceId": "lamp-5g-r16",
+      "source": "collapsed"
     },
     {
       "alias": "lampgm",
@@ -4341,6 +5296,21 @@
       "alias": "ldf-lte6-kit",
       "rosettaDeviceId": "hw-ldf-lte6-kit",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "ldf2",
+      "rosettaDeviceId": "hw-ldf-2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ldf5",
+      "rosettaDeviceId": "ldf-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ldflte6kit",
+      "rosettaDeviceId": "hw-ldf-lte6-kit",
+      "source": "collapsed"
     },
     {
       "alias": "lhg 2",
@@ -4498,6 +5468,36 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "lhg5",
+      "rosettaDeviceId": "lhg-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhg5ax",
+      "rosettaDeviceId": "lhg-5-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhg5axd",
+      "rosettaDeviceId": "lhg-5-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhg5axdxl",
+      "rosettaDeviceId": "lhg-xl-5-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhg5axxl",
+      "rosettaDeviceId": "lhg-xl-5-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhg60g",
+      "rosettaDeviceId": "hw-lhg-60g",
+      "source": "collapsed"
+    },
+    {
       "alias": "lhgg lte7 kit",
       "rosettaDeviceId": "lhgg-lte7-kit",
       "source": "matrix.csv"
@@ -4513,6 +5513,16 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "lhgglte6kit",
+      "rosettaDeviceId": "hw-lhgg-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgglte7kit",
+      "rosettaDeviceId": "lhgg-lte7-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "lhggm",
       "rosettaDeviceId": "lhg-lte18-kit",
       "source": "matrix.csv"
@@ -4523,9 +5533,74 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "lhggmandeg18ea",
+      "rosettaDeviceId": "lhg-lte18-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "lhggr",
       "rosettaDeviceId": "lhgg-lte7-kit",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "lhgkitseries",
+      "rosettaDeviceId": "hw-lhg-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhglite60",
+      "rosettaDeviceId": "hw-lhg-lite60",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhglte18",
+      "rosettaDeviceId": "lhg-lte18-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhglte18kit",
+      "rosettaDeviceId": "lhg-lte18-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhglte6kit",
+      "rosettaDeviceId": "hw-lhg-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgltekit",
+      "rosettaDeviceId": "hw-lhg-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgr",
+      "rosettaDeviceId": "hw-lhg-r",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgxl2",
+      "rosettaDeviceId": "hw-lhg-xl-2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgxl52ac",
+      "rosettaDeviceId": "hw-lhg-xl-52-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgxl5ac",
+      "rosettaDeviceId": "lhg-xl-5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgxl5ax",
+      "rosettaDeviceId": "lhg-xl-5-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "lhgxlhp5",
+      "rosettaDeviceId": "lhg-xl-hp5",
+      "source": "collapsed"
     },
     {
       "alias": "lr8g",
@@ -4613,6 +5688,61 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "ltap2hnd",
+      "rosettaDeviceId": "ltap-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltap2hndandfg621eaandlr8g",
+      "rosettaDeviceId": "hw-ltap-lr8g-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltap2hndandfg621eaandlr8gr2",
+      "rosettaDeviceId": "hw-ltap-lr8g-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltapkitseries",
+      "rosettaDeviceId": "hw-ltap-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltaplr8glte6kit",
+      "rosettaDeviceId": "hw-ltap-lr8g-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltaplr8lte6kit",
+      "rosettaDeviceId": "hw-ltap-lr8-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltaplr8ltekit",
+      "rosettaDeviceId": "hw-ltap-lr8-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltaplte7kit",
+      "rosettaDeviceId": "ltap-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltapmini",
+      "rosettaDeviceId": "ltap-mini",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltapminiltekit",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltapminiltekit2024",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "m11g",
       "rosettaDeviceId": "hw-rbm11g",
       "source": "hardware-link"
@@ -4621,6 +5751,11 @@
       "alias": "ma53ug+hbeh",
       "rosettaDeviceId": "hap-be3-media",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "ma53ugplushbeh",
+      "rosettaDeviceId": "hap-be3-media",
+      "source": "collapsed"
     },
     {
       "alias": "mant-series",
@@ -4668,6 +5803,26 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "mantbox212s",
+      "rosettaDeviceId": "mantbox-2-12s",
+      "source": "collapsed"
+    },
+    {
+      "alias": "mantbox5215s",
+      "rosettaDeviceId": "hw-mantbox-52-15s",
+      "source": "collapsed"
+    },
+    {
+      "alias": "mantboxax15s",
+      "rosettaDeviceId": "mantbox-ax-15s",
+      "source": "collapsed"
+    },
+    {
+      "alias": "mantseries",
+      "rosettaDeviceId": "hw-mant-series",
+      "source": "collapsed"
+    },
+    {
       "alias": "map",
       "rosettaDeviceId": "map",
       "source": "matrix.csv"
@@ -4683,6 +5838,11 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "maplite",
+      "rosettaDeviceId": "map-lite",
+      "source": "collapsed"
+    },
+    {
       "alias": "metal 52 ac",
       "rosettaDeviceId": "metal-52-ac",
       "source": "matrix.csv"
@@ -4691,6 +5851,11 @@
       "alias": "metal-52-ac",
       "rosettaDeviceId": "metal-52-ac",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "metal52ac",
+      "rosettaDeviceId": "metal-52-ac",
+      "source": "collapsed"
     },
     {
       "alias": "mqs",
@@ -4713,6 +5878,21 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "mtp25026v94od",
+      "rosettaDeviceId": "hw-mtp250-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "mtp25053v47od",
+      "rosettaDeviceId": "hw-mtp250-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "mtp250series",
+      "rosettaDeviceId": "hw-mtp250-series",
+      "source": "collapsed"
+    },
+    {
       "alias": "netbox 5 ax",
       "rosettaDeviceId": "netbox-5-ax",
       "source": "matrix.csv"
@@ -4733,6 +5913,16 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "netbox5",
+      "rosettaDeviceId": "hw-netbox-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netbox5ax",
+      "rosettaDeviceId": "netbox-5-ax",
+      "source": "collapsed"
+    },
+    {
       "alias": "netfiber 9",
       "rosettaDeviceId": "netfiber-9",
       "source": "matrix.csv"
@@ -4746,6 +5936,11 @@
       "alias": "netfiber-9",
       "rosettaDeviceId": "netfiber-9",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "netfiber9",
+      "rosettaDeviceId": "netfiber-9",
+      "source": "collapsed"
     },
     {
       "alias": "netmetal 5",
@@ -4776,6 +5971,16 @@
       "alias": "netmetal-series",
       "rosettaDeviceId": "netmetal-5",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "netmetal5",
+      "rosettaDeviceId": "netmetal-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netmetalax",
+      "rosettaDeviceId": "netmetal-ax",
+      "source": "collapsed"
     },
     {
       "alias": "netpower 15fr",
@@ -4833,9 +6038,39 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "netpower15fr",
+      "rosettaDeviceId": "netpower-15fr",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netpower16p",
+      "rosettaDeviceId": "netpower-16p",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netpowerlite7r",
+      "rosettaDeviceId": "netpower-lite-7r",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netpowerlite8p",
+      "rosettaDeviceId": "netpower-lite-8p",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netpowerliteups",
+      "rosettaDeviceId": "netpower-lite-8p",
+      "source": "collapsed"
+    },
+    {
       "alias": "nray-series",
       "rosettaDeviceId": "hw-nray-series",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "nrayseries",
+      "rosettaDeviceId": "hw-nray-series",
+      "source": "collapsed"
     },
     {
       "alias": "omnitik 5 poe ac",
@@ -4846,6 +6081,11 @@
       "alias": "omnitik-series",
       "rosettaDeviceId": "omnitik-5-poe-ac",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "omnitik5poeac",
+      "rosettaDeviceId": "omnitik-5-poe-ac",
+      "source": "collapsed"
     },
     {
       "alias": "pl7510gi",
@@ -4868,6 +6108,11 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "powerboxpro",
+      "rosettaDeviceId": "powerbox-pro",
+      "source": "collapsed"
+    },
+    {
       "alias": "pwr-line",
       "rosettaDeviceId": "hw-pwr-line",
       "source": "hardware-slug"
@@ -4881,6 +6126,21 @@
       "alias": "pwr-line-pro",
       "rosettaDeviceId": "hw-pwr-line-pro",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "pwrline",
+      "rosettaDeviceId": "hw-pwr-line",
+      "source": "collapsed"
+    },
+    {
+      "alias": "pwrlineap",
+      "rosettaDeviceId": "hw-pwr-line-ap",
+      "source": "collapsed"
+    },
+    {
+      "alias": "pwrlinepro",
+      "rosettaDeviceId": "hw-pwr-line-pro",
+      "source": "collapsed"
     },
     {
       "alias": "qrt 5",
@@ -4901,6 +6161,21 @@
       "alias": "qrt-5-ac",
       "rosettaDeviceId": "hw-qrt-5-ac",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "qrt2",
+      "rosettaDeviceId": "hw-qrt-2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "qrt5",
+      "rosettaDeviceId": "qrt-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "qrt5ac",
+      "rosettaDeviceId": "hw-qrt-5-ac",
+      "source": "collapsed"
     },
     {
       "alias": "r11e-4g",
@@ -4968,6 +6243,56 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "r11elr2",
+      "rosettaDeviceId": "wap-lr2-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elr8",
+      "rosettaDeviceId": "hw-r11e-lr8",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elr8g",
+      "rosettaDeviceId": "knot-lr8g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elr9",
+      "rosettaDeviceId": "hw-r11e-lr9",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elr9g",
+      "rosettaDeviceId": "knot-lr9g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elte6",
+      "rosettaDeviceId": "hw-audience-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elte7",
+      "rosettaDeviceId": "r11e-lte7",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elte7r2",
+      "rosettaDeviceId": "ltap-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11elte7r3",
+      "rosettaDeviceId": "sxt-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "r11eseries",
+      "rosettaDeviceId": "hw-r11e-series",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb1100-series",
       "rosettaDeviceId": "rb1100ahx4",
       "source": "hardware-slug"
@@ -4981,6 +6306,11 @@
       "alias": "rb1100ahx4 dude edition",
       "rosettaDeviceId": "rb1100ahx4-dude-edition",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rb1100ahx4dudeedition",
+      "rosettaDeviceId": "rb1100ahx4-dude-edition",
+      "source": "collapsed"
     },
     {
       "alias": "rb1100dx4",
@@ -5003,9 +6333,24 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "rb2011ilin",
+      "rosettaDeviceId": "hw-rb2011il-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb2011ilrm",
+      "rosettaDeviceId": "hw-rb2011il-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb2011ils-in",
       "rosettaDeviceId": "hw-rb2011ils-in",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "rb2011ilsin",
+      "rosettaDeviceId": "hw-rb2011ils-in",
+      "source": "collapsed"
     },
     {
       "alias": "rb2011uias-2hnd-in",
@@ -5038,6 +6383,36 @@
       "source": "www-compare-id"
     },
     {
+      "alias": "rb2011uias2hndin",
+      "rosettaDeviceId": "hw-rb2011uias-2hnd-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb2011uias2hndinr2",
+      "rosettaDeviceId": "hw-rb2011uias-2hnd-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb2011uiasin",
+      "rosettaDeviceId": "hw-rb2011uias-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb2011uiasinr2",
+      "rosettaDeviceId": "hw-rb2011uias-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb2011uiasrm",
+      "rosettaDeviceId": "hw-rb2011uias-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb2011uiasrmr2",
+      "rosettaDeviceId": "hw-rb2011uias-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb260-series",
       "rosettaDeviceId": "rb260gs",
       "source": "hardware-slug"
@@ -5056,6 +6431,11 @@
       "alias": "rb3011uias-rm",
       "rosettaDeviceId": "hw-rb3011uias-rm",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "rb3011uiasrm",
+      "rosettaDeviceId": "hw-rb3011uias-rm",
+      "source": "collapsed"
     },
     {
       "alias": "rb4011igs_5hacq2hnd_in",
@@ -5088,6 +6468,26 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rb4011igs5hacq2hndin",
+      "rosettaDeviceId": "rb4011igs-plus-5hacq2hnd-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb4011igsplus5hacq2hndin",
+      "rosettaDeviceId": "rb4011igs-plus-5hacq2hnd-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb4011igsplusrm",
+      "rosettaDeviceId": "rb4011igs-plus-rm",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb4011igsrm",
+      "rosettaDeviceId": "rb4011igs-plus-rm",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb450gx4",
       "rosettaDeviceId": "rb450gx4",
       "source": "matrix.csv"
@@ -5096,6 +6496,11 @@
       "alias": "rb5009_out",
       "rosettaDeviceId": "rb5009upr-plus-s-plus-out",
       "source": "hardware-link"
+    },
+    {
+      "alias": "rb5009out",
+      "rosettaDeviceId": "rb5009upr-plus-s-plus-out",
+      "source": "collapsed"
     },
     {
       "alias": "rb5009ug_s_in",
@@ -5111,6 +6516,16 @@
       "alias": "rb5009ug+s+in",
       "rosettaDeviceId": "rb5009ug-plus-s-plus-in",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rb5009ugplussplusin",
+      "rosettaDeviceId": "rb5009ug-plus-s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb5009ugsin",
+      "rosettaDeviceId": "rb5009ug-plus-s-plus-in",
+      "source": "collapsed"
     },
     {
       "alias": "rb5009upr_s_in",
@@ -5138,6 +6553,21 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rb5009uprplussplusin",
+      "rosettaDeviceId": "rb5009upr-plus-s-plus-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb5009uprplussplusout",
+      "rosettaDeviceId": "rb5009upr-plus-s-plus-out",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb5009uprsin",
+      "rosettaDeviceId": "rb5009upr-plus-s-plus-in",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb750gr3",
       "rosettaDeviceId": "hex",
       "source": "matrix.csv"
@@ -5146,6 +6576,11 @@
       "alias": "rb750p-pbr2",
       "rosettaDeviceId": "hw-powerbox",
       "source": "hardware-link"
+    },
+    {
+      "alias": "rb750ppbr2",
+      "rosettaDeviceId": "hw-powerbox",
+      "source": "collapsed"
     },
     {
       "alias": "rb750r2",
@@ -5203,6 +6638,36 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rb911g2hpnd12sr2",
+      "rosettaDeviceId": "mantbox-2-12s",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb911g5hpacdnb",
+      "rosettaDeviceId": "hw-netbox-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb911g5hpacdqrt",
+      "rosettaDeviceId": "hw-qrt-5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb911g5hpacdqrtr2",
+      "rosettaDeviceId": "hw-qrt-5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb911g5hpnd",
+      "rosettaDeviceId": "rb911g-5hpnd",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb911g5hpndqrt",
+      "rosettaDeviceId": "qrt-5",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb912r-2nd-ltm",
       "rosettaDeviceId": "ltap-mini",
       "source": "matrix.csv"
@@ -5233,6 +6698,21 @@
       "source": "hardware-table"
     },
     {
+      "alias": "rb912r2ndltm",
+      "rosettaDeviceId": "ltap-mini",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb912r2ndltmandec200aeu",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb912r2ndltmandec200aeur3",
+      "rosettaDeviceId": "ltap-mini-lte-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb912uag-2hpnd",
       "rosettaDeviceId": "rb912uag-2hpnd",
       "source": "matrix.csv"
@@ -5251,6 +6731,21 @@
       "alias": "rb912uag-series",
       "rosettaDeviceId": "rb912uag-2hpnd",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "rb912uag2hpnd",
+      "rosettaDeviceId": "rb912uag-2hpnd",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb912uag5hpnd",
+      "rosettaDeviceId": "rb912uag-5hpnd",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb912uag5hpndout",
+      "rosettaDeviceId": "basebox-5",
+      "source": "collapsed"
     },
     {
       "alias": "rb921gs-5hpacd-15s",
@@ -5273,6 +6768,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rb922uags5hpacd",
+      "rosettaDeviceId": "rb922uags-5hpacd",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb922uags5hpacdnm",
+      "rosettaDeviceId": "netmetal-5",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb924i-2nd-bt5",
       "rosettaDeviceId": "knot",
       "source": "matrix.csv"
@@ -5286,6 +6791,21 @@
       "alias": "rb924i-2nd-bt5&bg77r2",
       "rosettaDeviceId": "knot",
       "source": "www-compare-id"
+    },
+    {
+      "alias": "rb924i2ndbt5",
+      "rosettaDeviceId": "knot",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb924i2ndbt5andbg77",
+      "rosettaDeviceId": "knot",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb924i2ndbt5andbg77r2",
+      "rosettaDeviceId": "knot",
+      "source": "collapsed"
     },
     {
       "alias": "rb924ir-2nd-bt5",
@@ -5303,9 +6823,29 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "rb924ir2ndbt5",
+      "rosettaDeviceId": "knot-lr8g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb924ir2ndbt5andbg770aandr11elr8g",
+      "rosettaDeviceId": "knot-lr8g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb924ir2ndbt5andbg770aandr11elr9g",
+      "rosettaDeviceId": "knot-lr9g-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb931-2nd",
       "rosettaDeviceId": "hw-hap-mini",
       "source": "hardware-link"
+    },
+    {
+      "alias": "rb9312nd",
+      "rosettaDeviceId": "hw-hap-mini",
+      "source": "collapsed"
     },
     {
       "alias": "rb941-2nd",
@@ -5316,6 +6856,16 @@
       "alias": "rb941-2nd-tc",
       "rosettaDeviceId": "hap-lite-tc",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rb9412nd",
+      "rosettaDeviceId": "hap-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb9412ndtc",
+      "rosettaDeviceId": "hap-lite-tc",
+      "source": "collapsed"
     },
     {
       "alias": "rb951-series",
@@ -5338,6 +6888,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rb951ui2hnd",
+      "rosettaDeviceId": "rb951ui-2hnd",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb951ui2nd",
+      "rosettaDeviceId": "hap",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb952ui-5ac2nd",
       "rosettaDeviceId": "hap-ac-lite",
       "source": "matrix.csv"
@@ -5346,6 +6906,16 @@
       "alias": "rb952ui-5ac2nd-tc",
       "rosettaDeviceId": "hap-ac-lite-tc",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rb952ui5ac2nd",
+      "rosettaDeviceId": "hap-ac-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb952ui5ac2ndtc",
+      "rosettaDeviceId": "hap-ac-lite-tc",
+      "source": "collapsed"
     },
     {
       "alias": "rb960pgs",
@@ -5358,9 +6928,19 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rb960pgspb",
+      "rosettaDeviceId": "powerbox-pro",
+      "source": "collapsed"
+    },
+    {
       "alias": "rb962uigs-5hact2hnt",
       "rosettaDeviceId": "hap-ac",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rb962uigs5hact2hnt",
+      "rosettaDeviceId": "hap-ac",
+      "source": "collapsed"
     },
     {
       "alias": "rbcap2nd",
@@ -5388,6 +6968,21 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rbcapgi5acd2nd",
+      "rosettaDeviceId": "cap-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbcapgi5acd2ndxl",
+      "rosettaDeviceId": "cap-xl-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbcapgi5acd2ndxlr4",
+      "rosettaDeviceId": "cap-xl-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbcapl-2nd",
       "rosettaDeviceId": "cap-lite",
       "source": "matrix.csv"
@@ -5396,6 +6991,16 @@
       "alias": "rbcapl-2nd-307",
       "rosettaDeviceId": "cap-lite",
       "source": "hardware-link"
+    },
+    {
+      "alias": "rbcapl2nd",
+      "rosettaDeviceId": "cap-lite",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbcapl2nd307",
+      "rosettaDeviceId": "cap-lite",
+      "source": "collapsed"
     },
     {
       "alias": "rbcube-60ad",
@@ -5418,6 +7023,11 @@
       "source": "hardware-table"
     },
     {
+      "alias": "rbd25g5hpacqd2hpnd",
+      "rosettaDeviceId": "hw-audience",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbd25gr-5hpacqd2hpnd",
       "rosettaDeviceId": "hw-audience-lte6-kit",
       "source": "www-declared-code"
@@ -5433,6 +7043,16 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "rbd25gr5hpacqd2hpnd",
+      "rosettaDeviceId": "hw-audience-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbd25gr5hpacqd2hpndandr11elte6",
+      "rosettaDeviceId": "hw-audience-lte6-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbd52g-5hacd2hnd-tc",
       "rosettaDeviceId": "hap-ac2",
       "source": "www-declared-code"
@@ -5441,6 +7061,16 @@
       "alias": "rbd52g-5hacd2hnd-tcr2",
       "rosettaDeviceId": "hap-ac2",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rbd52g5hacd2hndtc",
+      "rosettaDeviceId": "hap-ac2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbd52g5hacd2hndtcr2",
+      "rosettaDeviceId": "hap-ac2",
+      "source": "collapsed"
     },
     {
       "alias": "rbd53gr-5hacd2hnd",
@@ -5458,6 +7088,16 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "rbd53gr5hacd2hnd",
+      "rosettaDeviceId": "hw-hap-ac3-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbd53gr5hacd2hndandr11elte6",
+      "rosettaDeviceId": "hw-hap-ac3-lte6-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbd53ig-5hacd2hnd",
       "rosettaDeviceId": "hap-ac3",
       "source": "matrix.csv"
@@ -5468,6 +7108,11 @@
       "source": "hardware-table"
     },
     {
+      "alias": "rbd53ig5hacd2hnd",
+      "rosettaDeviceId": "hap-ac3",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbdisc_5nd",
       "rosettaDeviceId": "hw-disc-lite5",
       "source": "hardware-link"
@@ -5476,6 +7121,11 @@
       "alias": "rbdisc-5nd",
       "rosettaDeviceId": "hw-disc-lite5",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "rbdisc5nd",
+      "rosettaDeviceId": "hw-disc-lite5",
+      "source": "collapsed"
     },
     {
       "alias": "rbdiscg-5acd",
@@ -5491,6 +7141,16 @@
       "alias": "rbdynadishg-5hacdr3",
       "rosettaDeviceId": "hw-dynadish-5",
       "source": "hardware-link"
+    },
+    {
+      "alias": "rbdynadishg5hacd",
+      "rosettaDeviceId": "hw-dynadish-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbdynadishg5hacdr3",
+      "rosettaDeviceId": "hw-dynadish-5",
+      "source": "collapsed"
     },
     {
       "alias": "rbftc11",
@@ -5518,9 +7178,24 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rbgroovea52hpn",
+      "rosettaDeviceId": "groovea-52",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbgroovea52hpnr2",
+      "rosettaDeviceId": "groovea-52",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbgroovega-52hpacn",
       "rosettaDeviceId": "groovea-52-ac",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rbgroovega52hpacn",
+      "rosettaDeviceId": "groovea-52-ac",
+      "source": "collapsed"
     },
     {
       "alias": "rbldf_5nd",
@@ -5536,6 +7211,11 @@
       "alias": "rbldf-5nd",
       "rosettaDeviceId": "ldf-5",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rbldf5nd",
+      "rosettaDeviceId": "ldf-5",
+      "source": "collapsed"
     },
     {
       "alias": "rbldfr",
@@ -5563,6 +7243,16 @@
       "source": "hardware-table"
     },
     {
+      "alias": "rblhg5hpndxl",
+      "rosettaDeviceId": "lhg-xl-hp5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rblhg5nd",
+      "rosettaDeviceId": "lhg-5",
+      "source": "collapsed"
+    },
+    {
       "alias": "rblhgg-5acd-xl",
       "rosettaDeviceId": "lhg-xl-5-ac",
       "source": "matrix.csv"
@@ -5586,6 +7276,21 @@
       "alias": "rblhgg-60adr2",
       "rosettaDeviceId": "hw-lhg-60g",
       "source": "www-compare-id"
+    },
+    {
+      "alias": "rblhgg5acdxl",
+      "rosettaDeviceId": "lhg-xl-5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rblhgg60adkit",
+      "rosettaDeviceId": "hw-wireless-wire-dish",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rblhgg60adr2",
+      "rosettaDeviceId": "hw-lhg-60g",
+      "source": "collapsed"
     },
     {
       "alias": "rblhggr",
@@ -5638,9 +7343,19 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rbmapl2nd",
+      "rosettaDeviceId": "map-lite",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbmetalg-52shpacn",
       "rosettaDeviceId": "metal-52-ac",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rbmetalg52shpacn",
+      "rosettaDeviceId": "metal-52-ac",
+      "source": "collapsed"
     },
     {
       "alias": "rbmqs",
@@ -5663,6 +7378,11 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rbomnitikpg5hacd",
+      "rosettaDeviceId": "omnitik-5-poe-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbomnitiku-5hnd",
       "rosettaDeviceId": "omnitik-5-poe-ac",
       "source": "hardware-table"
@@ -5683,9 +7403,24 @@
       "source": "hardware-link"
     },
     {
+      "alias": "rbqrtg2shpnd",
+      "rosettaDeviceId": "hw-qrt-2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbqrtg2shpndr2",
+      "rosettaDeviceId": "hw-qrt-2",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbsextantg-5hpnd",
       "rosettaDeviceId": "hw-sextant-g",
       "source": "hardware-link"
+    },
+    {
+      "alias": "rbsextantg5hpnd",
+      "rosettaDeviceId": "hw-sextant-g",
+      "source": "collapsed"
     },
     {
       "alias": "rbsxtg_6hpnd",
@@ -5711,6 +7446,21 @@
       "alias": "rbsxtg-6hpnd",
       "rosettaDeviceId": "hw-sxt-6",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "rbsxtg5hpacdsa",
+      "rosettaDeviceId": "sxt-sa5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbsxtg5hpacdsar2",
+      "rosettaDeviceId": "sxt-sa5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbsxtg6hpnd",
+      "rosettaDeviceId": "hw-sxt-6",
+      "source": "collapsed"
     },
     {
       "alias": "rbsxtr",
@@ -5763,6 +7513,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rbsxtsqg5acd",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbsxtsqg5acdr2",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbwapg-5hacd2hnd",
       "rosettaDeviceId": "hw-wap-ac",
       "source": "www-declared-code"
@@ -5803,6 +7563,16 @@
       "source": "hardware-table"
     },
     {
+      "alias": "rbwapg5hacd2hnd",
+      "rosettaDeviceId": "hw-wap-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbwapg5hacd2hndr3",
+      "rosettaDeviceId": "hw-wap-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbwapgr-5hacd2hnd",
       "rosettaDeviceId": "hw-wap-r-ac",
       "source": "hardware-table"
@@ -5811,6 +7581,11 @@
       "alias": "rbwapgr-5hacd2hndr2",
       "rosettaDeviceId": "hw-wap-r-ac",
       "source": "www-compare-id"
+    },
+    {
+      "alias": "rbwapgr5hacd2hndr2",
+      "rosettaDeviceId": "hw-wap-r-ac",
+      "source": "collapsed"
     },
     {
       "alias": "rbwapr-2nd",
@@ -5823,9 +7598,19 @@
       "source": "hardware-table"
     },
     {
+      "alias": "rbwapr2nd",
+      "rosettaDeviceId": "wap-r",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbwsap-5hac2nd",
       "rosettaDeviceId": "hw-wsap-ac-lite",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "rbwsap5hac2nd",
+      "rosettaDeviceId": "hw-wsap-ac-lite",
+      "source": "collapsed"
     },
     {
       "alias": "rds2216",
@@ -5838,9 +7623,19 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rds22162xg4splus4xs2xq",
+      "rosettaDeviceId": "rose-data-server-rds",
+      "source": "collapsed"
+    },
+    {
       "alias": "rg502q-ea",
       "rosettaDeviceId": "hw-chateau-5g",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "rg502qea",
+      "rosettaDeviceId": "hw-chateau-5g",
+      "source": "collapsed"
     },
     {
       "alias": "rg520f-eu",
@@ -5848,9 +7643,19 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rg520feu",
+      "rosettaDeviceId": "atl-5g-r16",
+      "source": "collapsed"
+    },
+    {
       "alias": "rg650e-eu",
       "rosettaDeviceId": "chateau-5g-r17-ax",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "rg650eeu",
+      "rosettaDeviceId": "chateau-5g-r17-ax",
+      "source": "collapsed"
     },
     {
       "alias": "rose data server (rds)",
@@ -5863,9 +7668,19 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "rosedataserverrds",
+      "rosettaDeviceId": "rose-data-server-rds",
+      "source": "collapsed"
+    },
+    {
       "alias": "s-3553lc20d",
       "rosettaDeviceId": "hw-s-3553lc20d",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "s3553lc20d",
+      "rosettaDeviceId": "hw-s-3553lc20d",
+      "source": "collapsed"
     },
     {
       "alias": "s53ug+5haxd2haxd-tc",
@@ -5903,9 +7718,49 @@
       "source": "www-declared-code"
     },
     {
+      "alias": "s53ugplus5haxd2haxdtc",
+      "rosettaDeviceId": "chateau-5g-r17-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "s53ugplus5haxd2haxdtcandeg18ea",
+      "rosettaDeviceId": "chateau-lte18-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "s53ugplus5haxd2haxdtcandfg621ea",
+      "rosettaDeviceId": "hw-chateau-lte6-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "s53ugplus5haxd2haxdtcandr11elte7",
+      "rosettaDeviceId": "chateau-lte7-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "s53ugplus5haxd2haxdtcandrg650eeu",
+      "rosettaDeviceId": "chateau-5g-r17-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "s53ugplusm5haxd2haxdtc",
+      "rosettaDeviceId": "hw-chateau-5g-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "s53ugplusm5haxd2haxdtcandrg502qea",
+      "rosettaDeviceId": "hw-chateau-5g-ax",
+      "source": "collapsed"
+    },
+    {
       "alias": "sextant-g",
       "rosettaDeviceId": "hw-sextant-g",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "sextantg",
+      "rosettaDeviceId": "hw-sextant-g",
+      "source": "collapsed"
     },
     {
       "alias": "sxt lte7 kit",
@@ -5943,6 +7798,26 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "sxt2",
+      "rosettaDeviceId": "hw-sxt-2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxt6",
+      "rosettaDeviceId": "hw-sxt-6",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtkitseries",
+      "rosettaDeviceId": "hw-sxt-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtlte7kit",
+      "rosettaDeviceId": "sxt-lte7-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "sxtr",
       "rosettaDeviceId": "sxt-lte7-kit",
       "source": "matrix.csv"
@@ -5951,6 +7826,11 @@
       "alias": "sxtsa-series",
       "rosettaDeviceId": "sxt-sa5-ac",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "sxtsa5ac",
+      "rosettaDeviceId": "sxt-sa5-ac",
+      "source": "collapsed"
     },
     {
       "alias": "sxtsq",
@@ -6018,6 +7898,46 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "sxtsq5ac",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtsq5ax",
+      "rosettaDeviceId": "sxtsq-5-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtsq5axd",
+      "rosettaDeviceId": "sxtsq-5-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtsqembeddedlte4",
+      "rosettaDeviceId": "sxtsq-embedded-lte4",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtsqembeddedlte4global",
+      "rosettaDeviceId": "sxtsq-embedded-lte4-global",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtsqemblte4",
+      "rosettaDeviceId": "sxtsq-embedded-lte4",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtsqlite2",
+      "rosettaDeviceId": "sxtsq-lite2",
+      "source": "collapsed"
+    },
+    {
+      "alias": "sxtsqlite5",
+      "rosettaDeviceId": "sxtsq-lite5",
+      "source": "collapsed"
+    },
+    {
       "alias": "tg_bt5_in",
       "rosettaDeviceId": "hw-tg-bt5-in",
       "source": "hardware-link"
@@ -6058,6 +7978,26 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "tgbt5in",
+      "rosettaDeviceId": "hw-tg-bt5-in",
+      "source": "collapsed"
+    },
+    {
+      "alias": "tgbt5out",
+      "rosettaDeviceId": "hw-tg-bt5-out",
+      "source": "collapsed"
+    },
+    {
+      "alias": "tglr82",
+      "rosettaDeviceId": "hw-tg-lr82",
+      "source": "collapsed"
+    },
+    {
+      "alias": "tglr92",
+      "rosettaDeviceId": "hw-tg-lr92",
+      "source": "collapsed"
+    },
+    {
       "alias": "up1302c_12",
       "rosettaDeviceId": "hw-up1302c-12",
       "source": "hardware-link"
@@ -6066,6 +8006,11 @@
       "alias": "up1302c-12",
       "rosettaDeviceId": "hw-up1302c-12",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "up1302c12",
+      "rosettaDeviceId": "hw-up1302c-12",
+      "source": "collapsed"
     },
     {
       "alias": "wap 4g kit",
@@ -6233,9 +8178,59 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "wap60g",
+      "rosettaDeviceId": "hw-wap-60g-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wap60gap",
+      "rosettaDeviceId": "hw-wap-60g-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wap60gseries",
+      "rosettaDeviceId": "hw-wap-60g-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapac",
+      "rosettaDeviceId": "hw-wap-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapackitseries",
+      "rosettaDeviceId": "hw-wap-ac-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapacltekit",
+      "rosettaDeviceId": "hw-wap-ac-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapax",
+      "rosettaDeviceId": "wap-ax",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapaxlte7",
+      "rosettaDeviceId": "wap-ax-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapaxlte7kit",
+      "rosettaDeviceId": "wap-ax-lte7-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "wapg-5haxd2haxd",
       "rosettaDeviceId": "wap-ax",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "wapg5haxd2haxd",
+      "rosettaDeviceId": "wap-ax",
+      "source": "collapsed"
     },
     {
       "alias": "wapgr-5haxd2haxd",
@@ -6246,6 +8241,56 @@
       "alias": "wapgr-5haxd2haxd&r11e-lte7",
       "rosettaDeviceId": "wap-ax-lte7-kit",
       "source": "www-declared-code"
+    },
+    {
+      "alias": "wapgr5haxd2haxd",
+      "rosettaDeviceId": "wap-ax-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapgr5haxd2haxdandr11elte7",
+      "rosettaDeviceId": "wap-ax-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapkitseries",
+      "rosettaDeviceId": "hw-wap-kit-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "waplr2kit",
+      "rosettaDeviceId": "wap-lr2-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "waplr8gkit",
+      "rosettaDeviceId": "wap-lr8g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "waplr9gkit",
+      "rosettaDeviceId": "wap-lr9g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "waplr9kit",
+      "rosettaDeviceId": "hw-wap-lr9-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapltekit",
+      "rosettaDeviceId": "wap-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapltekit2024",
+      "rosettaDeviceId": "wap-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapr",
+      "rosettaDeviceId": "wap-r",
+      "source": "collapsed"
     },
     {
       "alias": "wapr-2nd",
@@ -6261,6 +8306,31 @@
       "alias": "wapr-2nd&ec200a-eur2",
       "rosettaDeviceId": "wap-lte-kit",
       "source": "www-compare-id"
+    },
+    {
+      "alias": "wapr2nd",
+      "rosettaDeviceId": "wap-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapr2ndandec200aeu",
+      "rosettaDeviceId": "wap-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapr2ndandec200aeur2",
+      "rosettaDeviceId": "wap-lte-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "waprac",
+      "rosettaDeviceId": "hw-wap-r-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wapseries",
+      "rosettaDeviceId": "hw-wap-series",
+      "source": "collapsed"
     },
     {
       "alias": "wireless wire cube pro",
@@ -6298,6 +8368,31 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "wirelesswire",
+      "rosettaDeviceId": "hw-wap-60g-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wirelesswirecube",
+      "rosettaDeviceId": "hw-wireless-wire-cube",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wirelesswirecubepro",
+      "rosettaDeviceId": "wireless-wire-cube-pro",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wirelesswiredish",
+      "rosettaDeviceId": "hw-wireless-wire-dish",
+      "source": "collapsed"
+    },
+    {
+      "alias": "wirelesswirenray",
+      "rosettaDeviceId": "hw-nray-series",
+      "source": "collapsed"
+    },
+    {
       "alias": "woobm",
       "rosettaDeviceId": "hw-woobm-usb",
       "source": "hardware-link"
@@ -6308,6 +8403,11 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "woobmusb",
+      "rosettaDeviceId": "hw-woobm-usb",
+      "source": "collapsed"
+    },
+    {
       "alias": "wsap_ac_lite",
       "rosettaDeviceId": "hw-wsap-ac-lite",
       "source": "hardware-link"
@@ -6316,6 +8416,11 @@
       "alias": "wsap-ac-lite",
       "rosettaDeviceId": "hw-wsap-ac-lite",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "wsapaclite",
+      "rosettaDeviceId": "hw-wsap-ac-lite",
+      "source": "collapsed"
     }
   ],
   "dropLedger": [
