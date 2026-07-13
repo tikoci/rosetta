@@ -1,10 +1,11 @@
 {
-  "_doc": "Curated golden-query set for the rosetta MCP `routeros_search` surface. See src/eval/retrieval.ts for the runner. Each entry asserts what an agent SHOULD see when it asks this question. `expected_rosetta_ids` lists page rosetta-ids (see src/rosetta-id.ts) that are acceptable as a 'correct' top-N hit (any match counts) — NOT the numeric `pages.id`, which is a fresh rowid re-minted on every extract-docusaurus.ts run and is not a stable identity. `expected_classified` asserts the regex classifier's detection. Keep this set small and high-signal — quality over quantity. Add new entries when you fix a real bug, not speculatively.",
+  "_doc": "Curated golden-query set for the rosetta retrieval surfaces. See src/eval/retrieval.ts for the runner. Each entry asserts what an agent SHOULD see when it asks this question. `expected_rosetta_ids` lists page rosetta-ids (see src/rosetta-id.ts) that are acceptable as a 'correct' top-N hit (any match counts) — NOT the numeric `pages.id`, which is a fresh rowid re-minted on every extract-docusaurus.ts run and is not a stable identity. `expected_classified` asserts the regex classifier's detection. SURFACES (`surface` field, default 'search'): 'search' exercises routeros_search/searchAll — the entry point most exposed to the Confluence→Docusaurus corpus swap — and carries the durable recall/MRR/classifier GATE (V-retrieval-floor). 'property'/'changelog'/'video' dispatch to the dedicated tools (lookupProperty/searchChangelogs/searchVideos) and feed a SEPARATE informational `surface_matrix` (per-surface hit@5) kept out of the search aggregates so those stay sensitive; surface regressions warn (per-query 'was passing, now misses') and are triaged into the Bug Ledger, not auto-gated — this is a starting coverage board to grow over time (issue #53). Keep this set small and high-signal. Add entries when you fix (or want to pin) a real behavior, not speculatively. Queries that legitimately fail today (e.g. #26 ranking regressions, or the firewall-filter property-link gap BL-1) stay pointed at the CORRECT answer and fail loudly — never loosen a fixture to make the board green.",
   "_thresholds": {
-    "recall_at_5": 0.85,
-    "recall_at_3": 0.70,
-    "mrr": 0.65,
-    "classifier_accuracy": 0.85
+    "_doc": "Absolute floors on the SEARCH-surface aggregate only (27 search queries as of #53; property/changelog/video are tracked in surface_matrix, not here). Floors are set with ~1-query headroom above observed current-corpus metrics (recall@5 92.6%, recall@3 92.6%, mrr 88.3%, classifier 100%) so they tolerate the 2 known-failing #26 ranking queries plus a little noise, and catch a systemic collapse. The TIGHT forward guard is the 2pp per-metric regression check in retrieval.ts vs baseline.json — that is what catches any single new miss (a 3rd search failure drops recall@5 ~3.7pp and trips it). Over 24 queries a '2-failure tolerance' meant recall@5≈0.92; recomputed for 27 search queries these floors keep that same 2-to-3-failure spirit rather than the pre-#53 0.85/0.70/0.65, which had drifted loose (would have tolerated 4 failures).",
+    "recall_at_5": 0.88,
+    "recall_at_3": 0.82,
+    "mrr": 0.75,
+    "classifier_accuracy": 0.90
   },
   "queries": [
     {
@@ -211,6 +212,98 @@
       "shape": "ambiguous",
       "expected_topics_any": [],
       "notes": "Ambiguous — 'disabled' exists on dozens of pages. Classifier doesn't currently detect 'disabled' as a property name (no strong signal). Tracked as classifier improvement opportunity. This entry currently passes as a no-op; tighten when classifier learns common property names."
+    },
+
+    {
+      "id": "nl-pppoe",
+      "query": "set up a pppoe client",
+      "shape": "nl-question",
+      "expected_rosetta_ids": ["docs/virtual-private-networks/pppoe"],
+      "expected_topics_any": ["pppoe"],
+      "notes": "#53: +nl. Bread-and-butter connectivity question the Confluence corpus handled well; the PPPoE page must rank #1 on the Docusaurus corpus."
+    },
+    {
+      "id": "nl-dns",
+      "query": "configure a dns server",
+      "shape": "nl-question",
+      "expected_rosetta_ids": ["docs/network-management/dns"],
+      "expected_topics_any": ["dns"],
+      "notes": "#53: +nl. Core service page; guards against a DNS-page ranking regression from the corpus swap."
+    },
+    {
+      "id": "prop-search-mtu",
+      "query": "mtu",
+      "shape": "nl-question",
+      "surface": "search",
+      "expected_rosetta_ids": ["docs/hardware/mtu-in-routeros"],
+      "expected_classified": { "property": "mtu" },
+      "expected_related": ["properties"],
+      "notes": "#53: +property (free-form, SEARCH surface — the sensitive entry point). A bare property name must (a) be detected by classifier.property, (b) populate related.properties, (c) rank the MTU concept page top. Exercises routeros_search's property-awareness end to end."
+    },
+    {
+      "id": "prop-wireguard-listen-port",
+      "query": "wireguard listen-port property",
+      "shape": "property",
+      "surface": "property",
+      "expected_property": { "path": "/interface/wireguard", "name": "listen-port", "page": "docs/virtual-private-networks/wireguard" },
+      "notes": "#53: +property (exact path+name direct lookup via routeros_lookup_property). WireGuard has a clean command-path→page→property link, so this resolves HIGH confidence to the WireGuard page — anchors that the direct property surface works at all."
+    },
+    {
+      "id": "prop-vxlan-vni",
+      "query": "vxlan vni property",
+      "shape": "property",
+      "surface": "property",
+      "expected_property": { "path": "/interface/vxlan", "name": "vni", "page": "docs/bridging-and-switching/vxlan" },
+      "notes": "#53: +property (exact path+name direct lookup). VXLAN vni resolves HIGH to the VXLAN page. Second clean anchor for the direct property surface."
+    },
+    {
+      "id": "prop-firewall-filter-action",
+      "query": "firewall filter action property",
+      "shape": "property",
+      "surface": "property",
+      "expected_property": { "path": "/ip/firewall/filter", "name": "action" },
+      "notes": "#53: +property. KNOWN-FAILING, intentionally not loosened (Bug Ledger BL-1). `action` exists as a property on the Filter page and `/ip/firewall/filter` exists as a command path, but they are NOT linked, so lookupProperty returns only low-confidence rows — no HIGH resolution. Documents the command-path→page linkage gap on a core menu (same footprint as #26's firewall-filter ranking miss). Fixing the link belongs to a follow-up, not #53; this anchor keeps the gap visible and will flip green when it's fixed."
+    },
+    {
+      "id": "changelog-cve",
+      "query": "CVE",
+      "shape": "changelog",
+      "surface": "changelog",
+      "expected_changelog_contains": "CVE",
+      "notes": "#53: +changelog (fixed-CVE style, direct routeros_search_changelogs). Must surface a CVE-tagged fix (e.g. v7.6 IRC NAT helper CVE-2022-2663)."
+    },
+    {
+      "id": "changelog-rose-storage",
+      "query": "rose-storage package",
+      "shape": "changelog",
+      "surface": "changelog",
+      "expected_changelog_contains": "rose-storage",
+      "notes": "#53: +changelog (feature-introduced). Must surface the v7.8 rose-storage package addition."
+    },
+    {
+      "id": "changelog-wireguard-7-4",
+      "query": "wireguard",
+      "shape": "changelog",
+      "surface": "changelog",
+      "expected_version": "7.4",
+      "expected_changelog_contains": "wireguard",
+      "notes": "#53: +changelog (version-scoped). WireGuard change filtered to v7.4 must return the v7.4 WireGuard-stability fix — exercises the version filter of routeros_search_changelogs."
+    },
+    {
+      "id": "video-container",
+      "query": "run docker containers on mikrotik",
+      "shape": "video",
+      "surface": "video",
+      "expected_video_contains": "container",
+      "notes": "#53: +video (direct video search). A container/Docker how-to transcript segment must surface."
+    },
+    {
+      "id": "video-wireguard",
+      "query": "wireguard vpn setup on smartphone",
+      "shape": "video",
+      "surface": "video",
+      "expected_video_contains": "wireguard",
+      "notes": "#53: +video. The WireGuard setup video transcript must surface."
     }
   ]
 }

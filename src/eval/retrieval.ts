@@ -24,7 +24,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { searchAll } from "../query.ts";
+import { lookupProperty, searchAll, searchChangelogs, searchVideos } from "../query.ts";
 import { deriveRosettaId } from "../rosetta-id.ts";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -35,7 +35,11 @@ type Shape =
   | "version-question"
   | "device"
   | "topic-multi"
-  | "ambiguous";
+  | "ambiguous"
+  // Direct-surface shapes (surface ≠ "search"); bucketed into surface_matrix, not per_shape.
+  | "property"
+  | "changelog"
+  | "video";
 
 type ExpectedClassified = {
   command_path?: string;
@@ -46,10 +50,22 @@ type ExpectedClassified = {
 
 type MatchMode = "any" | "all";
 
+/**
+ * Which retrieval surface a golden query exercises. `search` (the default) is the
+ * `routeros_search`/`searchAll()` entry point and carries the durable recall/MRR/classifier
+ * gate — it is the surface most exposed to the Confluence→Docusaurus corpus swap. The other
+ * three dispatch to the dedicated MCP tools (`routeros_lookup_property`,
+ * `routeros_search_changelogs`, video search) and feed a separate, informational
+ * `surface_matrix` — a starting coverage board for surfaces the golden set never touched,
+ * kept OUT of the search aggregates so those stay sensitive (issue #53). */
+type Surface = "search" | "property" | "changelog" | "video";
+
 type GoldenQuery = {
   id: string;
   query: string;
   shape: Shape;
+  /** Which retrieval surface to exercise. Default "search" (searchAll). See {@link Surface}. */
+  surface?: Surface;
   /** Stable identity for Docusaurus-sourced pages — see src/rosetta-id.ts. `pages.id` is NOT
    * stable across extraction runs (extract-docusaurus.ts re-mints it as a fresh rowid every
    * time), so golden-set expectations must pin to rosetta_id, not the numeric id. */
@@ -59,6 +75,20 @@ type GoldenQuery = {
   expected_classified?: ExpectedClassified;
   expected_topics_any?: string[];
   expected_related?: string[];
+  /** surface: "property" — assert lookupProperty(name, path?) resolves. When `path` is given,
+   * a high-confidence (path→page-linked) row is required, so a broken Docusaurus path→page
+   * link or a dropped property fails loudly. Optional `page` pins the resolving page's
+   * rosetta_id (catches a property that migrated to the wrong page in the new manual). */
+  expected_property?: { name: string; path?: string; page?: string };
+  /** surface: "changelog" — a top-k searchChangelogs() result's description must contain this
+   * substring (case-insensitive); pair with expected_version to scope to a release. */
+  expected_changelog_contains?: string;
+  /** surface: "changelog" — restrict/assert the changelog version (e.g. "7.22"). */
+  expected_version?: string;
+  /** surface: "video" — a top-k searchVideos() hit's title/chapter/excerpt must contain this
+   * substring (case-insensitive), or match expected_video_id. */
+  expected_video_contains?: string;
+  expected_video_id?: string;
   /** Skip this entire query's checks unless DB has at least this many commands. Lets us keep
    * command-tree-dependent checks in the golden set without false-failing on slim dev DBs. */
   requires_commands_min?: number;
@@ -81,12 +111,15 @@ type QueryResult = {
   id: string;
   query: string;
   shape: Shape;
+  surface: Surface;
   recall_at_5: number;
   recall_at_3: number;
   reciprocal_rank: number;
   classifier_ok: boolean;
   related_ok: boolean;
   topics_ok: boolean;
+  /** For non-search surfaces: did the dedicated tool return the expected result in top-k? */
+  surface_hit?: boolean;
   skipped: boolean;
   skip_reason?: string;
   top_pages: { id: number; title: string; rosetta_id: string }[];
@@ -106,6 +139,10 @@ type Report = {
     topics_accuracy: number;
   };
   per_shape: Record<string, { count: number; recall_at_5: number; mrr: number }>;
+  /** Informational coverage board for the dedicated non-search surfaces (property/changelog/
+   * video). Per-surface hit@5. NOT part of the search recall/MRR/classifier gate (issue #53) —
+   * tracked in baseline.json so regressions are visible, gated softly (see main). */
+  surface_matrix: Record<string, { count: number; hit_at_5: number }>;
   results: QueryResult[];
 };
 
@@ -128,6 +165,15 @@ function loadGoldenSet(): GoldenSet {
   return parsed;
 }
 
+function directSurfaceFromShape(shape: Shape): Surface | null {
+  if (shape === "property" || shape === "changelog" || shape === "video") return shape;
+  return null;
+}
+
+function effectiveSurface(q: GoldenQuery): Surface {
+  return directSurfaceFromShape(q.shape) ?? q.surface ?? "search";
+}
+
 // ── Per-query evaluation ───────────────────────────────────────────────────
 
 function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
@@ -135,6 +181,7 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
     id: q.id,
     query: q.query,
     shape: q.shape,
+    surface: "search",
     recall_at_5: 1,
     recall_at_3: 1,
     reciprocal_rank: 1,
@@ -231,6 +278,7 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
     id: q.id,
     query: q.query,
     shape: q.shape,
+    surface: "search",
     recall_at_5,
     recall_at_3,
     reciprocal_rank: rr,
@@ -244,10 +292,118 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
   };
 }
 
+// ── Direct-surface evaluation (property / changelog / video) ─────────────────
+// These dispatch to the dedicated query functions rather than searchAll. A "hit" is a
+// pass; the aggregate lives in surface_matrix, never mixed into the search recall metrics.
+// recall_at_5 mirrors the hit (1/0) only so shared per-query printing/failure-detection works.
+
+function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
+  const surface = effectiveSurface(q);
+  const base: QueryResult = {
+    id: q.id,
+    query: q.query,
+    shape: q.shape,
+    surface,
+    recall_at_5: 1,
+    recall_at_3: 1,
+    reciprocal_rank: 1,
+    classifier_ok: true,
+    related_ok: true,
+    topics_ok: true,
+    surface_hit: true,
+    skipped: false,
+    top_pages: [],
+    classified_actual: {},
+    notes: [],
+  };
+
+  if (q.requires_commands_min && commandsCount < q.requires_commands_min) {
+    return { ...base, skipped: true, skip_reason: `requires commands ≥ ${q.requires_commands_min}, DB has ${commandsCount}` };
+  }
+
+  const notes: string[] = [];
+  let hit = false;
+
+  // A surface query with no expectation asserts nothing — a fixture-author mistake that must
+  // show RED (drag surface_matrix down + appear in the failures block), never pass for free or
+  // quietly skip. Hard-fail loudly rather than skip, so silent coverage loss can't merge.
+  const misconfigured = (reason: string): QueryResult => {
+    notes.push(`MISCONFIGURED: ${reason}`);
+    return { ...base, surface_hit: false, recall_at_5: 0, recall_at_3: 0, reciprocal_rank: 0, notes };
+  };
+
+  if (surface === "property") {
+    const ep = q.expected_property;
+    if (!ep) return misconfigured("surface=property but no expected_property");
+    const rows = lookupProperty(ep.name, ep.path);
+    if (ep.path) {
+      // path given → require a high-confidence (path→page-linked) row, else the link/property is broken
+      const highRows = rows.filter((r) => r.confidence === "high");
+      hit = ep.page
+        ? highRows.some((r) => deriveRosettaId(r.page_url) === ep.page)
+        : highRows.length > 0;
+      if (!hit) {
+        notes.push(
+          `property ${ep.path} → ${ep.name}: ${rows.length} row(s), ${highRows.length} high-confidence` +
+            (ep.page ? `; want page=${ep.page}, got=${highRows.map((r) => deriveRosettaId(r.page_url)).join("|") || "none"}` : ""),
+        );
+      }
+    } else {
+      hit = ep.page
+        ? rows.some((r) => deriveRosettaId(r.page_url) === ep.page)
+        : rows.length > 0;
+      if (!hit) notes.push(`property ${ep.name}: ${rows.length} row(s)${ep.page ? `, none on page ${ep.page}` : " (none found)"}`);
+    }
+  } else if (surface === "changelog") {
+    // Require at least one assertion: the substring, or a version scope (the version filter is
+    // applied to searchChangelogs, so "rows exist for vX" is a real, if weak, check). Neither ⇒
+    // "any changelog result passes" = vacuous.
+    if (!q.expected_changelog_contains && !q.expected_version) {
+      return misconfigured("surface=changelog but neither expected_changelog_contains nor expected_version set");
+    }
+    const rows = searchChangelogs(q.query, { version: q.expected_version, limit: k });
+    const want = q.expected_changelog_contains?.toLowerCase();
+    hit = rows.length > 0 && (want ? rows.some((r) => r.description.toLowerCase().includes(want)) : true);
+    if (!hit) {
+      notes.push(
+        `changelog "${q.query}"${q.expected_version ? ` (v${q.expected_version})` : ""}: ${rows.length} result(s)` +
+          (want ? `, none containing "${q.expected_changelog_contains}"` : ""),
+      );
+    }
+  } else if (surface === "video") {
+    // Require at least one criterion, else the row predicate collapses to "any result passes".
+    if (!q.expected_video_contains && !q.expected_video_id) {
+      return misconfigured("surface=video but neither expected_video_contains nor expected_video_id set");
+    }
+    const rows = searchVideos(q.query, k);
+    const want = q.expected_video_contains?.toLowerCase();
+    hit =
+      rows.length > 0 &&
+      rows.some(
+        (r) =>
+          (q.expected_video_id ? r.video_id === q.expected_video_id : false) ||
+          (want ? `${r.title} ${r.chapter_title ?? ""} ${r.excerpt}`.toLowerCase().includes(want) : false),
+      );
+    if (!hit) {
+      notes.push(
+        `video "${q.query}": ${rows.length} result(s)` +
+          (want ? `, none containing "${q.expected_video_contains}"` : "") +
+          (q.expected_video_id ? `, none matching id ${q.expected_video_id}` : ""),
+      );
+    }
+  } else {
+    return misconfigured(`unknown surface "${surface}"`);
+  }
+
+  return { ...base, surface_hit: hit, recall_at_5: hit ? 1 : 0, recall_at_3: hit ? 1 : 0, reciprocal_rank: hit ? 1 : 0, notes };
+}
+
 // ── Aggregation ────────────────────────────────────────────────────────────
 
 function aggregate(results: QueryResult[]): Report["metrics"] {
-  const active = results.filter((r) => !r.skipped);
+  // Search-surface only — the durable recall/MRR/classifier gate. Direct-surface queries
+  // (property/changelog/video) live in surface_matrix and never dilute these numbers (#53).
+  const active = results.filter((r) => !r.skipped && r.surface === "search");
   const n = active.length;
   if (n === 0) {
     return {
@@ -270,10 +426,27 @@ function aggregate(results: QueryResult[]): Report["metrics"] {
   };
 }
 
+function surfaceMatrix(results: QueryResult[]): Report["surface_matrix"] {
+  const out: Report["surface_matrix"] = {};
+  for (const r of results) {
+    if (r.skipped || r.surface === "search") continue;
+    if (!out[r.surface]) out[r.surface] = { count: 0, hit_at_5: 0 };
+    const b = out[r.surface];
+    if (!b) continue;
+    b.count += 1;
+    b.hit_at_5 += r.surface_hit ? 1 : 0;
+  }
+  for (const k of Object.keys(out)) {
+    const b = out[k];
+    if (b && b.count > 0) b.hit_at_5 = b.hit_at_5 / b.count;
+  }
+  return out;
+}
+
 function perShape(results: QueryResult[]): Report["per_shape"] {
   const out: Report["per_shape"] = {};
   for (const r of results) {
-    if (r.skipped) continue;
+    if (r.skipped || r.surface !== "search") continue;
     if (!out[r.shape]) {
       out[r.shape] = { count: 0, recall_at_5: 0, mrr: 0 };
     }
@@ -344,11 +517,25 @@ function printReport(report: Report, thresholds: Thresholds, baseline: Report | 
     console.log(`  ${ok}  ${row.label.padEnd(24)} ${fmtPct(row.value).padStart(7)}${thresh}${delta}`);
   }
 
-  console.log("\n  Per shape:");
+  console.log("\n  Per shape (search surface):");
   for (const [shape, b] of Object.entries(report.per_shape)) {
     console.log(
       `    ${shape.padEnd(20)} n=${String(b.count).padStart(2)}  recall@5=${fmtPct(b.recall_at_5).padStart(7)}  mrr=${fmtPct(b.mrr).padStart(7)}`,
     );
+  }
+
+  const surfaces = Object.entries(report.surface_matrix);
+  if (surfaces.length > 0) {
+    console.log("\n  Direct-surface matrix (informational — not part of the search gate):");
+    for (const [surface, b] of surfaces) {
+      const prev = baseline?.surface_matrix?.[surface];
+      let delta = "";
+      if (prev && typeof prev.hit_at_5 === "number") {
+        const d = b.hit_at_5 - prev.hit_at_5;
+        if (Math.abs(d) >= 0.001) delta = `  Δ ${d > 0 ? "+" : ""}${(d * 100).toFixed(1)}pp`;
+      }
+      console.log(`    ${surface.padEnd(20)} n=${String(b.count).padStart(2)}  hit@5=${fmtPct(b.hit_at_5).padStart(7)}${delta}`);
+    }
   }
 
   // Skipped + failure detail
@@ -406,6 +593,36 @@ function checkRegression(curr: Report, base: Report, tolerance = 0.02): string[]
   return fails;
 }
 
+/**
+ * Per-query "was passing, now failing" detection for the direct surfaces. Small-N robust
+ * (a single flip in a 3-query surface is 33pp — a pp-based gate would be brittle), so this
+ * keys on individual query ids from the baseline's stored results rather than the aggregate.
+ * Returned as WARNINGS, not hard failures: the direct-surface matrix is informational in
+ * this first cut (issue #53) — a genuine ETL/MCP regression it catches gets triaged into the
+ * Bug Ledger / a follow-up issue, not silently gated. Firm up to a hard gate once the matrix
+ * has enough queries and a stable floor.
+ */
+function checkSurfaceRegression(curr: Report, base: Report): string[] {
+  const wasHit = new Map<string, boolean>();
+  for (const r of base.results) {
+    if (r.surface && r.surface !== "search") wasHit.set(r.id, r.surface_hit === true);
+  }
+  const warns: string[] = [];
+  for (const r of curr.results) {
+    if (r.surface === "search" || r.skipped) continue;
+    if (wasHit.get(r.id) === true && r.surface_hit !== true) {
+      warns.push(`[${r.surface}] ${r.id} "${r.query}" was passing, now MISSES`);
+    }
+  }
+  return warns;
+}
+
+function checkFixtureMisconfiguration(report: Report): string[] {
+  return report.results
+    .filter((r) => !r.skipped && r.notes.some((note) => note.startsWith("MISCONFIGURED: ")))
+    .map((r) => `[${r.surface}] ${r.id}: ${r.notes.filter((note) => note.startsWith("MISCONFIGURED: ")).join("; ")}`);
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export function runEval(filterPrefix?: string): Report {
@@ -419,12 +636,15 @@ export function runEval(filterPrefix?: string): Report {
     ? set.queries.filter((q) => q.id.startsWith(filterPrefix))
     : set.queries;
 
-  const results = queries.map((q) => evalQuery(q, commandsCount));
+  const results = queries.map((q) =>
+    effectiveSurface(q) === "search" ? evalQuery(q, commandsCount) : evalSurfaceQuery(q, commandsCount),
+  );
   return {
     generated_at: new Date().toISOString(),
     total_queries: results.length,
     metrics: aggregate(results),
     per_shape: perShape(results),
+    surface_matrix: surfaceMatrix(results),
     results,
   };
 }
@@ -456,12 +676,23 @@ if (import.meta.main) {
     process.exit(0);
   }
 
-  // Gate: thresholds + regression
+  // Soft surface-matrix regression (warn, non-fatal — see checkSurfaceRegression).
+  const surfaceWarns = baseline && !filter ? checkSurfaceRegression(report, baseline) : [];
+  if (surfaceWarns.length > 0) {
+    console.log(`\n  ⚠️  ${surfaceWarns.length} direct-surface regression(s) — triage into the Bug Ledger, not auto-gated:`);
+    for (const w of surfaceWarns) console.log(`     surface: ${w}`);
+  }
+
+  // Gate: fixture validity + search-surface thresholds/regression. Direct-surface misses stay
+  // informational, but an invalid golden query definition must fail CI instead of reducing
+  // coverage silently.
+  const fixtureFails = checkFixtureMisconfiguration(report);
   const thresholdFails = filter ? [] : checkThresholds(report.metrics, set._thresholds);
   const regressionFails = baseline && !filter ? checkRegression(report, baseline) : [];
 
-  if (thresholdFails.length > 0 || regressionFails.length > 0) {
+  if (fixtureFails.length > 0 || thresholdFails.length > 0 || regressionFails.length > 0) {
     console.log("\n  ❌ FAIL");
+    for (const f of fixtureFails) console.log(`     fixture: ${f}`);
     for (const f of thresholdFails) console.log(`     threshold: ${f}`);
     for (const f of regressionFails) console.log(`     regression: ${f}`);
     console.log("\n  Run with --update-baseline if this is intentional.\n");

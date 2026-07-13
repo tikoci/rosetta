@@ -1,0 +1,36 @@
+name: Copilot Gate
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, review_requested, review_request_removed]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+# Minimal token scope: the gate only reads PR requested-reviewer state via `gh api`.
+permissions:
+  contents: read
+  pull-requests: read
+
+# One gate run per PR: cancel an in-flight run when a newer review event lands so a
+# stale result can't outlive the reviewer-state change that superseded it.
+concurrency:
+  group: copilot-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-pending:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Copilot Review Status
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo "Checking if Copilot is a pending requested reviewer on PR #$PR_NUMBER..."
+          PENDING=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.requested_reviewers[].login')
+          if echo "$PENDING" | grep -qxF 'copilot-pull-request-reviewer'; then
+             echo "::error::Copilot review is currently pending! Blocking merge."
+             exit 1
+          fi
+          echo "Copilot is not a pending reviewer. Gate is green."
