@@ -146,6 +146,13 @@
       "requires_commands_min": 1000
     },
     {
+      "id": "cmd-path-nl-not-a-path",
+      "query": "port forward to an internal server",
+      "shape": "nl-question",
+      "expected_classified": { "command_path": null },
+      "notes": "BL-4/#59: NL prose beginning with the top-level word 'port' must NOT classify as a command path /port/forward/... . Classifier-only anchor (null = must be absent); retrieving the NAT page for verbose NL is the separate #26 FTS-candidate-pool weakness, not this bug."
+    },
+    {
       "id": "version-7-22-1",
       "query": "what changed in 7.22.1",
       "shape": "version-question",

@@ -183,6 +183,30 @@ describe("classifyQuery", () => {
     });
   }
 
+  test("prose starting with a top-level word is not pathified (BL-4 / #59)", () => {
+    // NL questions whose first token is a top-level command word must not be
+    // greedily turned into a bogus command path.
+    expect(classifyQuery("port forward to an internal server").command_path).toBeUndefined();
+    expect(classifyQuery("port 8291 access").command_path).toBeUndefined();
+  });
+
+  test("the BL-4 guard is precise — legit space-separated navigation still classifies", () => {
+    expect(classifyQuery("ip firewall filter").command_path).toBe("/ip/firewall/filter");
+    expect(classifyQuery("interface wifi").command_path).toBe("/interface/wifi");
+    expect(classifyQuery("routing bgp").command_path).toBe("/routing/bgp");
+    expect(classifyQuery("port").command_path).toBe("/port");
+    expect(classifyQuery("/ip/dhcp-server").command_path).toBe("/ip/dhcp-server");
+  });
+
+  test("the BL-4 guard doesn't suppress a no-slash CLI snippet with verb + args", () => {
+    // A verb / key=value arg ends the path portion — canonicalize handles the
+    // remainder as args, so these must still classify (not be treated as prose).
+    expect(classifyQuery("ip firewall filter add chain=forward").command_path).toBe("/ip/firewall/filter");
+    expect(classifyQuery("ip firewall filter add chain=forward action=accept").command_path).toBe(
+      "/ip/firewall/filter",
+    );
+  });
+
   test("multi-word input never fires property detector", () => {
     const result = classifyQuery("chain forward policy");
     expect(result.property).toBeUndefined();

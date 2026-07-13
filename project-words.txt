@@ -269,6 +269,8 @@ ovpn
 parra
 parseability
 passthroughs
+pathified
+pathify
 pathifying
 pcq
 persistable

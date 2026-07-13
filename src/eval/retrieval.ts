@@ -42,10 +42,12 @@ type Shape =
   | "video";
 
 type ExpectedClassified = {
-  command_path?: string;
-  version?: string;
-  device?: string;
-  property?: string;
+  /** A string pins the value; `null` asserts the field must be ABSENT — e.g. NL prose
+   * that must NOT be classified as a command_path (BL-4 / #59). */
+  command_path?: string | null;
+  version?: string | null;
+  device?: string | null;
+  property?: string | null;
 };
 
 type MatchMode = "any" | "all";
@@ -241,7 +243,9 @@ function evalQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryResult {
   if (q.expected_classified) {
     for (const [key, want] of Object.entries(q.expected_classified)) {
       const got = (resp.classified as Record<string, unknown>)[key];
-      if (got !== want) {
+      // `null` expectation = "must be absent" (got null/undefined); otherwise exact match.
+      const ok = want === null ? got == null : got === want;
+      if (!ok) {
         classifier_ok = false;
         notes.push(`classifier.${key}: want=${JSON.stringify(want)} got=${JSON.stringify(got)}`);
       }
