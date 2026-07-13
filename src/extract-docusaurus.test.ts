@@ -18,6 +18,9 @@ const {
   slugify,
   parseLlmsTxtInScopeCount,
   markdownUrlFor,
+  expandDocCardLists,
+  cardMetaFor,
+  directChildIds,
 } = await import("./extract-docusaurus.ts");
 
 const FIXTURES_DIR = join(import.meta.dirname, "..", "fixtures", "docusaurus");
@@ -318,6 +321,67 @@ describe("parseLlmsTxtInScopeCount (B-0012 H8, V-docusaurus-docs-count)", () => 
       "- [Dot1X](https://manual.mikrotik.com/docs/authentication-authorization-accounting/dot1x.md): desc",
     ].join("\n");
     expect(parseLlmsTxtInScopeCount(llmsTxt)).toBe(2);
+  });
+});
+
+describe("DocCardList expansion — bgp.md (real leaked <DocCardList />, issue #65)", () => {
+  const bgpMd = read("bgp.md");
+  const BGP_URL = "https://manual.mikrotik.com/docs/user-guides/routing-and-networking-protocols/unicast/bgp";
+  const BGP_ID = "docs/user-guides/routing-and-networking-protocols/unicast/bgp";
+  // The full-tree id set the extractor would hold: parent + direct children + a grandchild.
+  const ALL_IDS = [
+    BGP_ID,
+    `${BGP_ID}/peering-sessions`,
+    `${BGP_ID}/understanding-bgp`,
+    `${BGP_ID}/faq`,
+    `${BGP_ID}/nexthop-selection`,
+    `${BGP_ID}/nexthop-selection/deep`, // grandchild — must NOT be listed
+    "docs/user-guides/routing-and-networking-protocols/unicast/ospf", // sibling — must NOT be listed
+  ];
+
+  test("directChildIds returns only direct children, not grandchildren or siblings", () => {
+    expect(directChildIds(BGP_ID, ALL_IDS).sort()).toEqual([
+      `${BGP_ID}/faq`,
+      `${BGP_ID}/nexthop-selection`,
+      `${BGP_ID}/peering-sessions`,
+      `${BGP_ID}/understanding-bgp`,
+    ]);
+  });
+
+  test("cardMetaFor pulls the H1 title and summary blockquote", () => {
+    const meta = cardMetaFor(bgpMd, "bgp");
+    expect(meta.title).toBe("BGP");
+    expect(meta.summary).toContain("Border Gateway Protocol");
+  });
+
+  test("expandDocCardLists replaces the tag with child links and drops the import line", () => {
+    const out = expandDocCardLists(bgpMd, [
+      { title: "FAQ", url: "https://manual.mikrotik.com/docs/.../faq" },
+      { title: "Peering Sessions", url: "https://manual.mikrotik.com/docs/.../peering-sessions", summary: "How peering works" },
+    ]);
+    expect(out).not.toContain("import DocCardList");
+    expect(out).not.toContain("<DocCardList");
+    expect(out).toContain("- [FAQ](https://manual.mikrotik.com/docs/.../faq)");
+    expect(out).toContain("- [Peering Sessions](https://manual.mikrotik.com/docs/.../peering-sessions) — How peering works");
+  });
+
+  test("expandDocCardLists leaves md untouched when no children are found (honest fallback)", () => {
+    expect(expandDocCardLists(bgpMd, [])).toBe(bgpMd);
+  });
+
+  test("a page with no DocCardList is returned unchanged", () => {
+    expect(expandDocCardLists(dhcpMd, [{ title: "X", url: "u" }])).toBe(dhcpMd);
+  });
+
+  test("end-to-end: parsePage on expanded md surfaces child links and no MDX", () => {
+    const children = directChildIds(BGP_ID, ALL_IDS)
+      .map((cid) => ({ title: cid.split("/").at(-1) ?? cid, url: `https://manual.mikrotik.com/${cid}` }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+    const page = parsePage(expandDocCardLists(bgpMd, children), BGP_URL);
+    expect(page.text).not.toContain("<DocCardList");
+    expect(page.text).not.toContain("import DocCardList");
+    expect(page.text).toContain("[peering-sessions]");
+    expect(page.text).toContain("[understanding-bgp]");
   });
 });
 
