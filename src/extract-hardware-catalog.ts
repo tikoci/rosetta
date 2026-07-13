@@ -54,7 +54,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadMatrixRows, type MatrixRow, normCode, slugify } from "./assess-hardware.ts";
+import { canon, loadMatrixRows, type MatrixRow, normCode, slugify } from "./assess-hardware.ts";
 import { db, initDb, setDbMeta } from "./db.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
@@ -393,6 +393,23 @@ const RANK_WWW = 2; // the spec-source www product's code / declared code / comp
 const RANK_HW_SLUG = 3;
 const RANK_HW_LINK = 4;
 const RANK_HW_TABLE = 5;
+const RANK_COLLAPSED = 6; // derived concatenations — always lose to an explicitly-sourced alias
+
+/**
+ * Alias sources whose canon()-collapsed concatenation is also worth resolving: users type
+ * "hapax3" for "hAP ax3" (#67). Name-bearing sources only — `hardware-table` never
+ * collapses (spec-table artifacts), and `hardware-slug` collapses solely for standalone
+ * `hw-<slug>` rows, where the page slug IS the row's identity (e.g. hw-chateau-lte12's
+ * only alias). On a matrix-linked row a page slug can be a disambiguation artifact — hAP
+ * ax³'s slug `hap-ax-2` would claim "hapax2" from the real hAP ax². Mirrors
+ * AKA_NAME_SOURCES in query.ts, which is also why the derived rows get the distinct
+ * source `collapsed`: they resolve lookups but never surface in also_known_as.
+ */
+const COLLAPSIBLE_SOURCES = new Set(["matrix.csv", "www-code", "www-declared-code", "www-compare-id", "hardware-link"]);
+function isCollapsible(a: AliasRow): boolean {
+  if (COLLAPSIBLE_SOURCES.has(a.source)) return true;
+  return a.source === "hardware-slug" && a.rosettaDeviceId.startsWith("hw-");
+}
 
 interface RankedAlias {
   alias: string;
@@ -705,6 +722,16 @@ export function buildCatalog(
   for (const a of stagedAliases) {
     if (a.isLink && !a.ownerIsSeries && droppedWwwCodes.has(normCode(a.alias))) continue;
     book.add(a.alias, a.rosettaDeviceId, a.source, a.rank);
+  }
+
+  // Collapsed concatenation aliases (#67): derive canon() of every SURVIVING name-bearing
+  // alias (post cross-sell filter, so a dropped link token never sneaks back in collapsed
+  // form). rows() is a snapshot, so adding while iterating is safe. Cross-device collisions
+  // land in the book's collision ledger like any other (2026-07 corpus: zero).
+  for (const a of book.rows()) {
+    if (!isCollapsible(a)) continue;
+    const collapsed = canon(a.alias);
+    if (collapsed && collapsed !== a.alias) book.add(collapsed, a.rosettaDeviceId, "collapsed", RANK_COLLAPSED);
   }
 
   return {

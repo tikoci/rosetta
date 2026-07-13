@@ -350,6 +350,8 @@ beforeAll(() => {
     ('hw-wap-60g-series', NULL, 'wAP 60G series', 'Wireless wire', 0, '{}', 'wap-60g-series', NULL),
     ('hw-zenith-legacy', NULL, 'Zenith Legacy', 'Routers', 1, '{}', 'zenith-legacy', 'zenith_legacy')`);
 
+  // The 'collapsed' rows mirror what the ETL derives from the name-bearing aliases above
+  // (canon(): +→plus, strip separators) — never from a matrix-linked row's hardware-slug (#67).
   db.run(`INSERT INTO device_aliases (alias, rosetta_device_id, source) VALUES
     ('c53uig+5hpaxd2hpaxd', 'hap-ax3', 'matrix.csv'),
     ('hap_ax3', 'hap-ax3', 'hardware-link'),
@@ -358,7 +360,12 @@ beforeAll(() => {
     ('chateau_lte18', 'chateau-lte18', 'www-declared-code'),
     ('hap_ax2', 'hap-ax2', 'hardware-link'),
     ('hap ax2', 'hap-ax2', 'matrix.csv'),
-    ('gper', 'hw-gper', 'hardware-slug')`);
+    ('gper', 'hw-gper', 'hardware-slug'),
+    ('c53uigplus5hpaxd2hpaxd', 'hap-ax3', 'collapsed'),
+    ('hapax3', 'hap-ax3', 'collapsed'),
+    ('chateaulte18ax', 'chateau-lte18', 'collapsed'),
+    ('chateaulte18', 'chateau-lte18', 'collapsed'),
+    ('hapax2', 'hap-ax2', 'collapsed')`);
 
   // Device test results fixtures (hAP ax3 = id 1)
   db.run(`INSERT INTO device_test_results
@@ -1326,13 +1333,24 @@ describe("searchDevices", () => {
     expect(res.results.every((d) => d.product_name.includes("RB1100"))).toBe(true);
   });
 
-  test("slug-normalized LIKE finds hapax3 → hAP ax3 via product_url", () => {
-    // Concatenated slug-style query: spaces dropped, ASCII digit for superscript.
-    // Falls through regular LIKE (no match: 'hapax3' not a substring of 'hAP ax3')
-    // then slug-normalized path matches product_url /product/hap_ax3 → hap_ax3 stripped.
+  test("concatenated spelling hapax3 → hAP ax3 via the collapsed alias row (#67)", () => {
+    // Falls through exact (no such product_name) straight to the alias stage, where the
+    // ETL-derived source='collapsed' row resolves it. (Replaced the old stage-2b LIKE over
+    // devices.product_url, which no extractor populates — dead in production.)
     const res = searchDevices("hapax3");
+    expect(res.mode).toBe("alias");
     expect(res.results).toHaveLength(1);
     expect(res.results[0].product_name).toBe("hAP ax3"); // fixture uses ASCII 3
+  });
+
+  test("separator variants resolve via the collapsed-key fallback probe (#67)", () => {
+    // 'hap.ax3' is stored under NO raw alias key — normAliasKey misses, then
+    // collapseAliasKey('hap.ax3') = 'hapax3' hits the collapsed row.
+    for (const q of ["hap.ax3", "chateau-lte18-ax"]) {
+      const res = searchDevices(q);
+      expect(res.mode).toBe("alias");
+      expect(res.results).toHaveLength(1);
+    }
   });
 
   test("dash-split LIKE finds hap-ac3 → hAP ac³", () => {
@@ -1525,6 +1543,29 @@ describe("searchDevices — hardware overlay (#49)", () => {
     expect(resp.classified.device).toBeUndefined();
     const names = (resp.related.devices ?? []).map((d) => d.product_name);
     expect(names).toContain("hAP ax²");
+  });
+
+  test("whole-input probe resolves a concatenated spelling (#67)", () => {
+    const resp = searchAll("hapax3", 8);
+    expect(resp.classified.device).toBeUndefined();
+    const names = (resp.related.devices ?? []).map((d) => d.product_name);
+    expect(names).toContain("hAP ax3");
+  });
+
+  test("per-token probe: a device concatenation inside prose populates related.devices (#67)", () => {
+    // Multi-token, so the whole-input probe never fires; 'hapax3' contains a digit,
+    // so the per-token probe resolves it through the collapsed alias row.
+    const resp = searchAll("hapax3 wifi settings", 8);
+    expect(resp.classified.device).toBeUndefined();
+    const names = (resp.related.devices ?? []).map((d) => d.product_name);
+    expect(names).toContain("hAP ax3");
+  });
+
+  test("per-token probe skips bare-word tokens — no digit or code separator (#67)", () => {
+    // 'gper' IS a stored alias, but inside prose a plain-letters token must stay
+    // regex-gated (the Audience/KNOT/Cube class) — the guard keeps it unprobed.
+    const resp = searchAll("gper wall mount", 8);
+    expect(resp.related.devices ?? []).toHaveLength(0);
   });
 
   test("related.devices carries category + discontinued", () => {

@@ -384,12 +384,21 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
 
   // ── Device side query ───────────────────────────────────────────────────
   // Regex classification (classified.device) handles named families; when it finds nothing
-  // and the whole input is a single token that exactly matches an alias (a bare product code
-  // like "cap_ac" the regexes miss), probe once and resolve it — no fuzz, one indexed lookup.
+  // and the whole input is a single token that matches an alias (a bare product code like
+  // "cap_ac" or a concatenation like "hapax3" the regexes miss), probe once and resolve it
+  // — no fuzz, indexed lookups only.
   let deviceQuery = classified.device;
-  if (!deviceQuery && /^[\w.+-]{3,40}$/.test(query.trim())) {
-    const aliasHit = db.prepare("SELECT 1 FROM device_aliases WHERE alias = ? LIMIT 1").get(normAliasKey(query));
-    if (aliasHit) deviceQuery = query.trim();
+  if (!deviceQuery && /^[\w.+-]{3,40}$/.test(query.trim()) && probeAlias(query)) {
+    deviceQuery = query.trim();
+  }
+  // Per-token probe: a device mentioned inside prose ("hapax3 wifi settings") that the styled
+  // regexes can't see (#67). Only tokens that look like model spellings — containing a digit
+  // or a code separator — are probed, so bare English words that double as product names
+  // (Audience, KNOT, Cube, DISC) stay regex-gated on their styled form. Leftmost hit wins.
+  if (!deviceQuery) {
+    const tokens = query.trim().split(/\s+/).map((t) => t.replace(/[.,;:!?]+$/, ""));
+    const eligible = tokens.filter((t) => /^[\w.+-]{3,40}$/.test(t) && /[\d_+-]/.test(t)).slice(0, 8);
+    deviceQuery = eligible.find((t) => probeAlias(t));
   }
   if (deviceQuery) {
     const devResp = searchDevices(deviceQuery, {}, RELATED_CAP);
@@ -1797,6 +1806,27 @@ function normAliasKey(query: string): string {
   return normalizeDeviceQuery(query).trim().toLowerCase();
 }
 
+/** Collapse a normalized alias key to its concatenated form: `+`→plus, `&`→and, strip every other
+ *  non-alphanumeric — so "hAP-ax3"/"hap ax3"/"hapax3" all probe the same row. Matches
+ *  canon() in assess-hardware.ts, which the ETL applied when deriving the source
+ *  `collapsed` alias rows (#67); keep the two in sync. */
+function collapseAliasKey(normalizedKey: string): string {
+  return normalizedKey.replace(/\+/g, "plus").replace(/&/g, "and").replace(/[^a-z0-9]/g, "");
+}
+
+/** Probe device_aliases by exact normalized key, then by collapsed key (#67).
+ *  Returns the owning rosetta_device_id, or undefined. Indexed point lookups, never fuzzy. */
+function probeAlias(token: string): string | undefined {
+  const stmt = db.prepare("SELECT rosetta_device_id FROM device_aliases WHERE alias = ?");
+  const normalizedKey = normAliasKey(token);
+  for (const key of new Set([normalizedKey, collapseAliasKey(normalizedKey)])) {
+    if (!key) continue;
+    const hit = stmt.get(key) as { rosetta_device_id: string } | undefined;
+    if (hit) return hit.rosetta_device_id;
+  }
+  return undefined;
+}
+
 /** Alias source → priority (lower = more authoritative), mirroring the ETL rank matrix.
  *  Used only to order `also_known_as`; read-time resolution never ranks (alias is the PK). */
 const ALIAS_SOURCE_RANK: Record<string, number> = {
@@ -1992,17 +2022,16 @@ function searchDevicesInner(
     }
   }
 
-  // 1.5 Alias stage: exact-normalized device_aliases hit (authoritative, never fuzzy).
-  //     Catches codes/slugs/old names that stage 1 misses (RB750Gr3→hEX, cap_ac→cAP ac).
+  // 1.5 Alias stage: exact-normalized device_aliases hit, then collapsed-key fallback
+  //     (authoritative, never fuzzy). Catches codes/slugs/old names that stage 1 misses
+  //     (RB750Gr3→hEX, cap_ac→cAP ac) and concatenated spellings ("hapax3"→hAP ax3, #67).
   //     A matrix-linked alias returns the canonical device enriched; a catalog-only alias
   //     returns a labeled thin row. `alias` is the PK, so there is nothing to rank at read time.
   if (q && Object.keys(filters).length === 0) {
     const matchedAlias = query.trim();
-    const hit = db
-      .prepare("SELECT rosetta_device_id FROM device_aliases WHERE alias = ?")
-      .get(normAliasKey(query)) as { rosetta_device_id: string } | undefined;
-    if (hit) {
-      const ov = db.prepare(`${OVERVIEW_SELECT} WHERE rosetta_device_id = ?`).get(hit.rosetta_device_id) as OverviewRow | undefined;
+    const deviceId = probeAlias(query);
+    if (deviceId) {
+      const ov = db.prepare(`${OVERVIEW_SELECT} WHERE rosetta_device_id = ?`).get(deviceId) as OverviewRow | undefined;
       if (ov?.device_id != null) {
         const dev = loadDeviceById(ov.device_id);
         if (dev) {
@@ -2052,26 +2081,10 @@ function searchDevicesInner(
     }
   }
 
-  // 2b. Slug-normalized LIKE: strip all separators from both query and product_url slug.
-  //     Handles concatenated AKAs ("hapax3", "fiberboxplus", "wapaxlte7") and superscript
-  //     queries ("hap ax3" → slug hap_ax3 → stripped hapax3). Anchors to /product/ prefix
-  //     to avoid matching domain or path components.
-  if (q) {
-    const slugQuery = q.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (slugQuery.length >= 5) {
-      const slugPattern = `%/product/%${slugQuery}%`;
-      const slugSql = `${DEVICE_SELECT} d WHERE d.product_url IS NOT NULL AND REPLACE(LOWER(d.product_url), '_', '') LIKE ? ORDER BY d.product_name LIMIT ?`;
-      const slugResults = db.prepare(slugSql).all(slugPattern, limit + 1) as DeviceResult[];
-      if (slugResults.length > 0) {
-        const hasMore = slugResults.length > limit;
-        const trimmed = hasMore ? slugResults.slice(0, limit) : slugResults;
-        if (trimmed.length <= 5) attachTestResults(trimmed);
-        else if (trimmed.length === 1) attachTestResults(trimmed);
-        const note = trimmed.length > 1 ? disambiguationNote(q, trimmed) : undefined;
-        return { results: trimmed, mode: "like", total: trimmed.length, has_more: hasMore, note };
-      }
-    }
-  }
+  // (There used to be a stage 2b here: a slug-normalized LIKE over devices.product_url for
+  // concatenated spellings like "hapax3". It was dead in production — no extractor populates
+  // product_url — and its job is done authoritatively by the `collapsed` alias rows + the
+  // collapseAliasKey() fallback in stage 1.5 (#67).)
 
   // 3. FTS + structured filters
   const whereClauses: string[] = [];

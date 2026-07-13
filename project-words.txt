@@ -46,6 +46,8 @@ bunx
 calea
 canonicaliser
 canonicalizer
+capac
+capax
 capsman
 catlinks
 ccr
@@ -88,7 +90,7 @@ dispatchable
 dlc
 dlna
 dlp
-DOCCARDLIST
+doccardlist
 dockerfiles
 dockerhub
 docu
@@ -146,6 +148,7 @@ hacq
 hapax
 hax
 heresafe
+hexs
 hnd
 hotspot
 hpn
@@ -177,6 +180,7 @@ kpps
 laravel
 ldf
 ldp
+ledgered
 lfs
 lhg
 lhgg
@@ -382,7 +386,9 @@ tsq
 uag
 uias
 uib
+uigplus
 ukca
+uncollapsed
 undercounted
 undercounts
 underspecified
@@ -391,6 +397,7 @@ unhighlighted
 unioning
 unparseable
 unprobeable
+unprobed
 unpushed
 unthrottled
 upnp
@@ -432,5 +439,6 @@ wps
 xattr
 xdg
 ytdlp
+zenithlegacy
 zerotier
 zwsp

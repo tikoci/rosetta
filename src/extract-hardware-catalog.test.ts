@@ -181,6 +181,56 @@ describe("buildCatalog — an ordinary product page must not leak its slug onto 
   });
 });
 
+describe("buildCatalog — collapsed concatenation aliases (#67)", () => {
+  test("derives canon()-collapsed rows from name-bearing aliases, source 'collapsed'", () => {
+    const matrixRows = [mkMatrixRow("cAP ac", "RBcAPGi-5acD2nD")];
+    const result = buildCatalog(matrixRows, new Map([["cAP ac", 42]]), [], []);
+    const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a]));
+    // "cap ac" (matrix name) → "capac"; "rbcapgi-5acd2nd" (matrix code) → separators stripped.
+    expect(byAlias.get("capac")).toMatchObject({ rosettaDeviceId: "cap-ac", source: "collapsed" });
+    expect(byAlias.get("rbcapgi5acd2nd")).toMatchObject({ rosettaDeviceId: "cap-ac", source: "collapsed" });
+  });
+
+  test("collapses a standalone row's own slug — its only identity — but never hardware-table codes", () => {
+    // hw-chateau-lte12's single alias is its page slug; without collapsing it,
+    // "chateaulte12" resolves to nothing.
+    const page = mkPage({ slug: "zenith-legacy", tableModelCodes: ["ZL-1000x"] });
+    const result = buildCatalog([], new Map(), [page], []);
+    const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a]));
+    expect(byAlias.get("zenithlegacy")).toMatchObject({ rosettaDeviceId: "hw-zenith-legacy", source: "collapsed" });
+    expect(byAlias.has("zl-1000x")).toBe(true); // hardware-table, raw only
+    expect(byAlias.has("zl1000x")).toBe(false);
+  });
+
+  test("never collapses a matrix-linked row's hardware-slug (disambiguation artifact)", () => {
+    // hAP ax³'s /hardware slug is the artifact "hap-ax-2" — collapsing it would claim
+    // "hapax2" from the real hAP ax². On matrix-linked rows the slug stays uncollapsed.
+    const row = mkMatrixRow("hAP ax3", "C53UiG+5HPaxD2HPaxD");
+    const page = mkPage({ slug: "hap-ax-2", title: "hAP ax3", matchedMatrixNames: ["hAP ax3"], cause: "matched-by-slug" });
+    const result = buildCatalog([row], new Map([["hAP ax3", 1]]), [page], []);
+    const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a]));
+    expect(byAlias.get("hap-ax-2")).toMatchObject({ rosettaDeviceId: "hap-ax3", source: "hardware-slug" });
+    expect(byAlias.has("hapax2")).toBe(false);
+    expect(byAlias.get("hapax3")).toMatchObject({ rosettaDeviceId: "hap-ax3", source: "collapsed" });
+  });
+
+  test("a name already in collapsed form gets no duplicate row and keeps its provenance", () => {
+    const result = buildCatalog([mkMatrixRow("KNOT", "RB924i-2nD-BT5&BG77")], new Map(), [], []);
+    const knot = result.aliasRows.filter((a) => a.alias === "knot");
+    expect(knot).toHaveLength(1);
+    expect(knot[0].source).toBe("matrix.csv");
+  });
+
+  test("a collapsed row never displaces an explicit alias — collision is recorded, incumbent kept", () => {
+    // "AB1"'s own matrix alias claims key 'ab1' (rank 1); "AB 1"'s collapsed form also
+    // wants 'ab1' (rank 6) — the explicit alias wins and the collision is ledgered.
+    const result = buildCatalog([mkMatrixRow("AB1", "CODE-X1"), mkMatrixRow("AB 1", "CODE-Y1")], new Map(), [], []);
+    const byAlias = new Map(result.aliasRows.map((a) => [a.alias, a]));
+    expect(byAlias.get("ab1")).toMatchObject({ rosettaDeviceId: "ab1", source: "matrix.csv" });
+    expect(result.aliasCollisions.some((c) => c.alias === "ab1" && c.droppedSource === "collapsed")).toBe(true);
+  });
+});
+
 describe("buildCatalog — compareId aliases are HTML-decoded, not stored as markup (PR #36 Codex review)", () => {
   test("a compareId like `atlgm&amp;eg18-ea` never lands in aliases as an entity", () => {
     const row = mkMatrixRow("ATL LTE18 kit", "ATLGM&EG18-EA");
