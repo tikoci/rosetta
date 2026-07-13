@@ -191,15 +191,23 @@ function detectCommandPath(input: string, options: CanonicalizeOptions): Command
   const topLevels = new Set(["ip", "ipv6", "interface", "routing", "system", "bridge", "container", "port", "radius", "snmp", "tool", "user", "queue", "certificate", "file", "log", "disk", "caps-man", "mpls", "ppp", "special-login", "app"]);
   if (!hasSlash && (!firstToken || !topLevels.has(firstToken))) return undefined;
 
-  // No-slash input starting with a top-level word is only *navigation* if every
-  // trailing token is a bare menu segment. A prose stopword or non-identifier
-  // token means it's a natural-language question ("port forward to an internal
-  // server", "port 8291 access") — refuse rather than greedily pathify the prose
-  // (BL-4 / #59). Slash input is explicit navigation intent and skips this gate.
+  // No-slash input starting with a top-level word is only *navigation* if the
+  // tokens up to the first CLI signal are all bare menu segments. A prose
+  // stopword or non-identifier token in that path portion means it's a
+  // natural-language question ("port forward to an internal server", "port 8291
+  // access") — refuse rather than greedily pathify the prose (BL-4 / #59).
+  //
+  // A verb or a `key=value` arg ends the path portion: past it canonicalize()
+  // treats tokens as args, not path segments, so there's no prose risk — and a
+  // legit no-slash CLI snippet like "ip firewall filter add chain=forward" must
+  // still classify. Slash input is explicit navigation and skips this gate.
   if (!hasSlash) {
     for (let i = 1; i < tokens.length; i++) {
       const t = tokens[i].toLowerCase();
-      if (PROSE_STOPWORDS.has(t) || !MENU_SEGMENT_RE.test(t)) return undefined;
+      if (VERB_TOKENS.has(t) || t.includes("=")) break;
+      // Tolerate trailing sentence punctuation ("filter,") before the segment test.
+      const seg = t.replace(/[.,;:!?]+$/, "");
+      if (!seg || PROSE_STOPWORDS.has(seg) || !MENU_SEGMENT_RE.test(seg)) return undefined;
     }
   }
 

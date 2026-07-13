@@ -198,6 +198,15 @@ describe("classifyQuery", () => {
     expect(classifyQuery("/ip/dhcp-server").command_path).toBe("/ip/dhcp-server");
   });
 
+  test("the BL-4 guard doesn't suppress a no-slash CLI snippet with verb + args", () => {
+    // A verb / key=value arg ends the path portion — canonicalize handles the
+    // remainder as args, so these must still classify (not be treated as prose).
+    expect(classifyQuery("ip firewall filter add chain=forward").command_path).toBe("/ip/firewall/filter");
+    expect(classifyQuery("ip firewall filter add chain=forward action=accept").command_path).toBe(
+      "/ip/firewall/filter",
+    );
+  });
+
   test("multi-word input never fires property detector", () => {
     const result = classifyQuery("chain forward policy");
     expect(result.property).toBeUndefined();
