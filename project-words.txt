@@ -88,6 +88,7 @@ dispatchable
 dlc
 dlna
 dlp
+DOCCARDLIST
 dockerfiles
 dockerhub
 docu
