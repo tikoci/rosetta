@@ -289,11 +289,13 @@ const byKind: Record<string, number> = {};
 for (const row of unmatchedRows) byKind[row[1]] = (byKind[row[1]] || 0) + 1;
 console.log(`Unmatched /hardware pages by kind (${unmatchedRows.length} total):`);
 for (const [k, v] of Object.entries(byKind).sort(([, a], [, b]) => b - a)) console.log(`  ${k}: ${v}`);
-// row[3] = www_code; row[1] = kind. A blank www_code is a page with no marketing product mapped.
-const noWww = unmatchedRows.filter((row) => !row[3]);
-const deviceGap = noWww.filter((row) => row[1] === "device");
-console.log(`No www product mapped (spec gap): ${noWww.length} total, ${deviceGap.length} of kind=device`);
-if (deviceGap.length) console.log(`  kind=device gaps: ${deviceGap.map((row) => row[0]).join(", ")}`);
+if (existsSync(CATALOG_JSON)) {
+  // row[3] = www_code; row[1] = kind. A blank www_code is a page with no marketing product mapped.
+  const noWww = unmatchedRows.filter((row) => !row[3]);
+  const deviceGap = noWww.filter((row) => row[1] === "device");
+  console.log(`No www product mapped (spec gap): ${noWww.length} total, ${deviceGap.length} of kind=device`);
+  if (deviceGap.length) console.log(`  kind=device gaps: ${deviceGap.map((row) => row[0]).join(", ")}`);
+}
 
 // ── Summary + drift gate ──
 const byRes: Record<string, number> = {};
