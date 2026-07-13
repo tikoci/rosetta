@@ -35,6 +35,14 @@ describe("pageIdentitySegs", () => {
       "filter",
     ]);
   });
+
+  test("a legacy Confluence app-route URL is NOT parsed as a slug — it falls back to the breadcrumb", () => {
+    // help.mikrotik.com/docs/spaces/ROS/pages/<id>/... also contains '/docs/' but the
+    // tail (spaces/ROS/pages/<id>/...) is an app route, not a semantic doc path.
+    expect(
+      pageIdentitySegs("https://help.mikrotik.com/docs/spaces/ROS/pages/328059/Firewall", "RouterOS > Firewall"),
+    ).toEqual(["routeros", "firewall"]);
+  });
 });
 
 describe("scoreCandidate", () => {

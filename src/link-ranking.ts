@@ -17,11 +17,16 @@ export function segMatch(a: string, b: string): number {
 }
 
 /**
- * A page's identity segments: the tail of its `/docs/` slug (Docusaurus), or the
+ * A page's identity segments: the tail of a Docusaurus `/docs/` slug, or the
  * breadcrumb path (HTML-corpus fallback). e.g. `.../firewall/filter` -> `["firewall","filter"]`.
+ *
+ * Only manual.mikrotik.com URLs carry a semantic doc slug. The legacy Confluence
+ * corpus stores app-route URLs (`help.mikrotik.com/docs/spaces/ROS/pages/<id>/...`)
+ * that also contain `/docs/`; those must NOT be parsed as a slug — they'd yield
+ * `["spaces","ros","pages",...]` — so we fall back to their breadcrumb instead.
  */
 export function pageIdentitySegs(url: string | null | undefined, breadcrumb = ""): string[] {
-  const m = url?.match(/\/docs\/(.+?)\/?$/);
+  const m = url?.match(/\/\/manual\.mikrotik\.com\/docs\/(.+)\/?$/);
   if (m) return m[1].split("/").filter(Boolean);
   return breadcrumb
     .split(">")
