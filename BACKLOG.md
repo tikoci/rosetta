@@ -61,8 +61,6 @@ gh issue list --milestone 0.11.0     # 0.11 release checklist
 gh issue list --milestone "0.12 — MCP surface"  # surface-cleanup theme
 ```
 
-One exception still tracked as a file: `tasks/T-0037-npm-prerelease-dist-tag-channel.md` (`in-progress`, finishing under the old scheme — its PR closes it).
-
 ## Briefings index
 
 Grounded research and decision notes. Open items are ongoing thinking; resolved items are decisions on the record.
