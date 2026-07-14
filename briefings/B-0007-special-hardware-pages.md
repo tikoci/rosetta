@@ -4,7 +4,7 @@ topic: Extracting device-specific tables from special hardware pages
 status: open
 related_tasks: []
 created: 2026-05-02
-last_revisited: 2026-05-02
+last_revisited: 2026-07-14
 ---
 
 > **2026-07-10:** superseded in scope by `briefings/B-0017-hardware-overlay-device-resolution.md`
@@ -20,6 +20,7 @@ last_revisited: 2026-05-02
 > B-0017, that research lands **here**: this briefing was always about extracting device-keyed capability
 > tables that `properties`/`devices` don't surface, which is exactly Track B. B-0017 keeps the identity
 > rationale; new capability-surfacing research goes below.
+
 
 # Track B — device-capability surfacing (2026-07-11)
 
@@ -69,3 +70,46 @@ Maintainer feedback on #39 (Phase 2 hardware surfacing) parked a related idea he
 
 - Would a generic "page tables" extractor (one row per `<table>` in pages, structured) cover this and other future cases more cheaply than per-page extractors?
 - What precision does prose device-mention detection need before a "references devices" block helps more than it misleads? (An over-eager match that links every "hAP" mention is noise; the alias table's exact-normalized keys are the conservative starting point.)
+
+## Candidate page survey + current lean (2026-07-14)
+
+Survey of live special-page candidates to ground the two open questions above. These pages have
+tables/bullets that are device-keyed, either directly (a row per chip/model) or indirectly (applies to a
+class of device — anything with a miniPCIe/USB slot, or an SFP port). The "special" framing: generic
+RouterOS config (e.g. from LLM training data) easily gets confused on switch-chip- or
+peripheral-specific features, so these pages deserve a pointer/callout rather than silent absorption into
+generic property text. A "see page X" callout, or an extra table row of structured data (e.g. switch-chip
+feature support), covers most of what's needed here.
+
+Candidates:
+
+- <https://manual.mikrotik.com/docs/bridging-and-switching/marvell-prestera-switch-chip-features#models>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/l3-hardware-offloading#l3hw-feature-support>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/l3-hardware-offloading#crs3xx-switch-98dx3xxx-and-98dx2xxx-series>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/l3-hardware-offloading#ccr2xxx-crs3xx-crs5xx-switch-98dx8xxx-and-98dx4xxx-series>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/l3-hardware-offloading#crs8xx-switch-98dx7xxx-series>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/quality-of-service#qos-device-support>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/quality-of-service#understanding-port-profile-and-map-relation>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/switch-chip-features>
+- <https://manual.mikrotik.com/docs/bridging-and-switching/crs1xx-and-2xx-series-switches#cloud-router-switch-models>
+- <https://manual.mikrotik.com/docs/authentication-authorization-accounting/user#properties>
+- <https://manual.mikrotik.com/docs/system-information-and-utilities/precision-time-protocol#supported-devices>
+- <https://manual.mikrotik.com/docs/hardware/peripherals#cellular-modems-1>
+- <https://manual.mikrotik.com/docs/hardware/peripherals#sfp-modules>
+
+**On the generic page-tables extractor question:** likely yes, but expect an extra mapping layer. These
+tables often key on "groups of devices" / series names that don't cleanly match existing device
+identifiers — a generic extractor probably needs a second pass to resolve "group" rows into either a
+pseudo-series in the device map, or a real device list. Intermediate TSV/TOML/CSV output (same pattern as
+the `hardware-www-matrix.csv` audit file) would help track and monitor drift over time regardless of
+which extractor shape wins.
+
+**On the prose device-mention precision question:** less urgent than it looked. The alias table's
+exact-normalized keys already give confident matches (e.g. "hAP" resolves to its exact device plus
+related devices), so over-eager fuzzy matching isn't the main risk. For now, prefer **failing an extract**
+when a table's shape diverges from what's expected, rather than guessing — tracked via the same
+intermediate audit file discussed above. On the `routeros_get_page` side, the reverse direction should
+resolve a page's device tables into an explicit "applies to" list of real model names (extra JSON on
+`get_page`); when that list gets large, offer a `get_device`-style confirmation (e.g. "applies to
+88/150 devices"), and/or let `get_page` take a `rosetta_device_id` param so "applies to" resolves down to
+a single boolean/row for that one device when the limit would otherwise be exceeded.

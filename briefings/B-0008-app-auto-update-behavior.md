@@ -4,7 +4,7 @@ topic: Does RouterOS /app pull `:latest` fresh on each boot, or cache by digest?
 status: open
 related_tasks: []
 created: 2026-05-02
-last_revisited: 2026-05-02
+last_revisited: 2026-07-14
 ---
 
 # Question
@@ -30,3 +30,20 @@ Needs a CHR test rig — pair with quickchr.
 
 - If digest-caching, do we want to switch the documented install command from `:latest` to `:vMAJOR.MINOR` (semver pinning)?
 - If pull-on-boot, do we want a separate "stable channel" tag that updates less often?
+
+## Grounding update (2026-07-14)
+
+Two separate things were tangled in the original open questions here — split them:
+
+1. **The npm/OCI tag scheme this briefing wondered about is already shipped**, independent of this
+   briefing. A bare version publishes to the `latest` dist-tag (npm default) + OCI `:latest`;
+   prereleases publish under a stage dist-tag (`alpha`/`beta`/`rc`) plus a floating `next`, and OCI
+   mirrors the same scheme (`:alpha`/`:beta`/`:rc`/`:next`, with `:latest` never touched on a prerelease
+   run). See `.github/workflows/release.yml` ("OCI tags mirror the npm dist-tag scheme") and MANUAL.md's
+   "Prerelease publish semantics." So switching the documented install command to a pinned/stage tag is
+   already possible today — no new tagging work needed to answer the first open question below.
+2. **The actual open question — does RouterOS `/app` pull `:latest` fresh on boot or cache by digest —
+   is still unverified.** Working theory (unconfirmed, anecdotal): RouterOS re-pulls an installed `/app`
+   when the installed version differs from the tag's current digest, triggered at boot and apparently
+   periodically thereafter. That's a plausible mechanism, not a confirmed one — the CHR experiment below
+   is still how to actually settle it.

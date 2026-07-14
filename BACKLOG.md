@@ -25,6 +25,8 @@ Drop one-line thoughts here. Promote later — to an issue if it gains shape, to
 - Doc → device cross-referencing: `routeros_get_page` "references devices"/"references pivots (switch chips)" block; main-doc prose as a test corpus for free-form device surfacing + a scope probe for how often devices are mentioned. Routed to `briefings/B-0007-special-hardware-pages.md` (Track B); downstream of Phase 2A ([#49](https://github.com/tikoci/rosetta/issues/49)).
 - Switch-chip → device resolution: **promoted 2026-07-10** to issue [#34](https://github.com/tikoci/rosetta/issues/34) / `briefings/B-0017-hardware-overlay-device-resolution.md`, which reframes the chip→model gap (`devices.cpu` conflating the switch ASIC with the management CPU) as one instance of a broader three-way device-identity problem across `matrix.csv`, www product pages, and the new `/hardware` Docusaurus source. See that briefing for the original chip-ID case detail.
 - Human manually added `hardware-www-matrix.csv` to repo from manual SQLite .output of `devices_overview` table (`sqlite3 -header -csv -readonly .rosetta/ros-help.db "SELECT * from device_overview;" > hardware-www-matrix.csv`), but should be regularized in CI.  Additionally the set of "human readable" _generated_ CSV/TSV/JSON files should be published on branch for GitHub pages to aid linking (and `main` branch protection rules), as part of CI.  e.g. GH Pages would allow `curl`/etc. on the SQL-based data.  Likely should be broader than "device"-things, and more regularized, but goal is that there are URLs for more table-based results from ETL.  _TSV with JSON as column renders poorly in GH since file does meet requirements for "pretty" HTML table in GH repo website, for unknown reason._
+- `routeros_command_tree` path ergonomics: requires exact slash-delimited REST-like paths (e.g. `/ip/address/add/address`) and rejects natural forms like `ip address`; shape is tightly bound to `inspect.json`'s parts, some of which (e.g. `page_title`/`page_url`/`dir_role`/`data_type`/`_arch`/`completion`, often all `null`) may not carry their weight. Surfaced while reviewing B-0004 (2026-07-14), which is otherwise superseded/resolved — not yet scoped as its own issue.
+- Can `yt-dlp` run reliably in GitHub Actions to automate the video-transcript cache refresh (`make save-videos-cache`)? Would close the last local-only extraction gap identified in B-0009 (Dude staying local-only is fine — it's a frozen archive, not a moving target). Investigate rate-limiting/bot-detection risk before promoting to an issue.
 
 ## Triggers
 
@@ -67,15 +69,15 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 
 | ID | Topic | Status |
 |----|-------|--------|
-| B-0001 | Should `routeros_lookup_property` grow broad FTS query mode? | open |
+| B-0001 | Should `routeros_lookup_property` grow broad FTS query mode? — resolved 2026-07-14: no, lean shifted to retiring the tool from the MCP/TUI surface (see B-0011) | resolved |
 | B-0002 | How aggressively to de-emphasize standalone binaries | open |
 | B-0003 | Why no `run_sql` MCP tool | resolved |
-| B-0004 | inspect.json / deep-inspect coverage gaps | open |
-| B-0005 | Dude wiki extraction follow-ups | open |
+| B-0004 | inspect.json / deep-inspect coverage gaps — superseded 2026-07-14 by the CLI-Reference overlay track (B-0016, #25/#33/#28) | resolved |
+| B-0005 | Dude wiki extraction follow-ups — lean (2026-07-14): audit extraction accuracy, then merge into `routeros_search` and retire the dedicated Dude tools | open |
 | B-0006 | Device AKA / alias handling | open |
 | B-0007 | Special hardware page extraction | open |
 | B-0008 | `/app` auto-update pull-vs-cache behaviour | open |
-| B-0009 | Future ETL pipeline streamlining | open |
+| B-0009 | Future ETL pipeline streamlining — resolved 2026-07-14: CI already extracts from cache consistently; only remaining gap (yt-dlp-in-CI) moved to BACKLOG Inbox | resolved |
 | B-0010 | MCP behavioral testing phases 3+ | open |
 | B-0011 | Audit the 14-tool MCP surface for consolidation | open |
 | B-0012 | Docusaurus manual migration after Confluence retirement | open |

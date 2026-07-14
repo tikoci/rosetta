@@ -4,7 +4,7 @@ topic: Audit the 14-tool MCP surface for consolidation candidates
 status: open
 related_tasks: []
 created: 2026-05-02
-last_revisited: 2026-05-02
+last_revisited: 2026-07-14
 ---
 
 # Question
@@ -21,9 +21,13 @@ Are any of the current 14 MCP tools redundant, under-used, or candidates for con
 # Candidates worth examining (initial list, not conclusions)
 
 - **`routeros_command_version_check` vs `routeros_command_diff`** — both are version-aware; could one be an option on the other?
-- **`routeros_dude_search` + `_dude_get_page`** — separate surface for a separate (small) data source. Right call, or worth folding?
+- **`routeros_dude_search` + `_dude_get_page`** — separate surface for a separate (small) data source. Right call, or worth folding? Per `B-0005`'s 2026-07-14 lean, the direction is fold-after-audit: merge Dude results into `routeros_search` behind an opt-in arg once a Dude-extraction accuracy audit confirms it's safe, then retire these two tools.
 - **`routeros_stats` vs `routeros_current_versions`** — both are health/metadata; could become one `routeros_about` tool?
-- **`routeros_lookup_property`** — see B-0001; consider its broad-mode evolution alongside this review.
+- **`routeros_lookup_property`** — per `B-0001`'s 2026-07-14 decision, the lean is **retirement** from
+  the MCP/TUI surface, not a broad-mode addition: fold exact lookup into `routeros_get_page` (surface
+  page-extracted properties) and `routeros_command_tree` (point at related paths). The extraction ETL
+  behind it stays — manual.mikrotik.com prose is still the only source of narrative property
+  descriptions. This audit should turn that lean into a concrete fold/deprecation plan.
 
 # Method for the audit
 
