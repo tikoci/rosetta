@@ -69,6 +69,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 - **Download path:** Use the site's export/download control, choose **All**, and save to `matrix/<ISODATE>/matrix.csv`.
 - **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
 - **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.
+- **Matrix = the *current* core-device set (load-bearing assumption).** MikroTik's product matrix lists actively-sold routers/switches/APs, so matrix membership is treated as the authoritative "current core device" signal — as distinct from the wider off-matrix universe (`hardware_catalog`), which is mostly discontinued gear plus accessories/modules/series pages. Grounded 2026-07-13 against the `discontinued` flag on `mikrotik.com/product` pages: **0 of 74** matrix-linked www products are discontinued, vs **54%** of off-matrix www products and **~95%** of off-matrix `kind = device` pages. This is why downstream surfaces can default to matrix-only ("current") and treat off-matrix as an opt-in legacy/derivative tier. See `briefings/B-0021-off-matrix-nomenclature-derivative-parts.md` and issue #70.
 
 ### Product test results and block diagrams
 

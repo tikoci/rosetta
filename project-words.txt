@@ -74,6 +74,7 @@ cutover
 cwd
 cwmp
 datapath
+datasheet
 dbi
 ddl
 dedup
@@ -305,6 +306,7 @@ pyc
 pycache
 pyproject
 qca
+quectel
 quickchr
 quickset
 raml
@@ -379,6 +381,7 @@ syntaxhighlighter
 syscap
 tabl
 tek
+thirdparty
 tik
 tikapp
 tikbook
