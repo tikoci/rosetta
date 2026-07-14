@@ -48,4 +48,19 @@ describe("hardware-www-map loader", () => {
     // r11e-lr9 (non-G) has no kit collision, so it DOES force-attach (a real gap closure).
     expect(curatedWwwCodeForSlug("r11e-lr9")).toBe("r11e_lr9");
   });
+
+  test("no two force-attachable entries share a www_code (one-product-one-row)", () => {
+    // The seed_only mechanism exists to keep two rows from force-attaching the same product
+    // (extract's one-product-one-row invariant). Guard the TOML data itself so a future edit
+    // that force-attaches a duplicate is caught here, before it corrupts the attach ledger.
+    const seen = new Map<string, string>();
+    for (const slug of Object.keys(hardwareWwwMap())) {
+      const code = curatedWwwCodeForSlug(slug);
+      if (!code) continue;
+      expect(seen.has(code), `${code} force-attached by both ${seen.get(code)} and ${slug}`).toBe(
+        false,
+      );
+      seen.set(code, slug);
+    }
+  });
 });

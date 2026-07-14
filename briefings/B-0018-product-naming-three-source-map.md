@@ -134,19 +134,20 @@ The `kind` column (from `classifyHardwareKind`, `src/hardware-kind.ts`) reframes
 undifferentiated "unmatched" pile into a **classified inventory**, because a row here is one of four
 structurally different things — and each wants different downstream handling:
 
-- **`device`** (66) — a real off-matrix router/switch/AP/CPE, either discontinued or an active
+- **`device`** (67) — a real off-matrix router/switch/AP/CPE, either discontinued or an active
   product the matrix doesn't carry yet. The audit-worthy case for "matrix gaps" (see below), and the
   candidate set for surfacing off-matrix devices in search.
 - **`accessory`** (12) — `Accessories`/`Antennas`/`Interfaces` hardware that is not itself a device
   (PSU, PoE injector, antenna, SFP optic, OOB dongle — e.g. `gper`, `mqs`, `woobm-usb`).
 - **`module`** (8) — a plug-in LoRa/LTE/BT radio SKU (`r11e-lr*`, `tg-*`); the target a device's
   `&`-compound product code points at.
-- **`series-or-doc`** (16) — a series/index landing page (`is_series = yes` or `*-series`) or a doc
+- **`series-or-doc`** (15) — a series/index landing page (`is_series = yes` or `*-series`) or a doc
   subpage (`compliance`); never an individual product.
 
 The classification is rule-based (category + slug shape); as of the 2026-07 review every page
-classifies correctly with **zero per-slug overrides** (`OVERRIDES` in `src/hardware-kind.ts` is the
-escape hatch if that changes). `kind` is shared logic so any DB/MCP/TUI surface that filters this set
+classifies correctly with a **single per-slug override** — `nray-series` → `device` (one kit, not a
+family; `OVERRIDES` in `src/hardware-kind.ts` is the escape hatch for exactly this case). `kind` is
+shared logic so any DB/MCP/TUI surface that filters this set
 (e.g. an `include-accessories` argument, or "include module" cross-links) reuses the same call rather
 than re-deriving it.
 

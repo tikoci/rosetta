@@ -50,6 +50,7 @@ export function hardwareWwwMap(): Record<string, HardwareWwwEntry> {
 export function curatedWwwCodes(): string[] {
   const out = new Set<string>();
   for (const e of Object.values(MAP)) {
+    if (e.status) continue; // status-only entry a maintainer marked non-fetchable — never seed it
     if (e.www_code) out.add(e.www_code);
     for (const c of e.www_codes ?? []) out.add(c);
   }
