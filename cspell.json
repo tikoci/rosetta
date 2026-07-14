@@ -25,7 +25,8 @@
     "*.db",
     "ros-hardware-assessment.json",
     "ros-www-assessment.json",
-    "ros-html-assessment.json"
+    "ros-html-assessment.json",
+    "*.csv"
   ],
   "ignoreWords": ["behaviour"],
   "dictionaryDefinitions": [
