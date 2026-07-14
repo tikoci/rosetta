@@ -878,6 +878,10 @@ describe("release.yml", () => {
     // or the prerelease stage) — not just "any GitHub Release" — otherwise
     // the seeded upgrade-smoke DB wouldn't represent a real user's path.
     expect(buildBlock).toContain(`npm view "@tikoci/rosetta@\${NPM_TAG}" version`);
+    // A missing tag is expected for the first release on a channel, but a
+    // registry/auth/transport failure must not silently skip the smoke gate.
+    expect(buildBlock).toContain("code E404");
+    expect(buildBlock).not.toContain("2>/dev/null || true");
   });
 
   test("bunx-upgrade-smoke seeds a stale DB from the previous version, then proves a bare bunx auto-refreshes it (#76/#23/#78)", () => {
@@ -889,12 +893,14 @@ describe("release.yml", () => {
     expect(upgradeBlock).toMatch(/if: inputs\.republish_assets != true && needs\.build\.outputs\.previous_version != ''/);
     expect(upgradeBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
 
-    // Seeds with the OLD version, then invokes the NEW version bare (no --refresh).
+    // Seeds with the OLD version, then invokes the NEW version through the
+    // real bare/tag client form (never an exact-version pin or --refresh).
     expect(upgradeBlock).toContain(`bunx "@tikoci/rosetta@\${PREV_NPM_VER}" --refresh`);
-    expect(upgradeBlock).toContain(`bunx "@tikoci/rosetta@\${NPM_VER}" --http`);
-    // The new version must never be invoked with --refresh — that would prove
-    // nothing about auto-refresh, since --refresh forces a download regardless.
-    expect(upgradeBlock).not.toContain(`"@tikoci/rosetta@\${NPM_VER}" --refresh`);
+    expect(upgradeBlock).toContain('NPM_SPEC="@tikoci/rosetta"');
+    expect(upgradeBlock).toContain(`bunx "$NPM_SPEC" --http`);
+    // The new version must never be invoked by exact pin or with --refresh:
+    // neither would exercise an ordinary MCP client's dist-tag resolution.
+    expect(upgradeBlock).not.toContain(`"@tikoci/rosetta@\${NPM_VER}"`);
 
     // Asserts on the startup banner (ensureDbReady), not just "server answered" —
     // that's the only signal that actually proves the DB content refreshed.

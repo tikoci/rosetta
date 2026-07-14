@@ -156,7 +156,23 @@ jobs:
           if [ "$CHANNEL" = "prerelease" ]; then
             NPM_TAG="$STAGE"
           fi
-          PREV=$(npm view "@tikoci/rosetta@${NPM_TAG}" version --registry https://registry.npmjs.org/ 2>/dev/null || true)
+          NPM_VIEW_ERR=$(mktemp)
+          trap 'rm -f "$NPM_VIEW_ERR"' EXIT
+          if PREV=$(npm view "@tikoci/rosetta@${NPM_TAG}" version --registry https://registry.npmjs.org/ 2>"$NPM_VIEW_ERR"); then
+            :
+          else
+            status=$?
+            # A missing dist-tag (e.g. the first alpha release) is the only
+            # expected lookup failure. Any registry/auth/transport failure
+            # must fail the release rather than silently skipping this gate.
+            if grep -Eq '^(npm error|npm ERR!) code E404$' "$NPM_VIEW_ERR"; then
+              PREV=""
+            else
+              cat "$NPM_VIEW_ERR" >&2
+              echo "::error::Could not determine the previous version under dist-tag '$NPM_TAG'."
+              exit "$status"
+            fi
+          fi
           if [ -z "$PREV" ]; then
             echo "previous_version=" >> "$GITHUB_OUTPUT"
             echo "No published version yet under dist-tag '$NPM_TAG' — bunx-upgrade-smoke will be skipped."
@@ -792,31 +808,43 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Wait for npm registry to propagate @tikoci/rosetta@${{ needs.publish.outputs.version }}
+      - name: Wait for npm registry to resolve this channel to ${{ needs.publish.outputs.version }}
         env:
           VERSION: ${{ needs.publish.outputs.version }}
+          CHANNEL: ${{ needs.build.outputs.channel }}
+          STAGE: ${{ needs.build.outputs.stage }}
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"
-          echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
+          NPM_SPEC="@tikoci/rosetta"
+          if [ "$CHANNEL" = "prerelease" ]; then
+            NPM_SPEC="${NPM_SPEC}@${STAGE}"
+          fi
+          echo "Waiting for ${NPM_SPEC} to resolve to ${NPM_VER} on npm registry..."
           for i in {1..30}; do
-            if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
-              echo "✓ npm registry has ${NPM_VER} (attempt $i)"
+            if [ "$(npm view "$NPM_SPEC" version 2>/dev/null || true)" = "$NPM_VER" ]; then
+              echo "✓ ${NPM_SPEC} resolves to ${NPM_VER} (attempt $i)"
               exit 0
             fi
             sleep 5
           done
-          echo "::error::npm registry did not surface @tikoci/rosetta@${NPM_VER} within 150s"
+          echo "::error::npm registry did not resolve ${NPM_SPEC} to ${NPM_VER} within 150s"
           exit 1
 
       - name: Bare bunx of the new version auto-refreshes a DB seeded by the previous version (no --refresh)
         env:
           VERSION: ${{ needs.publish.outputs.version }}
           PREV_VERSION: ${{ needs.build.outputs.previous_version }}
+          CHANNEL: ${{ needs.build.outputs.channel }}
+          STAGE: ${{ needs.build.outputs.stage }}
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"
           PREV_NPM_VER="${PREV_VERSION#v}"
+          NPM_SPEC="@tikoci/rosetta"
+          if [ "$CHANNEL" = "prerelease" ]; then
+            NPM_SPEC="${NPM_SPEC}@${STAGE}"
+          fi
 
           echo "── bunx @tikoci/rosetta@${PREV_NPM_VER} --refresh (seed pre-upgrade DB) ──"
           bunx "@tikoci/rosetta@${PREV_NPM_VER}" --refresh
@@ -824,8 +852,8 @@ jobs:
           PORT=18766
           LOG="${RUNNER_TEMP}/rosetta-upgrade-smoke-${{ matrix.os }}.log"
           rm -f "$LOG"
-          echo "── bunx @tikoci/rosetta@${NPM_VER} --http (bare — proves auto-refresh, not --refresh) ──"
-          bunx "@tikoci/rosetta@${NPM_VER}" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
+          echo "── bunx ${NPM_SPEC} --http (bare/tag form — proves the real client path, not an exact pin) ──"
+          bunx "$NPM_SPEC" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
           PID=$!
           trap 'kill "$PID" 2>/dev/null || true' EXIT
 
@@ -866,10 +894,15 @@ jobs:
         env:
           VERSION: ${{ needs.publish.outputs.version }}
           PREV_VERSION: ${{ needs.build.outputs.previous_version }}
+          CHANNEL: ${{ needs.build.outputs.channel }}
+          STAGE: ${{ needs.build.outputs.stage }}
         run: |
           set -euo pipefail
-          NPM_VER="${VERSION#v}"
           PREV_NPM_VER="${PREV_VERSION#v}"
+          NPM_SPEC="@tikoci/rosetta"
+          if [ "$CHANNEL" = "prerelease" ]; then
+            NPM_SPEC="${NPM_SPEC}@${STAGE}"
+          fi
 
           # Re-seed the stale (previous-version) DB — the prior step already
           # upgraded it to ${NPM_VER}, so this step needs its own stale copy.
@@ -879,8 +912,8 @@ jobs:
           PORT=18767
           LOG="${RUNNER_TEMP}/rosetta-offline-smoke-${{ matrix.os }}.log"
           rm -f "$LOG"
-          echo "── ROSETTA_OFFLINE=1 bunx @tikoci/rosetta@${NPM_VER} --http (stale DB, no network refresh) ──"
-          ROSETTA_OFFLINE=1 bunx "@tikoci/rosetta@${NPM_VER}" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
+          echo "── ROSETTA_OFFLINE=1 bunx ${NPM_SPEC} --http (stale DB, no network refresh) ──"
+          ROSETTA_OFFLINE=1 bunx "$NPM_SPEC" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
           PID=$!
           trap 'kill "$PID" 2>/dev/null || true' EXIT
 
