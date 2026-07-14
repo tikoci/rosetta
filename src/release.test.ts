@@ -225,6 +225,32 @@ describe("setup.ts", () => {
     expect(src).toContain("Database remained incomplete after recovery");
   });
 
+  test("mcp.ts uses checkDbFreshness (schema + release-tag) rather than a schema-only check (#76/#23)", () => {
+    const src = readText("src/mcp.ts");
+    expect(src).toContain("checkDbFreshness");
+    // detectMode is required so dev-mode DBs (release_tag not tied to a
+    // publish) never trigger a network redownload on release-tag drift alone.
+    expect(src).toContain("detectMode");
+  });
+
+  test("mcp.ts degrades gracefully instead of crashing on a non-fatal (release-tag-only) refresh failure", () => {
+    const src = readText("src/mcp.ts");
+    const warnIdx = mustIndex(src, "Refresh check failed");
+    const elseIdx = mustIndex(src, "} else {");
+    expect(elseIdx).toBeGreaterThan(warnIdx);
+    // The branch between the warning log and the `else` (hard-fail) branch
+    // must not throw — a release-tag-only mismatch keeps serving the
+    // existing, schema-current DB instead of crashing startup.
+    const gracefulBranch = src.slice(warnIdx, elseIdx);
+    expect(gracefulBranch).not.toContain("throw");
+    expect(gracefulBranch).toContain("p = previous;");
+  });
+
+  test("setup.ts exports checkDbFreshness as a pure, unit-tested decision function", () => {
+    const src = readText("src/setup.ts");
+    expect(src).toContain("export function checkDbFreshness");
+  });
+
   test("setup.ts cleans temp DB artifacts instead of accumulating stale .tmp files", () => {
     const src = readText("src/setup.ts");
     expect(src).toContain("cleanupStaleTempArtifacts");

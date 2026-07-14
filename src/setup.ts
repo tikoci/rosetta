@@ -22,6 +22,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { gunzipSync } from "bun";
+import type { InvocationMode } from "./paths.ts";
 import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 declare const REPO_URL: string;
@@ -48,6 +49,62 @@ type DbProbe = {
   commands: number;
   releaseTag: string | null;
 };
+
+export type DbFreshnessCheck = {
+  /** A redownload should be attempted. */
+  redownload: boolean;
+  /** If the redownload attempt itself throws, is that fatal? True for a real
+   *  schema mismatch (the on-disk shape is unqueryable). False for a
+   *  release-tag-only mismatch — the existing DB is schema-current and fully
+   *  queryable, so a failed refresh (e.g. offline) should degrade to "keep
+   *  using it" rather than crash startup. */
+  hardFailOnDownloadError: boolean;
+  reason: string | null;
+};
+
+/**
+ * Decide whether ensureDbReady() should redownload the DB, and whether a
+ * failed redownload is fatal.
+ *
+ * Two independent triggers:
+ *   - schemaVersion mismatch: the running code cannot query the on-disk
+ *     shape at all — always fatal if recovery fails.
+ *   - releaseTag mismatch (same schema, newer content published under a
+ *     different version-pinned release — see dbDownloadUrls): the DB the
+ *     bunx/global-install user has cached is stale relative to the package
+ *     version bun just resolved. Non-fatal if recovery fails; the schema-
+ *     current DB already on disk keeps working.
+ *
+ * Dev-mode DBs (running from a git checkout) are locally extracted and not
+ * tied to any published release — their release_tag routinely drifts from
+ * package.json's version (e.g. a leftover stamp from an old CI run) and must
+ * never trigger a network fetch that would clobber a contributor's local DB.
+ */
+export function checkDbFreshness(
+  probe: DbProbe,
+  opts: { schemaVersion: number; runningVersion: string; mode: InvocationMode },
+): DbFreshnessCheck {
+  const schemaMismatch = probe.schemaVersion !== opts.schemaVersion;
+  if (schemaMismatch) {
+    return {
+      redownload: true,
+      hardFailOnDownloadError: true,
+      reason: `DB schema mismatch: DB=${probe.schemaVersion}, expected=${opts.schemaVersion}.`,
+    };
+  }
+
+  const expectedTag = `v${opts.runningVersion}`;
+  const releaseMismatch = opts.mode !== "dev" && probe.releaseTag !== null && probe.releaseTag !== expectedTag;
+  if (releaseMismatch) {
+    return {
+      redownload: true,
+      hardFailOnDownloadError: false,
+      reason: `DB content is stale: DB release=${probe.releaseTag}, running v${opts.runningVersion} expects ${expectedTag}.`,
+    };
+  }
+
+  return { redownload: false, hardFailOnDownloadError: false, reason: null };
+}
 
 type SQLiteStatement = {
   get: (...params: unknown[]) => unknown;

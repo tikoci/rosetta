@@ -48,9 +48,9 @@ function link(url: string, display?: string): string {
 }
 
 /**
- * Ensure the DB exists, has page data, and matches the current schema version.
- * This must run before importing db.ts/query.ts to avoid creating an empty DB file
- * on fresh installs.
+ * Ensure the DB exists, has page data, and matches the current schema version
+ * and release. This must run before importing db.ts/query.ts to avoid
+ * creating an empty DB file on fresh installs.
  *
  * Failure modes are explicit:
  *   - Missing or empty DB → download once. If download fails, abort startup —
@@ -58,13 +58,20 @@ function link(url: string, display?: string): string {
  *   - Schema mismatch → re-download once, then re-probe. If still mismatched,
  *     fail hard with an actionable message rather than silently using a DB
  *     that the running code can't query correctly.
+ *   - Release-tag mismatch only (bunx resolved a newer version, same schema,
+ *     content bumped — see setup.ts's checkDbFreshness) → re-download, but
+ *     degrade gracefully to the existing, still-queryable DB if that fails
+ *     (e.g. offline) instead of crashing startup over it.
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
-  const { resolveDbPath, SCHEMA_VERSION, resolveVersion } = await import("./paths.ts");
-  const { cleanupAbandonedTempArtifacts, downloadDb, hasMinimumDbContent, probeDb } = await import("./setup.ts");
+  const { resolveDbPath, SCHEMA_VERSION, resolveVersion, detectMode } = await import("./paths.ts");
+  const { checkDbFreshness, cleanupAbandonedTempArtifacts, downloadDb, hasMinimumDbContent, probeDb } = await import(
+    "./setup.ts"
+  );
 
   const dbPath = resolveDbPath(import.meta.dirname);
   const runningVersion = resolveVersion(import.meta.dirname);
+  const mode = detectMode(import.meta.dirname);
 
   // Always clean abandoned .tmp.* artifacts from previous failed runs when no
   // active download lock exists, regardless of whether a download is needed now.
@@ -93,22 +100,34 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
     throw new Error(`Database remained incomplete after recovery: ${dbPath}`);
   }
 
-  // Case 2: Schema mismatch → re-download, then re-probe and fail hard if
-  // still wrong (don't silently boot with an incompatible schema).
-  if (p.schemaVersion !== SCHEMA_VERSION) {
-    log(
-      `DB schema mismatch: DB=${p.schemaVersion}, expected=${SCHEMA_VERSION}. ` +
-        `Re-downloading database...`,
-    );
+  // Case 2: Schema mismatch, or a same-schema release-tag mismatch (bunx
+  // resolved a newer published version — see checkDbFreshness) → re-download,
+  // then re-probe and fail hard only if the schema is still actually wrong.
+  const freshness = checkDbFreshness(p, { schemaVersion: SCHEMA_VERSION, runningVersion, mode });
+  if (freshness.redownload) {
+    log(`${freshness.reason} Re-downloading database...`);
+    const previous = p;
     try {
       p = await downloadDb(dbPath, log);
     } catch (e) {
-      log(`✗ Auto-recovery download failed: ${e instanceof Error ? e.message : e}`);
-      log(
-        `  This rosetta build (v${runningVersion}) cannot use the existing DB. ` +
-          `Close other rosetta clients and run: bunx @tikoci/rosetta@latest --refresh`,
-      );
-      throw new Error(`Unable to recover an incompatible database at ${dbPath}.`);
+      if (!freshness.hardFailOnDownloadError) {
+        // Release-tag-only mismatch: `previous` is already schema-current and
+        // fully queryable, so a failed refresh (e.g. offline) just means we
+        // keep serving it — fall through to the shared banner below instead
+        // of crashing startup over content that hasn't finished propagating.
+        log(
+          `⚠ Refresh check failed (${e instanceof Error ? e.message : e}); continuing with the existing ` +
+            `database (release ${previous.releaseTag ?? "unknown"}).`,
+        );
+        p = previous;
+      } else {
+        log(`✗ Auto-recovery download failed: ${e instanceof Error ? e.message : e}`);
+        log(
+          `  This rosetta build (v${runningVersion}) cannot use the existing DB. ` +
+            `Close other rosetta clients and run: bunx @tikoci/rosetta@latest --refresh`,
+        );
+        throw new Error(`Unable to recover an incompatible database at ${dbPath}.`);
+      }
     }
     if (!p || !hasMinimumDbContent(p) || p.schemaVersion !== SCHEMA_VERSION) {
       log(
