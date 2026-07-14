@@ -70,6 +70,7 @@ jobs:
       segments: ${{ steps.stats.outputs.segments }}
       hardware_catalog: ${{ steps.stats.outputs.hardware_catalog }}
       device_aliases: ${{ steps.stats.outputs.device_aliases }}
+      previous_version: ${{ steps.previous_version.outputs.previous_version }}
     steps:
       - uses: actions/checkout@v7
 
@@ -136,6 +137,32 @@ jobs:
           else
             echo "::error::package.json version '$PKG_VERSION' doesn't match a recognized shape — expected MAJOR.MINOR.PATCH (latest) or MAJOR.MINOR.PATCH-<stage>[.N] with <stage> one of alpha/beta/rc (prerelease). Fix the committed version before dispatching."
             exit 1
+          fi
+
+      # ── Capture the previously-published version on this same channel ──
+      # bunx-upgrade-smoke needs a real "before" version to seed a stale DB
+      # from, on the SAME dist-tag this run is about to publish (latest, or
+      # the prerelease stage) — not just any GitHub Release. Empty output
+      # (no prior publish on this tag yet, e.g. the first-ever alpha) skips
+      # that job entirely rather than failing on a nonexistent upgrade path.
+      - name: Capture previously-published version (for upgrade smoke)
+        id: previous_version
+        env:
+          CHANNEL: ${{ steps.channel.outputs.channel }}
+          STAGE: ${{ steps.channel.outputs.stage }}
+        run: |
+          set -euo pipefail
+          NPM_TAG="latest"
+          if [ "$CHANNEL" = "prerelease" ]; then
+            NPM_TAG="$STAGE"
+          fi
+          PREV=$(npm view "@tikoci/rosetta@${NPM_TAG}" version --registry https://registry.npmjs.org/ 2>/dev/null || true)
+          if [ -z "$PREV" ]; then
+            echo "previous_version=" >> "$GITHUB_OUTPUT"
+            echo "No published version yet under dist-tag '$NPM_TAG' — bunx-upgrade-smoke will be skipped."
+          else
+            echo "previous_version=v$PREV" >> "$GITHUB_OUTPUT"
+            echo "✓ Previous published version under '$NPM_TAG': v$PREV"
           fi
 
       # ── Latest-channel CHANGELOG gate ──
@@ -740,3 +767,149 @@ jobs:
           echo "✓ MCP server answered (HTTP $code)"
           echo "── server log (first 40 lines) ──"
           head -40 "$LOG"
+
+  # End-to-end DB-freshness upgrade smoke — the actual bug #76/#23 traced and
+  # #78 fixed: a bunx cache + DB seeded by the PREVIOUS published version on
+  # this same dist-tag, then a bare (no --refresh) invocation of the version
+  # THIS run just published, proving ensureDbReady()'s checkDbFreshness
+  # release-tag comparison auto-refreshes the DB instead of silently leaving
+  # it stale. bunx-smoke above only ever installs fresh onto an empty cache,
+  # so it can't catch this class of bug at all. Skipped when there's no prior
+  # publish on this channel yet (needs.build.outputs.previous_version empty).
+  bunx-upgrade-smoke:
+    needs: [build, publish]
+    if: inputs.republish_assets != true && needs.build.outputs.previous_version != ''
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Wait for npm registry to propagate @tikoci/rosetta@${{ needs.publish.outputs.version }}
+        env:
+          VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          set -euo pipefail
+          NPM_VER="${VERSION#v}"
+          echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
+          for i in {1..30}; do
+            if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
+              echo "✓ npm registry has ${NPM_VER} (attempt $i)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::npm registry did not surface @tikoci/rosetta@${NPM_VER} within 150s"
+          exit 1
+
+      - name: Bare bunx of the new version auto-refreshes a DB seeded by the previous version (no --refresh)
+        env:
+          VERSION: ${{ needs.publish.outputs.version }}
+          PREV_VERSION: ${{ needs.build.outputs.previous_version }}
+        run: |
+          set -euo pipefail
+          NPM_VER="${VERSION#v}"
+          PREV_NPM_VER="${PREV_VERSION#v}"
+
+          echo "── bunx @tikoci/rosetta@${PREV_NPM_VER} --refresh (seed pre-upgrade DB) ──"
+          bunx "@tikoci/rosetta@${PREV_NPM_VER}" --refresh
+
+          PORT=18766
+          LOG="${RUNNER_TEMP}/rosetta-upgrade-smoke-${{ matrix.os }}.log"
+          rm -f "$LOG"
+          echo "── bunx @tikoci/rosetta@${NPM_VER} --http (bare — proves auto-refresh, not --refresh) ──"
+          bunx "@tikoci/rosetta@${NPM_VER}" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+
+          ok=0
+          for _ in {1..30}; do
+            if ! kill -0 "$PID" 2>/dev/null; then
+              echo "::error::Server exited early"
+              cat "$LOG"
+              exit 1
+            fi
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/mcp" || true)
+            if [ "$code" != 000 ] && [ "$code" != 404 ]; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::MCP server never answered on /mcp"
+            cat "$LOG"
+            exit 1
+          fi
+
+          echo "── server log ──"
+          cat "$LOG"
+
+          # ensureDbReady's startup banner names the release actually served.
+          # If checkDbFreshness's release-tag comparison (or its wiring into
+          # mcp.ts) ever regresses, this would still show ${PREV_VERSION} here.
+          if ! grep -F "release v${NPM_VER}" "$LOG" > /dev/null; then
+            echo "::error::Server log does not show release v${NPM_VER} — DB did not auto-refresh across the ${PREV_VERSION} -> v${NPM_VER} upgrade (see #76/#23/#78)"
+            exit 1
+          fi
+          echo "✓ DB auto-refreshed from ${PREV_VERSION} to release v${NPM_VER} without a manual --refresh"
+
+      - name: ROSETTA_OFFLINE=1 degrades gracefully on a stale DB instead of crashing
+        env:
+          VERSION: ${{ needs.publish.outputs.version }}
+          PREV_VERSION: ${{ needs.build.outputs.previous_version }}
+        run: |
+          set -euo pipefail
+          NPM_VER="${VERSION#v}"
+          PREV_NPM_VER="${PREV_VERSION#v}"
+
+          # Re-seed the stale (previous-version) DB — the prior step already
+          # upgraded it to ${NPM_VER}, so this step needs its own stale copy.
+          echo "── re-seeding stale DB (@${PREV_NPM_VER}) ──"
+          bunx "@tikoci/rosetta@${PREV_NPM_VER}" --refresh
+
+          PORT=18767
+          LOG="${RUNNER_TEMP}/rosetta-offline-smoke-${{ matrix.os }}.log"
+          rm -f "$LOG"
+          echo "── ROSETTA_OFFLINE=1 bunx @tikoci/rosetta@${NPM_VER} --http (stale DB, no network refresh) ──"
+          ROSETTA_OFFLINE=1 bunx "@tikoci/rosetta@${NPM_VER}" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
+          PID=$!
+          trap 'kill "$PID" 2>/dev/null || true' EXIT
+
+          ok=0
+          for _ in {1..30}; do
+            if ! kill -0 "$PID" 2>/dev/null; then
+              echo "::error::Server exited early under ROSETTA_OFFLINE=1 — a release-tag-only mismatch should degrade gracefully, not crash"
+              cat "$LOG"
+              exit 1
+            fi
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/mcp" || true)
+            if [ "$code" != 000 ] && [ "$code" != 404 ]; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ok" -ne 1 ]; then
+            echo "::error::MCP server never answered on /mcp under ROSETTA_OFFLINE=1"
+            cat "$LOG"
+            exit 1
+          fi
+
+          echo "── server log ──"
+          cat "$LOG"
+
+          if ! grep -F "ROSETTA_OFFLINE=1" "$LOG" > /dev/null; then
+            echo "::error::Server log doesn't show the ROSETTA_OFFLINE short-circuit — did it skip the network attempt as intended?"
+            exit 1
+          fi
+          echo "✓ Server started under ROSETTA_OFFLINE=1 with a release-tag-only mismatch, degrading gracefully instead of crashing"
