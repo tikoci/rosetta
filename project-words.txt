@@ -319,6 +319,7 @@ rbtoc
 rbwapr
 rbwmk
 recognised
+redownloads
 regen
 rehearsable
 reinits
@@ -407,6 +408,7 @@ unparseable
 unprobeable
 unprobed
 unpushed
+unqueryable
 unthrottled
 upnp
 upserts
