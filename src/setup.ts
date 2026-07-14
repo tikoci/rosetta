@@ -22,8 +22,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { gunzipSync } from "bun";
-import type { InvocationMode } from "./paths.ts";
-import { detectMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
+import { detectMode, type InvocationMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 declare const REPO_URL: string;
 const REPLACE_DB_TIMEOUT_MS = 30_000;
