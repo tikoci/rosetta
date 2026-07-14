@@ -56,6 +56,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { canon, loadMatrixRows, type MatrixRow, normCode, slugify } from "./assess-hardware.ts";
 import { db, initDb, setDbMeta } from "./db.ts";
+import { curatedWwwCodeForSlug } from "./hardware-www-map.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_MATRIX_CSV = resolve(PROJECT_ROOT, "matrix", "2026-07-07", "matrix.csv");
@@ -686,7 +687,14 @@ export function buildCatalog(
     claimId(id);
 
     const ownFamily = identSlugs(page.slug, page.title);
-    const www = findAgreeingWww([...page.productLinks, ...page.tableModelCodes], wwwByKey, ownFamily);
+    // Curated force-attach (hardware-www-map.toml): a maintainer vouched for a specific
+    // product whose code the slug can't derive (e.g. sxt-2 -> RBSXTG-2HnDr2-168), so bypass the
+    // identity-agreement gate for it. Resolves only if assess-www actually fetched the code
+    // (it seeds the same curated list); otherwise falls back to normal agreement, blank
+    // until the next live scrape — the pipeline order in #70 keeps these in step.
+    const curatedCode = curatedWwwCodeForSlug(page.slug);
+    const curatedWww = curatedCode ? (wwwByKey.get(normCode(curatedCode)) ?? null) : null;
+    const www = curatedWww ?? findAgreeingWww([...page.productLinks, ...page.tableModelCodes], wwwByKey, ownFamily);
     recordWww(www);
 
     const meta = metaFor(page.tableModelCodes, [page.slug]);

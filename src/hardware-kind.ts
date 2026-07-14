@@ -24,16 +24,22 @@
  *                   (e.g. `compliance`). Not an individual product; never a device.
  *
  * Kept rule-based on purpose: the inputs (category, slug shape) are enough to classify the
- * current set with no per-slug curation. `OVERRIDES` is the escape hatch for the odd page a
- * rule gets wrong; it is intentionally empty today (every one of the ~100 unmatched pages as
- * of the 2026-07 review classifies correctly by rule). Prefer a new rule over more overrides
- * if a whole class starts recurring — same discipline as device-exceptions.toml.
+ * current set with almost no per-slug curation. `OVERRIDES` is the escape hatch for the odd
+ * page a rule gets wrong (a `-series`-suffixed slug that is really one product). Prefer a new
+ * rule over more overrides if a whole class starts recurring — same discipline as
+ * device-exceptions.toml.
  */
 
 export type HardwareKind = "device" | "accessory" | "module" | "series-or-doc";
 
-/** Slugs whose rule-derived kind is wrong. Empty by design — see the module header. */
-export const OVERRIDES: Record<string, HardwareKind> = {};
+/**
+ * Slugs whose rule-derived kind is wrong.
+ *   nray-series — named "-series" but it is a single Wireless Wire nRAY kit, not a family
+ *                 (maintainer, #70); one www product wireless_wire_nray backs it.
+ */
+export const OVERRIDES: Record<string, HardwareKind> = {
+  "nray-series": "device",
+};
 
 /** Non-`*-series` slugs that are documentation subpages, not products. */
 const DOC_SLUGS = new Set(["compliance"]);

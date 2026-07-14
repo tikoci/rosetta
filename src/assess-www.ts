@@ -34,6 +34,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
 import { loadMatrixRows, normCode } from "./assess-hardware.ts";
+import { curatedWwwCodes } from "./hardware-www-map.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_CACHE_DIR = resolve(PROJECT_ROOT, "manual", "pages", "www");
@@ -65,6 +66,11 @@ function loadCandidateCodes(): string[] {
     };
     for (const p of hw.pages) for (const link of p.productLinks) codes.add(link);
   }
+  // Curated backfill (hardware-www-map.toml): off-matrix product codes a maintainer
+  // vouched for that neither matrix.csv nor any /hardware page links directly (e.g.
+  // sxt-2 -> RBSXTG-2HnDr2-168). Without this seed the page never gets fetched and its specs
+  // stay blank. Series members (www_codes) are seeded too so their specs land as well.
+  for (const c of curatedWwwCodes()) codes.add(c);
   return [...codes];
 }
 
