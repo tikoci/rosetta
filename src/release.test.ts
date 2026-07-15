@@ -909,6 +909,12 @@ describe("release.yml", () => {
     // Also exercises the graceful-degradation half against a real bunx install.
     expect(upgradeBlock).toContain("ROSETTA_OFFLINE=1");
     expect(upgradeBlock).toContain(`grep -F "ROSETTA_OFFLINE=1" "$LOG"`);
+    // Offline fallback applies only to a release-tag mismatch. A schema-mismatched
+    // prior DB must still hard-fail, so this smoke compares both PRAGMAs and
+    // skips rather than claiming graceful recovery across a schema bump.
+    expect(upgradeBlock).toContain('CURRENT_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
+    expect(upgradeBlock).toContain('SEEDED_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
+    expect(upgradeBlock).toContain("Skipping ROSETTA_OFFLINE smoke");
   });
 });
 

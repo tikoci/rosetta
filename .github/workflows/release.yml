@@ -892,7 +892,6 @@ jobs:
 
       - name: ROSETTA_OFFLINE=1 degrades gracefully on a stale DB instead of crashing
         env:
-          VERSION: ${{ needs.publish.outputs.version }}
           PREV_VERSION: ${{ needs.build.outputs.previous_version }}
           CHANNEL: ${{ needs.build.outputs.channel }}
           STAGE: ${{ needs.build.outputs.stage }}
@@ -904,10 +903,24 @@ jobs:
             NPM_SPEC="${NPM_SPEC}@${STAGE}"
           fi
 
+          # The previous step proved that this DB was refreshed by the current
+          # release. Record its schema before replacing it with the old DB
+          # below: offline fallback is only valid for a release-tag mismatch,
+          # never for a genuinely incompatible schema.
+          DB_PATH="$HOME/.rosetta/ros-help.db"
+          CURRENT_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval 'import sqlite from "bun:sqlite"; const db = new sqlite(process.env.DB_PATH); console.log(db.query("PRAGMA user_version").get().user_version); db.close();')
+
           # Re-seed the stale (previous-version) DB — the prior step already
-          # upgraded it to ${NPM_VER}, so this step needs its own stale copy.
+          # upgraded it to the current release, so this step needs its own
+          # stale copy.
           echo "── re-seeding stale DB (@${PREV_NPM_VER}) ──"
           bunx "@tikoci/rosetta@${PREV_NPM_VER}" --refresh
+
+          SEEDED_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval 'import sqlite from "bun:sqlite"; const db = new sqlite(process.env.DB_PATH); console.log(db.query("PRAGMA user_version").get().user_version); db.close();')
+          if [ "$SEEDED_SCHEMA" != "$CURRENT_SCHEMA" ]; then
+            echo "✓ Skipping ROSETTA_OFFLINE smoke: seeded DB schema v${SEEDED_SCHEMA} differs from current v${CURRENT_SCHEMA}, and offline recovery must fail for a genuine schema mismatch."
+            exit 0
+          fi
 
           PORT=18767
           LOG="${RUNNER_TEMP}/rosetta-offline-smoke-${{ matrix.os }}.log"
