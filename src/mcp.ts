@@ -377,8 +377,8 @@ Read \`rosetta://schema.sql\` for full DDL. This guide explains relationships, F
 | \`device_aliases\` | ~750 | Normalized alias/slug/code → canonical device, for free-form device resolution. |
 | \`device_test_results\` | 2,874 | Ethernet/IPSec benchmark rows from mikrotik.com product pages. |
 | \`changelogs\` | varies | Parsed per-entry changelog lines from MikroTik download server. |
-| \`videos\` | 518 | MikroTik YouTube video metadata. |
-| \`video_segments\` | ~1,890 | Chapter-level transcript segments (one per chapter or one per video). |
+| \`videos\` | 658 | MikroTik YouTube video metadata. |
+| \`video_segments\` | ~2,090 | Chapter-level transcript segments (one per chapter or one per video). |
 
 ## Foreign Keys
 

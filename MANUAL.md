@@ -106,7 +106,7 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
 
-- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (538 videos, ~1,870 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
+- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (658 videos, ~2,090 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
 
 - **Archived Dude Wiki** — Wayback Machine snapshots cached in `dude/pages/`, exposed through separate Dude tools because the retired GUI docs are not part of current RouterOS v7 help.
 
@@ -305,6 +305,8 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 ### Tables
 
+> `pages`/`sections`/`properties`/`callouts` row counts and descriptions below are frozen at the legacy Confluence-era shape and have not been refreshed for the live Docusaurus build (see DESIGN.md's "Historical Corpus Snapshot"). For current counts, use `routeros_stats` on a built database; the `videos`/`video_segments`/hardware-overlay rows below are already current.
+
 | Table | Rows | What's in it |
 |-------|------|-------------|
 | `pages` | 317 | Legacy documentation pages — title, breadcrumb path, full text, code blocks, help.mikrotik.com URL |
@@ -322,8 +324,8 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `device_aliases` | ~752 | Every observed device slug/code/name variant (matrix.csv, `/hardware` slug/link/table code, www requested/declared/compare code) resolved to one `hardware_catalog.rosetta_device_id` (priority-ranked, collision-counted) |
 | `device_overview` (view) | ~255 | Documented read surface: `hardware_catalog` joined to `devices` spec columns with per-device alias counts |
 | `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
-| `videos` | 538 | MikroTik YouTube video metadata — title, description, duration, chapters |
-| `video_segments` | ~1,870 non-empty | Chapter-level transcript segments with timestamps for deep linking |
+| `videos` | 658 | MikroTik YouTube video metadata — title, description, duration, chapters |
+| `video_segments` | ~2,090 non-empty | Chapter-level transcript segments with timestamps for deep linking |
 | `dude_pages` | varies | Archived Dude wiki pages from Wayback/cache |
 | `dude_images` | varies | Screenshot metadata for Dude wiki pages |
 | `skills` | 8 | Agent skill guides from tikoci/routeros-skills with provenance |

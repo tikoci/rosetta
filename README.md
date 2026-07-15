@@ -1,6 +1,6 @@
 # rosetta
 
-MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation — 317 legacy Confluence-export pages, 4,860 properties, 40,000-entry command tree, hardware specs for 156 products, 538 YouTube video transcripts, and direct links to source docs. MikroTik's current help system is the Docusaurus site at <https://manual.mikrotik.com>; rosetta's prose-doc extraction still needs a major migration away from the retired Confluence export.
+MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation — 363 pages extracted live from MikroTik's official Docusaurus manual (<https://manual.mikrotik.com>), 4,402 properties, a 40,000-entry command tree, hardware specs for 156 current products (part of a wider 255-device overlay also covering legacy/EOL gear and accessories), 658 YouTube video transcripts, and direct links to source docs.
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation. **No AI required** — rosetta includes a [terminal browser](#browse-without-ai) for searching the database directly.
 
@@ -12,16 +12,17 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 
 | Data Source | Coverage |
 |-------------|----------|
-| Documentation pages | 317 pages (~515K words) from the retired help.mikrotik.com Confluence export |
-| Property definitions | 4,860 with types, defaults, descriptions |
+| Documentation pages | 363 pages (~653K words) from MikroTik's live Docusaurus manual |
+| Property definitions | 4,402 with types, defaults, descriptions |
 | Command tree | 5,114 commands, 551 dirs, 34K arguments |
 | Version history | 46 RouterOS versions tracked (7.9–7.23beta2) |
-| Hardware products | 156 devices — specs, pricing, block diagrams |
+| Hardware products | 156 current matrix devices — specs, pricing, block diagrams |
+| Hardware overlay | 255 devices (matrix + legacy/EOL + accessories), resolved via ~750 curated alias mappings for cross-source device lookup |
 | Performance benchmarks | 2,874 tests across 125 devices (ethernet + IPSec) |
-| YouTube transcripts | 538 videos, ~1,870 transcript segments |
-| Callout blocks | 1,034 warnings, notes, and tips |
+| YouTube transcripts | 658 videos, ~2,090 transcript segments |
+| Callout blocks | 943 warnings, notes, and tips |
 
-Documentation covers RouterOS **v7 only**, aligned with the long-term release (~7.22) at the March 2026 Confluence-export time. Future official doc updates are expected on <https://manual.mikrotik.com>, including a Docusaurus CLI Reference generated from `/console/inspect` data.
+Documentation covers RouterOS **v7 only**, tracking the current long-term release (~7.22). Prose is extracted live from <https://manual.mikrotik.com> on each release build — no more stale export to keep in sync. The site's Docusaurus CLI Reference (`/console/inspect`-derived command menus) isn't ingested yet; the command tree instead comes directly from inspect.json (see `DESIGN.md`).
 
 ---
 
