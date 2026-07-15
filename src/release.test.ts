@@ -15,6 +15,12 @@ function readText(relPath: string): string {
   return readFileSync(path.join(ROOT, relPath), "utf-8");
 }
 
+function getPhonyBlock(makefile: string): string {
+  const phonyStart = makefile.indexOf(".PHONY:");
+  const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+  return makefile.slice(phonyStart, phonyEnd);
+}
+
 function mustIndex(haystack: string, needle: string): number {
   const idx = haystack.indexOf(needle);
   expect(idx).toBeGreaterThanOrEqual(0);
@@ -353,9 +359,7 @@ describe("Makefile", () => {
 
   test("extract-videos is in PHONY", () => {
     // PHONY uses line continuation; check block before first blank line after .PHONY
-    const phonyStart = makefile.indexOf(".PHONY:");
-    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
-    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    const phonyBlock = getPhonyBlock(makefile);
     expect(phonyBlock).toContain("extract-videos");
   });
 
