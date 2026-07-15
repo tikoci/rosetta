@@ -194,7 +194,7 @@ for (const r of matrixRows) {
 
   usedExceptions.add(r.name);
   const hwUrl = autoHw || (exc.hardware_slug ? `${HW_BASE}/${exc.hardware_slug}` : "");
-  const wwwUrl = autoWww || (exc.www_code ? `${WWW_BASE}/${exc.www_code}` : "");
+  const wwwUrl = autoWww || (exc.www_code ? `${WWW_BASE}/${encodeURIComponent(exc.www_code)}` : "");
   const hasBothUrls = Boolean(hwUrl && wwwUrl);
   // A curated-alias row with both URLs resolved is fully mapped and needs no review;
   // every other class carries its own name into needs_review.
