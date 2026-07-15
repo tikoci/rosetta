@@ -22,8 +22,9 @@ function mustIndex(haystack: string, needle: string): number {
 }
 
 function getPhonyBlock(makefile: string): string {
-  const phonyStart = makefile.indexOf(".PHONY:");
-  const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+  const phonyStart = mustIndex(makefile, ".PHONY:");
+  const blankLine = makefile.indexOf("\n\n", phonyStart);
+  const phonyEnd = blankLine === -1 ? makefile.length : blankLine;
   return makefile.slice(phonyStart, phonyEnd);
 }
 
