@@ -1,11 +1,13 @@
 ---
-description: "Every extractor entrypoint must run its side effects only under `import.meta.main`. Extractor tests must not open the real DB at import time either."
+description: "Every extractor entrypoint must run its side effects only under `import.meta.main`. Top-level `db.ts` imports still open a real DB connection, so tests must import extractors safely."
 applyTo: "src/extract-*.ts, src/extract-*.test.ts"
 ---
 # Extractor import side effects
 
-There are two separate hazards here, and both must be closed for every `src/extract-*.ts`
-file (audited 2026-07-14, issue #19):
+There are two separate hazards here. Hazard 1 must be closed for every `src/extract-*.ts`
+file — and now is (audited 2026-07-14, issue #19). Hazard 2 is not closed for most
+extractors and isn't required to be; it's mitigated in tests by the import pattern
+described below.
 
 1. **No unguarded execution at module scope.** Every extractor's side-effecting logic
    (DB writes, file/network reads, subprocess spawns) must live inside a `main()` function
@@ -22,7 +24,10 @@ file (audited 2026-07-14, issue #19):
    `import { db, initDb } from "./db.ts"` at the top of the file opens a DB connection
    the moment it's imported — even with the `import.meta.main` guard in place, since the
    guard only defers *execution*, not the import itself. Most extractors keep this
-   top-level import (it's harmless as long as `DB_PATH` is set correctly before import).
+   top-level import; it opens the real on-disk DB unless the importer set `DB_PATH` first.
+   That's correct for normal CLI use (a real DB is exactly what you want), but it's a trap
+   for any test or script that imports the module without first setting `DB_PATH`. This is
+   not itself a bug to fix — it's the reason the test-import discipline below exists.
    For tests, that means:
    - Set `process.env.DB_PATH = ':memory:'` before importing the extractor.
    - Use dynamic `await import(...)` so Bun does not hoist the real-DB import before the
