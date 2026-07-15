@@ -265,36 +265,58 @@ await emitOrCheck(OUT_TSV, tsv, `${rows.length} device rows`);
 // worklist (a human supplies the missing mikrotik.com/product code). See B-0018 "How to audit".
 const wwwStatusBySlug = loadCatalogWwwStatus();
 const UNMATCHED_HEADERS = ["slug", "kind", "category", "www_code", "www_specs", "is_series", "cause", "url", "mentioned_codes"] as const;
-const unmatchedRows = hwPages
+type UnmatchedRow = {
+  slug: string;
+  kind: string;
+  category: string;
+  www_code: string;
+  www_specs: string;
+  is_series: string;
+  cause: string;
+  url: string;
+  mentioned_codes: string;
+};
+const unmatchedRows: UnmatchedRow[] = hwPages
   .filter((p) => !p.matchedMatrixNames?.length)
   .sort((a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.slug.localeCompare(b.slug))
   .map((p) => {
     const www = wwwStatusBySlug.get(p.slug);
-    return [
-      p.slug,
-      classifyHardwareKind(p.slug, p.category, p.isSeries),
-      p.category ?? "",
-      www?.wwwCode ?? "",
-      www ? String(www.wwwSpecs) : "",
-      p.isSeries ? "yes" : "",
-      p.cause,
-      p.url ?? `${HW_BASE}/${p.slug}`,
-      (p.mentionedCodes ?? []).join(" "),
-    ];
+    return {
+      slug: p.slug,
+      kind: classifyHardwareKind(p.slug, p.category, p.isSeries),
+      category: p.category ?? "",
+      www_code: www?.wwwCode ?? "",
+      www_specs: www ? String(www.wwwSpecs) : "",
+      is_series: p.isSeries ? "yes" : "",
+      cause: p.cause,
+      url: p.url ?? `${HW_BASE}/${p.slug}`,
+      mentioned_codes: (p.mentionedCodes ?? []).join(" "),
+    };
   });
-const unmatchedTsv = rowsToTsv(UNMATCHED_HEADERS, unmatchedRows);
+const unmatchedRowsForTsv = unmatchedRows.map((row) => [
+  row.slug,
+  row.kind,
+  row.category,
+  row.www_code,
+  row.www_specs,
+  row.is_series,
+  row.cause,
+  row.url,
+  row.mentioned_codes,
+]);
+const unmatchedTsv = rowsToTsv(UNMATCHED_HEADERS, unmatchedRowsForTsv);
 await emitOrCheck(OUT_UNMATCHED_TSV, unmatchedTsv, `${unmatchedRows.length} unmatched /hardware pages`);
 
 const byKind: Record<string, number> = {};
-for (const row of unmatchedRows) byKind[row[1]] = (byKind[row[1]] || 0) + 1;
+for (const row of unmatchedRows) byKind[row.kind] = (byKind[row.kind] || 0) + 1;
 console.log(`Unmatched /hardware pages by kind (${unmatchedRows.length} total):`);
 for (const [k, v] of Object.entries(byKind).sort(([, a], [, b]) => b - a)) console.log(`  ${k}: ${v}`);
 if (existsSync(CATALOG_JSON)) {
-  // row[3] = www_code; row[1] = kind. A blank www_code is a page with no marketing product mapped.
-  const noWww = unmatchedRows.filter((row) => !row[3]);
-  const deviceGap = noWww.filter((row) => row[1] === "device");
+  // A blank www_code is a page with no marketing product mapped.
+  const noWww = unmatchedRows.filter((row) => !row.www_code);
+  const deviceGap = noWww.filter((row) => row.kind === "device");
   console.log(`No www product mapped (spec gap): ${noWww.length} total, ${deviceGap.length} of kind=device`);
-  if (deviceGap.length) console.log(`  kind=device gaps: ${deviceGap.map((row) => row[0]).join(", ")}`);
+  if (deviceGap.length) console.log(`  kind=device gaps: ${deviceGap.map((row) => row.slug).join(", ")}`);
 }
 
 // ── Summary + drift gate ──
