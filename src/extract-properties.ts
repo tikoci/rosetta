@@ -158,77 +158,83 @@ function extractProperties(pageId: number, htmlFile: string): PropertyRow[] {
 
 // ---- Main ----
 
-console.log("Initializing database...");
-initDb();
+function main() {
+  console.log("Initializing database...");
+  initDb();
 
-// Clear existing properties for clean re-extraction
-db.run("DELETE FROM properties;");
-db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
+  // Clear existing properties for clean re-extraction
+  db.run("DELETE FROM properties;");
+  db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
 
-// Get all pages that have HTML files
-type PageRef = { id: number; html_file: string; title: string };
-const pages = db.prepare("SELECT id, html_file, title FROM pages").all() as PageRef[];
+  // Get all pages that have HTML files
+  type PageRef = { id: number; html_file: string; title: string };
+  const pages = db.prepare("SELECT id, html_file, title FROM pages").all() as PageRef[];
 
-const insert = db.prepare(`
-  INSERT OR IGNORE INTO properties
-    (page_id, name, type, default_val, description, section, sort_order)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
-`);
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO properties
+      (page_id, name, type, default_val, description, section, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
 
-let totalProperties = 0;
-let pagesWithProps = 0;
+  let totalProperties = 0;
+  let pagesWithProps = 0;
 
-const insertAll = db.transaction(() => {
-  for (const page of pages) {
-    const props = extractProperties(page.id, page.html_file);
-    if (props.length > 0) {
-      pagesWithProps++;
-      for (const p of props) {
-        insert.run(p.pageId, p.name, p.type, p.defaultVal, p.description, p.section, p.sortOrder);
-        totalProperties++;
+  const insertAll = db.transaction(() => {
+    for (const page of pages) {
+      const props = extractProperties(page.id, page.html_file);
+      if (props.length > 0) {
+        pagesWithProps++;
+        for (const p of props) {
+          insert.run(p.pageId, p.name, p.type, p.defaultVal, p.description, p.section, p.sortOrder);
+          totalProperties++;
+        }
       }
     }
+  });
+  insertAll();
+
+  const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM properties_fts").get() as { c: number }).c;
+
+  console.log(`\nProperty extraction complete:`);
+  console.log(`  Properties extracted: ${totalProperties}`);
+  console.log(`  Pages with properties: ${pagesWithProps}`);
+  console.log(`  FTS index rows: ${ftsCount}`);
+
+  // Sample output
+  console.log(`\nSample properties from DHCP page:`);
+  const dhcpProps = db
+    .prepare(
+      `SELECT name, type, default_val, section
+       FROM properties
+       WHERE page_id = (SELECT id FROM pages WHERE title = 'DHCP')
+       ORDER BY sort_order LIMIT 10`,
+    )
+    .all() as Array<{ name: string; type: string; default_val: string; section: string }>;
+
+  for (const p of dhcpProps) {
+    console.log(`  ${p.name} (${p.type || "?"}) [default: ${p.default_val || "none"}] — ${p.section}`);
   }
-});
-insertAll();
 
-const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM properties_fts").get() as { c: number }).c;
+  // Test FTS search
+  console.log(`\nSearch for "gateway":`);
+  const results = db
+    .prepare(
+      `SELECT p.name, p.type, p.default_val, pg.title as page_title, p.section,
+              snippet(properties_fts, 1, '>>>', '<<<', '...', 20) as excerpt
+       FROM properties_fts fts
+       JOIN properties p ON p.id = fts.rowid
+       JOIN pages pg ON pg.id = p.page_id
+       WHERE properties_fts MATCH 'gateway'
+       ORDER BY rank LIMIT 5`,
+    )
+    .all() as Array<{ name: string; type: string; default_val: string; page_title: string; section: string; excerpt: string }>;
 
-console.log(`\nProperty extraction complete:`);
-console.log(`  Properties extracted: ${totalProperties}`);
-console.log(`  Pages with properties: ${pagesWithProps}`);
-console.log(`  FTS index rows: ${ftsCount}`);
-
-// Sample output
-console.log(`\nSample properties from DHCP page:`);
-const dhcpProps = db
-  .prepare(
-    `SELECT name, type, default_val, section
-     FROM properties
-     WHERE page_id = (SELECT id FROM pages WHERE title = 'DHCP')
-     ORDER BY sort_order LIMIT 10`,
-  )
-  .all() as Array<{ name: string; type: string; default_val: string; section: string }>;
-
-for (const p of dhcpProps) {
-  console.log(`  ${p.name} (${p.type || "?"}) [default: ${p.default_val || "none"}] — ${p.section}`);
+  for (const r of results) {
+    console.log(`  ${r.name} [${r.page_title} / ${r.section}]`);
+    console.log(`    ${r.excerpt}`);
+  }
 }
 
-// Test FTS search
-console.log(`\nSearch for "gateway":`);
-const results = db
-  .prepare(
-    `SELECT p.name, p.type, p.default_val, pg.title as page_title, p.section,
-            snippet(properties_fts, 1, '>>>', '<<<', '...', 20) as excerpt
-     FROM properties_fts fts
-     JOIN properties p ON p.id = fts.rowid
-     JOIN pages pg ON pg.id = p.page_id
-     WHERE properties_fts MATCH 'gateway'
-     ORDER BY rank LIMIT 5`,
-  )
-  .all() as Array<{ name: string; type: string; default_val: string; page_title: string; section: string; excerpt: string }>;
-
-for (const r of results) {
-  console.log(`  ${r.name} [${r.page_title} / ${r.section}]`);
-  console.log(`    ${r.excerpt}`);
+if (import.meta.main) {
+  main();
 }
