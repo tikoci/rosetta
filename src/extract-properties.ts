@@ -164,7 +164,6 @@ function main() {
 
   // Clear existing properties for clean re-extraction
   db.run("DELETE FROM properties;");
-  db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
 
   // Get all pages that have HTML files
   type PageRef = { id: number; html_file: string; title: string };
@@ -192,6 +191,7 @@ function main() {
     }
   });
   insertAll();
+  db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
 
   const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM properties_fts").get() as { c: number }).c;
 
