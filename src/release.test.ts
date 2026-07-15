@@ -246,6 +246,32 @@ describe("setup.ts", () => {
     expect(gracefulBranch).toContain("p = previous;");
   });
 
+  test("mcp.ts honors ROSETTA_OFFLINE=1 by skipping the network attempt, not by letting it fail slowly", () => {
+    const src = readText("src/mcp.ts");
+    expect(src).toContain('process.env.ROSETTA_OFFLINE === "1"');
+
+    // The offline short-circuit must sit inside the try block, ahead of the
+    // real downloadDb() call, so it reuses the exact same hard-fail-vs-graceful
+    // catch branching as a real network failure rather than duplicating it.
+    // (downloadDb() is called twice in this file — Case 1 and Case 2 — so
+    // search for the occurrence after the offline throw, not the first one.)
+    const offlineThrowIdx = mustIndex(src, 'throw new Error("ROSETTA_OFFLINE=1 set; not attempting a network download")');
+    const downloadCallIdx = src.indexOf("p = await downloadDb(dbPath, log);", offlineThrowIdx);
+    expect(downloadCallIdx).toBeGreaterThan(offlineThrowIdx);
+  });
+
+  test("mcp.ts fails fast under ROSETTA_OFFLINE=1 when no DB exists at all (nothing to fall back to)", () => {
+    const src = readText("src/mcp.ts");
+    const offlineNoDbIdx = mustIndex(
+      src,
+      "ROSETTA_OFFLINE=1 set and no usable database exists",
+    );
+    const firstDownloadCallIdx = mustIndex(src, "p = await downloadDb(dbPath, log);");
+    // This check must guard the very first download attempt (Case 1: missing/
+    // empty DB) — placed before it, not folded into the Case 2 freshness logic.
+    expect(offlineNoDbIdx).toBeLessThan(firstDownloadCallIdx);
+  });
+
   test("setup.ts exports checkDbFreshness as a pure, unit-tested decision function", () => {
     const src = readText("src/setup.ts");
     expect(src).toContain("export function checkDbFreshness");
@@ -832,11 +858,63 @@ describe("release.yml", () => {
   test("bunx-smoke depends on publish and reads the published version from its output", () => {
     const src = readText(".github/workflows/release.yml");
     const bunxIdx = mustIndex(src, "\n  bunx-smoke:");
-    const bunxBlock = src.slice(bunxIdx);
+    const upgradeIdx = mustIndex(src, "\n  bunx-upgrade-smoke:");
+    const bunxBlock = src.slice(bunxIdx, upgradeIdx);
     expect(bunxBlock).toMatch(/needs:\s*publish/);
     expect(bunxBlock).toContain("needs.publish.outputs.version");
     // The old monolithic job name is gone entirely.
     expect(src).not.toContain("build-and-release");
+  });
+
+  test("build job captures the previously-published version per dist-tag (for bunx-upgrade-smoke)", () => {
+    const src = readText(".github/workflows/release.yml");
+    const buildIdx = mustIndex(src, "\n  build:");
+    const qaIdx = mustIndex(src, "\n  qa:");
+    const buildBlock = src.slice(buildIdx, qaIdx);
+
+    expect(buildBlock).toContain(`previous_version: \${{ steps.previous_version.outputs.previous_version }}`);
+    expect(buildBlock).toContain("id: previous_version");
+    // Must resolve against the SAME dist-tag this run publishes to (latest,
+    // or the prerelease stage) — not just "any GitHub Release" — otherwise
+    // the seeded upgrade-smoke DB wouldn't represent a real user's path.
+    expect(buildBlock).toContain(`npm view "@tikoci/rosetta@\${NPM_TAG}" version`);
+    // A missing tag is expected for the first release on a channel, but a
+    // registry/auth/transport failure must not silently skip the smoke gate.
+    expect(buildBlock).toContain("code E404");
+    expect(buildBlock).not.toContain("2>/dev/null || true");
+  });
+
+  test("bunx-upgrade-smoke seeds a stale DB from the previous version, then proves a bare bunx auto-refreshes it (#76/#23/#78)", () => {
+    const src = readText(".github/workflows/release.yml");
+    const upgradeIdx = mustIndex(src, "\n  bunx-upgrade-smoke:");
+    const upgradeBlock = src.slice(upgradeIdx);
+
+    // Skipped (not failed) when there's no prior publish on this channel yet.
+    expect(upgradeBlock).toMatch(/if: inputs\.republish_assets != true && needs\.build\.outputs\.previous_version != ''/);
+    expect(upgradeBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
+
+    // Seeds with the OLD version, then invokes the NEW version through the
+    // real bare/tag client form (never an exact-version pin or --refresh).
+    expect(upgradeBlock).toContain(`bunx "@tikoci/rosetta@\${PREV_NPM_VER}" --refresh`);
+    expect(upgradeBlock).toContain('NPM_SPEC="@tikoci/rosetta"');
+    expect(upgradeBlock).toContain(`bunx "$NPM_SPEC" --http`);
+    // The new version must never be invoked by exact pin or with --refresh:
+    // neither would exercise an ordinary MCP client's dist-tag resolution.
+    expect(upgradeBlock).not.toContain(`"@tikoci/rosetta@\${NPM_VER}"`);
+
+    // Asserts on the startup banner (ensureDbReady), not just "server answered" —
+    // that's the only signal that actually proves the DB content refreshed.
+    expect(upgradeBlock).toContain(`grep -F "release v\${NPM_VER}" "$LOG"`);
+
+    // Also exercises the graceful-degradation half against a real bunx install.
+    expect(upgradeBlock).toContain("ROSETTA_OFFLINE=1");
+    expect(upgradeBlock).toContain(`grep -F "ROSETTA_OFFLINE=1" "$LOG"`);
+    // Offline fallback applies only to a release-tag mismatch. A schema-mismatched
+    // prior DB must still hard-fail, so this smoke compares both PRAGMAs and
+    // skips rather than claiming graceful recovery across a schema bump.
+    expect(upgradeBlock).toContain('CURRENT_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
+    expect(upgradeBlock).toContain('SEEDED_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
+    expect(upgradeBlock).toContain("Skipping ROSETTA_OFFLINE smoke");
   });
 });
 

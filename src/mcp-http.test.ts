@@ -567,6 +567,41 @@ describe("HTTP transport: error handling", () => {
   });
 });
 
+describe("ROSETTA_OFFLINE", () => {
+
+  test("schema mismatch + ROSETTA_OFFLINE=1 fails fast instead of attempting a network download", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rosetta-offline-test-"));
+    const dbPath = join(dir, "ros-help.db");
+    try {
+      createFixtureDb(dbPath);
+      // Force a genuine schema mismatch — offline can't fix this, so it must
+      // still hard-fail (unlike a release-tag-only mismatch, which degrades
+      // gracefully). Reusing SCHEMA_VERSION here would defeat the point.
+      const fixture = new sqlite(dbPath);
+      fixture.run(`PRAGMA user_version = ${SCHEMA_VERSION - 1};`);
+      fixture.close();
+
+      // No --http/--port needed: ensureDbReady() runs before transport dispatch,
+      // so a bare (stdio-mode) invocation fails at the same point.
+      const proc = Bun.spawnSync(["bun", "run", "src/mcp.ts"], {
+        cwd: `${import.meta.dirname}/..`,
+        stdout: "pipe",
+        stderr: "pipe",
+        env: { ...process.env, DB_PATH: dbPath, ROSETTA_OFFLINE: "1" },
+        timeout: 20_000,
+      });
+
+      expect(proc.exitCode).not.toBe(0);
+      const stderr = proc.stderr.toString();
+      expect(stderr).toContain("ROSETTA_OFFLINE=1");
+      // Must not have attempted (or waited on) a real download.
+      expect(stderr).not.toContain("Re-downloading database");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }, 25_000);
+});
+
 describe("HTTP transport: multi-session", () => {
 
   test("two clients get independent sessions", async () => {

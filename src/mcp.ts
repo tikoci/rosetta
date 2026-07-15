@@ -20,6 +20,10 @@
  *
  * Environment variables:
  *   DB_PATH — absolute path to ros-help.db (default: next to binary or project root)
+ *   ROSETTA_OFFLINE — set to "1" to skip all DB freshness/redownload network
+ *     attempts; a release-tag-only mismatch falls back to the existing DB
+ *     with a warning, a genuine schema mismatch still fails hard (offline
+ *     can't fix an unqueryable DB)
  *   PORT    — HTTP listen port (lower precedence than --port)
  *   HOST    — HTTP bind address (lower precedence than --host)
  *   TLS_CERT_PATH — TLS certificate path (lower precedence than --tls-cert)
@@ -55,13 +59,16 @@ function link(url: string, display?: string): string {
  * Failure modes are explicit:
  *   - Missing or empty DB → download once. If download fails, abort startup —
  *     package-mode startup must not continue into db.ts and create a schema-only DB.
+ *     ROSETTA_OFFLINE=1 skips the attempt and fails immediately (nothing to fall back to).
  *   - Schema mismatch → re-download once, then re-probe. If still mismatched,
  *     fail hard with an actionable message rather than silently using a DB
- *     that the running code can't query correctly.
+ *     that the running code can't query correctly. Still fails hard under
+ *     ROSETTA_OFFLINE=1 — offline can't fix an unqueryable DB either way.
  *   - Release-tag mismatch only (bunx resolved a newer version, same schema,
  *     content bumped — see setup.ts's checkDbFreshness) → re-download, but
  *     degrade gracefully to the existing, still-queryable DB if that fails
- *     (e.g. offline) instead of crashing startup over it.
+ *     (e.g. offline, or ROSETTA_OFFLINE=1 set deliberately) instead of
+ *     crashing startup over it.
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   const { resolveDbPath, SCHEMA_VERSION, resolveVersion, detectMode } = await import("./paths.ts");
@@ -72,6 +79,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   const dbPath = resolveDbPath(import.meta.dirname);
   const runningVersion = resolveVersion(import.meta.dirname);
   const mode = detectMode(import.meta.dirname);
+  const offline = process.env.ROSETTA_OFFLINE === "1";
 
   // Always clean abandoned .tmp.* artifacts from previous failed runs when no
   // active download lock exists, regardless of whether a download is needed now.
@@ -79,7 +87,14 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
 
   let p = probeDb(dbPath);
 
-  // Case 1: DB missing or empty → first-time download.
+  // Case 1: DB missing or empty → first-time download. ROSETTA_OFFLINE=1 fails
+  // fast here instead of hanging on a network attempt that can't succeed —
+  // there is no existing DB to gracefully fall back to.
+  if (!hasMinimumDbContent(p) && offline) {
+    throw new Error(
+      `ROSETTA_OFFLINE=1 set and no usable database exists at ${dbPath}; unset ROSETTA_OFFLINE and run --refresh once online.`,
+    );
+  }
   if (!hasMinimumDbContent(p)) {
     log(`No usable database at ${dbPath} — downloading...`);
     try {
@@ -105,9 +120,15 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   // then re-probe and fail hard only if the schema is still actually wrong.
   const freshness = checkDbFreshness(p, { schemaVersion: SCHEMA_VERSION, runningVersion, mode });
   if (freshness.redownload) {
-    log(`${freshness.reason} Re-downloading database...`);
+    log(`${freshness.reason} ${offline ? "ROSETTA_OFFLINE=1 set — skipping redownload." : "Re-downloading database..."}`);
     const previous = p;
     try {
+      // ROSETTA_OFFLINE=1 short-circuits the network attempt entirely rather
+      // than letting it time out — treated as a download failure so it falls
+      // into the same hard-fail-vs-graceful branching below as a real one.
+      if (offline) {
+        throw new Error("ROSETTA_OFFLINE=1 set; not attempting a network download");
+      }
       p = await downloadDb(dbPath, log);
     } catch (e) {
       if (!freshness.hardFailOnDownloadError) {
@@ -174,6 +195,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log();
   console.log("Environment:");
   console.log("  DB_PATH  Absolute path to ros-help.db (optional)");
+  console.log("  ROSETTA_OFFLINE=1  Skip DB freshness network checks (fall back to existing DB)");
   console.log("  PORT     HTTP listen port (lower precedence than --port)");
   console.log("  HOST     HTTP bind address (lower precedence than --host)");
   console.log("  TLS_CERT_PATH  TLS certificate path (lower precedence than --tls-cert)");

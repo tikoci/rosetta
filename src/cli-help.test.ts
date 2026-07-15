@@ -4,6 +4,9 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const INTENTIONAL_OMISSIONS = new Set<string>();
+const REQUIRED_ENVIRONMENT_HELP = [
+  "ROSETTA_OFFLINE=1  Skip DB freshness network checks (fall back to existing DB)",
+];
 
 function readText(relPath: string): string {
   return readFileSync(path.join(ROOT, relPath), "utf-8");
@@ -74,5 +77,12 @@ describe("CLI help ↔ MANUAL flag parity", () => {
     const fromHelp = readHelpCliEntries(runHelp()).filter((entry) => !INTENTIONAL_OMISSIONS.has(entry));
 
     expect(fromHelp).toEqual(documented);
+  });
+
+  test("--help retains the ROSETTA_OFFLINE safety hint", () => {
+    const help = runHelp();
+    for (const line of REQUIRED_ENVIRONMENT_HELP) {
+      expect(help).toContain(line);
+    }
   });
 });

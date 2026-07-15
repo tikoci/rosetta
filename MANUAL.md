@@ -682,6 +682,8 @@ Once configured as an MCP server, rosetta should keep itself up to date without 
 
 5. **Schema mismatch is a hard error; a content-only release-tag mismatch degrades gracefully.** If a download still doesn't match the expected schema after the auto-recovery attempt, the server exits with an actionable message instead of silently booting on unqueryable data — the fix is `bunx @tikoci/rosetta@latest --refresh`, which refreshes both the package resolution and the DB. But if the mismatch is release-tag-only (same schema, newer content published) and the refresh attempt itself fails — e.g. offline — rosetta logs a warning and keeps serving the existing, still-queryable DB instead of crashing startup.
 
+   Set `ROSETTA_OFFLINE=1` to opt into this deliberately — rosetta skips the network attempt entirely instead of letting it time out. A release-tag-only mismatch still falls back to the existing DB with a warning; a genuine schema mismatch still fails hard (offline can't fix an unqueryable DB either way).
+
 6. **Manual refresh.** `bunx @tikoci/rosetta@latest --refresh` triggers a fresh download + validation with no other side effects (no MCP-config printing). Use it after a known DB-only release or to recover from a previously failed download.
 
 7. **`~/.rosetta/` is the canonical DB location** for `bunx` / global installs. Compiled binaries store the DB next to the executable; dev checkouts use `<repo>/ros-help.db`.
