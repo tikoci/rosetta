@@ -305,6 +305,8 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 ### Tables
 
+> `pages`/`sections`/`properties`/`callouts` row counts and descriptions below are frozen at the legacy Confluence-era shape and have not been refreshed for the live Docusaurus build (see DESIGN.md's "Historical Corpus Snapshot"). For current counts, use `routeros_stats` on a built database; the `videos`/`video_segments`/hardware-overlay rows below are already current.
+
 | Table | Rows | What's in it |
 |-------|------|-------------|
 | `pages` | 317 | Legacy documentation pages — title, breadcrumb path, full text, code blocks, help.mikrotik.com URL |
