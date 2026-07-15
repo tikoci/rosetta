@@ -129,81 +129,90 @@ function discoverLocalVersions(docsDir: string): VersionInfo[] {
     .sort((a, b) => compareVersions(a.version, b.version));
 }
 
-const localMode = SOURCE && !isHttpUrl(SOURCE);
+async function main() {
+  const localMode = SOURCE && !isHttpUrl(SOURCE);
 
-const versions = localMode
-  ? discoverLocalVersions(resolve(SOURCE))
-  : await discoverRemoteVersions();
+  const versions = localMode
+    ? discoverLocalVersions(resolve(SOURCE))
+    : await discoverRemoteVersions();
 
-console.log(
-  `Found ${versions.length} RouterOS versions${localMode ? ` in ${resolve(SOURCE)}` : " from restraml GitHub"}`,
-);
+  console.log(
+    `Found ${versions.length} RouterOS versions${localMode ? ` in ${resolve(SOURCE)}` : " from restraml GitHub"}`,
+  );
 
-if (versions.length === 0) {
-  throw new Error(`No inspect.json files found${localMode ? ` in ${resolve(SOURCE)}` : " from restraml GitHub"}`);
-}
+  if (versions.length === 0) {
+    throw new Error(`No inspect.json files found${localMode ? ` in ${resolve(SOURCE)}` : " from restraml GitHub"}`);
+  }
 
-// Determine the latest stable version for primary extraction
-const latestStable = [...versions].filter((v) => v.channel === "stable").pop();
-const latest = latestStable || versions[versions.length - 1];
-console.log(`Latest stable: ${latest?.version ?? "none"}`);
+  // Determine the latest stable version for primary extraction
+  const latestStable = [...versions].filter((v) => v.channel === "stable").pop();
+  const latest = latestStable || versions[versions.length - 1];
+  console.log(`Latest stable: ${latest?.version ?? "none"}`);
 
-// Run extraction for each version
-// For versions with deep-inspect: use extract-schema.ts (multi-arch, completion data)
-// For versions without: fall back to extract-commands.ts (legacy)
-// Primary version (latest stable) rebuilds the main tables; others accumulate only.
+  // Run extraction for each version
+  // For versions with deep-inspect: use extract-schema.ts (multi-arch, completion data)
+  // For versions without: fall back to extract-commands.ts (legacy)
+  // Primary version (latest stable) rebuilds the main tables; others accumulate only.
 
-const extractSchemaCmd = resolve(import.meta.dir, "extract-schema.ts");
-const extractCommandsCmd = resolve(import.meta.dir, "extract-commands.ts");
+  const extractSchemaCmd = resolve(import.meta.dir, "extract-schema.ts");
+  const extractCommandsCmd = resolve(import.meta.dir, "extract-commands.ts");
 
-const deepCount = versions.filter((v) => v.hasDeepInspect).length;
-const legacyCount = versions.length - deepCount;
-console.log(`Deep-inspect versions: ${deepCount}, legacy inspect.json: ${legacyCount}`);
+  const deepCount = versions.filter((v) => v.hasDeepInspect).length;
+  const legacyCount = versions.length - deepCount;
+  console.log(`Deep-inspect versions: ${deepCount}, legacy inspect.json: ${legacyCount}`);
 
-let extracted = 0;
-for (const v of versions) {
-  const isPrimary = v === latest;
-  const flags = [
-    `--version=${v.version}`,
-    `--channel=${v.channel}`,
-    ...(v.hasExtra ? ["--extra"] : []),
-    ...(isPrimary ? [] : ["--accumulate"]),
-  ];
+  let extracted = 0;
+  for (const v of versions) {
+    const isPrimary = v === latest;
+    const flags = [
+      `--version=${v.version}`,
+      `--channel=${v.channel}`,
+      ...(v.hasExtra ? ["--extra"] : []),
+      ...(isPrimary ? [] : ["--accumulate"]),
+    ];
+
+    console.log(`\n${"=".repeat(60)}`);
+
+    let proc: ReturnType<typeof Bun.spawnSync>;
+
+    if (v.hasDeepInspect) {
+      // Use extract-schema.ts with both arch files
+      const schemaFlags = [
+        ...(v.deepX86 ? [`--x86=${v.deepX86}`] : []),
+        ...(v.deepArm64 ? [`--arm64=${v.deepArm64}`] : []),
+        ...flags,
+      ];
+      console.log(`${isPrimary ? "PRIMARY" : "accumulate"}: ${v.version} (${v.channel}) [deep-inspect]`);
+
+      proc = Bun.spawnSync(["bun", "run", extractSchemaCmd, ...schemaFlags], {
+        cwd: resolve(import.meta.dir, ".."),
+        stdio: ["inherit", "inherit", "inherit"],
+      });
+    } else {
+      // Legacy fallback: use extract-commands.ts
+      console.log(`${isPrimary ? "PRIMARY" : "accumulate"}: ${v.version} (${v.channel}) [legacy inspect.json]`);
+
+      proc = Bun.spawnSync(["bun", "run", extractCommandsCmd, v.inspectPath, ...flags], {
+        cwd: resolve(import.meta.dir, ".."),
+        stdio: ["inherit", "inherit", "inherit"],
+      });
+    }
+
+    if (proc.exitCode !== 0) {
+      console.error(`FAILED: ${v.version} (exit ${proc.exitCode})`);
+      continue;
+    }
+    extracted++;
+  }
 
   console.log(`\n${"=".repeat(60)}`);
-
-  let proc: ReturnType<typeof Bun.spawnSync>;
-
-  if (v.hasDeepInspect) {
-    // Use extract-schema.ts with both arch files
-    const schemaFlags = [
-      ...(v.deepX86 ? [`--x86=${v.deepX86}`] : []),
-      ...(v.deepArm64 ? [`--arm64=${v.deepArm64}`] : []),
-      ...flags,
-    ];
-    console.log(`${isPrimary ? "PRIMARY" : "accumulate"}: ${v.version} (${v.channel}) [deep-inspect]`);
-
-    proc = Bun.spawnSync(["bun", "run", extractSchemaCmd, ...schemaFlags], {
-      cwd: resolve(import.meta.dir, ".."),
-      stdio: ["inherit", "inherit", "inherit"],
-    });
-  } else {
-    // Legacy fallback: use extract-commands.ts
-    console.log(`${isPrimary ? "PRIMARY" : "accumulate"}: ${v.version} (${v.channel}) [legacy inspect.json]`);
-
-    proc = Bun.spawnSync(["bun", "run", extractCommandsCmd, v.inspectPath, ...flags], {
-      cwd: resolve(import.meta.dir, ".."),
-      stdio: ["inherit", "inherit", "inherit"],
-    });
-  }
-
-  if (proc.exitCode !== 0) {
-    console.error(`FAILED: ${v.version} (exit ${proc.exitCode})`);
-    continue;
-  }
-  extracted++;
+  console.log(`Done. Extracted ${extracted}/${versions.length} versions.`);
+  console.log(`Primary version: ${latest?.version ?? "none"}`);
 }
 
-console.log(`\n${"=".repeat(60)}`);
-console.log(`Done. Extracted ${extracted}/${versions.length} versions.`);
-console.log(`Primary version: ${latest?.version ?? "none"}`);
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error("Fatal:", e);
+    process.exit(1);
+  });
+}

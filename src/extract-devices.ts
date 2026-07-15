@@ -105,111 +105,117 @@ function parsePrice(value: string): number | null {
 
 // ── Main ──
 
-initDb();
+function main() {
+  initDb();
 
-const raw = readFileSync(csvPath, "utf-8");
-// Strip UTF-8 BOM
-const content = raw.replace(/^\ufeff/, "");
-const lines = content.split(/\r?\n/).filter((l) => l.trim());
+  const raw = readFileSync(csvPath, "utf-8");
+  // Strip UTF-8 BOM
+  const content = raw.replace(/^\ufeff/, "");
+  const lines = content.split(/\r?\n/).filter((l) => l.trim());
 
-if (lines.length < 2) {
-  console.error("CSV has no data rows");
-  process.exit(1);
+  if (lines.length < 2) {
+    console.error("CSV has no data rows");
+    process.exit(1);
+  }
+
+  // Skip header row
+  const dataLines = lines.slice(1);
+
+  // Idempotent: clear existing data (FTS triggers handle cleanup).
+  // device_test_results and hardware_catalog both FK into devices — wipe them first to
+  // avoid a FOREIGN KEY constraint failure on re-run over a populated DB. Re-extracting
+  // devices also invalidates hardware_catalog.device_id links (device ids are AUTOINCREMENT,
+  // not stable), so device_aliases is cleared too; extract-test-results and
+  // extract-hardware-catalog run later and repopulate their tables from scratch.
+  db.run("DELETE FROM device_test_results");
+  db.run("DELETE FROM device_aliases");
+  db.run("DELETE FROM hardware_catalog");
+  db.run("DELETE FROM devices");
+
+  const insert = db.prepare(`INSERT INTO devices (
+    product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
+    license_level, operating_system, ram, ram_mb, storage, storage_mb,
+    dimensions, poe_in, poe_out, poe_out_ports, poe_in_voltage,
+    dc_inputs, dc_jack_voltage, max_power_w,
+    wireless_24_chains, antenna_24_dbi, wireless_5_chains, antenna_5_dbi,
+    eth_fast, eth_gigabit, eth_2500, usb_ports, combo_ports,
+    sfp_ports, sfp_plus_ports, eth_multigig, sim_slots,
+    memory_cards, usb_type, msrp_usd
+  ) VALUES (
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?, ?, ?,
+    ?, ?, ?, ?,
+    ?, ?, ?
+  )`);
+
+  let inserted = 0;
+  let skipped = 0;
+
+  const insertAll = db.transaction(() => {
+    for (const line of dataLines) {
+      const f = parseCsvLine(line);
+      if (f.length < 34) {
+        skipped++;
+        continue;
+      }
+
+      const productName = normalizeSuperscripts(f[0].trim());
+      if (!productName) {
+        skipped++;
+        continue;
+      }
+
+      insert.run(
+        productName,
+        f[1].trim() || null,    // product_code
+        f[2].trim() || null,    // architecture
+        f[3].trim() || null,    // cpu
+        parseIntOrNull(f[4]),   // cpu_cores
+        f[5].trim() || null,    // cpu_frequency
+        parseIntOrNull(f[6]),   // license_level
+        f[7].trim() || null,    // operating_system
+        f[8].trim() || null,    // ram
+        parseSizeMb(f[8]),      // ram_mb
+        f[9].trim() || null,    // storage
+        parseSizeMb(f[9]),      // storage_mb
+        f[10].trim() || null,   // dimensions
+        f[11].trim() || null,   // poe_in
+        f[12].trim() || null,   // poe_out
+        f[13].trim() || null,   // poe_out_ports
+        f[14].trim() || null,   // poe_in_voltage
+        parseIntOrNull(f[15]),  // dc_inputs
+        f[16].trim() || null,   // dc_jack_voltage
+        parseWatts(f[17]),      // max_power_w
+        parseIntOrNull(f[18]),  // wireless_24_chains
+        parseFloatOrNull(f[19]),// antenna_24_dbi
+        parseIntOrNull(f[20]),  // wireless_5_chains
+        parseFloatOrNull(f[21]),// antenna_5_dbi
+        parseIntOrNull(f[22]),  // eth_fast
+        parseIntOrNull(f[23]),  // eth_gigabit
+        parseIntOrNull(f[24]),  // eth_2500
+        parseIntOrNull(f[25]),  // usb_ports
+        parseIntOrNull(f[26]),  // combo_ports
+        parseIntOrNull(f[27]),  // sfp_ports
+        parseIntOrNull(f[28]),  // sfp_plus_ports
+        parseIntOrNull(f[29]),  // eth_multigig
+        parseIntOrNull(f[30]),  // sim_slots
+        f[31].trim() || null,   // memory_cards
+        f[32].trim() || null,   // usb_type
+        parsePrice(f[33]),      // msrp_usd
+      );
+      inserted++;
+    }
+  });
+
+  insertAll();
+
+  console.log(`Devices: ${inserted} inserted, ${skipped} skipped from ${csvPath}`);
 }
 
-// Skip header row
-const dataLines = lines.slice(1);
-
-// Idempotent: clear existing data (FTS triggers handle cleanup).
-// device_test_results and hardware_catalog both FK into devices — wipe them first to
-// avoid a FOREIGN KEY constraint failure on re-run over a populated DB. Re-extracting
-// devices also invalidates hardware_catalog.device_id links (device ids are AUTOINCREMENT,
-// not stable), so device_aliases is cleared too; extract-test-results and
-// extract-hardware-catalog run later and repopulate their tables from scratch.
-db.run("DELETE FROM device_test_results");
-db.run("DELETE FROM device_aliases");
-db.run("DELETE FROM hardware_catalog");
-db.run("DELETE FROM devices");
-
-const insert = db.prepare(`INSERT INTO devices (
-  product_name, product_code, architecture, cpu, cpu_cores, cpu_frequency,
-  license_level, operating_system, ram, ram_mb, storage, storage_mb,
-  dimensions, poe_in, poe_out, poe_out_ports, poe_in_voltage,
-  dc_inputs, dc_jack_voltage, max_power_w,
-  wireless_24_chains, antenna_24_dbi, wireless_5_chains, antenna_5_dbi,
-  eth_fast, eth_gigabit, eth_2500, usb_ports, combo_ports,
-  sfp_ports, sfp_plus_ports, eth_multigig, sim_slots,
-  memory_cards, usb_type, msrp_usd
-) VALUES (
-  ?, ?, ?, ?, ?, ?,
-  ?, ?, ?, ?, ?, ?,
-  ?, ?, ?, ?, ?,
-  ?, ?, ?,
-  ?, ?, ?, ?,
-  ?, ?, ?, ?, ?,
-  ?, ?, ?, ?,
-  ?, ?, ?
-)`);
-
-let inserted = 0;
-let skipped = 0;
-
-const insertAll = db.transaction(() => {
-  for (const line of dataLines) {
-    const f = parseCsvLine(line);
-    if (f.length < 34) {
-      skipped++;
-      continue;
-    }
-
-    const productName = normalizeSuperscripts(f[0].trim());
-    if (!productName) {
-      skipped++;
-      continue;
-    }
-
-    insert.run(
-      productName,
-      f[1].trim() || null,    // product_code
-      f[2].trim() || null,    // architecture
-      f[3].trim() || null,    // cpu
-      parseIntOrNull(f[4]),   // cpu_cores
-      f[5].trim() || null,    // cpu_frequency
-      parseIntOrNull(f[6]),   // license_level
-      f[7].trim() || null,    // operating_system
-      f[8].trim() || null,    // ram
-      parseSizeMb(f[8]),      // ram_mb
-      f[9].trim() || null,    // storage
-      parseSizeMb(f[9]),      // storage_mb
-      f[10].trim() || null,   // dimensions
-      f[11].trim() || null,   // poe_in
-      f[12].trim() || null,   // poe_out
-      f[13].trim() || null,   // poe_out_ports
-      f[14].trim() || null,   // poe_in_voltage
-      parseIntOrNull(f[15]),  // dc_inputs
-      f[16].trim() || null,   // dc_jack_voltage
-      parseWatts(f[17]),      // max_power_w
-      parseIntOrNull(f[18]),  // wireless_24_chains
-      parseFloatOrNull(f[19]),// antenna_24_dbi
-      parseIntOrNull(f[20]),  // wireless_5_chains
-      parseFloatOrNull(f[21]),// antenna_5_dbi
-      parseIntOrNull(f[22]),  // eth_fast
-      parseIntOrNull(f[23]),  // eth_gigabit
-      parseIntOrNull(f[24]),  // eth_2500
-      parseIntOrNull(f[25]),  // usb_ports
-      parseIntOrNull(f[26]),  // combo_ports
-      parseIntOrNull(f[27]),  // sfp_ports
-      parseIntOrNull(f[28]),  // sfp_plus_ports
-      parseIntOrNull(f[29]),  // eth_multigig
-      parseIntOrNull(f[30]),  // sim_slots
-      f[31].trim() || null,   // memory_cards
-      f[32].trim() || null,   // usb_type
-      parsePrice(f[33]),      // msrp_usd
-    );
-    inserted++;
-  }
-});
-
-insertAll();
-
-console.log(`Devices: ${inserted} inserted, ${skipped} skipped from ${csvPath}`);
+if (import.meta.main) {
+  main();
+}
