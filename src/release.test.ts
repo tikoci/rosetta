@@ -21,6 +21,12 @@ function mustIndex(haystack: string, needle: string): number {
   return idx;
 }
 
+function getPhonyBlock(makefile: string): string {
+  const phonyStart = makefile.indexOf(".PHONY:");
+  const phonyEnd = makefile.indexOf("\n\n", phonyStart);
+  return makefile.slice(phonyStart, phonyEnd);
+}
+
 // ---------------------------------------------------------------------------
 // package.json health
 // ---------------------------------------------------------------------------
@@ -353,9 +359,7 @@ describe("Makefile", () => {
 
   test("extract-videos is in PHONY", () => {
     // PHONY uses line continuation; check block before first blank line after .PHONY
-    const phonyStart = makefile.indexOf(".PHONY:");
-    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
-    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    const phonyBlock = getPhonyBlock(makefile);
     expect(phonyBlock).toContain("extract-videos");
   });
 
@@ -376,9 +380,7 @@ describe("Makefile", () => {
   });
 
   test("extract-skills is in PHONY", () => {
-    const phonyStart = makefile.indexOf(".PHONY:");
-    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
-    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    const phonyBlock = getPhonyBlock(makefile);
     expect(phonyBlock).toContain("extract-skills");
   });
 
@@ -388,16 +390,12 @@ describe("Makefile", () => {
   });
 
   test("gc-versions is in PHONY", () => {
-    const phonyStart = makefile.indexOf(".PHONY:");
-    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
-    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    const phonyBlock = getPhonyBlock(makefile);
     expect(phonyBlock).toContain("gc-versions");
   });
 
   test("extract-dude is in PHONY", () => {
-    const phonyStart = makefile.indexOf(".PHONY:");
-    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
-    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    const phonyBlock = getPhonyBlock(makefile);
     expect(phonyBlock).toContain("extract-dude");
   });
 
@@ -423,9 +421,7 @@ describe("Makefile", () => {
   });
 
   test("extract-docusaurus is in PHONY", () => {
-    const phonyStart = makefile.indexOf(".PHONY:");
-    const phonyEnd = makefile.indexOf("\n\n", phonyStart);
-    const phonyBlock = makefile.slice(phonyStart, phonyEnd);
+    const phonyBlock = getPhonyBlock(makefile);
     expect(phonyBlock).toContain("extract-docusaurus");
   });
 
