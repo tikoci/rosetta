@@ -21,7 +21,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Product matrix | `matrix/2026-07-07/matrix.csv` | CSV, 34 columns | 156 products, July 2026 |
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
-| YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 538 videos, ~1,870 non-empty transcript segments |
+| YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 658 videos, ~2,090 non-empty transcript segments |
 | Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 8 skills, ~30K words (community content) |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
@@ -86,9 +86,9 @@ Directional options and the full research trail are recorded in `briefings/B-001
 - **Attribution boundary:** Skills are explicitly **not** official MikroTik docs. Every resource read prepends provenance so agents can distinguish textbook facts from guide-style advice.
 - **Extraction:** `src/extract-skills.ts` supports GitHub API fetch, `--local`, and `--from-cache`. CI builds fetch from GitHub; cached `skills/` content supports offline rebuilds.
 
-## Corpus Snapshot
+## Historical Corpus Snapshot (legacy Confluence)
 
-These figures are the March 2026 legacy Confluence snapshot shape that the current docs and release process were built around. Use `routeros_stats` for live counts on a built database.
+These figures are the March 2026 legacy Confluence snapshot shape — retired as the default prose source since the Docusaurus cutover (T-0035/T-0036). Kept here for historical reference; the current pipeline builds from `manual.mikrotik.com` instead (see "Docusaurus manual (current primary prose corpus)" above). Use `routeros_stats` for live counts on a built database.
 
 - **Pages:** 317 Confluence-export pages with breadcrumb paths and legacy help.mikrotik.com URLs.
 - **Text + code:** ~515K words and ~14K RouterOS code lines.
