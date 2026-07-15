@@ -45,6 +45,7 @@ describe("hardware-www-map loader", () => {
     expect(curatedWwwCodeForSlug("r11e-lr8")).toBe(undefined);
     expect(curatedWwwCodeForSlug("ltap-lr8-lte6-kit")).toBe(undefined);
     expect(curatedWwwCodes()).toContain("r11e_lr8g"); // still seeded for the fetch
+    expect(curatedWwwCodes()).not.toContain("r11e_lr8"); // no www_code on seed_only entry => contributes nothing
     // r11e-lr9 (non-G) has no kit collision, so it DOES force-attach (a real gap closure).
     expect(curatedWwwCodeForSlug("r11e-lr9")).toBe("r11e_lr9");
   });
