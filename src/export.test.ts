@@ -339,20 +339,41 @@ describe("DB-only hard boundary", () => {
     }
   });
 
-  test("export.ts imports only DB-safe modules (catches aliased/new/dynamic I/O imports by specifier)", () => {
+  const importSpecifiers = (src: string): string[] => [
+    ...[...src.matchAll(/(?:^|\n)\s*import\b[^;]*?\bfrom\s*["']([^"']+)["']/g)].map((m) => m[1]),
+    ...[...src.matchAll(/(?:^|\n)\s*import\s*["']([^"']+)["']/g)].map((m) => m[1]),
+    ...[...src.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)].map((m) => m[1]),
+  ];
+
+  test("export.ts + its non-stdlib dependency import only DB-safe modules", () => {
     // An import allowlist survives what the primitive scan misses: an aliased import
-    // ({ readFile as rf }), a brand-new I/O module (node:https, node:net), a dynamic
-    // import(), or a transitive helper pulled in from another module — each shows up
-    // as a specifier that isn't on this list. Anything that reads files/network/a
-    // second DB lives behind a module that would have to appear here first.
-    const allowed = new Set(["bun:sqlite", "node:fs", "node:path", "./query.ts"]);
-    const src = exportSrc();
-    const specifiers = [
-      ...[...src.matchAll(/(?:^|\n)\s*import\b[^;]*?\bfrom\s*["']([^"']+)["']/g)].map((m) => m[1]),
-      ...[...src.matchAll(/(?:^|\n)\s*import\s*["']([^"']+)["']/g)].map((m) => m[1]),
-      ...[...src.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)].map((m) => m[1]),
-    ];
-    expect(specifiers.length).toBeGreaterThan(0);
-    for (const spec of specifiers) expect({ spec, allowed: allowed.has(spec) }).toEqual({ spec, allowed: true });
+    // ({ readFile as rf }), a brand-new I/O module (node:https, node:net), or a
+    // dynamic import(). The transitive hole GPT-5.6 flagged was `./query.ts`, which
+    // pulls in db.ts (opening the global DB); the version comparator now lives in the
+    // dependency-free ./version-compare.ts, so we also assert THAT module imports
+    // nothing — closing the transitive closure rather than just the direct imports.
+    const allowed = new Set(["bun:sqlite", "node:fs", "node:path", "./version-compare.ts"]);
+    const exportImports = importSpecifiers(exportSrc());
+    expect(exportImports.length).toBeGreaterThan(0);
+    for (const spec of exportImports) expect({ spec, allowed: allowed.has(spec) }).toEqual({ spec, allowed: true });
+
+    const vcSrc = readFileSync(path.join(import.meta.dirname, "version-compare.ts"), "utf-8");
+    expect(importSpecifiers(vcSrc)).toEqual([]); // pure module — no imports at all
+  });
+
+  test("importing export.ts opens no database (behavioral transitive-boundary proof)", () => {
+    // db.ts opens `new Database(DB_PATH)` at import time, so if export.ts still
+    // transitively imported it, importing export.ts under a DB_PATH in a nonexistent
+    // directory would throw "unable to open database file". A clean import proves the
+    // module graph reaches no DB — the runtime guarantee behind runExport(db)'s
+    // "reads only the passed handle".
+    const script =
+      `process.env.DB_PATH=${JSON.stringify("/nonexistent-rosetta-dir-xyz/should-not-open.db")};` +
+      `await import(${JSON.stringify(path.join(import.meta.dirname, "export.ts"))});` +
+      `console.log("IMPORT_OK");`;
+    const proc = Bun.spawnSync(["bun", "-e", script], { stdout: "pipe", stderr: "pipe" });
+    expect(proc.stderr.toString()).not.toContain("unable to open database");
+    expect(proc.stdout.toString()).toContain("IMPORT_OK");
+    expect(proc.exitCode).toBe(0);
   });
 });

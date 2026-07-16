@@ -20,7 +20,7 @@
 import type { Database } from "bun:sqlite";
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import path from "node:path";
-import { compareVersions } from "./query.ts";
+import { compareVersions } from "./version-compare.ts";
 
 // ── TSV serialization contract ────────────────────────────────────────────────
 //
