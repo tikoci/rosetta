@@ -49,7 +49,9 @@ function splitTableRow(line: string): string[] {
     current += line[i];
   }
   cells.push(current.trim());
-  return cells.slice(1, -1);
+  if (cells[0] === "") cells.shift();
+  if (cells[cells.length - 1] === "") cells.pop();
+  return cells;
 }
 
 function provenance(): void {
