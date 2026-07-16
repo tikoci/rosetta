@@ -354,6 +354,25 @@ describe("parsePage — ppp-aaa.md (repeated 'Properties' headings; the real 165
   });
 });
 
+describe("parsePage — dot1x.md: same name AND same section (why section is not an identity, issue #90)", () => {
+  const page = parsePage(dot1xMd, "https://manual.mikrotik.com/docs/authentication-authorization-accounting/dot1x");
+
+  test("one section documents `interface` more than once, with different meanings", () => {
+    // This is the case that rules out UNIQUE(page_id, name, section_id) — not just the old
+    // heading-text key. dot1x's "Server" section carries a server table AND a client table,
+    // each defining `interface`. Re-keying the constraint on section_id would still have
+    // destroyed these (74 distinct rows corpus-wide); only removing it stores them all.
+    const iface = page.properties.filter((p) => p.name === "interface");
+    const underServer = iface.filter((p) => p.sectionAnchor === "server");
+    expect(underServer.length).toBeGreaterThan(1);
+
+    // Same name, same section, genuinely different documentation — not duplicates.
+    const descriptions = new Set(underServer.map((p) => p.description));
+    expect(descriptions.size).toBeGreaterThan(1);
+    expect([...descriptions]).toContain("Name of the interface or interface list the server will run on.");
+  });
+});
+
 describe("parsePage — section attribution of a property under an h4 (issue #90 stated tradeoff)", () => {
   // ppp-aaa's own h4s hold only code, so a synthetic page pins the disagreement precisely.
   const md = [

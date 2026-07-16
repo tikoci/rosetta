@@ -158,6 +158,18 @@ beforeAll(() => {
     (id, page_id, name, type, default_val, description, section, section_id, sort_order)
     VALUES (91, 90, 'profile-name', 'string', '', 'Name used for authentication', 'Properties', 91, 1)`);
 
+  // Harder case, mirroring dot1x: same name AND same section_id — one section holding a server
+  // table and a client table, each defining `iface`. This is what rules out re-keying the
+  // constraint on section_id (it would still destroy 74 distinct rows corpus-wide). If anyone
+  // re-adds UNIQUE(page_id, name, section_id), these two INSERTs throw and beforeAll() fails
+  // loudly — which is the point.
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (92, 90, 'iface', 'string', '', 'Name of the interface or interface list the server will run on.', 'Properties', 90, 2)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (93, 90, 'iface', 'string', '', 'Name of the interface.', 'Properties', 90, 3)`);
+
   db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
     VALUES ('7.22', 'x86', 'stable', 0, '2024-01-01T00:00:00Z')`);
   db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
@@ -916,6 +928,20 @@ describe("lookupProperty", () => {
     expect(page).not.toBeNull();
     expect(page?.section?.anchor_id).toBe("properties-1");
     expect(page?.text).toContain("User properties.");
+  });
+
+  test("two properties sharing name AND section_id both persist — rules out UNIQUE(page_id, name, section_id) (issue #90)", () => {
+    // The ppp-aaa test above only covers repeated heading TEXT across distinct anchors, which a
+    // section_id-keyed constraint would survive. This is the case that does not: dot1x documents
+    // `interface` twice inside one section. Both rows must be stored and returned.
+    const rows = lookupProperty("iface");
+    expect(rows.length).toBe(2);
+    // Same section — so the anchor cannot disambiguate these two, and nothing should try to.
+    expect(new Set(rows.map((r) => r.section_anchor))).toEqual(new Set(["properties"]));
+    expect(rows.map((r) => r.description).sort()).toEqual([
+      "Name of the interface or interface list the server will run on.",
+      "Name of the interface.",
+    ]);
   });
 
   test("section_anchor is null for a property with no section context, not omitted", () => {
