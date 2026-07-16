@@ -80,7 +80,13 @@ export interface ParsedProperty {
   rawType: string | null;
   defaultVal: string | null;
   description: string;
+  /** Raw text of the nearest preceding heading of ANY level (h1–h6). Retained as-is for
+   * compatibility; `sectionAnchor` is the resolvable identity. See attributeSection(). */
   section: string | null;
+  /** anchor_id of the enclosing h1–h3 section, or null if the page has no heading context yet. */
+  sectionAnchor: string | null;
+  /** 0-based index of the source line this property was parsed from. */
+  line: number;
   malformedEmphasis: boolean;
 }
 
@@ -88,6 +94,10 @@ export interface ParsedCallout {
   type: string;
   content: string;
   sortOrder: number;
+  /** anchor_id of the enclosing h1–h3 section, or null if the page has no heading context yet. */
+  sectionAnchor: string | null;
+  /** 0-based index of the source line the callout's opening fence sits on. */
+  line: number;
 }
 
 export interface ParsedSection {
@@ -98,6 +108,8 @@ export interface ParsedSection {
   code: string;
   wordCount: number;
   sortOrder: number;
+  /** 0-based index of this section's own heading line — the anchor for line-range attribution. */
+  headingLine: number;
 }
 
 export interface ParsedPage {
@@ -284,6 +296,8 @@ export function parseProperties(md: string): ParsedProperty[] {
               defaultVal: parsed.defaultVal,
               description: cells[1],
               section: currentSection,
+              sectionAnchor: null, // resolved by parsePage(), which has the section line ranges
+              line: i,
               malformedEmphasis: parsed.malformed,
             });
           }
@@ -302,6 +316,8 @@ export function parseProperties(md: string): ParsedProperty[] {
         defaultVal: bulletProperty.defaultVal,
         description: bulletProperty.description,
         section: currentSection,
+        sectionAnchor: null, // resolved by parsePage(), which has the section line ranges
+        line: i,
         malformedEmphasis: bulletProperty.malformed,
       });
     }
@@ -314,20 +330,29 @@ export function parseProperties(md: string): ParsedProperty[] {
 export function parseCallouts(md: string): ParsedCallout[] {
   const lines = md.split("\n");
   const callouts: ParsedCallout[] = [];
-  const stack: Array<{ type: string; fenceWidth: number; contentLines: string[] }> = [];
+  const stack: Array<{ type: string; fenceWidth: number; contentLines: string[]; line: number }> = [];
   let sortOrder = 0;
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const fenceMatch = line.match(/^(:{3,})(\w+)?\s*$/);
     if (fenceMatch) {
       const fenceWidth = fenceMatch[1].length;
       const type = fenceMatch[2];
       if (type) {
-        stack.push({ type, fenceWidth, contentLines: [] });
+        stack.push({ type, fenceWidth, contentLines: [], line: i });
       } else if (stack.length > 0 && stack[stack.length - 1].fenceWidth === fenceWidth) {
         const closed = stack.pop();
         if (closed) {
-          callouts.push({ type: closed.type, content: closed.contentLines.join("\n").trim(), sortOrder: sortOrder++ });
+          callouts.push({
+            type: closed.type,
+            content: closed.contentLines.join("\n").trim(),
+            sortOrder: sortOrder++,
+            sectionAnchor: null, // resolved by parsePage(), which has the section line ranges
+            // The OPENING fence, so a callout attributes to the section it starts in even
+            // if its body runs past the next heading.
+            line: closed.line,
+          });
         }
       } else if (stack.length > 0) {
         stack[stack.length - 1].contentLines.push(line);
@@ -428,8 +453,36 @@ export function parseSections(md: string, title: string): ParsedSection[] {
       code,
       wordCount: text.split(/\s+/).filter(Boolean).length,
       sortOrder: i,
+      headingLine: h.lineIndex,
     };
   });
+}
+
+/**
+ * Resolve a source line to the anchor_id of the h1–h3 section containing it — i.e. the last
+ * section whose heading precedes the line (issue #90).
+ *
+ * This is the deliberate answer to #90's h4–h6 question: attribution folds a deep heading to
+ * its nearest h1–h3 ancestor rather than minting section rows deeper than h3. `sections` stays
+ * the retrieval unit (parseSections' h1–h3 split is unchanged) while attribution becomes total.
+ * The consequence is stated rather than hidden: for a property under an h4–h6, `section` (the
+ * raw nearest-heading text, kept for compatibility) and `sectionAnchor` deliberately disagree —
+ * `section` names the h4, `sectionAnchor` names the enclosing h1–h3.
+ *
+ * Using the section's own anchor_id rather than its heading text is what makes this resolvable:
+ * parseSections already disambiguates repeated headings into `foo`, `foo-1`, `foo-2`, and the
+ * raw text throws that away.
+ *
+ * Returns null for content before the first section (e.g. a page's lead paragraph), which is
+ * genuine absence of heading context, not a failure to resolve.
+ */
+export function attributeSection(line: number, sections: ParsedSection[]): string | null {
+  let anchor: string | null = null;
+  for (const s of sections) {
+    if (s.headingLine >= line) break;
+    anchor = s.anchorId;
+  }
+  return anchor;
 }
 
 /** Parse one page's raw Markdown body into the full structured shape stored in the DB. */
@@ -448,12 +501,19 @@ export function parsePage(md: string, pageUrl: string): ParsedPage {
   const wordCount = text.split(/\s+/).filter(Boolean).length;
   const codeLines = code.split("\n").filter((l) => l.trim()).length;
 
+  // Sections first: properties and callouts are attributed to them by line range, which is
+  // what gives every property a resolvable section identity (issue #90). All three parsers
+  // walk the same Markdown, so a line index is a shared coordinate — no second parse.
+  const sections = parseSections(md, title);
   const properties = parseProperties(md).map((p) => ({
     ...p,
     description: resolveDescriptionLinks(p.description, pageUrl),
+    sectionAnchor: attributeSection(p.line, sections),
   }));
-  const callouts = parseCallouts(md);
-  const sections = parseSections(md, title);
+  const callouts = parseCallouts(md).map((c) => ({
+    ...c,
+    sectionAnchor: attributeSection(c.line, sections),
+  }));
 
   return { rosettaId, url: pageUrl, slug, title, path, depth, text, code, codeLang, wordCount, codeLines, sections, properties, callouts };
 }
@@ -696,11 +756,13 @@ async function main() {
   // re-establish them afterward. Both columns are nullable, so this is safe with FKs on.
   db.run("UPDATE commands SET page_id = NULL;");
   db.run("UPDATE schema_nodes SET page_id = NULL;");
-  db.run("DELETE FROM sections;");
+  // Delete order matters: properties.section_id and callouts.section_id are FKs into
+  // sections (issue #90), so the children go first or the DELETE FROM sections violates them.
   db.run("DELETE FROM callouts;");
   db.run("INSERT INTO callouts_fts(callouts_fts) VALUES('rebuild');");
   db.run("DELETE FROM properties;");
   db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
+  db.run("DELETE FROM sections;");
   db.run("PRAGMA foreign_keys = OFF;");
   db.run("DELETE FROM pages;");
   db.run("PRAGMA foreign_keys = ON;");
@@ -716,19 +778,24 @@ async function main() {
     INSERT INTO sections (page_id, heading, level, anchor_id, text, code, word_count, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  // Plain INSERT, not INSERT OR IGNORE: the old UNIQUE(page_id, name, section) silently
+  // destroyed 141 distinct properties (issue #90). Every parsed row is now stored, and the
+  // parsed == stored assert below makes any future loss loud instead of invisible.
   const insertProperty = db.prepare(`
-    INSERT OR IGNORE INTO properties (page_id, name, type, default_val, description, section, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO properties (page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertCallout = db.prepare(`
-    INSERT INTO callouts (page_id, type, content, sort_order)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO callouts (page_id, type, content, section_id, sort_order)
+    VALUES (?, ?, ?, ?, ?)
   `);
 
   let totalSections = 0;
   let totalProperties = 0;
   let malformedProperties = 0;
   let totalCallouts = 0;
+  let propertiesWithoutSection = 0;
+  let calloutsWithoutSection = 0;
 
   const insertAll = db.transaction(() => {
     for (const page of parsedPages) {
@@ -749,29 +816,60 @@ async function main() {
       );
       const pageId = Number(result.lastInsertRowid);
 
+      // Sections first, keeping anchor_id -> fresh rowid so properties/callouts can carry a
+      // real section_id. anchor_id is unique within a page (parseSections disambiguates
+      // repeated headings into foo, foo-1, foo-2), which is exactly what makes it a usable key.
+      const sectionIdByAnchor = new Map<string, number>();
       for (const s of page.sections) {
-        insertSection.run(pageId, s.heading, s.level, s.anchorId, s.text, s.code, s.wordCount, s.sortOrder);
+        const res = insertSection.run(pageId, s.heading, s.level, s.anchorId, s.text, s.code, s.wordCount, s.sortOrder);
+        sectionIdByAnchor.set(s.anchorId, Number(res.lastInsertRowid));
         totalSections++;
       }
       let propOrder = 0;
       for (const p of page.properties) {
-        insertProperty.run(pageId, p.name, p.rawType, p.defaultVal, p.description, p.section, propOrder++);
+        const sectionId = p.sectionAnchor === null ? null : (sectionIdByAnchor.get(p.sectionAnchor) ?? null);
+        insertProperty.run(pageId, p.name, p.rawType, p.defaultVal, p.description, p.section, sectionId, propOrder++);
         totalProperties++;
         if (p.malformedEmphasis) malformedProperties++;
+        if (sectionId === null) propertiesWithoutSection++;
       }
       for (const c of page.callouts) {
-        insertCallout.run(pageId, c.type, c.content, c.sortOrder);
+        const sectionId = c.sectionAnchor === null ? null : (sectionIdByAnchor.get(c.sectionAnchor) ?? null);
+        insertCallout.run(pageId, c.type, c.content, sectionId, c.sortOrder);
         totalCallouts++;
+        if (sectionId === null) calloutsWithoutSection++;
       }
     }
   });
   insertAll();
 
+  // Parsed vs stored (issue #90, V-extractor-no-silent-drops). The old UNIQUE + INSERT OR
+  // IGNORE made these diverge by 165 rows and nothing said so — totalProperties counted
+  // ATTEMPTED inserts, so even this log was reporting a number the DB did not hold. Read the
+  // counts back from the DB rather than trusting the loop.
+  const storedProperties = (db.query("SELECT count(*) AS n FROM properties").get() as { n: number }).n;
+  const storedCallouts = (db.query("SELECT count(*) AS n FROM callouts").get() as { n: number }).n;
+  const storedSections = (db.query("SELECT count(*) AS n FROM sections").get() as { n: number }).n;
+
   console.log(`\nExtraction complete:`);
   console.log(`  Pages:      ${parsedPages.length}`);
-  console.log(`  Sections:   ${totalSections}`);
-  console.log(`  Properties: ${totalProperties} (${malformedProperties} malformed-emphasis)`);
-  console.log(`  Callouts:   ${totalCallouts}`);
+  console.log(`  Sections:   ${storedSections}`);
+  console.log(`  Properties: ${storedProperties} (${malformedProperties} malformed-emphasis, ${propertiesWithoutSection} with no section context)`);
+  console.log(`  Callouts:   ${storedCallouts} (${calloutsWithoutSection} with no section context)`);
+
+  const drops = [
+    ["properties", totalProperties, storedProperties],
+    ["callouts", totalCallouts, storedCallouts],
+    ["sections", totalSections, storedSections],
+  ].filter(([, parsed, stored]) => parsed !== stored);
+
+  if (drops.length > 0) {
+    for (const [table, parsed, stored] of drops) {
+      console.error(`::error::extract-docusaurus: ${table}: parsed ${parsed}, stored ${stored} — ${Number(parsed) - Number(stored)} row(s) lost on insert.`);
+    }
+    console.error("A constraint is silently discarding rows. Do not 'fix' this by lowering the parsed count (issue #90).");
+    process.exit(1);
+  }
 
   if (CHECK_COUNTS) {
     const ok = await checkCounts(parsedPages.length);

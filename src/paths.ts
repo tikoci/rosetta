@@ -102,8 +102,16 @@ export function detectMode(srcDir: string): InvocationMode {
  *        (B-0017 Phase 1.5, PR #36 design review). v7 never shipped in a
  *        release, so initDb() drops the pre-rename tables and the extractor
  *        rebuilds them.
+ *   v9 — `properties` drops UNIQUE(page_id, name, section) and gains
+ *        `section_id`; `callouts` gains `section_id` (issue #90). The UNIQUE
+ *        constraint plus INSERT OR IGNORE silently destroyed 141 distinct
+ *        properties — the corpus documents one property name several times
+ *        within a single section, so section is not an identity. Measured
+ *        corpus-wide, no section-based key reaches zero loss. Extractors now
+ *        assert parsed == stored. initDb() rebuilds `properties` in place
+ *        (rows kept, section_id NULL) and the extractor repopulates.
  */
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 /**
  * Resolve the version string.
