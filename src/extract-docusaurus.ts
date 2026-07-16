@@ -177,20 +177,28 @@ export function slugify(text: string): string {
 function makeFenceTracker() {
   let fence: { char: "`" | "~"; width: number } | null = null;
   return (line: string): boolean => {
+    if (fence !== null) {
+      // A list item adds its marker width to continuation indentation (`10. ` is four
+      // columns), so a valid closing fence can be indented beyond the normal three-space
+      // opening limit. Once open, only a matching, otherwise-empty marker can close it.
+      const closing = line.match(/^\s*(`{3,}|~{3,})\s*$/);
+      if (closing) {
+        const char = closing[1][0] as "`" | "~";
+        if (char === fence.char && closing[1].length >= fence.width) fence = null;
+      }
+      return true;
+    }
+
     // Fences may be indented up to three spaces or begin on an ordered/unordered list item
     // (`9. ```ros` in zerotier.md). Recognizing the list opener keeps its indented closing
     // fence from looking like a new, unterminated block that hides the rest of the page.
     const match = line.match(/^(?:\s{0,3}|\s*(?:[-+*]|\d+\.)\s+)(`{3,}|~{3,})(.*)$/);
     if (match) {
       const char = match[1][0] as "`" | "~";
-      if (fence === null) {
-        fence = { char, width: match[1].length };
-      } else if (char === fence.char && match[1].length >= fence.width && match[2].trim() === "") {
-        fence = null;
-      }
+      fence = { char, width: match[1].length };
       return true;
     }
-    return fence !== null;
+    return false;
   };
 }
 

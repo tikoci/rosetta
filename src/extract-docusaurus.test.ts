@@ -151,12 +151,12 @@ describe("generic pipe-table parsing (issue #92)", () => {
     ]);
   });
 
-  test("tracks a fence opened on an ordered-list item instead of hiding later tables", () => {
+  test("tracks a fence opened on a multi-digit ordered-list item instead of hiding later tables", () => {
     const md = [
-      "9. ```ros",
+      "10. ```ros",
       "| Not | A | Table |",
       "|---|---|---|",
-      "   ```",
+      "    ```",
       "| Property | Description |",
       "|---|---|",
       "| **visible** (yes \\| no) | Kept. |",

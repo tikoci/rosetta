@@ -314,7 +314,7 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 | `callouts` | 1,034 | Warning/Note/Info/Tip boxes extracted from Confluence callout macros |
 | `page_tables` | varies (~850) | Every Docusaurus pipe table with raw Markdown, source heading, section attribution, width, and raggedness |
 | `page_table_rows` | varies (~9K) | Header (`row_order = 0`) and data rows for `page_tables` |
-| `page_table_cells` | varies (~25K) | Decoded cells at their actual source width; escaped pipes become literal `\|` values |
+| `page_table_cells` | varies (~25K) | Decoded cells at their actual source width; backslash-escaped pipe syntax is stored without the backslash |
 | `properties` | 4,860 | Command properties — name, type, default value, description (from doc tables) |
 | `commands` | 40K+ | RouterOS command hierarchy — dirs, commands, arguments from `/console/inspect` |
 | `command_versions` | 1.67M | Junction table: which command paths exist in which RouterOS versions (7.9–7.23beta2) |

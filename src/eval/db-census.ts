@@ -115,6 +115,10 @@ function tablesAndSizing(): void {
       perFragment.set(key, (perFragment.get(key) ?? 0) + 1);
       if (table.isRagged) ragged++;
       cells += table.header.cells.length;
+      for (const cell of table.header.cells) {
+        if (cell.includes("|")) cellsWithPipe++;
+        if (cell.includes("\t")) cellsWithTab++;
+      }
       for (const row of table.rows) {
         tableOrderByRowLine.set(row.line, table.sortOrder);
         dataRows++;

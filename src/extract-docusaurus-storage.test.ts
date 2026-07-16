@@ -18,7 +18,7 @@ function extract(dbPath: string): string {
     ],
     {
       cwd: join(import.meta.dirname, ".."),
-      env: { ...process.env, DB_PATH: dbPath },
+      env: { DB_PATH: dbPath },
       stdout: "pipe",
       stderr: "pipe",
     },
