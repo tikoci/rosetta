@@ -5,7 +5,16 @@ process.env.DB_PATH = ":memory:";
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { EXCERPT_MARK_END, EXCERPT_MARK_START } from "./query.ts";
+
+// query.ts MUST be imported dynamically, not statically: it transitively loads db.ts, and an
+// ESM static import is hoisted ABOVE the process.env.DB_PATH assignment above — so a static
+// form opens the real on-disk ros-help.db instead of :memory:. That poisons the db.ts
+// singleton for every later test file in the same run, which query.test.ts's V-db-wipe-guard
+// then trips on ("DB singleton is at .../ros-help.db"). It only surfaces when this file is the
+// first to touch db.ts, so it presents as an order-dependent CI flake; bun's file order is not
+// stable, so it stays hidden locally. Same rule as the extract-docusaurus.ts import below —
+// see .github/instructions/extractor-import-side-effects.instructions.md, hazard 2.
+const { EXCERPT_MARK_END, EXCERPT_MARK_START } = await import("./query.ts");
 
 const {
   isInScopeDocsUrl,
@@ -337,7 +346,7 @@ describe("parsePage — ppp-aaa.md (repeated 'Properties' headings; the real 165
     // parse side of that contract: same-page name+section-text repeats are expected and legal.
     const byNameAndText = new Map<string, number>();
     for (const p of page.properties) {
-      const k = `${p.name} ${p.section}`;
+      const k = `${p.name} ${p.section}`;
       byNameAndText.set(k, (byNameAndText.get(k) ?? 0) + 1);
     }
     const collisions = [...byNameAndText.values()].filter((n) => n > 1);
