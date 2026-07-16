@@ -366,14 +366,16 @@ TSV is the working default. GitHub and editors render it, spreadsheets import it
 output, and it is lighter than CSV for data whose values routinely contain commas.
 
 The corpus supports it. **No scalar column an export would emit contains a tab** — re-verified on rc.99
-across 18 candidate columns (`properties.name`/`description`/`type`/`default_val`/`section`,
+across 18 candidate columns: `properties.name`/`description`/`type`/`default_val`/`section`,
 `changelogs.description`, `callouts.content`, `video_segments.transcript`, `videos.title`,
-`pages.title`/`slug`, `sections.heading`/`anchor_id`, `page_tables.source_heading`,
-`hardware_catalog.specs_json`, `device_aliases.alias`, `commands.path`) — **including the 25,286
-`page_table_cells.value` rows that #92 added since the original pass**, which is the one place new tabs
-could plausibly have entered. Tabs exist only inside fenced code blocks in `pages.text` (13 pages), which
-never become a TSV cell. So plain tab-delimited output with no quoting is lossless and stays parseable by
-`awk -F '\t'` and RouterOS `:deserialize`. No column carries a CR, so LF endings are safe too.
+`pages.title`/`slug`, `sections.heading`/`anchor_id`, **`page_table_cells.value`**,
+`page_tables.source_heading`, `hardware_catalog.specs_json`, `device_aliases.alias`, and `commands.path`.
+
+The bolded one matters most: its **25,286 rows arrived with #92, after the original pass**, and it is the
+one place new tabs could plausibly have entered. Tabs exist only inside fenced code blocks in `pages.text`
+(13 pages), which never become a TSV cell. So plain tab-delimited output with no quoting is lossless and
+stays parseable by `awk -F '\t'` and RouterOS `:deserialize`. No column carries a CR, so LF endings are
+safe too.
 
 The one exception is newlines in `callouts.content` (162 rows). Adopting quote-aware TSV corpus-wide would
 cost every simple consumer the one-line-equals-one-record property to serve those rows, and sidecars would
