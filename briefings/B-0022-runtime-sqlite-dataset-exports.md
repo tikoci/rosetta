@@ -2,7 +2,7 @@
 id: B-0022-runtime-sqlite-dataset-exports
 topic: Runtime SQLite-only dataset exports for local audit and future static hosting
 status: open
-related_tasks: ["#90", "#91", "#92", "#93", "#94", "#95"]
+related_tasks: ["#90", "#91", "#92", "#93", "#94", "#95", "#100", "#101"]
 created: 2026-07-15
 last_revisited: 2026-07-15
 ---
@@ -92,15 +92,21 @@ needs no reduced compatibility mode for historical Confluence release databases.
 
 # Grounding
 
-Every count in this briefing comes from the **CI-built release artifact v0.11.0-rc.97**
-(`~/.rosetta/ros-help.db`, schema v8, 363 Docusaurus pages, `source_commit` 6a7e800) — not a local
-rebuild. CI is the truer source of truth because it is what npm consumers receive, and because `export`
-is meant to follow the DB-based extract rather than a developer's working state.
+Every count in this briefing comes from the **CI-built release artifact v0.11.0-rc.99**
+(schema v10, 363 Docusaurus pages, `source_commit` 67edb80 — the #92 merge) — not a local rebuild. CI is
+the truer source of truth because it is what npm consumers receive, and because `export` is meant to
+follow the DB-based extract rather than a developer's working state. Counts were re-derived after #90 and
+#92 landed; the pre-#90 figures from the original rc.97 pass are retained below only where the delta is
+the point.
 
 This matters more than it sounds: a local `--from-cache` rebuild yields 365 pages against CI's 363, and
 grounding against a stale repo-root DB produced a wrong conclusion during this pass (that
 `schema_nodes`/`schema_node_presence` ship empty — they ship with 41,967 nodes). Knowing which DB is
 under the question is a prerequisite for trusting any of this; #94 tracks making that legible.
+
+Note for anyone re-deriving these: `bun:sqlite` fails with `SQLITE_CANTOPEN` opening a downloaded
+release DB with `{ readonly: true }` (WAL mode wants to create a `-shm` sidecar). The `sqlite3` CLI and a
+read-write open on a scratch copy both work.
 
 `src/eval/db-census.ts` re-derives every measurement below from a runtime DB alone:
 
@@ -195,11 +201,16 @@ per-key coverage.
 `properties.tsv` joins `properties` to `pages` for `slug`/`rosetta_id`, numeric page ID, title, URL, and
 the stored property fields.
 
-Section identity is a schema problem, not an export problem — **#90**. `properties.section` stores
-heading text, which destroys 165 properties on insert and leaves 28% of survivors unresolvable to a
-section. The resolution logic does not belong in `export`; the exporter should emit `section` as stored
-plus a resolved `section_anchor` where the join is unique, leaving it empty where it is not, so the file
-shows the gap rather than papering over it. Once #90 lands, `section_id` makes this direct.
+Section identity was a schema problem, not an export problem — **#90, now landed**. The workaround this
+briefing originally specified (emit `section` as stored plus a `section_anchor` resolved only where the
+join is unique) is obsolete: `properties.section_id` is a real foreign key, and on rc.99 **4,569 of 4,581
+properties carry one**. `export` joins it directly. `properties.section` is retained as the raw
+nearest-heading text and the two deliberately disagree under an h4–h6 — both are worth emitting, since
+the disagreement is itself a fact about the corpus.
+
+`properties.source_table_row_id` (added by #92) links a property back to the exact `page_table_rows` row
+it came from: 4,519 of 4,581 have one, and the 62 that do not are the bullet-list properties. That link is
+what makes the coverage audit below possible at all.
 
 ## Pages, fragments, and tables
 
@@ -210,37 +221,35 @@ shows the gap rather than papering over it. Once #90 lands, `section_id` makes t
 - one row per `sections` record with `anchor_id`, `heading`, `level`, `sort_order`, `word_count`, byte
   counts, and table/table-row counts for that fragment.
 
-The **sizing** is the point here, not the content. Pages average 13KB of text but reach **155KB**
-(`bridging-and-switching`); sections are far better behaved at p50 730B, p90 3.3KB, p99 10.7KB, max 34KB.
-That spread is a concrete argument that sections, not pages, are the sane retrieval unit, and that any
-page-level `limit` is really a truncation policy. The 129 empty sections (4.4%) should be *flagged* — the
-existing `word_count = 0` is enough — but they are not an export problem; their cost is a wasted
-`get_page(section=)` call, which is #93.
+The **sizing** is the point here, not the content. Pages run p50 7.6KB / p90 28KB / p99 85KB and reach
+**155KB** (`bridging-and-switching`); sections are far better behaved at p50 730B, p90 3.3KB, p99 10.7KB,
+max 34KB. That spread is a concrete argument that sections, not pages, are the sane retrieval unit, and
+that any page-level `limit` is really a truncation policy. The 129 empty sections (4.4%) should be
+*flagged* — the existing `word_count = 0` is enough — but they are not an export problem; their cost is a
+wasted `get_page(section=)` call, which is #93.
 
-**Tables are the reason this family matters.** The corpus has 852 pipe tables (8,258 data rows) across
-180 pages, of which **595 are property-shaped and already extracted, and 257 are discarded entirely**.
-The uniformity is good news: zero HTML `<table>` elements, no MDX table forms, 79% two-column, and only
-**14 genuinely ragged tables** — a small enough exception set to enumerate and handle deliberately rather
-than guess at.
+**Tables are the reason this family matters, and #92 has landed.** The whole corpus is now stored:
+**855 tables / 8,287 data rows / 25,286 cells across 179 pages** (`page_tables`, `page_table_rows`,
+`page_table_cells`), with `raw_markdown` retained for reversibility. 839 of 855 tables resolve to a
+`section_id`; the 16 that do not are genuinely page-level, above the first heading. The uniformity the
+original pass hoped for held up: zero HTML `<table>` elements, no MDX table forms, 79% two-column, and
+only **16 ragged tables**.
 
-The direction (#92) is to invert the current order: parse **all** tables generically in core, then filter
-the property-shaped ones to keep MCP/TUI behaviour unchanged. Exporting only the tables today's schema
-happens to model would pre-filter the corpus by the very assumption the audit exists to test. The 70%
-overlap is evidence that `properties` and the table corpus are the same corpus viewed twice.
+This **removes a constraint rather than satisfying one**. The original briefing warned that `export` must
+not invent its own Markdown parser and must reuse `splitTableRow`. That is now moot: `export` reads
+tables from SQLite like any other dataset and needs no parser at all. The DB-only boundary got easier to
+hold, not harder.
 
-Why all tables, beyond the export: large pages need natural seams to split on, and tables are one of the
-few; `routeros_get_page` could return tables structurally instead of as Markdown the model re-parses; and
-half a dozen "special tables" are already known to be worth promoting (B-0007), with no way to discover
-the rest today.
-
-Per-fragment table files (`pages/<page-slug>/<fragment>[--N].tsv`) are therefore in scope, with 85 of 701
-fragments containing more than one table and needing a deterministic suffix.
+Per-fragment table files (`pages/<page-slug>/<fragment>[--N].tsv`) stay in scope: 647 sections hold at
+least one table, **83 hold more than one** (max 38, in `tg-lr-setup-guide`) and need a deterministic
+suffix.
 
 ## Callouts
 
-`callouts.tsv` directly supports page, type, order, and text. `callouts` has no section attribution — the
-same root as #90, and the same conclusion: the extractor already tracks heading context while parsing
-properties and simply does not record it for callouts. That belongs in ETL, not in `export`.
+`callouts.tsv` directly supports page, type, order, and text. The missing section attribution — the same
+root as #90 — **is fixed**: 839 of 943 callouts now carry a `section_id`. The remaining 104 NULLs are
+honest page-level content sitting above the first heading, not a defect, and `export` should emit them as
+empty rather than inventing an attribution.
 
 `callouts.content` is the only multiline scalar in the export set (162 of 943 rows). It is not long
 enough to justify sidecars, which would make it *less* readable; encode it in place — see below.
@@ -267,16 +276,52 @@ stays with #25/#33.
 
 The audit's findings are GitHub issues under umbrella **#95** (label `export-audit`), not prose here:
 
-| Issue | Finding |
-|---|---|
-| [#90](https://github.com/tikoci/rosetta/issues/90) | 165 properties destroyed on insert; `properties.section` is heading text (28% unresolvable); `callouts` has no section attribution |
-| [#91](https://github.com/tikoci/rosetta/issues/91) | `command_versions` arch-blind; 18 dual-arch versions are last-writer-wins |
-| [#92](https://github.com/tikoci/rosetta/issues/92) | 257 non-property tables discarded; `splitTableRow` module-private; parse all tables, filter property-shaped |
-| [#93](https://github.com/tikoci/rosetta/issues/93) | 129 empty sections waste a `get_page(section=)` call |
-| [#94](https://github.com/tikoci/rosetta/issues/94) | No check that the resolved DB matches the codebase |
+| Issue | Finding | Status |
+|---|---|---|
+| [#90](https://github.com/tikoci/rosetta/issues/90) | 165 properties destroyed on insert; `properties.section` is heading text (28% unresolvable); `callouts` has no section attribution | ✅ landed (rc.98) |
+| [#92](https://github.com/tikoci/rosetta/issues/92) | 257 non-property tables discarded; `splitTableRow` module-private; parse all tables, filter property-shaped | ✅ landed (rc.99) |
+| [#91](https://github.com/tikoci/rosetta/issues/91) | `command_versions` arch-blind; 18 dual-arch versions are last-writer-wins | open |
+| [#93](https://github.com/tikoci/rosetta/issues/93) | 129 empty sections waste a `get_page(section=)` call | parked |
+| [#94](https://github.com/tikoci/rosetta/issues/94) | No check that the resolved DB matches the codebase | open |
 
 None of them block `export`, and `export` does not block any of them. The intended order is to fix the
 important ones first, then build the first `export` against a corrected schema.
+
+## New finding: property tables the cell gate silently skips
+
+#92's stored corpus makes a gap visible that was previously unmeasurable, and it is the clearest example
+yet of the audit doing its job — it is only findable because tables are now retained *whether or not* they
+became properties.
+
+`parseProperties` gates on the table header (`/\b(property|parameter)\b/i`) and then requires each row's
+first cell to match `/\*\*([a-z0-9][a-z0-9-]*)\*\*/i` — a **bold, kebab-case** name. **27 tables pass the
+header gate and yield zero properties**, because the corpus documents property names in at least three
+other conventions:
+
+| Convention | Rows | Example |
+|---|---|---|
+| `` `backticked` `` | 70 | `route-selection-and-filtering` — `` `dst-len` ``, `` `bgp-med` `` |
+| plain kebab, no emphasis | 91 | `dns` [Adlist] — `url`, `ssl-verify`, `match-count` |
+| bold with spaces | 45 | `css106` [PoE] — `**PoE Out**` |
+| other / mixed | 108 | `mikrotik-tag-advertisement-formats` packet-structure tables |
+
+**These are not all properties, and that is the point of the issue.** Spot-checked against rc.99:
+
+- **Real and missing.** `route-selection-and-filtering` has **zero** rows in `properties` despite two
+  tables headed `Property | Type | Description` holding 70 rows of genuine routing-filter properties;
+  **57 of those names appear nowhere in the corpus**. `dns` [Adlist]'s `url` / `ssl-verify` /
+  `match-count` are likewise absent from that page's 42 properties.
+- **Correctly rejected.** `disks` [Flags] documents CLI flags (`**X - disabled**`), `css106` [PoE]
+  documents WebFig UI labels, and `profiler` [Classifiers] lists *values* (`bgp`, `bfd`) rather than
+  properties. Loosening the gate naively would import all of these as fake properties.
+
+So the work is classification, not a regex tweak — and it is tractable for the same reason #92's ragged
+tables were: **27 tables is small enough to enumerate and decide by hand.** Note that #90's `parsed ==
+stored` assert cannot catch this class: these rows are never parsed, so nothing is dropped to detect.
+
+Distinct from **#61**, which covers properties with *no table at all* (firewall prose bullets, dotted wifi
+names) and the doc↔inspect alignment question. This is the narrower complement: a property-shaped table
+exists and the cell gate skips it. Tracked as **#100**.
 
 Also open and out of scope here: #21 (transcript provenance), #25/#33 (arch + CLI Reference), B-0007
 (device-capability tables).
@@ -320,11 +365,17 @@ Subdirectories are not restricted to TSV forever; a video detail export could pa
 TSV is the working default. GitHub and editors render it, spreadsheets import it, it resembles direct SQL
 output, and it is lighter than CSV for data whose values routinely contain commas.
 
-The corpus supports it. **No scalar column an export would emit contains a tab** — verified across
-`properties.description`, `properties.name`, `changelogs.description`, `callouts.content`,
-`video_segments.transcript`, and all 8,258 Markdown table cells. Tabs exist only inside fenced code blocks
-in `pages.text` (13 pages), which never become a TSV cell. So plain tab-delimited output with no quoting
-is lossless and stays parseable by `awk -F '\t'` and RouterOS `:deserialize`.
+The corpus supports it. **No scalar column an export would emit contains a tab** — re-verified on rc.99
+across 18 candidate columns: `properties.name`/`description`/`type`/`default_val`/`section`,
+`changelogs.description`, `callouts.content`, `video_segments.transcript`, `videos.title`,
+`pages.title`/`slug`, `sections.heading`/`anchor_id`, **`page_table_cells.value`**,
+`page_tables.source_heading`, `hardware_catalog.specs_json`, `device_aliases.alias`, and `commands.path`.
+
+The bolded one matters most: its **25,286 rows arrived with #92, after the original pass**, and it is the
+one place new tabs could plausibly have entered. Tabs exist only inside fenced code blocks in `pages.text`
+(13 pages), which never become a TSV cell. So plain tab-delimited output with no quoting is lossless and
+stays parseable by `awk -F '\t'` and RouterOS `:deserialize`. No column carries a CR, so LF endings are
+safe too.
 
 The one exception is newlines in `callouts.content` (162 rows). Adopting quote-aware TSV corpus-wide would
 cost every simple consumer the one-line-equals-one-record property to serve those rows, and sidecars would
@@ -342,17 +393,26 @@ and a single shared word-count rule. **Raw slugs and fragments stay in columns**
 names must be sanitized — and where a row corresponds to a generated file or directory, the encoded name
 should be its own column so the match is definitive rather than reconstructed.
 
-`export` must not invent its own Markdown parser. The shared `splitTableRow` (#92) is the single
-implementation; sharpen it where needed and handle shape differences after parsing. Note 1,420 table cells
-contain a literal `|` after unescaping — which is why a naive `split("|")` reports 374 ragged tables
-against a true 14, and why a downstream `awk -F'|'` consumer would silently corrupt data.
+`export` must not invent its own Markdown parser — and after #92 it has no reason to, since cells are
+stored already-parsed. The rule survives as a *boundary* rather than a shared-code requirement: if a
+future dataset seems to need re-parsing `raw_markdown`, that is a signal the extractor should be storing
+the value, not that `export` should grow a parser. The original hazard still explains why: 1,420 table
+cells contain a literal `|` after unescaping, so a naive `split("|")` reports 374 ragged tables against a
+true 16 — which is also why a downstream `awk -F'|'` consumer would silently corrupt data, and why
+per-fragment TSV output is more useful than handing people the Markdown back.
 
 # Working direction
 
 Use the export to **measure and expose** the current artifact rather than to design every future schema.
-Products resolve to one catalog plus per-product specs. Pages/tables are the highest-value and least
-settled area, and the decision there is to take all tables rather than only the ones today's schema
-models. Commands stay narrow, and honest about what #91 prevents them from claiming.
+Products resolve to one catalog plus per-product specs. Pages/tables *were* the least settled area; #92
+settled it by storing all tables rather than only the ones today's schema models, which turned the
+export's hardest chunk into a straight DB read. Commands stay narrow, and honest about what #91 prevents
+them from claiming.
+
+The audit has now paid for itself twice before exporting a single file — #90 (real loss in the shipped
+artifact) and #100 (property tables never parsed) were both found by asking what the DB could not
+produce. That is the argument for keeping `export` honest about omissions rather than letting it paper
+over them: its value is in what it fails to emit.
 
 The first useful output should favor honest omissions and coverage summaries over cache fallbacks or
 re-parsing hidden inside `export`. Schema fixes and the export are independent tracks, sequenced only
@@ -360,22 +420,40 @@ because building the export against a corrected schema is less wasted work.
 
 # Next steps
 
-Session-scoped, in the intended order. The first three are #95 work, not export work.
+Steps 1–4 of the original plan are **done**: #90 and #92 landed, and the "census the 257 non-property
+tables" step became a DB query rather than a parsing exercise — its output is the new finding above
+(#100) plus the shape data now folded into the Pages/tables section. What remains is the export itself,
+plus one schema finding the census produced.
 
-1. **#90 — properties data loss + section identity.** Highest value: real loss in the shipped artifact,
-   self-contained (both parsers already walk the same Markdown in one pass), and a prerequisite #92 and
-   #93 both want. The one open decision is whether h4–h6 headings mint section rows or resolve to their
-   nearest h1–h3 ancestor; the latter preserves the retrieval unit and is the likely answer.
-2. **#92 step 1 — export `splitTableRow` with an escaped-pipe test.** One-line change that prevents the
-   44%-wrong second implementation, and unblocks any table work.
-3. **#92 steps 2–3 — generic table representation, properties derived as a filter.** The largest schema
-   change in the briefing; wants #90's section identity first.
-4. **Census the 257 non-property tables** before or during step 3 — group by header shape and page to
-   inform the generic schema and to tell B-0007's device tables apart from the rest. Cheap, and it is the
-   input to the biggest design decision here.
-5. **First `export`, later session.** Reuse normal DB resolution/readiness, `exportDevicesCsv()`, and the
-   shared table parser; share deterministic TSV/TOML/path helpers. Overwriting previous output is the
-   working assumption; safe replacement needs definition before implementation.
+The export decomposes into four chunks. **E1 blocks the rest; E2–E4 are mutually independent** and can be
+picked up in any order or in parallel, because each one only adds files under a spine E1 has already
+fixed. Sizing assumes one agent session each.
+
+| Chunk | Scope | Depends on | Issue |
+|---|---|---|---|
+| **E1 — spine** | `export` command, DB resolution/readiness, output directory, TSV serializer + escape guard, `manifest.toml`, and two proof datasets: `changelog.tsv` (trivially direct) and `callouts.tsv` (the only multiline scalar) | — | [#101](https://github.com/tikoci/rosetta/issues/101) |
+| **E2 — flat datasets** | `properties.tsv`, `videos.tsv`, `commands.tsv`, `pages.tsv` | E1 | not filed |
+| **E3 — products** | `products/products.tsv`, `products/matrix.tsv`, `products/<id>/specs.tsv` | E1 | not filed |
+| **E4 — per-fragment tables** | `pages/<page-slug>/<fragment>[--N].tsv` from `page_tables` | E1 | not filed |
+
+E2–E4 are deliberately **not filed yet**. Their specs are only settled once E1 fixes the contract, and an
+issue is a promotion earned when acceptance criteria stop moving — not a placeholder. File them from this
+table when E1 lands.
+
+**E1 carries all the contract decisions**, which is why it is worth doing alone and first rather than
+folding into a bigger "build the export" task. It must settle: the escape convention for the 162 multiline
+`callouts.content` rows and the general "any value that would produce invalid TSV" backstop; SQL `NULL`
+vs. empty-string; the shared word-count rule; deterministic row/column ordering; filesystem-safe name
+encoding with the encoded name emitted as its own column; and overwrite-vs-replace semantics. Pairing
+`changelog.tsv` with `callouts.tsv` is deliberate — one dataset that needs nothing and one that exercises
+every hard part of the serializer, so the contract is proven by real rows rather than asserted.
+
+E2–E4 are then mostly SQL plus the spine. E3 reuses `exportDevicesCsv()`'s query and changes only
+serialization. E4 needs no Markdown parser at all now that #92 stores cells — its real work is the
+deterministic `--N` suffix for the 83 multi-table sections and filesystem-safe slugs.
+
+Independent of the export, and **not blocking it**: **#100** (property tables the cell gate skips) is the
+census's own finding and stands on its own merits; **#91** and **#94** remain open from the original pass.
 
 # Deferred deliberately
 

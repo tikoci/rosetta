@@ -27,6 +27,7 @@ attackable
 autoincrement
 awk
 axd
+backticked
 bak
 basebox
 baselined
@@ -46,6 +47,7 @@ bunx
 calea
 canonicaliser
 canonicalizer
+cantopen
 capac
 capax
 capsman
