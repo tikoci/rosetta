@@ -166,6 +166,17 @@ describe("shared helpers", () => {
     expect(encodeFsName("ip-dhcp.server_2")).toBe("ip-dhcp.server_2");
     expect(encodeFsName("a/b c:d")).toBe("a%2Fb%20c%3Ad");
   });
+
+  test("encodeFsName encodes astral characters distinctly and escapes dot segments", () => {
+    // Without a code-point-aware pass, distinct emoji collapse to the same surrogate
+    // replacement bytes; they must stay distinct and reversible.
+    expect(encodeFsName("💩")).not.toBe(encodeFsName("😀"));
+    expect(encodeFsName("💩")).toBe("%F0%9F%92%A9");
+    // "." and ".." are reserved directory names — never emit them verbatim.
+    expect(encodeFsName(".")).toBe("%2E");
+    expect(encodeFsName("..")).toBe("%2E%2E");
+    expect(encodeFsName("a.b")).toBe("a.b"); // interior dots still allowed
+  });
 });
 
 describe("runExport", () => {
@@ -272,15 +283,26 @@ describe("runExport", () => {
   });
 
   test("manifest provenance mirrors db_meta", async () => {
-    db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('release_tag', 'v9.9.9-test')");
-    db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('source_commit', 'deadbeef')");
-    db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('built_at', '2026-07-16T00:00:00Z')");
-    const dir = exportToTmp();
-    await runExport(dir, db);
-    const manifest = readFileSync(path.join(dir, "manifest.toml"), "utf-8");
-    expect(manifest).toContain('release_tag = "v9.9.9-test"');
-    expect(manifest).toContain('source_commit = "deadbeef"');
-    expect(manifest).toContain('built_at = "2026-07-16T00:00:00Z"');
+    // The DB singleton is process-wide, so snapshot and restore these keys — leaking
+    // v9.9.9-test / deadbeef would let later tests observe fake provenance.
+    const keys = ["release_tag", "source_commit", "built_at"];
+    const saved = new Map(keys.map((k) => [k, (db.prepare("SELECT value FROM db_meta WHERE key = ?").get(k) as { value: string } | undefined)?.value ?? null]));
+    try {
+      db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('release_tag', 'v9.9.9-test')");
+      db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('source_commit', 'deadbeef')");
+      db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('built_at', '2026-07-16T00:00:00Z')");
+      const dir = exportToTmp();
+      await runExport(dir, db);
+      const manifest = readFileSync(path.join(dir, "manifest.toml"), "utf-8");
+      expect(manifest).toContain('release_tag = "v9.9.9-test"');
+      expect(manifest).toContain('source_commit = "deadbeef"');
+      expect(manifest).toContain('built_at = "2026-07-16T00:00:00Z"');
+    } finally {
+      for (const [k, v] of saved) {
+        if (v === null) db.run("DELETE FROM db_meta WHERE key = ?", [k]);
+        else db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES (?, ?)", [k, v]);
+      }
+    }
   });
 
   test("output is byte-identical across two consecutive runs on the same DB", async () => {
@@ -305,13 +327,32 @@ describe("runExport", () => {
 });
 
 describe("DB-only hard boundary", () => {
+  const exportSrc = () => readFileSync(path.join(import.meta.dirname, "export.ts"), "utf-8");
+
   test("export.ts uses no file-read, network, subprocess, or second-DB primitive", () => {
     // The prose docstring names the forbidden *sources* (matrix/, transcripts/, …);
     // guarding the code *primitives* is what actually can't be fooled by comments.
-    // Only stat (existsSync/statSync) and Bun.write are allowed touches of the FS.
-    const src = readFileSync(path.join(import.meta.dirname, "export.ts"), "utf-8");
+    // Only stat (existsSync/statSync), mkdir, and Bun.write are allowed FS touches.
+    const src = exportSrc();
     for (const primitive of ["fetch(", "new Database", "child_process", "readFileSync", "readFile(", "Bun.file(", "require("]) {
       expect(src).not.toContain(primitive);
     }
+  });
+
+  test("export.ts imports only DB-safe modules (catches aliased/new/dynamic I/O imports by specifier)", () => {
+    // An import allowlist survives what the primitive scan misses: an aliased import
+    // ({ readFile as rf }), a brand-new I/O module (node:https, node:net), a dynamic
+    // import(), or a transitive helper pulled in from another module — each shows up
+    // as a specifier that isn't on this list. Anything that reads files/network/a
+    // second DB lives behind a module that would have to appear here first.
+    const allowed = new Set(["bun:sqlite", "node:fs", "node:path", "./query.ts"]);
+    const src = exportSrc();
+    const specifiers = [
+      ...[...src.matchAll(/(?:^|\n)\s*import\b[^;]*?\bfrom\s*["']([^"']+)["']/g)].map((m) => m[1]),
+      ...[...src.matchAll(/(?:^|\n)\s*import\s*["']([^"']+)["']/g)].map((m) => m[1]),
+      ...[...src.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)].map((m) => m[1]),
+    ];
+    expect(specifiers.length).toBeGreaterThan(0);
+    for (const spec of specifiers) expect({ spec, allowed: allowed.has(spec) }).toEqual({ spec, allowed: true });
   });
 });

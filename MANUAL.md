@@ -284,7 +284,7 @@ For a **prerelease** version specifically, `republish_assets: true` has extra ru
 
 ## Dataset Export
 
-`rosetta export <dir>` writes a deterministic directory of spreadsheet-friendly datasets derived from the runtime database **alone** — no caches, no network, no re-extraction. It is an audit surface for the artifact rosetta actually ships (rationale: `briefings/B-0022-runtime-sqlite-dataset-exports.md`).
+`rosetta export <dir>` writes a deterministic directory of spreadsheet-friendly datasets derived from the runtime database **alone** — dataset generation reads only the resolved SQLite DB, with no caches, no source artifacts, and no re-extraction. (Like every rosetta command, startup first ensures the DB is present and current, which may download or refresh it; that readiness step is the only network activity, and never a source for the exported data.) It is an audit surface for the artifact rosetta actually ships (rationale: `briefings/B-0022-runtime-sqlite-dataset-exports.md`).
 
 ```sh
 bunx @tikoci/rosetta export /tmp/rosetta-datasets

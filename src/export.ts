@@ -18,7 +18,7 @@
  */
 
 import type { Database } from "bun:sqlite";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { compareVersions } from "./query.ts";
 
@@ -113,10 +113,14 @@ export function utf8Bytes(text: string): number {
  * as a file or directory name. Settled here (E1) so E4's per-fragment files inherit
  * it; the raw value always stays in a column and the encoded name is emitted as its
  * own column so the row↔file match is definitive rather than reconstructed.
- * Percent-encodes any byte outside the portable set [A-Za-z0-9._-].
+ * Percent-encodes any byte outside the portable set [A-Za-z0-9._-]. The `u` flag
+ * makes the regex iterate whole code points, so distinct astral characters (emoji)
+ * cannot collapse to the same surrogate-replacement bytes. The reserved directory
+ * names "." and ".." are escaped whole so an encoded name can never be either.
  */
 export function encodeFsName(raw: string): string {
-  return raw.replace(/[^A-Za-z0-9._-]/g, (ch) =>
+  if (raw === "." || raw === "..") return raw.replace(/\./g, "%2E");
+  return raw.replace(/[^A-Za-z0-9._-]/gu, (ch) =>
     [...new TextEncoder().encode(ch)].map((b) => `%${b.toString(16).toUpperCase().padStart(2, "0")}`).join(""),
   );
 }
@@ -245,8 +249,10 @@ function readProperties(database: Database): Dataset {
 /**
  * videos.tsv — direct `videos` metadata plus per-video transcript aggregates from
  * `video_segments` (segment count, word count via the shared rule, UTF-8 bytes).
- * Every video has at least one segment, so the aggregate is never a phantom zero.
- * The multiline `description` is emitted last so the numeric columns stay left.
+ * A video usually carries at least one segment, but the schema does not enforce it
+ * (the cache importer can store a video with no segments), so the aggregate falls
+ * back to honest zeros rather than assuming a row. The multiline `description` is
+ * emitted last so the numeric columns stay left.
  */
 function readVideos(database: Database): Dataset {
   const columns = [
@@ -254,19 +260,19 @@ function readVideos(database: Database): Dataset {
     "view_count", "like_count", "has_chapters",
     "segment_count", "transcript_word_count", "transcript_bytes", "description",
   ];
-  const agg = new Map<number, { count: number; words: number; bytes: number }>();
+  const aggregates = new Map<number, { count: number; words: number; bytes: number }>();
   for (const s of database.prepare("SELECT video_id, transcript FROM video_segments").all() as Array<{ video_id: number; transcript: string }>) {
-    const a = agg.get(s.video_id) ?? { count: 0, words: 0, bytes: 0 };
+    const a = aggregates.get(s.video_id) ?? { count: 0, words: 0, bytes: 0 };
     a.count += 1;
     a.words += countWords(s.transcript);
     a.bytes += utf8Bytes(s.transcript);
-    agg.set(s.video_id, a);
+    aggregates.set(s.video_id, a);
   }
   const videos = database
     .prepare("SELECT id, video_id, title, channel, upload_date, duration_s, url, view_count, like_count, has_chapters, description FROM videos ORDER BY video_id")
     .all() as Array<Record<string, TsvScalar> & { id: number }>;
   const rows = videos.map((v) => {
-    const a = agg.get(v.id) ?? { count: 0, words: 0, bytes: 0 };
+    const a = aggregates.get(v.id) ?? { count: 0, words: 0, bytes: 0 };
     return [
       v.video_id, v.title, v.channel, v.upload_date, v.duration_s, v.url,
       v.view_count, v.like_count, v.has_chapters,
@@ -300,7 +306,7 @@ function tableCounts(database: Database, key: "page_id" | "section_id"): Map<num
  * pages.tsv — the flat, un-rolled-up view: one row per `sections` fragment, keyed to
  * its page, carrying the fragment's sizing (word count, UTF-8 text/code bytes) and
  * its table counts. A spreadsheet user does their own sorting/grouping here; the
- * page-level rollups live in pages_summary.tsv (two audiences, same core data).
+ * page-level rollup lives in pages_summary.tsv (two audiences, same core data).
  * A fragment with word_count = 0 is a self-flagging empty section (#93).
  */
 function readPagesFlat(database: Database): Dataset {
@@ -416,6 +422,9 @@ export async function runExport(outDir: string, database: Database): Promise<Exp
   if (existsSync(resolved) && !statSync(resolved).isDirectory()) {
     throw new Error(`export: ${resolved} exists and is not a directory`);
   }
+  // Create the target directory explicitly (the typical `rosetta export <dir>`
+  // expectation), rather than leaning on Bun.write's implicit parent creation.
+  mkdirSync(resolved, { recursive: true });
 
   const datasets = DATASET_READERS.map((read) => read(database));
 
@@ -450,8 +459,7 @@ export async function runExport(outDir: string, database: Database): Promise<Exp
     disclosures: DISCLOSURES,
   });
 
-  // Bun.write creates parent directories as needed. We only ever overwrite the
-  // files we own; nothing is deleted.
+  // Overwrite only the files we own; nothing is deleted.
   await Bun.write(path.join(resolved, "manifest.toml"), manifest);
   for (const d of datasets) await Bun.write(path.join(resolved, d.name), toTsv(d.columns, d.rows));
 
