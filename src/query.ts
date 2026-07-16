@@ -9,6 +9,7 @@ import { type CanonicalCommand, canonicalize } from "./canonicalize.ts";
 import { makeDbVerbResolver } from "./canonicalize-resolver.ts";
 import { classifyQuery, type QueryClassification } from "./classify.ts";
 import { db } from "./db.ts";
+import { compareVersions } from "./version-compare.ts";
 
 /**
  * Sentinel markers for FTS5 snippet() highlighting. Indexed prose is raw
@@ -1529,25 +1530,11 @@ export function checkCommandVersions(
 }
 
 /** Compare RouterOS version strings numerically (e.g., "7.9" < "7.10.2" < "7.22"). */
-export function compareVersions(a: string, b: string): number {
-  const normalize = (v: string) => {
-    const beta = v.includes("beta");
-    const rc = v.includes("rc");
-    const clean = v.replace(/beta\d*/, "").replace(/rc\d*/, "");
-    const parts = clean.split(".").map(Number);
-    // beta < rc < release for the same numeric version
-    const suffix = beta ? 0 : rc ? 1 : 2;
-    return { parts, suffix };
-  };
-  const na = normalize(a);
-  const nb = normalize(b);
-  for (let i = 0; i < Math.max(na.parts.length, nb.parts.length); i++) {
-    const pa = na.parts[i] ?? 0;
-    const pb = nb.parts[i] ?? 0;
-    if (pa !== pb) return pa - pb;
-  }
-  return na.suffix - nb.suffix;
-}
+// compareVersions now lives in the dependency-free ./version-compare.ts so DB-only
+// consumers (src/export.ts) can order versions without importing the DB singleton.
+// Imported above for internal use; re-exported here so existing `from "./query.ts"`
+// importers are unaffected.
+export { compareVersions };
 
 /** Browse commands filtered by version (uses command_versions table). */
 export function browseCommandsAtVersion(

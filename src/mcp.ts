@@ -181,6 +181,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  rosetta browse       Interactive terminal browser");
   console.log("  rosetta browse <cmd> [args]  Run any TUI command once, then open REPL");
   console.log("  rosetta browse --once <cmd>  Execute any TUI command and exit");
+  console.log("  rosetta export <dir>  Write DB-only dataset directory (TSV + manifest.toml)");
   console.log("  rosetta --setup      Download database + print MCP client config");
   console.log("  rosetta --setup --force  Re-download database");
   console.log("  rosetta --refresh    Shortcut for --setup --force");
@@ -216,6 +217,21 @@ if (args[0] === "browse") {
   process.argv.splice(2, 1);
   await import("./browse.ts");
   return;
+}
+
+if (args[0] === "export") {
+  const outDir = args[1];
+  if (!outDir || outDir.startsWith("-")) {
+    console.error("Usage: rosetta export <dir>");
+    process.exit(1);
+  }
+  await ensureDbReady((msg) => process.stderr.write(`${msg}\n`));
+  const { db } = await import("./db.ts");
+  const { runExport } = await import("./export.ts");
+  const summary = await runExport(outDir, db);
+  console.log(`Wrote ${summary.files.length} datasets + manifest.toml to ${summary.outDir}`);
+  for (const f of summary.files) console.log(`  ${f.name}  (${f.rows} rows)`);
+  process.exit(0);
 }
 
 if (args.includes("--setup")) {

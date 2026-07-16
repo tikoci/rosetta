@@ -27,6 +27,7 @@ Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/rel
 | `browse` | Interactive terminal browser (REPL) |
 | `browse <cmd> [args]` | Run any TUI command once, then open REPL (e.g. `browse changelog 7.20..7.22`) |
 | `browse --once <cmd>` | Execute any TUI command and exit — no REPL (for piping) |
+| `export <dir>` | Write DB-only dataset directory (TSV + manifest.toml) |
 | `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--refresh` | Shortcut for `--setup --force` (refresh DB) |
@@ -280,6 +281,37 @@ For a **prerelease** version specifically, `republish_assets: true` has extra ru
 - `version` **must** be supplied as the exact already-published run-numbered version (e.g. `v0.11.0-alpha.42`) — the workflow fails fast if it's blank.
 - `package.json` is **not** rewritten in this mode.
 - No `npm dist-tag add` calls happen (npm publish is already fully skipped in `republish_assets` mode).
+
+## Dataset Export
+
+`rosetta export <dir>` writes a deterministic directory of spreadsheet-friendly datasets derived from the runtime database **alone** — dataset generation reads only the resolved SQLite DB, with no caches, no source artifacts, and no re-extraction. (Like every rosetta command, startup first ensures the DB is present and current, which may download or refresh it; that readiness step is the only network activity, and never a source for the exported data.) It is an audit surface for the artifact rosetta actually ships (rationale: `briefings/B-0022-runtime-sqlite-dataset-exports.md`).
+
+```sh
+bunx @tikoci/rosetta export /tmp/rosetta-datasets
+```
+
+The current pass writes one flat TSV per subject:
+
+```text
+rosetta-datasets/
+├── manifest.toml       # provenance (from db_meta) + serialization contract + per-file row counts + disclosures
+├── changelog.tsv       # changelogs: version, released, category, is_breaking, description, sort_order
+├── callouts.tsv        # callouts: page_id, section_id, type, content, sort_order
+├── properties.tsv      # properties joined to pages + resolved section_anchor
+├── videos.tsv          # video metadata + per-video transcript segment/word/byte counts
+├── commands.tsv        # command glossary: path, name, type, parent_path, page_id, description, ros_version
+├── pages.tsv           # one row per section: sizing (word/byte counts) + table counts (the granular view)
+└── pages_summary.tsv   # one row per page: rollup totals (section/table counts, bytes) — GitHub-readable
+```
+
+`pages.tsv` and `pages_summary.tsv` are the same core data for two audiences: the flat per-section rows suit a spreadsheet where you sort and group yourself, while the per-page rollup is small enough to read directly on GitHub. Product specs (`products/**`) and per-fragment table files (`pages/<slug>/**`) are not yet exported.
+
+Serialization contract (stated in full in `manifest.toml`):
+
+- **TSV**, UTF-8, LF line endings, a header row, and stable row/column ordering — a rebuild on the same DB is byte-identical.
+- **Escaping** follows the Postgres COPY text convention: `\\`=backslash, `\t`=tab, `\n`=LF, `\r`=CR, applied as a general backstop to every value. A field exactly equal to `\N` is SQL NULL; an empty field is the empty string. This keeps the one-line-equals-one-record property (parseable by `awk -F '\t'`) while remaining losslessly reversible.
+
+Because the export reads only the DB, a column it cannot produce is omitted and disclosed in `manifest.toml` rather than recovered from a source artifact. Overwriting a previous export is the working assumption; the command only rewrites the files it owns and never deletes anything it did not create.
 
 ## Database (Standalone)
 
