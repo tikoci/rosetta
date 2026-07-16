@@ -280,6 +280,7 @@ passthroughs
 pathified
 pathify
 pathifying
+pci
 pcq
 persistable
 phy

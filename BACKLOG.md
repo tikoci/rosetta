@@ -88,6 +88,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0019 | Hardware overlay Phase 2: surfacing `hardware_catalog`/`device_aliases` in MCP/TUI — design done, [#39](https://github.com/tikoci/rosetta/issues/39) closed; build spawned as [#49](https://github.com/tikoci/rosetta/issues/49)/[#50](https://github.com/tikoci/rosetta/issues/50) | resolved |
 | B-0020 | 0.11 retrieval-quality audit | open |
 | B-0021 | Off-matrix nomenclature (2B) + `&`-module / derivative-part taxonomy (2C) — decision-support for [#70](https://github.com/tikoci/rosetta/issues/70) | open |
+| B-0022 | Runtime SQLite-only dataset exports for local audit and future static hosting — feasibility inventory grounded on the CI artifact; schema/ETL findings spawned as [#95](https://github.com/tikoci/rosetta/issues/95) umbrella (`export-audit`), export itself not yet built | open |
 
 ## Done index
 
