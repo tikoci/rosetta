@@ -305,13 +305,16 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 ### Tables
 
-> `pages`/`sections`/`properties`/`callouts` row counts and descriptions below are frozen at the legacy Confluence-era shape and have not been refreshed for the live Docusaurus build (see DESIGN.md's "Historical Corpus Snapshot"). For current counts, use `routeros_stats` on a built database; the `videos`/`video_segments`/hardware-overlay rows below are already current.
+> `pages`/`sections`/`properties`/`callouts` row counts and descriptions below are frozen at the legacy Confluence-era shape and have not been refreshed for the live Docusaurus build (see DESIGN.md's "Historical Corpus Snapshot"). For current counts, use `routeros_stats` on a built database; the generic-table, `videos`/`video_segments`, and hardware-overlay rows below describe the current schema.
 
 | Table | Rows | What's in it |
 |-------|------|-------------|
 | `pages` | 317 | Legacy documentation pages — title, breadcrumb path, full text, code blocks, help.mikrotik.com URL |
 | `sections` | 2,984 | Page chunks split by h1–h3 headings, with anchor IDs for deep linking |
 | `callouts` | 1,034 | Warning/Note/Info/Tip boxes extracted from Confluence callout macros |
+| `page_tables` | varies (~850) | Every Docusaurus pipe table with raw Markdown, source heading, section attribution, width, and raggedness |
+| `page_table_rows` | varies (~9K) | Header (`row_order = 0`) and data rows for `page_tables` |
+| `page_table_cells` | varies (~25K) | Decoded cells at their actual source width; backslash-escaped pipe syntax is stored without the backslash |
 | `properties` | 4,860 | Command properties — name, type, default value, description (from doc tables) |
 | `commands` | 40K+ | RouterOS command hierarchy — dirs, commands, arguments from `/console/inspect` |
 | `command_versions` | 1.67M | Junction table: which command paths exist in which RouterOS versions (7.9–7.23beta2) |
@@ -385,12 +388,43 @@ sections (
     word_count, sort_order
 )
 
--- Property tables extracted from confluenceTable
+-- Every Docusaurus pipe table, without guessing what the table means. Exact source
+-- Markdown preserves delimiter/alignment syntax; normalized children make cells queryable.
+page_tables (
+    id INTEGER PRIMARY KEY,
+    page_id INTEGER NOT NULL REFERENCES pages(id),
+    section_id INTEGER REFERENCES sections(id), -- enclosing h1-h3; nullable above headings
+    source_heading TEXT,                         -- nearest h1-h6 heading; nullable
+    raw_markdown TEXT NOT NULL,
+    column_count INTEGER NOT NULL,              -- header width
+    data_row_count INTEGER NOT NULL,
+    is_ragged INTEGER NOT NULL,                 -- 0|1; ragged rows keep actual width
+    sort_order INTEGER NOT NULL,
+    UNIQUE(page_id, sort_order)
+)
+
+page_table_rows (
+    id INTEGER PRIMARY KEY,
+    table_id INTEGER NOT NULL REFERENCES page_tables(id),
+    row_order INTEGER NOT NULL,                 -- 0 = header; data starts at 1
+    UNIQUE(table_id, row_order)
+)
+
+page_table_cells (
+    row_id INTEGER NOT NULL REFERENCES page_table_rows(id),
+    column_order INTEGER NOT NULL,
+    value TEXT NOT NULL,                        -- decoded; `\\|` is stored as `|`
+    PRIMARY KEY(row_id, column_order)
+)
+
+-- Properties derived from Docusaurus tables/bullets (or historical Confluence tables)
 properties (
     id, page_id, name, type, default_val,
     description,
     section,               -- raw nearest-heading text, ANY level (h1–h6); kept for compat
     section_id,            -- REFERENCES sections(id); the resolvable identity, nullable
+    source_table_row_id,   -- REFERENCES page_table_rows(id); exact source for table-derived
+                           -- rows, NULL for bullet-derived and historical rows
     sort_order
 )
 -- No UNIQUE: (page_id, name, section) is not an identity in this corpus — a single section

@@ -87,7 +87,32 @@ export interface ParsedProperty {
   sectionAnchor: string | null;
   /** 0-based index of the source line this property was parsed from. */
   line: number;
+  /** Source line of the generic table row that produced this property, or null for bullets. */
+  sourceTableRowLine: number | null;
   malformedEmphasis: boolean;
+}
+
+export interface ParsedTableRow {
+  cells: string[];
+  /** 0-based source line of this row. */
+  line: number;
+}
+
+export interface ParsedTable {
+  header: ParsedTableRow;
+  rows: ParsedTableRow[];
+  /** Exact source Markdown for the header, delimiter, and data rows. */
+  rawMarkdown: string;
+  columnCount: number;
+  dataRowCount: number;
+  isRagged: boolean;
+  sortOrder: number;
+  /** Raw nearest h1-h6 heading text, distinct from the enclosing retrieval section. */
+  sourceHeading: string | null;
+  /** anchor_id of the enclosing h1-h3 section, resolved by parsePage(). */
+  sectionAnchor: string | null;
+  /** 0-based source line of the header row. */
+  line: number;
 }
 
 export interface ParsedCallout {
@@ -125,6 +150,7 @@ export interface ParsedPage {
   wordCount: number;
   codeLines: number;
   sections: ParsedSection[];
+  tables: ParsedTable[];
   properties: ParsedProperty[];
   callouts: ParsedCallout[];
 }
@@ -149,18 +175,36 @@ export function slugify(text: string): string {
  * lines that were wrongly detected as new top-level page sections).
  */
 function makeFenceTracker() {
-  let inFence = false;
+  let fence: { char: "`" | "~"; width: number } | null = null;
   return (line: string): boolean => {
-    if (/^```/.test(line)) {
-      inFence = !inFence;
-      return true; // the fence delimiter line itself counts as "inside" for callers' purposes
+    if (fence !== null) {
+      // A list item adds its marker width to continuation indentation (`10. ` is four
+      // columns), so a valid closing fence can be indented beyond the normal three-space
+      // opening limit. Once open, only a matching, otherwise-empty marker can close it.
+      const closing = line.match(/^\s*(`{3,}|~{3,})\s*$/);
+      if (closing) {
+        const char = closing[1][0] as "`" | "~";
+        if (char === fence.char && closing[1].length >= fence.width) fence = null;
+      }
+      return true;
     }
-    return inFence;
+
+    // Fences may be indented up to three spaces or begin on an ordered/unordered list item
+    // (`9. ```ros` in zerotier.md). Recognizing the list opener keeps its indented closing
+    // fence from looking like a new, unterminated block that hides the rest of the page.
+    const match = line.match(/^(?:\s{0,3}|\s*(?:[-+*]|\d+\.)\s+)(`{3,}|~{3,})(.*)$/);
+    if (match) {
+      const char = match[1][0] as "`" | "~";
+      fence = { char, width: match[1].length };
+      return true;
+    }
+    return false;
   };
 }
 
 /** Split a Markdown table row into cells, respecting `\|` as an escaped literal pipe. */
-function splitTableRow(line: string): string[] {
+export function splitTableRow(line: string): string[] {
+  const trimmed = line.trim();
   const cells: string[] = [];
   let current = "";
   for (let i = 0; i < line.length; i++) {
@@ -177,9 +221,65 @@ function splitTableRow(line: string): string[] {
     current += line[i];
   }
   cells.push(current.trim());
-  if (cells[0] === "") cells.shift();
-  if (cells[cells.length - 1] === "") cells.pop();
+  // Strip only the synthetic cells created by outer delimiter pipes. Empty real cells
+  // immediately inside those delimiters must survive (`| | value | |` -> ["", "value", ""]).
+  if (trimmed.startsWith("|")) cells.shift();
+  if (trimmed.endsWith("|")) cells.pop();
   return cells;
+}
+
+/**
+ * Parse every pipe table in source order, retaining raw Markdown and actual row widths.
+ *
+ * The shape deliberately matches the Docusaurus corpus characterized by B-0022: outer-pipe
+ * header rows followed by an alignment delimiter. Data rows stay ragged when the source is
+ * ragged; they are never padded, truncated, or rejected. Table-looking text in backtick or
+ * tilde fenced code is excluded.
+ */
+export function parseTables(md: string): ParsedTable[] {
+  const lines = md.split("\n");
+  const tables: ParsedTable[] = [];
+  const isFenced = makeFenceTracker();
+  let sourceHeading: string | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (isFenced(line)) continue;
+
+    const heading = line.match(/^#{1,6}\s+(.+)$/);
+    if (heading) {
+      sourceHeading = heading[1].trim();
+      continue;
+    }
+
+    if (!/^\s*\|.*\|\s*$/.test(line) || !lines[i + 1] || !/^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1])) {
+      continue;
+    }
+
+    const header = { cells: splitTableRow(line), line: i };
+    const rows: ParsedTableRow[] = [];
+    let end = i + 2;
+    while (end < lines.length && /^\s*\|/.test(lines[end])) {
+      rows.push({ cells: splitTableRow(lines[end]), line: end });
+      end++;
+    }
+
+    tables.push({
+      header,
+      rows,
+      rawMarkdown: lines.slice(i, end).join("\n"),
+      columnCount: header.cells.length,
+      dataRowCount: rows.length,
+      isRagged: rows.some((row) => row.cells.length !== header.cells.length),
+      sortOrder: tables.length,
+      sourceHeading,
+      sectionAnchor: null,
+      line: i,
+    });
+    i = end - 1;
+  }
+
+  return tables;
 }
 
 /**
@@ -263,11 +363,37 @@ function parseBulletProperty(
  * Section attribution is the nearest preceding heading of any level, matching extract-html.ts's
  * "nearest preceding heading" behavior for the Confluence corpus.
  */
-export function parseProperties(md: string): ParsedProperty[] {
+export function parseProperties(md: string, tables = parseTables(md)): ParsedProperty[] {
   const lines = md.split("\n");
   const properties: ParsedProperty[] = [];
   let currentSection: string | null = null;
   const isFenced = makeFenceTracker();
+
+  // Preserve the production parser's existing gate exactly while deriving accepted rows from
+  // the shared generic-table objects. Broadening what qualifies as a property table is later
+  // corpus-classification work, not an incidental change in #92.
+  for (const table of tables) {
+    const [headerLine, separatorLine] = table.rawMarkdown.split("\n", 2);
+    if (!/^\|.*\b(property|parameter)\b.*\|$/i.test(headerLine) || !/^\|[\s:|-]+\|$/.test(separatorLine)) {
+      continue;
+    }
+    for (const row of table.rows) {
+      if (row.cells.length < 2) continue;
+      const parsed = parsePropertyCell(row.cells[0]);
+      if (!parsed) continue;
+      properties.push({
+        name: parsed.name,
+        rawType: parsed.rawType,
+        defaultVal: parsed.defaultVal,
+        description: row.cells[1],
+        section: table.sourceHeading,
+        sectionAnchor: null,
+        line: row.line,
+        sourceTableRowLine: row.line,
+        malformedEmphasis: parsed.malformed,
+      });
+    }
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -276,35 +402,6 @@ export function parseProperties(md: string): ParsedProperty[] {
     const headingMatch = line.match(/^#{1,6}\s+(.+)$/);
     if (headingMatch) {
       currentSection = headingMatch[1].trim();
-      continue;
-    }
-
-    if (
-      /^\|.*\b(property|parameter)\b.*\|$/i.test(line) &&
-      lines[i + 1] &&
-      /^\|[\s:|-]+\|$/.test(lines[i + 1])
-    ) {
-      i += 2; // skip header + separator
-      while (i < lines.length && lines[i].trim().startsWith("|")) {
-        const cells = splitTableRow(lines[i]);
-        if (cells.length >= 2) {
-          const parsed = parsePropertyCell(cells[0]);
-          if (parsed) {
-            properties.push({
-              name: parsed.name,
-              rawType: parsed.rawType,
-              defaultVal: parsed.defaultVal,
-              description: cells[1],
-              section: currentSection,
-              sectionAnchor: null, // resolved by parsePage(), which has the section line ranges
-              line: i,
-              malformedEmphasis: parsed.malformed,
-            });
-          }
-        }
-        i++;
-      }
-      i--; // outer loop will increment
       continue;
     }
 
@@ -318,12 +415,13 @@ export function parseProperties(md: string): ParsedProperty[] {
         section: currentSection,
         sectionAnchor: null, // resolved by parsePage(), which has the section line ranges
         line: i,
+        sourceTableRowLine: null,
         malformedEmphasis: bulletProperty.malformed,
       });
     }
   }
 
-  return properties;
+  return properties.sort((a, b) => a.line - b.line);
 }
 
 /** Parse :::type ... ::: (and ::::-nested) admonition blocks into callouts. */
@@ -501,11 +599,14 @@ export function parsePage(md: string, pageUrl: string): ParsedPage {
   const wordCount = text.split(/\s+/).filter(Boolean).length;
   const codeLines = code.split("\n").filter((l) => l.trim()).length;
 
-  // Sections first: properties and callouts are attributed to them by line range, which is
-  // what gives every property a resolvable section identity (issue #90). All three parsers
-  // walk the same Markdown, so a line index is a shared coordinate — no second parse.
+  // Sections and tables first: properties consume the shared table parse, then every structure
+  // is attributed by the same source-line coordinate (issues #90 and #92).
   const sections = parseSections(md, title);
-  const properties = parseProperties(md).map((p) => ({
+  const tables = parseTables(md).map((table) => ({
+    ...table,
+    sectionAnchor: attributeSection(table.line, sections),
+  }));
+  const properties = parseProperties(md, tables).map((p) => ({
     ...p,
     description: resolveDescriptionLinks(p.description, pageUrl),
     sectionAnchor: attributeSection(p.line, sections),
@@ -515,7 +616,23 @@ export function parsePage(md: string, pageUrl: string): ParsedPage {
     sectionAnchor: attributeSection(c.line, sections),
   }));
 
-  return { rosettaId, url: pageUrl, slug, title, path, depth, text, code, codeLang, wordCount, codeLines, sections, properties, callouts };
+  return {
+    rosettaId,
+    url: pageUrl,
+    slug,
+    title,
+    path,
+    depth,
+    text,
+    code,
+    codeLang,
+    wordCount,
+    codeLines,
+    sections,
+    tables,
+    properties,
+    callouts,
+  };
 }
 
 // ── DocCardList expansion (issue #65) ──
@@ -756,12 +873,15 @@ async function main() {
   // re-establish them afterward. Both columns are nullable, so this is safe with FKs on.
   db.run("UPDATE commands SET page_id = NULL;");
   db.run("UPDATE schema_nodes SET page_id = NULL;");
-  // Delete order matters: properties.section_id and callouts.section_id are FKs into
-  // sections (issue #90), so the children go first or the DELETE FROM sections violates them.
+  // Delete order matters: properties references both sections and table rows; table cells/rows
+  // reference tables; tables and callouts reference sections (issues #90 and #92).
   db.run("DELETE FROM callouts;");
   db.run("INSERT INTO callouts_fts(callouts_fts) VALUES('rebuild');");
   db.run("DELETE FROM properties;");
   db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
+  db.run("DELETE FROM page_table_cells;");
+  db.run("DELETE FROM page_table_rows;");
+  db.run("DELETE FROM page_tables;");
   db.run("DELETE FROM sections;");
   db.run("PRAGMA foreign_keys = OFF;");
   db.run("DELETE FROM pages;");
@@ -778,12 +898,24 @@ async function main() {
     INSERT INTO sections (page_id, heading, level, anchor_id, text, code, word_count, sort_order)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const insertTable = db.prepare(`
+    INSERT INTO page_tables
+      (page_id, section_id, source_heading, raw_markdown, column_count, data_row_count, is_ragged, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const insertTableRow = db.prepare(`
+    INSERT INTO page_table_rows (table_id, row_order) VALUES (?, ?)
+  `);
+  const insertTableCell = db.prepare(`
+    INSERT INTO page_table_cells (row_id, column_order, value) VALUES (?, ?, ?)
+  `);
   // Plain INSERT, not INSERT OR IGNORE: the old UNIQUE(page_id, name, section) silently
   // destroyed 141 distinct properties (issue #90). Every parsed row is now stored, and the
   // parsed == stored assert below makes any future loss loud instead of invisible.
   const insertProperty = db.prepare(`
-    INSERT INTO properties (page_id, name, type, default_val, description, section, section_id, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO properties
+      (page_id, name, type, default_val, description, section, section_id, source_table_row_id, sort_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertCallout = db.prepare(`
     INSERT INTO callouts (page_id, type, content, section_id, sort_order)
@@ -791,7 +923,13 @@ async function main() {
   `);
 
   let totalSections = 0;
+  let totalTables = 0;
+  let totalTableDataRows = 0;
+  let totalTableRows = 0;
+  let totalTableCells = 0;
+  let tablesWithoutSection = 0;
   let totalProperties = 0;
+  let tableDerivedProperties = 0;
   let malformedProperties = 0;
   let totalCallouts = 0;
   let propertiesWithoutSection = 0;
@@ -825,11 +963,61 @@ async function main() {
         sectionIdByAnchor.set(s.anchorId, Number(res.lastInsertRowid));
         totalSections++;
       }
+
+      // Generic tables are stored before properties so a table-derived property can point at
+      // its exact source row. Source lines are unique row coordinates within a page.
+      const tableRowIdByLine = new Map<number, number>();
+      for (const table of page.tables) {
+        const sectionId = table.sectionAnchor === null ? null : (sectionIdByAnchor.get(table.sectionAnchor) ?? null);
+        const tableResult = insertTable.run(
+          pageId,
+          sectionId,
+          table.sourceHeading,
+          table.rawMarkdown,
+          table.columnCount,
+          table.dataRowCount,
+          table.isRagged ? 1 : 0,
+          table.sortOrder,
+        );
+        const tableId = Number(tableResult.lastInsertRowid);
+        const rows = [table.header, ...table.rows];
+        for (let rowOrder = 0; rowOrder < rows.length; rowOrder++) {
+          const row = rows[rowOrder];
+          const rowResult = insertTableRow.run(tableId, rowOrder);
+          const rowId = Number(rowResult.lastInsertRowid);
+          if (rowOrder > 0) tableRowIdByLine.set(row.line, rowId);
+          for (let columnOrder = 0; columnOrder < row.cells.length; columnOrder++) {
+            insertTableCell.run(rowId, columnOrder, row.cells[columnOrder]);
+            totalTableCells++;
+          }
+          totalTableRows++;
+        }
+        totalTables++;
+        totalTableDataRows += table.rows.length;
+        if (sectionId === null) tablesWithoutSection++;
+      }
+
       let propOrder = 0;
       for (const p of page.properties) {
         const sectionId = p.sectionAnchor === null ? null : (sectionIdByAnchor.get(p.sectionAnchor) ?? null);
-        insertProperty.run(pageId, p.name, p.rawType, p.defaultVal, p.description, p.section, sectionId, propOrder++);
+        const sourceTableRowId =
+          p.sourceTableRowLine === null ? null : tableRowIdByLine.get(p.sourceTableRowLine);
+        if (p.sourceTableRowLine !== null && sourceTableRowId === undefined) {
+          throw new Error(`Property ${page.rosettaId}:${p.line} has no stored source table row`);
+        }
+        insertProperty.run(
+          pageId,
+          p.name,
+          p.rawType,
+          p.defaultVal,
+          p.description,
+          p.section,
+          sectionId,
+          sourceTableRowId ?? null,
+          propOrder++,
+        );
         totalProperties++;
+        if (sourceTableRowId !== undefined && sourceTableRowId !== null) tableDerivedProperties++;
         if (p.malformedEmphasis) malformedProperties++;
         if (sectionId === null) propertiesWithoutSection++;
       }
@@ -850,15 +1038,28 @@ async function main() {
   const storedProperties = (db.query("SELECT count(*) AS n FROM properties").get() as { n: number }).n;
   const storedCallouts = (db.query("SELECT count(*) AS n FROM callouts").get() as { n: number }).n;
   const storedSections = (db.query("SELECT count(*) AS n FROM sections").get() as { n: number }).n;
+  const storedTables = (db.query("SELECT count(*) AS n FROM page_tables").get() as { n: number }).n;
+  const storedTableDataRows = (db.query("SELECT coalesce(sum(data_row_count), 0) AS n FROM page_tables").get() as { n: number }).n;
+  const storedTableRows = (db.query("SELECT count(*) AS n FROM page_table_rows").get() as { n: number }).n;
+  const storedTableCells = (db.query("SELECT count(*) AS n FROM page_table_cells").get() as { n: number }).n;
+  const storedTablePropertyLinks = (
+    db.query("SELECT count(*) AS n FROM properties WHERE source_table_row_id IS NOT NULL").get() as { n: number }
+  ).n;
 
   console.log(`\nExtraction complete:`);
   console.log(`  Pages:      ${parsedPages.length}`);
   console.log(`  Sections:   ${storedSections}`);
+  console.log(`  Tables:     ${storedTables} (${storedTableDataRows} data rows, ${storedTableCells} cells, ${tablesWithoutSection} with no section context)`);
   console.log(`  Properties: ${storedProperties} (${malformedProperties} malformed-emphasis, ${propertiesWithoutSection} with no section context)`);
   console.log(`  Callouts:   ${storedCallouts} (${calloutsWithoutSection} with no section context)`);
 
   const drops = [
     ["properties", totalProperties, storedProperties],
+    ["tables", totalTables, storedTables],
+    ["table data rows", totalTableDataRows, storedTableDataRows],
+    ["table rows including headers", totalTableRows, storedTableRows],
+    ["table cells", totalTableCells, storedTableCells],
+    ["table-derived property links", tableDerivedProperties, storedTablePropertyLinks],
     ["callouts", totalCallouts, storedCallouts],
     ["sections", totalSections, storedSections],
   ].filter(([, parsed, stored]) => parsed !== stored);

@@ -1013,6 +1013,9 @@ describe("qa.yml", () => {
       /COMMANDS.*-lt 1000/,
       /DEVICES.*-lt 100/,
       /PROPERTIES.*-lt 1000/,
+      /PAGE_TABLES.*-lt 800/,
+      /PAGE_TABLE_DATA_ROWS.*-lt 8000/,
+      /TABLE_PROPERTIES.*-lt 4000/,
       /HARDWARE_CATALOG.*-lt 200/,
       /DEVICE_ALIASES.*-lt 600/,
     ]) {

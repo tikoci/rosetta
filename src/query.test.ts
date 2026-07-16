@@ -85,9 +85,12 @@ beforeAll(() => {
   db.run("DELETE FROM command_versions");
   db.run("DELETE FROM commands");
   db.run("DELETE FROM ros_versions");
-  db.run("DELETE FROM sections");
   db.run("DELETE FROM callouts");
   db.run("DELETE FROM properties");
+  db.run("DELETE FROM page_table_cells");
+  db.run("DELETE FROM page_table_rows");
+  db.run("DELETE FROM page_tables");
+  db.run("DELETE FROM sections");
   db.run("DELETE FROM pages");
   // Reset autoincrement counters so fixture IDs are deterministic
   db.run("DELETE FROM sqlite_sequence");
@@ -2028,6 +2031,7 @@ describe("schema", () => {
     const names = tableNames();
     const expected = [
       "pages", "properties", "callouts", "sections",
+      "page_tables", "page_table_rows", "page_table_cells",
       "commands", "command_versions", "ros_versions",
       "devices", "device_test_results", "changelogs", "schema_migrations",
       "videos", "video_segments",

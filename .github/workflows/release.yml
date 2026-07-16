@@ -394,6 +394,8 @@ jobs:
           VERSIONS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM ros_versions")
           DEVICES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM devices")
           PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
+          PAGE_TABLES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM page_tables" 2>/dev/null || echo 0)
+          PAGE_TABLE_DATA_ROWS=$(sqlite3 ros-help.db "SELECT COALESCE(SUM(data_row_count), 0) FROM page_tables" 2>/dev/null || echo 0)
           VIDEOS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM videos" 2>/dev/null || echo 0)
           SEGMENTS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM video_segments WHERE transcript != ''" 2>/dev/null || echo 0)
           HARDWARE_CATALOG=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM hardware_catalog" 2>/dev/null || echo 0)
@@ -404,12 +406,14 @@ jobs:
             echo "versions=$VERSIONS"
             echo "devices=$DEVICES"
             echo "properties=$PROPERTIES"
+            echo "page_tables=$PAGE_TABLES"
+            echo "page_table_data_rows=$PAGE_TABLE_DATA_ROWS"
             echo "videos=$VIDEOS"
             echo "segments=$SEGMENTS"
             echo "hardware_catalog=$HARDWARE_CATALOG"
             echo "device_aliases=$DEVICE_ALIASES"
           } >> "$GITHUB_OUTPUT"
-          echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $VIDEOS videos ($SEGMENTS transcript segments), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases"
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $VERSIONS versions, $DEVICES devices, $PROPERTIES properties, $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $VIDEOS videos ($SEGMENTS transcript segments), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases"
 
       - name: Compute image metadata
         id: image_meta

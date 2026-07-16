@@ -6,6 +6,9 @@
  * Tables:
  *   pages            — one row per Confluence HTML page
  *   pages_fts        — FTS5 over title, path, text, code
+ *   page_tables      — generic Markdown tables with page/section provenance
+ *   page_table_rows  — header and data rows for page_tables
+ *   page_table_cells — decoded cells at their actual source width
  *   properties       — extracted property tables (name, type, default, description)
  *   properties_fts   — FTS5 over name, description
  *   callouts         — note/warning/info callout blocks from pages
@@ -142,6 +145,44 @@ export function initDb() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_sections_page ON sections(page_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sections_anchor ON sections(page_id, anchor_id);`);
 
+  // -- Generic Markdown tables (Docusaurus source) --
+  //
+  // These tables retain every parsed pipe table structurally without classifying its meaning.
+  // raw_markdown keeps delimiter/alignment syntax reversible; normalized rows/cells make the
+  // corpus directly queryable for audits and future classifiers (issue #92).
+
+  db.run(`CREATE TABLE IF NOT EXISTS page_tables (
+    id             INTEGER PRIMARY KEY,
+    page_id        INTEGER NOT NULL REFERENCES pages(id),
+    section_id     INTEGER REFERENCES sections(id),
+    source_heading TEXT,
+    raw_markdown   TEXT NOT NULL,
+    column_count   INTEGER NOT NULL,
+    data_row_count INTEGER NOT NULL,
+    is_ragged      INTEGER NOT NULL,
+    sort_order     INTEGER NOT NULL,
+    UNIQUE(page_id, sort_order)
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_page_tables_page ON page_tables(page_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_page_tables_section ON page_tables(section_id);`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS page_table_rows (
+    id        INTEGER PRIMARY KEY,
+    table_id  INTEGER NOT NULL REFERENCES page_tables(id),
+    row_order INTEGER NOT NULL,
+    UNIQUE(table_id, row_order)
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_page_table_rows_table ON page_table_rows(table_id);`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS page_table_cells (
+    row_id       INTEGER NOT NULL REFERENCES page_table_rows(id),
+    column_order INTEGER NOT NULL,
+    value        TEXT NOT NULL,
+    PRIMARY KEY(row_id, column_order)
+  );`);
+
   // -- Properties (extracted from confluenceTable) --
   //
   // Deliberately NOT UNIQUE on (page_id, name, section) — issue #90. That constraint,
@@ -165,6 +206,7 @@ export function initDb() {
     description TEXT NOT NULL,
     section     TEXT,
     section_id  INTEGER REFERENCES sections(id),
+    source_table_row_id INTEGER REFERENCES page_table_rows(id),
     sort_order  INTEGER NOT NULL
   );`);
 
@@ -187,6 +229,7 @@ export function initDb() {
           description TEXT NOT NULL,
           section     TEXT,
           section_id  INTEGER REFERENCES sections(id),
+          source_table_row_id INTEGER REFERENCES page_table_rows(id),
           sort_order  INTEGER NOT NULL
         );`);
         // Preserve `id`: properties_fts is external-content (content_rowid=id), and the
@@ -206,8 +249,19 @@ export function initDb() {
     }
   }
 
+  // Migration (v9 -> v10): generic tables are additive, and historical/bullet-derived
+  // properties honestly have no source table row. The Docusaurus extractor repopulates the
+  // link for table-derived properties on its next deterministic rebuild.
+  {
+    const propCols = db.prepare("PRAGMA table_info(properties)").all() as Array<{ name: string }>;
+    if (!propCols.some((c) => c.name === "source_table_row_id")) {
+      db.run("ALTER TABLE properties ADD COLUMN source_table_row_id INTEGER REFERENCES page_table_rows(id);");
+    }
+  }
+
   db.run(`CREATE INDEX IF NOT EXISTS idx_properties_page ON properties(page_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_properties_section ON properties(section_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_properties_source_table_row ON properties(source_table_row_id);`);
 
   db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS properties_fts USING fts5(
     name, description,
