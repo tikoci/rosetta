@@ -120,8 +120,9 @@ export function utf8Bytes(text: string): number {
  */
 export function encodeFsName(raw: string): string {
   if (raw === "." || raw === "..") return raw.replace(/\./g, "%2E");
+  const encoder = new TextEncoder();
   return raw.replace(/[^A-Za-z0-9._-]/gu, (ch) =>
-    [...new TextEncoder().encode(ch)].map((b) => `%${b.toString(16).toUpperCase().padStart(2, "0")}`).join(""),
+    [...encoder.encode(ch)].map((b) => `%${b.toString(16).toUpperCase().padStart(2, "0")}`).join(""),
   );
 }
 

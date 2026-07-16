@@ -45,7 +45,17 @@ beforeAll(() => {
   // readChangelog/readCallouts read the whole table, so start from a clean slate;
   // touch only our own pages/sections rows so other files' fixtures are undisturbed.
   db.run("PRAGMA foreign_keys = OFF");
-  for (const t of ["callouts", "changelogs", "properties", "videos", "video_segments", "commands", "page_tables"]) {
+  for (const t of [
+    "callouts",
+    "changelogs",
+    "properties",
+    "video_segments",
+    "videos",
+    "commands",
+    "page_table_cells",
+    "page_table_rows",
+    "page_tables",
+  ]) {
     db.run(`DELETE FROM ${t}`);
   }
   db.run(`DELETE FROM sections WHERE id = ${SECTION_ID}`);
