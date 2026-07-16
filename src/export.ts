@@ -412,6 +412,10 @@ const DISCLOSURES = [
     subject: "commands per-version architecture",
     note: "No per-version path counts are emitted: command_versions is architecture-blind and dual-arch versions are last-writer-wins between x86 and arm64 (issue #91). commands.ros_version is the single stored value only.",
   },
+  {
+    subject: "changelog.tsv prerelease ordering",
+    note: "Rows are version-ordered by the shared comparator, but it does not yet distinguish prerelease numbers (7.24beta1 vs 7.24beta2 compare equal), so same-base prereleases are ordered only by the secondary sort_order key. Deterministic, not fully version-sorted (issue #104).",
+  },
 ];
 
 /**

@@ -10,8 +10,8 @@
  * `7.24beta1`, `7.24beta2`, `7.24beta3` compare equal (likewise `7.20rc1` vs
  * `7.20rc2`). Callers that sort changelog/command rows fall back to a secondary key,
  * so output stays deterministic, but it is not fully version-ordered across
- * prereleases of the same base. Tracked for a shared-comparator fix (see the E1/E2
- * follow-up issue); fixing it here improves every caller at once.
+ * prereleases of the same base. Tracked for a shared-comparator fix in issue #104;
+ * fixing it here improves every caller at once.
  */
 
 /** Compare two RouterOS version strings: negative if a<b, positive if a>b, 0 if equal. */
