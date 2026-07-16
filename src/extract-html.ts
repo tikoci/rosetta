@@ -432,12 +432,16 @@ function main() {
   console.log("Initializing database...");
   initDb();
 
-// Drop existing data for clean re-extraction (respect FK order)
-  db.run("DELETE FROM sections;");
+  // Drop existing data for clean re-extraction (respect FK order). Generic Docusaurus
+  // tables may be present when switching a local DB to the historical rebuild path.
   db.run("DELETE FROM callouts;");
   db.run("INSERT INTO callouts_fts(callouts_fts) VALUES('rebuild');");
   db.run("DELETE FROM properties;");
   db.run("INSERT INTO properties_fts(properties_fts) VALUES('rebuild');");
+  db.run("DELETE FROM page_table_cells;");
+  db.run("DELETE FROM page_table_rows;");
+  db.run("DELETE FROM page_tables;");
+  db.run("DELETE FROM sections;");
   db.run("PRAGMA foreign_keys = OFF;");
   db.run("DELETE FROM pages;");
   db.run("PRAGMA foreign_keys = ON;");

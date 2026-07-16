@@ -228,9 +228,12 @@ jobs:
           COMMANDS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM commands WHERE type='cmd'")
           DEVICES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM devices")
           PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
+          PAGE_TABLES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM page_tables" 2>/dev/null || echo 0)
+          PAGE_TABLE_DATA_ROWS=$(sqlite3 ros-help.db "SELECT COALESCE(SUM(data_row_count), 0) FROM page_tables" 2>/dev/null || echo 0)
+          TABLE_PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties WHERE source_table_row_id IS NOT NULL" 2>/dev/null || echo 0)
           HARDWARE_CATALOG=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM hardware_catalog" 2>/dev/null || echo 0)
           DEVICE_ALIASES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM device_aliases" 2>/dev/null || echo 0)
-          echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties, $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases"
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties ($TABLE_PROPERTIES table-linked), $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases"
           fail=0
           if [ "${PAGES:-0}" -lt 200 ]; then
             echo "::error::DB has only ${PAGES} pages — expected ≥200 (Docusaurus /docs export is ~365)."
@@ -246,6 +249,21 @@ jobs:
           fi
           if [ "${PROPERTIES:-0}" -lt 1000 ]; then
             echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (Docusaurus export is ~4,509)."
+            fail=1
+          fi
+          # Generic table floors (#92): these sit below the rc.98 corpus's corrected
+          # 855 tables / 8,287 data rows / 4,519 linked property rows. They prove the
+          # parser, normalized storage, and property provenance all reached the artifact.
+          if [ "${PAGE_TABLES:-0}" -lt 800 ]; then
+            echo "::error::DB has only ${PAGE_TABLES} page_tables rows — expected ≥800."
+            fail=1
+          fi
+          if [ "${PAGE_TABLE_DATA_ROWS:-0}" -lt 8000 ]; then
+            echo "::error::DB has only ${PAGE_TABLE_DATA_ROWS} generic table data rows — expected ≥8000."
+            fail=1
+          fi
+          if [ "${TABLE_PROPERTIES:-0}" -lt 4000 ]; then
+            echo "::error::DB has only ${TABLE_PROPERTIES} properties linked to source table rows — expected ≥4000."
             fail=1
           fi
           # Hardware overlay floors (B-0017/B-0018, PR #41 / issue #38): the tables

@@ -19,40 +19,15 @@
  */
 
 import { db } from "../db.ts";
-import { parseProperties } from "../extract-docusaurus.ts";
+import { parsePage } from "../extract-docusaurus.ts";
 
 const one = <T>(sql: string): T => Object.values(db.prepare(sql).get() as object)[0] as T;
 const rows = <T>(sql: string): T[] => db.prepare(sql).all() as T[];
 
-/**
- * Escape-aware Markdown table row splitter.
- *
- * Mirrors extract-docusaurus.ts's private splitTableRow. RouterOS enum values embed
- * escaped pipes (`*md5 \| sha1*`) in 1,420 cells, so a naive line.split("|") misreports
- * 374 tables as ragged when the true count is 14. #92 step 1 exports the original; this
- * copy exists only so the census can run before that lands, and should be deleted then.
- */
-function splitTableRow(line: string): string[] {
-  const cells: string[] = [];
-  let current = "";
-  for (let i = 0; i < line.length; i++) {
-    if (line[i] === "\\" && line[i + 1] === "|") {
-      current += "|";
-      i++;
-      continue;
-    }
-    if (line[i] === "|") {
-      cells.push(current.trim());
-      current = "";
-      continue;
-    }
-    current += line[i];
-  }
-  cells.push(current.trim());
-  if (cells[0] === "") cells.shift();
-  if (cells[cells.length - 1] === "") cells.pop();
-  return cells;
-}
+const hasTable = (name: string): boolean =>
+  one<number>(`SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = '${name}'`) > 0;
+const hasColumn = (table: string, column: string): boolean =>
+  rows<{ name: string }>(`PRAGMA table_info(${table})`).some((entry) => entry.name === column);
 
 function provenance(): void {
   console.log("── corpus under test ──");
@@ -74,28 +49,27 @@ function properties(): void {
   console.log("\n── #90 properties: data loss + section identity ──");
 
   let parsed = 0;
-  for (const p of rows<{ text: string }>("SELECT text FROM pages")) parsed += parseProperties(p.text).length;
+  for (const p of rows<{ text: string; url: string }>("SELECT text, url FROM pages")) {
+    parsed += parsePage(p.text, p.url).properties.length;
+  }
   const stored = one<number>("SELECT COUNT(*) FROM properties");
   console.log(`  parsed ${parsed} / stored ${stored} → LOST ${parsed - stored}`);
-  console.log("    cause: UNIQUE(page_id, name, section) + INSERT OR IGNORE, section = heading TEXT");
 
-  const join = rows<{ result: string; n: number }>(`
-    WITH m AS (
-      SELECT (SELECT COUNT(*) FROM sections s WHERE s.page_id = p.page_id AND s.heading = p.section) AS n
-      FROM properties p WHERE p.section IS NOT NULL AND p.section <> ''
-    )
-    SELECT CASE WHEN n = 0 THEN 'no matching section (h4-h6: sections stop at h3)'
-                WHEN n = 1 THEN 'unique match'
-                ELSE 'ambiguous (anchor_id disambiguation discarded)' END AS result,
-           COUNT(*) AS n
-    FROM m GROUP BY result ORDER BY n DESC`);
-  for (const r of join) console.log(`  ${String(r.n).padStart(5)}  ${r.result}`);
+  if (hasColumn("properties", "section_id")) {
+    const attributed = one<number>("SELECT COUNT(*) FROM properties WHERE section_id IS NOT NULL");
+    console.log(`  ${String(attributed).padStart(5)}  properties with section_id; ${stored - attributed} honestly page-level`);
+  }
+  if (hasColumn("properties", "source_table_row_id")) {
+    const tableDerived = one<number>("SELECT COUNT(*) FROM properties WHERE source_table_row_id IS NOT NULL");
+    console.log(`  ${String(tableDerived).padStart(5)}  table-derived property rows linked to exact source rows`);
+    console.log(`  ${String(stored - tableDerived).padStart(5)}  bullet/historical property rows (unlinked by design)`);
+  }
 
-  const repeated = one<number>(
-    "SELECT COUNT(*) FROM (SELECT page_id, heading FROM sections GROUP BY page_id, heading HAVING COUNT(*) > 1)",
-  );
-  console.log(`  ${String(repeated).padStart(5)}  page/heading pairs that repeat`);
-  console.log(`  ${String(one<number>("SELECT COUNT(*) FROM callouts")).padStart(5)}  callouts, none with section attribution`);
+  const callouts = one<number>("SELECT COUNT(*) FROM callouts");
+  const attributedCallouts = hasColumn("callouts", "section_id")
+    ? one<number>("SELECT COUNT(*) FROM callouts WHERE section_id IS NOT NULL")
+    : 0;
+  console.log(`  ${String(attributedCallouts).padStart(5)} / ${callouts} callouts with section_id`);
 }
 
 /** #91 — command_versions is arch-blind. */
@@ -114,66 +88,77 @@ function commands(): void {
 
 /** #92 — generic tables, and #93 — section sizing. */
 function tablesAndSizing(): void {
-  console.log("\n── #92 tables: what ETL discards ──");
+  console.log("\n── #92 tables: generic structural retention ──");
   let pipe = 0;
   let ragged = 0;
-  let propertyLike = 0;
+  let headerClassifierMatches = 0;
+  let tablesProducingProperties = 0;
+  let tableDerivedProperties = 0;
+  let bulletDerivedProperties = 0;
   let dataRows = 0;
+  let cells = 0;
   let cellsWithPipe = 0;
   let cellsWithTab = 0;
   let html = 0;
   const perFragment = new Map<string, number>();
 
-  for (const p of rows<{ slug: string; text: string }>("SELECT slug, text FROM pages")) {
+  for (const p of rows<{ slug: string; text: string; url: string }>("SELECT slug, text, url FROM pages")) {
     html += (p.text.match(/<table[\s>]/gi) ?? []).length;
-    const lines = p.text.split("\n");
-    let inFence = false;
-    let fragment: string | null = null;
-    for (let i = 0; i < lines.length; i++) {
-      if (/^\s*(```|~~~)/.test(lines[i])) {
-        inFence = !inFence;
-        continue;
-      }
-      if (inFence) continue;
-      const h = lines[i].match(/^#{1,6}\s+(.+)$/);
-      if (h) {
-        fragment = h[1].trim();
-        continue;
-      }
-      const isTable = /^\s*\|.*\|\s*$/.test(lines[i]) && lines[i + 1] && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1]);
-      if (!isTable) continue;
-
-      const header = splitTableRow(lines[i]);
+    const page = parsePage(p.text, p.url);
+    const tableOrderByRowLine = new Map<number, number>();
+    for (const table of page.tables) {
       pipe++;
-      if (/\b(property|properties|parameter|parameters)\b/i.test(header[0] ?? "")) propertyLike++;
-      const key = `${p.slug}#${fragment ?? "(page)"}`;
-      perFragment.set(key, (perFragment.get(key) ?? 0) + 1);
-
-      let j = i + 2;
-      let isRagged = false;
-      while (j < lines.length && /^\s*\|/.test(lines[j])) {
-        const cells = splitTableRow(lines[j]);
-        if (cells.length !== header.length) isRagged = true;
-        for (const c of cells) {
-          if (c.includes("|")) cellsWithPipe++;
-          if (c.includes("\t")) cellsWithTab++;
-        }
-        dataRows++;
-        j++;
+      if (/\b(property|properties|parameter|parameters)\b/i.test(table.header.cells[0] ?? "")) {
+        headerClassifierMatches++;
       }
-      if (isRagged) ragged++;
-      i = j - 1;
+      const key = `${p.slug}#${table.sourceHeading ?? "(page)"}`;
+      perFragment.set(key, (perFragment.get(key) ?? 0) + 1);
+      if (table.isRagged) ragged++;
+      cells += table.header.cells.length;
+      for (const row of table.rows) {
+        tableOrderByRowLine.set(row.line, table.sortOrder);
+        dataRows++;
+        cells += row.cells.length;
+        for (const cell of row.cells) {
+          if (cell.includes("|")) cellsWithPipe++;
+          if (cell.includes("\t")) cellsWithTab++;
+        }
+      }
     }
+
+    const propertyTableOrders = new Set<number>();
+    for (const property of page.properties) {
+      if (property.sourceTableRowLine === null) {
+        bulletDerivedProperties++;
+      } else {
+        tableDerivedProperties++;
+        const order = tableOrderByRowLine.get(property.sourceTableRowLine);
+        if (order !== undefined) propertyTableOrders.add(order);
+      }
+    }
+    tablesProducingProperties += propertyTableOrders.size;
   }
 
   console.log(`  ${String(pipe).padStart(5)}  pipe tables (${dataRows} data rows)`);
-  console.log(`  ${String(propertyLike).padStart(5)}  property-like → already extracted`);
-  console.log(`  ${String(pipe - propertyLike).padStart(5)}  NON-property tables → DISCARDED by ETL today`);
+  console.log(`  ${String(headerClassifierMatches).padStart(5)}  broad first-header property/parameter classifier matches`);
+  console.log(`  ${String(tablesProducingProperties).padStart(5)}  tables that actually produce property rows`);
+  console.log(`  ${String(tableDerivedProperties).padStart(5)}  table-derived property rows`);
+  console.log(`  ${String(bulletDerivedProperties).padStart(5)}  bullet-derived property rows`);
   console.log(`  ${String(ragged).padStart(5)}  genuinely ragged`);
   console.log(`  ${String(html).padStart(5)}  HTML <table> elements`);
   console.log(`  ${String([...perFragment.values()].filter((v) => v > 1).length).padStart(5)}  fragments with >1 table (of ${perFragment.size})`);
   console.log(`  ${String(cellsWithPipe).padStart(5)}  cells with a literal | → naive split("|") corrupts these`);
   console.log(`  ${String(cellsWithTab).padStart(5)}  cells with a TAB → TSV safety`);
+
+  if (hasTable("page_tables")) {
+    const storedTables = one<number>("SELECT COUNT(*) FROM page_tables");
+    const storedRows = one<number>("SELECT COUNT(*) FROM page_table_rows");
+    const storedCells = one<number>("SELECT COUNT(*) FROM page_table_cells");
+    console.log(`  stored: ${storedTables} tables / ${storedRows} rows incl. headers / ${storedCells} cells`);
+    console.log(`  parsed: ${pipe} tables / ${pipe + dataRows} rows incl. headers / ${cells} cells`);
+  } else {
+    console.log("  stored: schema predates generic page_tables (#92 not landed in this DB)");
+  }
 
   console.log("\n── #93 sizing: retrieval units ──");
   const size = db

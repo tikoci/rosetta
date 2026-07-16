@@ -14,7 +14,8 @@ applyTo: "src/db.ts"
 - `pages` + `pages_fts` — legacy Confluence HTML pages (breadcrumb path, URL, text, code); do not assume this identity model works for the future Docusaurus extractor
 - `callouts` + `callouts_fts` — Note/Warning/Info/Tip callouts (FK → pages)
 - `sections` — page sections split by h1–h3 headings with anchor IDs (FK → pages)
-- `properties` + `properties_fts` — property table rows parsed from Confluence `confluenceTable` markup (FK → pages)
+- `page_tables` + `page_table_rows` + `page_table_cells` — normalized Docusaurus pipe tables with raw Markdown, page/section provenance, and actual ragged row widths
+- `properties` + `properties_fts` — Docusaurus table/bullet properties plus historical Confluence properties (FK → pages; table-derived rows link to `page_table_rows`)
 - `commands` — command tree entries from inspect.json (FK → pages for linked dirs)
 - `ros_versions` — tracked RouterOS versions with channel metadata
 - `command_versions` — junction: command_path × ros_version (full extracted history)
@@ -42,4 +43,4 @@ If modifying tables, update both:
 2. The corresponding extractor that populates it
 
 ## FK Deletion Order
-When deleting from `pages`, delete dependents first: sections → callouts → properties → pages. Use `PRAGMA foreign_keys = OFF` temporarily for pages self-referential parent_id.
+When deleting from `pages`, delete dependents first: callouts → properties → page_table_cells → page_table_rows → page_tables → sections → pages. Use `PRAGMA foreign_keys = OFF` temporarily for pages self-referential parent_id.

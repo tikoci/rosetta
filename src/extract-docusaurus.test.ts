@@ -31,6 +31,8 @@ const {
   cardMetaFor,
   directChildIds,
   attributeSection,
+  splitTableRow,
+  parseTables,
 } = await import("./extract-docusaurus.ts");
 
 const FIXTURES_DIR = join(import.meta.dirname, "..", "fixtures", "docusaurus");
@@ -90,6 +92,79 @@ describe("slugify", () => {
   test("produces a github-slugger-style anchor", () => {
     expect(slugify("DHCP Client")).toBe("dhcp-client");
     expect(slugify("Read-only properties")).toBe("read-only-properties");
+  });
+});
+
+describe("generic pipe-table parsing (issue #92)", () => {
+  test("splitTableRow decodes escaped pipes and preserves real leading, interior, and trailing empty cells", () => {
+    expect(splitTableRow("| | md5 \\| sha1 | | ")).toEqual(["", "md5 | sha1", ""]);
+  });
+
+  test("retains raw Markdown, empty cells, and actual ragged row widths", () => {
+    const md = [
+      "## Matrix",
+      "| A | B | C |",
+      "|---|---|---|",
+      "| | x \\| y | |",
+      "| short | row |",
+    ].join("\n");
+    const [table] = parseTables(md);
+    expect(table.rawMarkdown).toBe(md.split("\n").slice(1).join("\n"));
+    expect(table.header.cells).toEqual(["A", "B", "C"]);
+    expect(table.rows.map((row) => row.cells)).toEqual([
+      ["", "x | y", ""],
+      ["short", "row"],
+    ]);
+    expect(table.columnCount).toBe(3);
+    expect(table.dataRowCount).toBe(2);
+    expect(table.isRagged).toBeTrue();
+    expect(table.sourceHeading).toBe("Matrix");
+  });
+
+  test("finds multiple tables in source order and excludes backtick/tilde fenced lookalikes", () => {
+    const md = [
+      "## Shared",
+      "| One |",
+      "|---|",
+      "| 1 |",
+      "```md",
+      "| Hidden |",
+      "|---|",
+      "| no |",
+      "```",
+      "~~~",
+      "| Also hidden |",
+      "|---|",
+      "| no |",
+      "~~~",
+      "| Two |",
+      "|---|",
+      "| 2 |",
+    ].join("\n");
+    const tables = parseTables(md);
+    expect(tables.map((table) => table.header.cells[0])).toEqual(["One", "Two"]);
+    expect(tables.map((table) => table.sortOrder)).toEqual([0, 1]);
+    expect(tables.map((table) => table.sourceHeading)).toEqual(["Shared", "Shared"]);
+    expect(parsePage(md, "https://manual.mikrotik.com/docs/example").tables.map((table) => table.sectionAnchor)).toEqual([
+      "shared",
+      "shared",
+    ]);
+  });
+
+  test("tracks a fence opened on an ordered-list item instead of hiding later tables", () => {
+    const md = [
+      "9. ```ros",
+      "| Not | A | Table |",
+      "|---|---|---|",
+      "   ```",
+      "| Property | Description |",
+      "|---|---|",
+      "| **visible** (yes \\| no) | Kept. |",
+    ].join("\n");
+    const tables = parseTables(md);
+    expect(tables).toHaveLength(1);
+    expect(tables[0].header.cells).toEqual(["Property", "Description"]);
+    expect(parseProperties(md).map((property) => property.name)).toEqual(["visible"]);
   });
 });
 
@@ -397,6 +472,37 @@ describe("parsePage — section attribution of a property under an h4 (issue #90
     expect(pfc?.sectionAnchor).toBe("port-settings");
     // The h4's name is therefore still recoverable, which is what makes the fold reversible.
     expect(pfc?.section).not.toBe(pfc?.sectionAnchor);
+
+    const table = page.tables[0];
+    expect(table.sourceHeading).toBe("Port PFC Stats");
+    expect(table.sectionAnchor).toBe("port-settings");
+    expect(pfc?.sourceTableRowLine).toBe(table.rows[0].line);
+  });
+});
+
+describe("parsePage — page-level table attribution and property provenance (#92)", () => {
+  const page = parsePage(
+    [
+      "| Property | Description |",
+      "|---|---|",
+      "| **page-prop** (string) | Before headings. |",
+      "",
+      "## Properties",
+      "- **bullet-prop** (string): From a list.",
+    ].join("\n"),
+    "https://manual.mikrotik.com/docs/example",
+  );
+
+  test("content before the first h1-h3 section remains honestly unattributed", () => {
+    expect(page.tables[0].sourceHeading).toBeNull();
+    expect(page.tables[0].sectionAnchor).toBeNull();
+  });
+
+  test("table-derived properties carry a source row while bullet properties stay unlinked", () => {
+    expect(page.properties.find((property) => property.name === "page-prop")?.sourceTableRowLine).toBe(
+      page.tables[0].rows[0].line,
+    );
+    expect(page.properties.find((property) => property.name === "bullet-prop")?.sourceTableRowLine).toBeNull();
   });
 });
 

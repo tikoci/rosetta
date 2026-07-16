@@ -110,8 +110,11 @@ export function detectMode(srcDir: string): InvocationMode {
  *        corpus-wide, no section-based key reaches zero loss. Extractors now
  *        assert parsed == stored. initDb() rebuilds `properties` in place
  *        (rows kept, section_id NULL) and the extractor repopulates.
+ *   v10 — adds normalized `page_tables`, `page_table_rows`, and `page_table_cells`
+ *         storage for every Docusaurus pipe table; `properties.source_table_row_id`
+ *         links table-derived properties to their exact generic source row (#92).
  */
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 /**
  * Resolve the version string.
