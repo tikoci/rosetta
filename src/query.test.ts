@@ -133,6 +133,43 @@ beforeAll(() => {
     (id, page_id, name, type, default_val, description, section, sort_order)
     VALUES (4, 2, 'action', 'string', 'accept', 'Action to take when a packet matches the rule', NULL, 1)`);
 
+  // Page 90: issue #90's shape, mirroring the real ppp-aaa page — one page documenting the same
+  // property name twice under two headings whose TEXT is identical ("Properties") but whose
+  // anchors differ. Pre-#90 the second row could not exist at all: UNIQUE(page_id, name, section)
+  // plus INSERT OR IGNORE discarded it. Kept on its own page so the existing pages' fixtures
+  // (page 1 deliberately has no sections) keep meaning what their tests assume.
+  db.run(`INSERT INTO pages
+    (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+     author, last_updated, word_count, code_lines, html_file)
+    VALUES
+    (90, 'ppp-aaa', 'PPP AAA', 'Docs > PPP AAA', 2, NULL,
+     'https://manual.mikrotik.com/docs/authentication-authorization-accounting/ppp-aaa',
+     'Profile properties. User properties.', '', NULL, NULL, NULL, 4, 0, 'ppp-aaa.html')`);
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (90, 90, 'Properties', 2, 'properties', 'Profile properties.', '', 2, 0)`);
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (91, 90, 'Properties', 2, 'properties-1', 'User properties.', '', 2, 1)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (90, 90, 'profile-name', 'string', '', 'PPP profile name', 'Properties', 90, 0)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (91, 90, 'profile-name', 'string', '', 'Name used for authentication', 'Properties', 91, 1)`);
+
+  // Harder case, mirroring dot1x: same name AND same section_id — one section holding a server
+  // table and a client table, each defining `iface`. This is what rules out re-keying the
+  // constraint on section_id (it would still destroy 74 distinct rows corpus-wide). If anyone
+  // re-adds UNIQUE(page_id, name, section_id), these two INSERTs throw and beforeAll() fails
+  // loudly — which is the point.
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (92, 90, 'iface', 'string', '', 'Name of the interface or interface list the server will run on.', 'Properties', 90, 2)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (93, 90, 'iface', 'string', '', 'Name of the interface.', 'Properties', 90, 3)`);
+
   db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
     VALUES ('7.22', 'x86', 'stable', 0, '2024-01-01T00:00:00Z')`);
   db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at)
@@ -871,6 +908,48 @@ describe("lookupProperty", () => {
 
   test("returns empty for unknown property", () => {
     expect(lookupProperty("nonexistent-prop")).toHaveLength(0);
+  });
+
+  test("same-named properties on one page are distinguishable by section_anchor, not section (issue #90)", () => {
+    const rows = lookupProperty("profile-name");
+    // Both survive. Pre-#90 the UNIQUE constraint meant only the first was ever stored.
+    expect(rows.length).toBe(2);
+    // `section` is heading text and is identical — useless for telling them apart.
+    expect(rows.map((r) => r.section)).toEqual(["Properties", "Properties"]);
+    // The anchor is what disambiguates, and it round-trips into getPage(section=…).
+    expect(rows.map((r) => r.section_anchor).sort()).toEqual(["properties", "properties-1"]);
+    expect(rows.map((r) => r.description).sort()).toEqual(["Name used for authentication", "PPP profile name"]);
+  });
+
+  test("section_anchor feeds getPage's section argument, resolving to the documenting fragment", () => {
+    const row = lookupProperty("profile-name").find((r) => r.description === "Name used for authentication");
+    expect(row?.section_anchor).toBe("properties-1");
+    const page = getPage(row?.page_id as number, undefined, row?.section_anchor as string);
+    expect(page).not.toBeNull();
+    expect(page?.section?.anchor_id).toBe("properties-1");
+    expect(page?.text).toContain("User properties.");
+  });
+
+  test("two properties sharing name AND section_id both persist — rules out UNIQUE(page_id, name, section_id) (issue #90)", () => {
+    // The ppp-aaa test above only covers repeated heading TEXT across distinct anchors, which a
+    // section_id-keyed constraint would survive. This is the case that does not: dot1x documents
+    // `interface` twice inside one section. Both rows must be stored and returned.
+    const rows = lookupProperty("iface");
+    expect(rows.length).toBe(2);
+    // Same section — so the anchor cannot disambiguate these two, and nothing should try to.
+    expect(new Set(rows.map((r) => r.section_anchor))).toEqual(new Set(["properties"]));
+    expect(rows.map((r) => r.description).sort()).toEqual([
+      "Name of the interface or interface list the server will run on.",
+      "Name of the interface.",
+    ]);
+  });
+
+  test("section_anchor is null for a property with no section context, not omitted", () => {
+    // lease-time's fixture row has section_id NULL — the honest answer when a property sits
+    // above any heading. The key must still be present so consumers can branch on it.
+    const row = lookupProperty("lease-time")[0];
+    expect(row).toHaveProperty("section_anchor");
+    expect(row.section_anchor).toBeNull();
   });
 
   test("filters by command path", () => {

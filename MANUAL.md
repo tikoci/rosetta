@@ -368,6 +368,8 @@ callouts (
     id, page_id REFERENCES pages(id),
     type,          -- 'Note' | 'Warning' | 'Info' | 'Tip'
     content TEXT,
+    section_id,    -- REFERENCES sections(id); nullable, e.g. a page-level warning
+                   -- above the first heading (issue #90)
     sort_order
 )
 
@@ -386,9 +388,20 @@ sections (
 -- Property tables extracted from confluenceTable
 properties (
     id, page_id, name, type, default_val,
-    description, section, sort_order,
-    UNIQUE(page_id, name, section)
+    description,
+    section,               -- raw nearest-heading text, ANY level (h1–h6); kept for compat
+    section_id,            -- REFERENCES sections(id); the resolvable identity, nullable
+    sort_order
 )
+-- No UNIQUE: (page_id, name, section) is not an identity in this corpus — a single section
+-- can document one property name several times with different meanings (dot1x defines
+-- `interface` twice under "Server": once for the server table, once for the client one).
+-- The constraint plus INSERT OR IGNORE silently destroyed 141 distinct properties (issue #90).
+-- Extractors assert parsed == stored instead, so a drop fails the build.
+--
+-- For a property under an h4–h6, `section` and `section_id` deliberately disagree: `section`
+-- names the h4, `section_id` resolves to the enclosing h1–h3 section (`sections` only mints
+-- rows for h1–h3, and stays the retrieval unit). The h4 name remains recoverable from `section`.
 
 -- FTS5 over properties
 properties_fts USING fts5(name, description, ...)

@@ -369,11 +369,14 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
   if (classified.property) {
     const props = lookupProperty(classified.property).slice(0, RELATED_CAP);
     if (props.length > 0) {
+      // section_anchor rides along because this block can surface several same-named properties
+      // from one page (issue #90) — without it they are indistinguishable in the response.
       related.properties = props.map((p) => ({
         name: p.name,
         type: p.type,
         default_val: p.default_val,
         description: p.description,
+        section_anchor: p.section_anchor,
         page_title: p.page_title,
         page_url: p.page_url,
         page_id: p.page_id,
@@ -1054,7 +1057,16 @@ export type PropertyLookupRow = {
   type: string | null;
   default_val: string | null;
   description: string;
+  /** Raw nearest-heading text (any level, h1–h6). Not unique within a page — see section_anchor. */
   section: string | null;
+  /**
+   * anchor_id of the section documenting this property, feedable straight to
+   * `routeros_get_page(page, section=…)`. This is what disambiguates a page that documents one
+   * property name several times: `section` is heading TEXT and repeats (ppp-aaa returns three
+   * rows named `name`, all reading "Properties"), while the anchor does not (`properties`,
+   * `properties-1`, `properties-2`). Null when the property sits above any heading. Issue #90.
+   */
+  section_anchor: string | null;
   page_title: string;
   page_url: string;
   page_id: number;
@@ -1078,9 +1090,11 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
       const scopedRows = db
         .prepare(
           `SELECT p.name, p.type, p.default_val, p.description, p.section,
+                  s.anchor_id as section_anchor,
                   pg.title as page_title, pg.url as page_url, pg.id as page_id
            FROM properties p
            JOIN pages pg ON pg.id = p.page_id
+           LEFT JOIN sections s ON s.id = p.section_id
            WHERE p.page_id = ? AND p.name = ? COLLATE NOCASE
            ORDER BY p.sort_order`,
         )
@@ -1095,9 +1109,11 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
   const globalRows = db
     .prepare(
       `SELECT p.name, p.type, p.default_val, p.description, p.section,
+              s.anchor_id as section_anchor,
               pg.title as page_title, pg.url as page_url, pg.id as page_id
        FROM properties p
        JOIN pages pg ON pg.id = p.page_id
+       LEFT JOIN sections s ON s.id = p.section_id
        WHERE p.name = ? COLLATE NOCASE
        ORDER BY pg.title, p.sort_order`,
     )

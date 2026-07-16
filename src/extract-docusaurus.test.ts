@@ -5,7 +5,16 @@ process.env.DB_PATH = ":memory:";
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { EXCERPT_MARK_END, EXCERPT_MARK_START } from "./query.ts";
+
+// query.ts MUST be imported dynamically, not statically: it transitively loads db.ts, and an
+// ESM static import is hoisted ABOVE the process.env.DB_PATH assignment above — so a static
+// form opens the real on-disk ros-help.db instead of :memory:. That poisons the db.ts
+// singleton for every later test file in the same run, which query.test.ts's V-db-wipe-guard
+// then trips on ("DB singleton is at .../ros-help.db"). It only surfaces when this file is the
+// first to touch db.ts, so it presents as an order-dependent CI flake; bun's file order is not
+// stable, so it stays hidden locally. Same rule as the extract-docusaurus.ts import below —
+// see .github/instructions/extractor-import-side-effects.instructions.md, hazard 2.
+const { EXCERPT_MARK_END, EXCERPT_MARK_START } = await import("./query.ts");
 
 const {
   isInScopeDocsUrl,
@@ -21,6 +30,7 @@ const {
   expandDocCardLists,
   cardMetaFor,
   directChildIds,
+  attributeSection,
 } = await import("./extract-docusaurus.ts");
 
 const FIXTURES_DIR = join(import.meta.dirname, "..", "fixtures", "docusaurus");
@@ -33,10 +43,14 @@ const addressListsMd = read("address-lists.md");
 const queuesMd = read("queues.md");
 const schedulerMd = read("scheduler.md");
 const productNamingMd = read("product-naming.md");
+// Four "Properties" headings on one page — the natural fixture for issue #90's repeated-heading
+// collision, named as such in the issue itself.
+const pppAaaMd = read("ppp-aaa.md");
 
 const DHCP_URL = "https://manual.mikrotik.com/docs/network-management/dhcp";
 const SMS_URL = "https://manual.mikrotik.com/docs/mobile-networking/sms";
 const ADDRESS_LISTS_URL = "https://manual.mikrotik.com/docs/firewall-and-quality-of-service/firewall/address-lists";
+const PPP_AAA_URL = "https://manual.mikrotik.com/docs/authentication-authorization-accounting/ppp-aaa";
 
 describe("isInScopeDocsUrl", () => {
   test("accepts ordinary /docs prose pages", () => {
@@ -251,6 +265,158 @@ describe("parseSections", () => {
     // Confluence pages with no id-bearing headings: sections == [], full text elsewhere.
     const sections = parseSections(addressListsMd, "Address-lists");
     expect(sections).toEqual([]);
+  });
+});
+
+// ── Section identity / attribution (issue #90) ──
+//
+// The shipped v0.11.0-rc.97 artifact stored 4,416 properties from 4,581 parsed: UNIQUE(page_id,
+// name, section) plus INSERT OR IGNORE silently destroyed 165 rows, 141 of them genuinely
+// distinct properties. These tests pin the two decisions that fixed it — anchor-based identity
+// instead of heading text, and folding h4–h6 to the nearest h1–h3 ancestor.
+
+describe("attributeSection — h4–h6 fold to nearest h1–h3 ancestor (issue #90 decision)", () => {
+  const md = [
+    "# Page", // 0
+    "", // 1
+    "## Port Settings", // 2  -> section, anchor "port-settings"
+    "", // 3
+    "#### Port Resources/Usage", // 4  -> h4, NO section row
+    "prop-a", // 5
+    "", // 6
+    "#### Port PFC Stats", // 7  -> h4, NO section row
+    "prop-b", // 8
+    "", // 9
+    "## Other", // 10 -> section, anchor "other"
+    "prop-c", // 11
+  ].join("\n");
+  const sections = parseSections(md, "Page");
+
+  test("both h4 subsections resolve to the enclosing h1–h3 section, not to themselves", () => {
+    expect(sections.map((s) => s.anchorId)).toEqual(["port-settings", "other"]);
+    expect(attributeSection(5, sections)).toBe("port-settings");
+    expect(attributeSection(8, sections)).toBe("port-settings");
+  });
+
+  test("a later h1–h3 heading ends the previous section's range", () => {
+    expect(attributeSection(11, sections)).toBe("other");
+  });
+
+  test("content before the first section is null — genuine absence of heading context, not a failed lookup", () => {
+    expect(attributeSection(1, sections)).toBeNull();
+  });
+});
+
+describe("parsePage — ppp-aaa.md (repeated 'Properties' headings; the real 165-row casualty)", () => {
+  const page = parsePage(pppAaaMd, PPP_AAA_URL);
+
+  test("repeated headings mint distinct anchors, which is what makes section identity resolvable", () => {
+    // Four "Properties" headings on one page (one h3, three h2). Heading TEXT collides;
+    // anchor_id does not — that difference is the whole fix.
+    const propsSections = page.sections.filter((s) => s.heading === "Properties");
+    expect(propsSections.length).toBe(4);
+    expect(propsSections.map((s) => s.anchorId)).toEqual(["properties", "properties-1", "properties-2", "properties-3"]);
+  });
+
+  test("same-named properties under different 'Properties' headings all survive with distinct meanings", () => {
+    // Under the old UNIQUE(page_id, name, section) only the FIRST of each of these was stored:
+    // every later one collided on the literal text "Properties" and was dropped by INSERT OR
+    // IGNORE. They are different properties, not duplicates.
+    const named = page.properties.filter((p) => p.name === "name");
+    expect(named.length).toBeGreaterThanOrEqual(3);
+
+    const anchors = named.map((p) => p.sectionAnchor);
+    expect(new Set(anchors).size).toBe(named.length); // each in its own section
+
+    const descriptions = named.map((p) => p.description);
+    expect(descriptions).toContain("PPP profile name");
+    expect(descriptions).toContain("Name used for authentication"); // destroyed pre-#90
+  });
+
+  test("every property on the page carries a section anchor that names a real section", () => {
+    const anchors = new Set(page.sections.map((s) => s.anchorId));
+    for (const p of page.properties) {
+      expect(p.sectionAnchor).not.toBeNull();
+      expect(anchors.has(p.sectionAnchor as string)).toBeTrue();
+    }
+  });
+
+  test("no property is dropped for colliding with another on (name, section-text)", () => {
+    // The extractor now INSERTs rather than INSERT OR IGNOREs, so parsed == stored. Guard the
+    // parse side of that contract: same-page name+section-text repeats are expected and legal.
+    const byNameAndText = new Map<string, number>();
+    for (const p of page.properties) {
+      const k = `${p.name} ${p.section}`;
+      byNameAndText.set(k, (byNameAndText.get(k) ?? 0) + 1);
+    }
+    const collisions = [...byNameAndText.values()].filter((n) => n > 1);
+    expect(collisions.length).toBeGreaterThan(0); // this page is the fixture *because* it collides
+  });
+});
+
+describe("parsePage — dot1x.md: same name AND same section (why section is not an identity, issue #90)", () => {
+  const page = parsePage(dot1xMd, "https://manual.mikrotik.com/docs/authentication-authorization-accounting/dot1x");
+
+  test("one section documents `interface` more than once, with different meanings", () => {
+    // This is the case that rules out UNIQUE(page_id, name, section_id) — not just the old
+    // heading-text key. dot1x's "Server" section carries a server table AND a client table,
+    // each defining `interface`. Re-keying the constraint on section_id would still have
+    // destroyed these (74 distinct rows corpus-wide); only removing it stores them all.
+    const iface = page.properties.filter((p) => p.name === "interface");
+    const underServer = iface.filter((p) => p.sectionAnchor === "server");
+    expect(underServer.length).toBeGreaterThan(1);
+
+    // Same name, same section, genuinely different documentation — not duplicates.
+    const descriptions = new Set(underServer.map((p) => p.description));
+    expect(descriptions.size).toBeGreaterThan(1);
+    expect([...descriptions]).toContain("Name of the interface or interface list the server will run on.");
+  });
+});
+
+describe("parsePage — section attribution of a property under an h4 (issue #90 stated tradeoff)", () => {
+  // ppp-aaa's own h4s hold only code, so a synthetic page pins the disagreement precisely.
+  const md = [
+    "# Page",
+    "",
+    "## Port Settings",
+    "",
+    "#### Port PFC Stats",
+    "",
+    "| Property | Description |",
+    "| -------- | ----------- |",
+    "| **pfc** (yes \\| no; Default: **no**) | Priority flow control. |",
+  ].join("\n");
+  const page = parsePage(md, "https://manual.mikrotik.com/docs/example");
+
+  test("`section` keeps the h4 text while `section_id` resolves to the enclosing h1–h3 — they disagree on purpose", () => {
+    const pfc = page.properties.find((p) => p.name === "pfc");
+    expect(pfc).toBeDefined();
+    // Raw nearest heading of ANY level, retained for compatibility: names the h4.
+    expect(pfc?.section).toBe("Port PFC Stats");
+    // Resolvable identity: the enclosing h1–h3, since no section row exists for an h4.
+    expect(pfc?.sectionAnchor).toBe("port-settings");
+    // The h4's name is therefore still recoverable, which is what makes the fold reversible.
+    expect(pfc?.section).not.toBe(pfc?.sectionAnchor);
+  });
+});
+
+describe("parseCallouts — dot1x.md section attribution (pre-#90 callouts had none at all)", () => {
+  const page = parsePage(dot1xMd, "https://manual.mikrotik.com/docs/authentication-authorization-accounting/dot1x");
+
+  test("a callout inside a section resolves to that section", () => {
+    const anchors = new Set(page.sections.map((s) => s.anchorId));
+    const attributed = page.callouts.filter((c) => c.sectionAnchor !== null);
+    expect(attributed.length).toBe(3);
+    for (const c of attributed) expect(anchors.has(c.sectionAnchor as string)).toBeTrue();
+    expect(attributed[0].sectionAnchor).toBe("server");
+  });
+
+  test("the page-level warning above the first heading stays null rather than being forced into a section", () => {
+    // dot1x.md opens with a ':::warning' about SMIPS devices before any h2/h3. Null here is the
+    // honest answer — inventing an attribution would be worse than admitting there is none.
+    const first = page.callouts[0];
+    expect(first.content).toContain("not supported on SMIPS devices");
+    expect(first.sectionAnchor).toBeNull();
   });
 });
 

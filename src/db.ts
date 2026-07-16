@@ -116,7 +116,45 @@ export function initDb() {
     VALUES (new.id, new.title, new.path, new.text, new.code);
   END;`);
 
+  // -- Sections (page chunks split by headings, for large-page retrieval) --
+  //
+  // Created before properties/callouts: both carry a section_id FK into this table
+  // (issue #90), so it must exist first.
+
+  // Migration: drop legacy sections table (from PDF-era schema) if it lacks page_id
+  const secCols = db.prepare("SELECT name FROM pragma_table_info('sections')").all() as Array<{ name: string }>;
+  if (secCols.length > 0 && !secCols.some((c) => c.name === "page_id")) {
+    db.run("DROP TABLE sections;");
+  }
+
+  db.run(`CREATE TABLE IF NOT EXISTS sections (
+    id          INTEGER PRIMARY KEY,
+    page_id     INTEGER NOT NULL REFERENCES pages(id),
+    heading     TEXT NOT NULL,
+    level       INTEGER NOT NULL,
+    anchor_id   TEXT NOT NULL,
+    text        TEXT NOT NULL,
+    code        TEXT NOT NULL,
+    word_count  INTEGER NOT NULL,
+    sort_order  INTEGER NOT NULL
+  );`);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sections_page ON sections(page_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sections_anchor ON sections(page_id, anchor_id);`);
+
   // -- Properties (extracted from confluenceTable) --
+  //
+  // Deliberately NOT UNIQUE on (page_id, name, section) — issue #90. That constraint,
+  // combined with INSERT OR IGNORE, silently destroyed 141 distinct properties: the corpus
+  // documents the same property name more than once within a single section (dot1x defines
+  // `interface` twice under "Server" — once for the server table, once for the client one),
+  // so section is not a fine enough context to identify a property. Measured against the
+  // whole corpus, no section-based key reaches zero loss; only removing the constraint does.
+  // Extractors assert parsed == stored instead, so a drop is loud rather than silent.
+  //
+  // `section` (raw nearest-heading text, any level) is retained as-is for compatibility;
+  // `section_id` is the resolvable identity. For a property under an h4–h6 the two
+  // deliberately disagree — see attributeSection() in extract-docusaurus.ts.
 
   db.run(`CREATE TABLE IF NOT EXISTS properties (
     id          INTEGER PRIMARY KEY,
@@ -126,9 +164,50 @@ export function initDb() {
     default_val TEXT,
     description TEXT NOT NULL,
     section     TEXT,
-    sort_order  INTEGER NOT NULL,
-    UNIQUE(page_id, name, section)
+    section_id  INTEGER REFERENCES sections(id),
+    sort_order  INTEGER NOT NULL
   );`);
+
+  // Migration (v8 → v9): rebuild properties to drop UNIQUE(page_id, name, section) and add
+  // section_id. Detected via the missing column; rows are carried over with section_id NULL
+  // and repopulated by the next extractor run. Rebuild-in-place rather than DROP so a v8 DB
+  // opened by an older-corpus workflow keeps its rows.
+  {
+    const propCols = db.prepare("PRAGMA table_info(properties)").all() as Array<{ name: string }>;
+    if (propCols.length > 0 && !propCols.some((c) => c.name === "section_id")) {
+      db.run("PRAGMA foreign_keys=OFF;");
+      db.run("BEGIN;");
+      try {
+        db.run(`CREATE TABLE properties_new (
+          id          INTEGER PRIMARY KEY,
+          page_id     INTEGER NOT NULL REFERENCES pages(id),
+          name        TEXT NOT NULL,
+          type        TEXT,
+          default_val TEXT,
+          description TEXT NOT NULL,
+          section     TEXT,
+          section_id  INTEGER REFERENCES sections(id),
+          sort_order  INTEGER NOT NULL
+        );`);
+        // Preserve `id`: properties_fts is external-content (content_rowid=id), and the
+        // indexed columns (name, description) are unchanged, so carrying rowids across the
+        // rebuild leaves the existing index valid without a reindex. The triggers dropped
+        // along with the old table are recreated by the CREATE TRIGGER IF NOT EXISTS below.
+        db.run(`INSERT INTO properties_new (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+                SELECT id, page_id, name, type, default_val, description, section, NULL, sort_order FROM properties;`);
+        db.run("DROP TABLE properties;");
+        db.run("ALTER TABLE properties_new RENAME TO properties;");
+        db.run("COMMIT;");
+      } catch (e) {
+        db.run("ROLLBACK;");
+        throw e;
+      }
+      db.run("PRAGMA foreign_keys=ON;");
+    }
+  }
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_properties_page ON properties(page_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_properties_section ON properties(section_id);`);
 
   db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS properties_fts USING fts5(
     name, description,
@@ -159,8 +238,17 @@ export function initDb() {
     page_id     INTEGER NOT NULL REFERENCES pages(id),
     type        TEXT NOT NULL,
     content     TEXT NOT NULL,
+    section_id  INTEGER REFERENCES sections(id),
     sort_order  INTEGER NOT NULL
   );`);
+
+  // Migration (v8 → v9): add section_id (issue #90 — callouts had no section attribution at
+  // all). Additive, so a plain ADD COLUMN; permitted with foreign_keys=ON because the default
+  // is NULL. Populated by the next extractor run.
+  const calloutCols = db.prepare("PRAGMA table_info(callouts)").all() as Array<{ name: string }>;
+  if (!calloutCols.some((c) => c.name === "section_id")) {
+    db.run("ALTER TABLE callouts ADD COLUMN section_id INTEGER REFERENCES sections(id);");
+  }
 
   db.run(`CREATE VIRTUAL TABLE IF NOT EXISTS callouts_fts USING fts5(
     content,
@@ -186,29 +274,7 @@ export function initDb() {
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_callouts_page ON callouts(page_id);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_callouts_type ON callouts(type);`);
-
-  // -- Sections (page chunks split by headings, for large-page retrieval) --
-
-  // Migration: drop legacy sections table (from PDF-era schema) if it lacks page_id
-  const secCols = db.prepare("SELECT name FROM pragma_table_info('sections')").all() as Array<{ name: string }>;
-  if (secCols.length > 0 && !secCols.some((c) => c.name === "page_id")) {
-    db.run("DROP TABLE sections;");
-  }
-
-  db.run(`CREATE TABLE IF NOT EXISTS sections (
-    id          INTEGER PRIMARY KEY,
-    page_id     INTEGER NOT NULL REFERENCES pages(id),
-    heading     TEXT NOT NULL,
-    level       INTEGER NOT NULL,
-    anchor_id   TEXT NOT NULL,
-    text        TEXT NOT NULL,
-    code        TEXT NOT NULL,
-    word_count  INTEGER NOT NULL,
-    sort_order  INTEGER NOT NULL
-  );`);
-
-  db.run(`CREATE INDEX IF NOT EXISTS idx_sections_page ON sections(page_id);`);
-  db.run(`CREATE INDEX IF NOT EXISTS idx_sections_anchor ON sections(page_id, anchor_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_callouts_section ON callouts(section_id);`);
 
   // -- Commands (from inspect.json) --
 

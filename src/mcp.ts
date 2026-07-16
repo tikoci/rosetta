@@ -724,10 +724,17 @@ server.registerTool(
   {
     description: `Look up a specific RouterOS configuration property by exact name.
 
-Returns type, default value, description, documentation page, and confidence.
+Returns type, default value, description, documentation page, section_anchor, and confidence.
 Optionally filter by command path to disambiguate (e.g., "disabled" appears everywhere).
 Confidence is high for exact matches on the page linked from command_path, medium for
 global exact matches without command_path, and low for global fallback with command_path.
+
+A single page may document the same property name several times, each meaning something
+different in its own section — "name" on the PPP AAA page is the profile name, the login
+name, and the active-user name. Those rows are distinguished by section_anchor, not by
+section (which is heading text and repeats: all three read "Properties"). Read a specific
+one in context with:
+→ routeros_get_page: pass the row's page, and its section_anchor as the section argument
 
 This requires the **exact property name**. If you don't know the name:
 → routeros_search: find the documentation page, then routeros_get_page to read properties in context
