@@ -372,8 +372,12 @@ function readMeta(database: Database, key: string): string | null {
   try {
     const row = database.prepare("SELECT value FROM db_meta WHERE key = ?").get(key) as { value: string } | undefined;
     return row?.value ?? null;
-  } catch {
-    return null;
+  } catch (e) {
+    // Tolerate only a genuinely absent db_meta table (a pre-v5 or non-rosetta DB);
+    // let corruption, locking, and other real failures surface rather than
+    // silently reporting "(unstamped)" — a missing key already returns null above.
+    if (e instanceof Error && /no such table/i.test(e.message)) return null;
+    throw e;
   }
 }
 
@@ -459,9 +463,11 @@ export async function runExport(outDir: string, database: Database): Promise<Exp
     disclosures: DISCLOSURES,
   });
 
-  // Overwrite only the files we own; nothing is deleted.
-  await Bun.write(path.join(resolved, "manifest.toml"), manifest);
+  // Overwrite only the files we own; nothing is deleted. Write the datasets first
+  // and manifest.toml last, so a failed run can't leave a manifest that names data
+  // files that were never (or only partially) written.
   for (const d of datasets) await Bun.write(path.join(resolved, d.name), toTsv(d.columns, d.rows));
+  await Bun.write(path.join(resolved, "manifest.toml"), manifest);
 
   return { outDir: resolved, files: datasets.map((d) => ({ name: d.name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by })) };
 }
