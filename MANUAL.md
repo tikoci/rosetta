@@ -354,9 +354,9 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 | Table | Rows | What's in it |
 |-------|------|-------------|
-| `pages` | 317 | Legacy documentation pages — title, breadcrumb path, full text, code blocks, help.mikrotik.com URL |
+| `pages` | 317 | Documentation pages — title, breadcrumb path, full text, code blocks, and source URL (`manual.mikrotik.com` for the live Docusaurus corpus; `help.mikrotik.com` for legacy Confluence rows) |
 | `sections` | 2,984 | Page chunks split by h1–h3 headings, with anchor IDs for deep linking |
-| `callouts` | 1,034 | Warning/Note/Info/Tip boxes extracted from Confluence callout macros |
+| `callouts` | 1,034 | Warning/Note/Info/Tip boxes (Docusaurus `:::` admonitions; Confluence callout macros in legacy rows) |
 | `page_tables` | varies (~850) | Every Docusaurus pipe table with raw Markdown, source heading, section attribution, width, and raggedness |
 | `page_table_rows` | varies (~9K) | Header (`row_order = 0`) and data rows for `page_tables` |
 | `page_table_cells` | varies (~25K) | Decoded cells at their actual source width; backslash-escaped pipe syntax is stored without the backslash |

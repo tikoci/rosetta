@@ -39,3 +39,13 @@ described below.
 `src/query.test.ts` carries a singleton guard (`V-db-wipe-guard` in `VALIDATION.md`) that
 fails loudly if any test file leaves the `db` singleton pointed at a non-`:memory:` path —
 treat a failure there as a real regression in one of the two patterns above, not test flakiness.
+
+That runtime guard only fires on the *unlucky file order* where the offending file loads
+`db.ts` first, so a static db.ts-reaching import can sit latent through many green runs and
+present as a CI flake (#98). `src/source-hygiene.test.ts` (`V-test-db-import-static-guard`)
+closes that gap **structurally**: it scans every `*.test.ts` that sets `process.env.DB_PATH`
+and fails if any statically (value-)imports a module transitively reaching `db.ts`, regardless
+of run order. Statement-level `import type … from` is erased by the transpiler and stays
+allowed (e.g. `extract-hardware-catalog.test.ts`); only value imports load `db.ts`. So the
+dynamic-import discipline above is now enforced, not merely documented — add a new
+`DB_PATH`-setting test the wrong way and this test rejects it at author time.
