@@ -97,6 +97,32 @@ describe("classifyDbGrounding", () => {
     expect(v.status).toBe("ok");
   });
 
+  test("unparseable release_tag is never classified ok — freshness is unverified", () => {
+    const v = classifyDbGrounding({
+      ...base,
+      pragmaSchema: 10,
+      metaSchema: 10,
+      releaseTag: "nightly", // no MAJOR.MINOR.PATCH → compareBaseVersion returns null
+      sourceCommit: "abc123",
+      builtAt: "2026-07-17T00:00:00.000Z",
+    });
+    expect(v.status).toBe("unstamped");
+    expect(v.ok).toBe(false);
+  });
+
+  test("unknown code version is never classified ok", () => {
+    const v = classifyDbGrounding({
+      ...base,
+      codeVersion: "unknown",
+      pragmaSchema: 10,
+      metaSchema: 10,
+      releaseTag: "v0.11.0-rc.102",
+      sourceCommit: "abc123",
+      builtAt: "2026-07-17T00:00:00.000Z",
+    });
+    expect(v.ok).toBe(false);
+  });
+
   test("internal_inconsistent outranks tag_behind", () => {
     const v = classifyDbGrounding({
       ...base,

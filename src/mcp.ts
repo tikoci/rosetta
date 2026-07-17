@@ -186,7 +186,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       log(`⚠ DB grounding: ${verdict.status.toUpperCase()} — ${verdict.detail}`);
       log(`  Resolved DB: ${dbPath}`);
       log(`  This DB may not match the code you are reading. Run 'make db-sync' to fetch the latest CI release DB,`);
-      log(`  or 'bun run db:doctor' for full provenance. See local-db-grounding.instructions.md.`);
+      log(`  or 'bun run db:doctor' for full provenance. See MANUAL.md → "Local DB grounding (dev checkouts)".`);
     }
   }
 }

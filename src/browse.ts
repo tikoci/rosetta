@@ -1096,7 +1096,7 @@ function renderStats(): string {
   if (stats.schema_version != null) {
     out.push(`  ${dim("Schema:")} v${stats.schema_version}`);
   }
-  out.push(`  ${dim("Export:")} ${stats.doc_export}`);
+  out.push(`  ${dim("Provenance:")} ${stats.doc_export}`);
   out.push("");
 
   const kv = (label: string, value: string | number) => {

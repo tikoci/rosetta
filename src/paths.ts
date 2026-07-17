@@ -239,7 +239,16 @@ export function classifyDbGrounding(input: {
   }
 
   const cmp = compareBaseVersion(input.releaseTag, `v${input.codeVersion}`);
-  if (cmp !== null && cmp < 0) {
+  if (cmp === null) {
+    // A stamped-but-unparseable release_tag (or an "unknown" code version) means
+    // freshness could not be verified. Never fall through to "ok" — an
+    // unverifiable version is not a grounded one.
+    return verdict(
+      "unstamped",
+      `Cannot compare DB release ${input.releaseTag} with running code v${input.codeVersion}; version is unparseable, so freshness is unverified.`,
+    );
+  }
+  if (cmp < 0) {
     return verdict(
       "tag_behind",
       `DB release ${input.releaseTag} is behind the running code (v${input.codeVersion}); its content predates this checkout.`,

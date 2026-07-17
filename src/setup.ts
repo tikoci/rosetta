@@ -179,7 +179,7 @@ export function probeDb(dbPath: string): DbProbe | null {
     let builtAt: string | null = null;
     try {
       const readMeta = (key: string) =>
-        sqliteGet<{ value: string } | null>(check as SQLiteDatabase, `SELECT value FROM db_meta WHERE key = '${key}'`)?.value ?? null;
+        sqliteGet<{ value: string } | null>(check as SQLiteDatabase, "SELECT value FROM db_meta WHERE key = ?", key)?.value ?? null;
       releaseTag = readMeta("release_tag");
       sourceCommit = readMeta("source_commit");
       builtAt = readMeta("built_at");
@@ -210,10 +210,10 @@ export function probeDb(dbPath: string): DbProbe | null {
   }
 }
 
-function sqliteGet<T>(db: SQLiteDatabase, sql: string): T {
+function sqliteGet<T>(db: SQLiteDatabase, sql: string, ...params: unknown[]): T {
   const stmt = db.prepare(sql);
   try {
-    return stmt.get() as T;
+    return stmt.get(...params) as T;
   } finally {
     stmt.finalize();
   }
