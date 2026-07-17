@@ -71,17 +71,20 @@ function resolveLocal(fromFile: string, spec: string): string | null {
 }
 
 /**
- * Static VALUE imports of local modules in `source`. Statement-level `import type … from` is
- * erased by the transpiler and excluded; everything else that loads a module at runtime is
- * included (named/default/namespace and bare side-effect `import "./x"`). Dynamic `await import()`
- * is deliberately NOT matched — that is the safe form these tests are meant to steer authors to.
+ * Static VALUE imports/re-exports of local modules in `source`. Statement-level `import type …`
+ * / `export type … from` is erased by the transpiler and excluded; everything else that loads a
+ * module at runtime is included (named/default/namespace imports, bare side-effect `import "./x"`,
+ * and `export … from` re-exports/barrels, which evaluate their target too). Dynamic `await
+ * import()` is deliberately NOT matched — that is the safe form these tests steer authors to.
  */
 function staticLocalValueImports(fromFile: string, source: string): string[] {
   const specs: string[] = [];
-  // `import [type] <clause> from "<spec>"` — [\s\S]*? spans multi-line specifier lists up to `from`.
-  const fromRe = /^import\s+(type\s+)?[\s\S]*?from\s*["']([^"']+)["']/gm;
+  // `import/export [type] <clause> from "<spec>"` — [\s\S]*? spans multi-line specifier lists up
+  // to `from`. `export … from` (re-export / barrel: `export * from`, `export { db } from`)
+  // evaluates the target at runtime exactly like an import, so it counts too.
+  const fromRe = /^(?:import|export)\s+(type\s+)?[\s\S]*?from\s*["']([^"']+)["']/gm;
   for (const m of source.matchAll(fromRe)) {
-    if (m[1]) continue; // statement-level `import type` — erased, safe
+    if (m[1]) continue; // statement-level `import type` / `export type` — erased, safe
     const local = resolveLocal(fromFile, m[2]);
     if (local) specs.push(local);
   }
