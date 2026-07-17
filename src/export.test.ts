@@ -387,6 +387,21 @@ describe("runExport", () => {
     expect(existsSync(path.join(dir, "someone-elses.txt"))).toBe(true);
   });
 
+  test("prune never deletes outside the export root, even from a tampered manifest", async () => {
+    const base = exportToTmp();
+    const dir = path.join(base, "ds");
+    await runExport(dir, db);
+    // A file OUTSIDE the export dir that a malicious/hand-edited manifest tries to own.
+    const outsideFile = path.join(base, "DO-NOT-DELETE.txt");
+    await Bun.write(outsideFile, "outside the root");
+    const manifestPath = path.join(dir, "manifest.toml");
+    await Bun.write(manifestPath, `${readFileSync(manifestPath, "utf-8")}\n[[files]]\nname = "../DO-NOT-DELETE.txt"\n`);
+
+    await runExport(dir, db); // adopts our manifest; the traversal name must be skipped
+
+    expect(existsSync(outsideFile)).toBe(true); // containment guard held
+  });
+
   test("writes freely into a brand-new (never-created) directory", async () => {
     const dir = path.join(exportToTmp(), "fresh-subdir"); // does not exist yet
     expect(existsSync(dir)).toBe(false);

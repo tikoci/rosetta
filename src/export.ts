@@ -566,22 +566,25 @@ export async function runExport(outDir: string, database: Database, opts: Export
     disclosures: DISCLOSURES,
   });
 
-  // Publish: write datasets first (Bun.write creates parent dirs for nested names),
-  // then manifest.toml LAST so a crash can't leave a manifest naming data files that
-  // were never or only partially written.
-  for (const d of datasets) await Bun.write(path.join(resolved, d.name), toTsv(d.columns, d.rows));
-  await Bun.write(path.join(resolved, MANIFEST_NAME), manifest);
-
-  // Prune: delete every file the PRIOR manifest owned that this run did not produce,
-  // then clean the directories that leaves empty. Only ever touches names a manifest
-  // we wrote listed, so a stale slug from an earlier run is removed while anything
-  // else in the directory is left alone.
+  // Publish in three ordered steps: (1) write datasets (Bun.write creates parent
+  // dirs for nested names), (2) prune the PRIOR manifest's stale files, (3) write
+  // manifest.toml LAST. Pruning BEFORE the new manifest is what keeps a crash safe
+  // in both directions: the manifest still lands last, so it never names half-written
+  // data; and if the run dies mid-prune the OLD manifest is still on disk carrying
+  // the full owned set, so the next run re-prunes instead of orphaning stale files
+  // (which a manifest already narrowed to the produced set could never reclaim).
   const produced = new Set(datasets.map((d) => d.name));
+  for (const d of datasets) await Bun.write(path.join(resolved, d.name), toTsv(d.columns, d.rows));
   for (const stale of ownedBefore) {
     if (produced.has(stale) || stale === MANIFEST_NAME) continue;
-    rmSync(path.join(resolved, stale), { force: true });
+    // Defense in depth: only ever delete inside the export root. A hand-edited or
+    // otherwise tampered manifest with a `../` traversal name can never reach out.
+    const target = path.resolve(resolved, stale);
+    if (target !== resolved && !target.startsWith(resolved + path.sep)) continue;
+    rmSync(target, { force: true });
     removeEmptyAncestors(resolved, stale);
   }
+  await Bun.write(path.join(resolved, MANIFEST_NAME), manifest);
 
   return { outDir: resolved, files: datasets.map((d) => ({ name: d.name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by })) };
 }

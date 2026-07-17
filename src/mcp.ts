@@ -181,7 +181,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("  rosetta browse       Interactive terminal browser");
   console.log("  rosetta browse <cmd> [args]  Run any TUI command once, then open REPL");
   console.log("  rosetta browse --once <cmd>  Execute any TUI command and exit");
-  console.log("  rosetta export <dir>  Write DB-only dataset directory (TSV + manifest.toml)");
+  console.log("  rosetta export <dir> [--force]  Write DB-only dataset directory (TSV + manifest.toml)");
   console.log("  rosetta --setup      Download database + print MCP client config");
   console.log("  rosetta --setup --force  Re-download database");
   console.log("  rosetta --refresh    Shortcut for --setup --force");
