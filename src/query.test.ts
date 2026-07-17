@@ -516,6 +516,17 @@ beforeAll(() => {
     (id, video_id, chapter_title, start_s, end_s, transcript, sort_order)
     VALUES
     (3, 2, NULL, 0, NULL, 'BGP peering and route reflection allow scalable routing in large networks.', 0)`);
+  // Changelog-style video (issue #89): the word "changelog" and the version live only in
+  // the TITLE; the narration never says either, so a transcript-only search buries it.
+  db.run(`INSERT INTO videos
+    (id, video_id, title, description, channel, upload_date, duration_s, url, has_chapters)
+    VALUES
+    (3, 'chg723', 'RouterOS 7.23 changelog - VRF offloading, DoH with HTTP/2, option82 changes and more', 'Release highlights walkthrough', 'MikroTik', '20240301', 500,
+     'https://www.youtube.com/watch?v=chg723', 0)`);
+  db.run(`INSERT INTO video_segments
+    (id, video_id, chapter_title, start_s, end_s, transcript, sort_order)
+    VALUES
+    (4, 3, NULL, 0, NULL, 'In this release VRF offloading gets hardware support and DoH now runs over HTTP two.', 0)`);
 
   // Dude wiki page fixtures for searchDude tests
   db.run(`INSERT INTO dude_pages
@@ -2397,6 +2408,14 @@ describe("searchVideos", () => {
     const results = searchVideos("BGP peering route reflection");
     expect(results.length).toBeGreaterThan(0);
     expect(results[0].chapter_title).toBeNull();
+  });
+
+  test("surfaces a changelog-titled video whose transcript never says 'changelog' (issue #89)", () => {
+    // "changelog" and "7.23" appear only in the title; segment-only search buried this at #15.
+    const results = searchVideos("changelog 7.23 routeros");
+    expect(results[0].video_id).toBe("chg723");
+    // Proves the hit came from the title, not the narration.
+    expect(results[0].excerpt.toLowerCase()).toContain("changelog");
   });
 
   test("returns empty array for empty query", () => {

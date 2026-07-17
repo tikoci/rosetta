@@ -2620,22 +2620,44 @@ export type VideoSearchResult = {
   excerpt: string;
 };
 
-/** Search YouTube video transcripts via FTS, joining segment → video metadata. */
+/**
+ * Search YouTube videos, matching both the transcript AND the video title/description
+ * (issue #89). Title-bearing words like "changelog" never appear in the narration, so a
+ * segment-only search buries correctly-titled videos; `videos_fts` (title + description,
+ * already trigger-maintained — no schema change) is consulted alongside `video_segments_fts`.
+ *
+ * Ranking is strong-before-weak: a title-AND hit, then a transcript-AND hit, then the
+ * OR fallbacks in the same order. Title matches lead because the title is the curated
+ * summary of the video, so a query word found only there is a strong relevance signal.
+ * Results dedupe by video (first occurrence wins) and cap at `limit`.
+ */
 export function searchVideos(query: string, limit = 5): VideoSearchResult[] {
   const terms = extractTerms(query);
   if (terms.length === 0) return [];
 
-  let ftsQuery = buildFtsQuery(terms, "AND");
-  if (!ftsQuery) return [];
-  let results = runVideosFtsQuery(ftsQuery, limit);
+  const andQuery = buildFtsQuery(terms, "AND");
+  if (!andQuery) return [];
+  const orQuery = terms.length > 1 ? buildFtsQuery(terms, "OR") : "";
 
-  // Fallback to OR if AND returns nothing and we have multiple terms
-  if (results.length === 0 && terms.length > 1) {
-    ftsQuery = buildFtsQuery(terms, "OR");
-    results = runVideosFtsQuery(ftsQuery, limit);
-  }
+  const merged: VideoSearchResult[] = [];
+  const seen = new Set<string>();
+  const add = (rows: VideoSearchResult[]) => {
+    for (const r of rows) {
+      if (merged.length >= limit) return;
+      if (seen.has(r.video_id)) continue;
+      seen.add(r.video_id);
+      merged.push(r);
+    }
+  };
 
-  return results;
+  // Strong matches: every term present, title before transcript.
+  add(runVideosTitleQuery(andQuery, limit));
+  if (merged.length < limit) add(runVideosFtsQuery(andQuery, limit));
+  // Weak fallback (multi-term only): any term present, same title-before-transcript order.
+  if (merged.length < limit && orQuery) add(runVideosTitleQuery(orQuery, limit));
+  if (merged.length < limit && orQuery) add(runVideosFtsQuery(orQuery, limit));
+
+  return merged;
 }
 
 function runVideosFtsQuery(ftsQuery: string, limit: number): VideoSearchResult[] {
@@ -2650,6 +2672,35 @@ function runVideosFtsQuery(ftsQuery: string, limit: number): VideoSearchResult[]
          JOIN video_segments vs ON vs.id = fts.rowid
          JOIN videos v ON v.id = vs.video_id
          WHERE video_segments_fts MATCH ?
+         ORDER BY rank
+         LIMIT ?`,
+      )
+      .all(ftsQuery, limit) as VideoSearchResult[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Match the video title/description via `videos_fts` (issue #89). A title-only word like
+ * "changelog" is unsearchable through the transcript index, so this surfaces it. The row
+ * shape stays identical to a transcript hit by attaching the video's first segment for
+ * `chapter_title`/`start_s` (LEFT JOIN — a video with no transcript still returns, with
+ * NULL chapter and start 0); the excerpt is a snippet of the matched title/description.
+ */
+function runVideosTitleQuery(ftsQuery: string, limit: number): VideoSearchResult[] {
+  if (!ftsQuery) return [];
+  try {
+    return db
+      .prepare(
+        `SELECT v.video_id, v.title, v.url, v.upload_date,
+                vs.chapter_title, COALESCE(vs.start_s, 0) AS start_s,
+                snippet(videos_fts, 0, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) AS excerpt
+         FROM videos_fts fts
+         JOIN videos v ON v.id = fts.rowid
+         LEFT JOIN video_segments vs
+           ON vs.id = (SELECT id FROM video_segments WHERE video_id = v.id ORDER BY sort_order LIMIT 1)
+         WHERE videos_fts MATCH ?
          ORDER BY rank
          LIMIT ?`,
       )
