@@ -27,7 +27,7 @@ Download a compiled binary from [Releases](https://github.com/tikoci/rosetta/rel
 | `browse` | Interactive terminal browser (REPL) |
 | `browse <cmd> [args]` | Run any TUI command once, then open REPL (e.g. `browse changelog 7.20..7.22`) |
 | `browse --once <cmd>` | Execute any TUI command and exit — no REPL (for piping) |
-| `export <dir>` | Write DB-only dataset directory (TSV + manifest.toml) |
+| `export <dir> [--force]` | Write DB-only dataset directory (TSV + manifest.toml); `--force` overwrites a non-empty directory with no rosetta manifest |
 | `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--refresh` | Shortcut for `--setup --force` (refresh DB) |
@@ -311,7 +311,9 @@ Serialization contract (stated in full in `manifest.toml`):
 - **TSV**, UTF-8, LF line endings, a header row, and stable row/column ordering — a rebuild on the same DB is byte-identical.
 - **Escaping** follows the Postgres COPY text convention: `\\`=backslash, `\t`=tab, `\n`=LF, `\r`=CR, applied as a general backstop to every value. A field exactly equal to `\N` is SQL NULL; an empty field is the empty string. This keeps the one-line-equals-one-record property (parseable by `awk -F '\t'`) while remaining losslessly reversible.
 
-Because the export reads only the DB, a column it cannot produce is omitted and disclosed in `manifest.toml` rather than recovered from a source artifact. Overwriting a previous export is the working assumption; the command only rewrites the files it owns and never deletes anything it did not create.
+Because the export reads only the DB, a column it cannot produce is omitted and disclosed in `manifest.toml` rather than recovered from a source artifact.
+
+**Safe replacement.** `manifest.toml` is both the index and the ownership record: its `[[files]]` list names every file the export owns (each `name` is a directory-relative path, so `products/**` and `pages/<slug>/**` files are owned the same way as the flat TSVs). Re-running into a directory that already holds a manifest **rosetta wrote** adopts it — it rewrites the current file set and **prunes** any file the old manifest listed that the new run no longer produces (so a renamed page slug or dropped product leaves no stale file), cleaning up directories that empties. It only ever deletes files a prior rosetta manifest named, so files you added to the directory yourself are left untouched. Exporting into a **new or empty** directory just writes. Exporting into a **non-empty directory with no rosetta manifest** is refused, to avoid clobbering a directory the tool did not create — pass `--force` to override (on an interactive terminal you are prompted instead). A run that crashes before writing `manifest.toml` leaves no manifest, so resuming into that directory needs `--force` once; the next successful run heals it.
 
 ## Database (Standalone)
 

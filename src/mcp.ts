@@ -220,18 +220,32 @@ if (args[0] === "browse") {
 }
 
 if (args[0] === "export") {
-  const outDir = args[1];
-  if (!outDir || outDir.startsWith("-")) {
-    console.error("Usage: rosetta export <dir>");
+  const rest = args.slice(1);
+  const force = rest.includes("--force");
+  const outDir = rest.find((a) => !a.startsWith("-"));
+  if (!outDir) {
+    console.error("Usage: rosetta export <dir> [--force]");
     process.exit(1);
   }
   await ensureDbReady((msg) => process.stderr.write(`${msg}\n`));
   const { db } = await import("./db.ts");
   const { runExport } = await import("./export.ts");
-  const summary = await runExport(outDir, db);
-  console.log(`Wrote ${summary.files.length} datasets + manifest.toml to ${summary.outDir}`);
-  for (const f of summary.files) console.log(`  ${f.name}  (${f.rows} rows)`);
-  process.exit(0);
+  try {
+    const summary = await runExport(outDir, db, {
+      force,
+      // On a TTY, offer an interactive overwrite instead of a flat refusal; in a
+      // pipe/CI (no TTY) there is no prompt, so a foreign dir needs --force.
+      confirmForeign: process.stdin.isTTY
+        ? (dir) => (prompt(`export: ${dir} is not empty and has no rosetta manifest. Overwrite? [y/N]`) ?? "").trim().toLowerCase().startsWith("y")
+        : undefined,
+    });
+    console.log(`Wrote ${summary.files.length} datasets + manifest.toml to ${summary.outDir}`);
+    for (const f of summary.files) console.log(`  ${f.name}  (${f.rows} rows)`);
+    process.exit(0);
+  } catch (e) {
+    console.error(e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  }
 }
 
 if (args.includes("--setup")) {

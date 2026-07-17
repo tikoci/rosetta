@@ -18,7 +18,7 @@
  */
 
 import type { Database } from "bun:sqlite";
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { compareVersions } from "./version-compare.ts";
 
@@ -404,6 +404,60 @@ function readMeta(database: Database, key: string): string | null {
 export type ExportedFile = { name: string; source_table: string; rows: number; columns: string[]; order_by: string };
 export type ExportSummary = { outDir: string; files: ExportedFile[] };
 
+export type ExportOptions = {
+  /** Overwrite a non-empty directory that carries no rosetta manifest.toml. */
+  force?: boolean;
+  /**
+   * Consulted only for a non-empty directory with no rosetta manifest, and only
+   * when `force` is not set — return true to overwrite it anyway (e.g. an
+   * interactive TTY confirmation). Omitted → such a directory is refused. Kept as
+   * a callback so this module stays free of stdin/prompt coupling and testable.
+   */
+  confirmForeign?: (resolved: string) => boolean | Promise<boolean>;
+};
+
+const MANIFEST_NAME = "manifest.toml";
+const EXPORT_FORMAT = "rosetta-datasets";
+
+/**
+ * The file list a prior `rosetta export` recorded in its manifest — the ownership
+ * record that makes prune-then-publish safe: this run only ever deletes files a
+ * manifest WE wrote listed, never anything else in the directory. Returns:
+ *   - `{ owned }`  the dir holds our manifest; adopt it and prune its stale files
+ *   - `"foreign"`  a manifest.toml exists but is not ours (no rosetta format marker)
+ *   - `null`       no manifest.toml at all
+ * In our generated manifest, `name = "..."` occurs only inside `[[files]]` blocks,
+ * and `[[files]].name` is a directory-relative path (POSIX `/`), so a variable
+ * file set (E3/E4's `products/**`, `pages/<slug>/**`) is owned and pruned the same
+ * way as today's flat set — the manifest shape already supports directory files.
+ */
+function priorManifest(resolved: string): { owned: string[] } | "foreign" | null {
+  const manifestPath = path.join(resolved, MANIFEST_NAME);
+  if (!existsSync(manifestPath)) return null;
+  const text = readFileSync(manifestPath, "utf-8");
+  if (!new RegExp(`^format = "${EXPORT_FORMAT}"$`, "m").test(text)) return "foreign";
+  return { owned: [...text.matchAll(/^name = "(.+)"$/gm)].map((m) => m[1]) };
+}
+
+/**
+ * After pruning an owned file, remove the directories it left empty — up to but
+ * never including the export root, and stopping at the first non-empty dir. So
+ * dropping the last file under `pages/<slug>/` cleans that dir, while a dir the
+ * user themselves populated (or the root) is never touched.
+ */
+function removeEmptyAncestors(root: string, relFile: string): void {
+  let dir = path.dirname(path.join(root, relFile));
+  while (dir !== root && dir.startsWith(root + path.sep)) {
+    try {
+      if (readdirSync(dir).length > 0) break;
+      rmdirSync(dir);
+    } catch {
+      break;
+    }
+    dir = path.dirname(dir);
+  }
+}
+
 // Reading order = directory/manifest order. Deterministic.
 const DATASET_READERS = [
   readChangelog,
@@ -441,17 +495,40 @@ const DISCLOSURES = [
 ];
 
 /**
- * Write the dataset directory. Reads only `database`. Overwrites its own fixed
- * file set in place; it never deletes anything, so it can never remove a file or
- * directory it did not create. (Safe replacement of a VARIABLE file set — E4's
- * per-fragment tables, where a previous run's slugs may be stale — is deliberately
- * deferred; the fixed flat file set here has no stale-file hazard.)
+ * Write the dataset directory. Reads only `database`.
+ *
+ * Safe replacement (issue #108) is manifest-owned prune-then-publish: the manifest
+ * is both the index and the ownership record. A run adopts a directory that already
+ * holds a manifest WE wrote (and prunes the files that manifest listed but this run
+ * no longer produces — the stale-slug hazard that E3/E4's variable `products/**` /
+ * `pages/<slug>/**` sets introduce); writes freely into a new or empty directory;
+ * and refuses a non-empty directory with no rosetta manifest unless `force` (or
+ * `confirmForeign`) says otherwise — so it can never delete or clobber a directory
+ * it did not create. Datasets are written first and manifest.toml LAST, so a crash
+ * never leaves a manifest naming half-written data; a crashed run (no manifest) is
+ * treated as foreign and needs `--force` to resume, which the next run then heals.
  */
-export async function runExport(outDir: string, database: Database): Promise<ExportSummary> {
+export async function runExport(outDir: string, database: Database, opts: ExportOptions = {}): Promise<ExportSummary> {
   const resolved = path.resolve(outDir);
   if (existsSync(resolved) && !statSync(resolved).isDirectory()) {
     throw new Error(`export: ${resolved} exists and is not a directory`);
   }
+
+  // Ownership gate. Adopt our own prior export (and remember its owned set to prune
+  // below); write into a new/empty dir; refuse a non-empty foreign dir unless forced.
+  const prior = existsSync(resolved) ? priorManifest(resolved) : null;
+  let ownedBefore: string[] = [];
+  if (prior && prior !== "foreign") {
+    ownedBefore = prior.owned;
+  } else if (existsSync(resolved) && readdirSync(resolved).length > 0) {
+    const ok = opts.force === true || (opts.confirmForeign ? await opts.confirmForeign(resolved) : false);
+    if (!ok) {
+      throw new Error(
+        `export: ${resolved} is not empty and has no rosetta ${MANIFEST_NAME} — refusing to overwrite a directory this tool did not create. Pass --force to overwrite it.`,
+      );
+    }
+  }
+
   // Create the target directory explicitly (the typical `rosetta export <dir>`
   // expectation), rather than leaning on Bun.write's implicit parent creation.
   mkdirSync(resolved, { recursive: true });
@@ -489,11 +566,22 @@ export async function runExport(outDir: string, database: Database): Promise<Exp
     disclosures: DISCLOSURES,
   });
 
-  // Overwrite only the files we own; nothing is deleted. Write the datasets first
-  // and manifest.toml last, so a failed run can't leave a manifest that names data
-  // files that were never (or only partially) written.
+  // Publish: write datasets first (Bun.write creates parent dirs for nested names),
+  // then manifest.toml LAST so a crash can't leave a manifest naming data files that
+  // were never or only partially written.
   for (const d of datasets) await Bun.write(path.join(resolved, d.name), toTsv(d.columns, d.rows));
-  await Bun.write(path.join(resolved, "manifest.toml"), manifest);
+  await Bun.write(path.join(resolved, MANIFEST_NAME), manifest);
+
+  // Prune: delete every file the PRIOR manifest owned that this run did not produce,
+  // then clean the directories that leaves empty. Only ever touches names a manifest
+  // we wrote listed, so a stale slug from an earlier run is removed while anything
+  // else in the directory is left alone.
+  const produced = new Set(datasets.map((d) => d.name));
+  for (const stale of ownedBefore) {
+    if (produced.has(stale) || stale === MANIFEST_NAME) continue;
+    rmSync(path.join(resolved, stale), { force: true });
+    removeEmptyAncestors(resolved, stale);
+  }
 
   return { outDir: resolved, files: datasets.map((d) => ({ name: d.name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by })) };
 }

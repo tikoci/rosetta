@@ -337,6 +337,62 @@ describe("runExport", () => {
     expect(existsSync(sentinel)).toBe(true);
     expect(readFileSync(sentinel, "utf-8")).toBe("external");
   });
+
+  // Simulate a prior run whose file set differed: inject an extra owned file (flat
+  // and directory-nested) into a real export's manifest, then re-run. Safe
+  // replacement (#108) must prune exactly those stale owned files — and clean the
+  // emptied directory — while leaving the produced files and any foreign file alone.
+  test("re-running prunes stale files a prior manifest owned, incl. an emptied dir", async () => {
+    const dir = exportToTmp();
+    await runExport(dir, db);
+    const manifestPath = path.join(dir, "manifest.toml");
+
+    const flatStale = path.join(dir, "ghost.tsv");
+    const nestedStale = path.join(dir, "pages", "old-slug", "t--1.tsv");
+    await Bun.write(flatStale, "stale flat\n");
+    await Bun.write(nestedStale, "stale nested\n");
+    const foreign = path.join(dir, "notes.md");
+    await Bun.write(foreign, "mine");
+    // Make the manifest claim ownership of the two stale files (as a prior run would).
+    const doctored = `${readFileSync(manifestPath, "utf-8")}\n[[files]]\nname = "ghost.tsv"\n\n[[files]]\nname = "pages/old-slug/t--1.tsv"\n`;
+    await Bun.write(manifestPath, doctored);
+
+    await runExport(dir, db);
+
+    expect(existsSync(flatStale)).toBe(false); // pruned
+    expect(existsSync(nestedStale)).toBe(false); // pruned
+    expect(existsSync(path.join(dir, "pages", "old-slug"))).toBe(false); // emptied dir cleaned
+    expect(existsSync(path.join(dir, "pages"))).toBe(false); // and its now-empty parent
+    expect(existsSync(foreign)).toBe(true); // untracked file untouched
+    for (const f of ALL_FILES) expect(existsSync(path.join(dir, f))).toBe(true); // produced set intact
+  });
+
+  test("refuses a non-empty foreign directory unless forced or confirmed", async () => {
+    const dir = exportToTmp();
+    await Bun.write(path.join(dir, "someone-elses.txt"), "not ours");
+
+    // No manifest of ours → refuse by default (no confirmFn, no force).
+    await expect(runExport(dir, db)).rejects.toThrow(/not empty and has no rosetta/);
+    expect(existsSync(path.join(dir, "manifest.toml"))).toBe(false); // nothing written
+
+    // A declining confirmFn is also a refusal.
+    await expect(runExport(dir, db, { confirmForeign: () => false })).rejects.toThrow(/not empty/);
+
+    // force overwrites it, leaving the foreign file (not in our owned set) intact.
+    await runExport(dir, db, { force: true });
+    expect(existsSync(path.join(dir, "manifest.toml"))).toBe(true);
+    expect(existsSync(path.join(dir, "someone-elses.txt"))).toBe(true);
+    // Re-run now adopts our own manifest with no force needed.
+    await runExport(dir, db);
+    expect(existsSync(path.join(dir, "someone-elses.txt"))).toBe(true);
+  });
+
+  test("writes freely into a brand-new (never-created) directory", async () => {
+    const dir = path.join(exportToTmp(), "fresh-subdir"); // does not exist yet
+    expect(existsSync(dir)).toBe(false);
+    await runExport(dir, db);
+    expect(existsSync(path.join(dir, "manifest.toml"))).toBe(true);
+  });
 });
 
 describe("DB-only hard boundary", () => {
@@ -345,11 +401,17 @@ describe("DB-only hard boundary", () => {
   test("export.ts uses no file-read, network, subprocess, or second-DB primitive", () => {
     // The prose docstring names the forbidden *sources* (matrix/, transcripts/, …);
     // guarding the code *primitives* is what actually can't be fooled by comments.
-    // Only stat (existsSync/statSync), mkdir, and Bun.write are allowed FS touches.
+    // Allowed FS touches: stat (existsSync/statSync), mkdir, readdir + rm (safe
+    // replacement, #108), Bun.write, and a SINGLE readFileSync of our own prior
+    // manifest.toml — reading our own output to know what to prune is not a
+    // data-source read, which is what this boundary actually forbids.
     const src = exportSrc();
-    for (const primitive of ["fetch(", "new Database", "child_process", "readFileSync", "readFile(", "Bun.file(", "require("]) {
+    for (const primitive of ["fetch(", "new Database", "child_process", "readFile(", "Bun.file(", "require("]) {
       expect(src).not.toContain(primitive);
     }
+    // The only file-content read is the prior manifest, never a source artifact.
+    const reads = [...src.matchAll(/readFileSync\(([^,)]+)/g)].map((m) => m[1].trim());
+    expect(reads).toEqual(["manifestPath"]);
   });
 
   const importSpecifiers = (src: string): string[] => [
