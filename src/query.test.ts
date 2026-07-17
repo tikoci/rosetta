@@ -2157,6 +2157,20 @@ describe("getDbStats", () => {
     expect(stats).toHaveProperty("skills");
     expect(typeof stats.skills).toBe("number");
   });
+
+  test("exposes a provenance block with a grounding verdict (#94)", () => {
+    const stats = getDbStats();
+    expect(stats).toHaveProperty("provenance");
+    const p = stats.provenance;
+    expect(p.schema_version_pragma).toBe(SCHEMA_VERSION);
+    expect(p.code_schema_version).toBe(SCHEMA_VERSION);
+    expect(p.grounding).toHaveProperty("status");
+    expect(typeof p.grounding.ok).toBe("boolean");
+    // The in-memory test DB is initialized but never CI-stamped, so it is a
+    // schema-coherent but unstamped local build.
+    expect(p.grounding.status).toBe("unstamped");
+    expect(p.grounding.ok).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

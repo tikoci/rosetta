@@ -47,6 +47,11 @@ type DbProbe = {
   pages: number;
   commands: number;
   releaseTag: string | null;
+  /** db_meta.schema_version — the schema the DB *claims*, which can disagree
+   *  with the PRAGMA user_version above when a corpus was bumped in place. */
+  metaSchemaVersion: number | null;
+  sourceCommit: string | null;
+  builtAt: string | null;
 };
 
 export type DbFreshnessCheck = {
@@ -158,12 +163,7 @@ function looksLikeSqliteFile(dbPath: string): boolean {
  *  fail to open readonly on macOS until a read-write connection initialises the
  *  WAL shared-memory file.  probeDb always operates on a temp or new file so
  *  read-write access is safe. */
-export function probeDb(dbPath: string): {
-  schemaVersion: number;
-  pages: number;
-  commands: number;
-  releaseTag: string | null;
-} | null {
+export function probeDb(dbPath: string): DbProbe | null {
   if (!looksLikeSqliteFile(dbPath)) return null;
 
   let check: SQLiteDatabase | null = null;
@@ -174,17 +174,28 @@ export function probeDb(dbPath: string): {
     const pages = sqliteGet<{ c: number }>(check, "SELECT COUNT(*) AS c FROM pages");
     const cmds = sqliteGet<{ c: number }>(check, "SELECT COUNT(*) AS c FROM commands");
     let releaseTag: string | null = null;
+    let metaSchemaVersion: number | null = null;
+    let sourceCommit: string | null = null;
+    let builtAt: string | null = null;
     try {
-      const meta = sqliteGet<{ value: string } | null>(check, "SELECT value FROM db_meta WHERE key = 'release_tag'");
-      releaseTag = meta?.value ?? null;
+      const readMeta = (key: string) =>
+        sqliteGet<{ value: string } | null>(check as SQLiteDatabase, `SELECT value FROM db_meta WHERE key = '${key}'`)?.value ?? null;
+      releaseTag = readMeta("release_tag");
+      sourceCommit = readMeta("source_commit");
+      builtAt = readMeta("built_at");
+      const ms = readMeta("schema_version");
+      metaSchemaVersion = ms === null ? null : Number(ms);
     } catch {
-      // db_meta missing — pre-v5 schema, leave releaseTag null
+      // db_meta missing — pre-v5 schema, leave provenance fields null
     }
     return {
       schemaVersion: ver.user_version,
       pages: pages.c,
       commands: cmds.c,
       releaseTag,
+      metaSchemaVersion,
+      sourceCommit,
+      builtAt,
     };
   } catch {
     return null;
@@ -411,6 +422,7 @@ export function dbDownloadUrls(version: string): string[] {
 export async function downloadDb(
   dbPath: string,
   log: (msg: string) => void = console.log,
+  urlsOverride?: string[],
 ): Promise<DbProbe> {
   let lock = tryAcquireDownloadLock(dbPath);
   if (!lock) {
@@ -439,7 +451,11 @@ export async function downloadDb(
     }
   }
 
-  const urls = dbDownloadUrls(RELEASE_VERSION);
+  // In dev the package.json version is a CI-rewritten placeholder with no
+  // matching release, so callers (db-sync) can pass explicit candidate URLs —
+  // e.g. the newest prerelease that actually ships the DB — instead of the
+  // version-pinned + /latest/ pair, which resolves to the newest *stable*.
+  const urls = urlsOverride && urlsOverride.length > 0 ? urlsOverride : dbDownloadUrls(RELEASE_VERSION);
   let lastError: Error | null = null;
 
   try {

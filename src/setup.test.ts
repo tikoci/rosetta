@@ -254,11 +254,20 @@ describe("probeDb", () => {
 describe("checkDbFreshness", () => {
   const opts = { schemaVersion: 8, runningVersion: "0.11.0-beta.93", mode: "package" as const };
 
+  // checkDbFreshness only reads schemaVersion + releaseTag; the extra db_meta
+  // provenance fields (added for the #94 grounding verdict) default to null here.
+  const probe = (schemaVersion: number, releaseTag: string | null) => ({
+    schemaVersion,
+    pages: 500,
+    commands: 5000,
+    releaseTag,
+    metaSchemaVersion: releaseTag === null ? null : schemaVersion,
+    sourceCommit: releaseTag === null ? null : "abc123",
+    builtAt: releaseTag === null ? null : "2026-07-01T00:00:00.000Z",
+  });
+
   test("schema mismatch redownloads and is fatal on failure, regardless of release tag", () => {
-    const result = checkDbFreshness(
-      { schemaVersion: 7, pages: 500, commands: 5000, releaseTag: "v0.11.0-beta.93" },
-      opts,
-    );
+    const result = checkDbFreshness(probe(7, "v0.11.0-beta.93"), opts);
     expect(result.redownload).toBe(true);
     expect(result.hardFailOnDownloadError).toBe(true);
     expect(result.reason).toContain("schema mismatch");
@@ -266,51 +275,36 @@ describe("checkDbFreshness", () => {
 
   test("same-schema release-tag mismatch redownloads but is non-fatal on failure", () => {
     // Package-mode user cached beta.92's DB; bunx just resolved beta.93.
-    const result = checkDbFreshness(
-      { schemaVersion: 8, pages: 500, commands: 5000, releaseTag: "v0.11.0-beta.92" },
-      opts,
-    );
+    const result = checkDbFreshness(probe(8, "v0.11.0-beta.92"), opts);
     expect(result.redownload).toBe(true);
     expect(result.hardFailOnDownloadError).toBe(false);
     expect(result.reason).toContain("stale");
   });
 
   test("matching schema and release tag needs no redownload", () => {
-    const result = checkDbFreshness(
-      { schemaVersion: 8, pages: 500, commands: 5000, releaseTag: "v0.11.0-beta.93" },
-      opts,
-    );
+    const result = checkDbFreshness(probe(8, "v0.11.0-beta.93"), opts);
     expect(result.redownload).toBe(false);
   });
 
   test("dev mode never triggers on release-tag drift — a dev DB isn't tied to a published release", () => {
-    const result = checkDbFreshness(
-      { schemaVersion: 8, pages: 500, commands: 5000, releaseTag: "v0.10.0" },
-      { ...opts, mode: "dev" },
-    );
+    const result = checkDbFreshness(probe(8, "v0.10.0"), { ...opts, mode: "dev" });
     expect(result.redownload).toBe(false);
   });
 
   test("dev mode still redownloads on a genuine schema mismatch", () => {
-    const result = checkDbFreshness(
-      { schemaVersion: 7, pages: 500, commands: 5000, releaseTag: "v0.10.0" },
-      { ...opts, mode: "dev" },
-    );
+    const result = checkDbFreshness(probe(7, "v0.10.0"), { ...opts, mode: "dev" });
     expect(result.redownload).toBe(true);
     expect(result.hardFailOnDownloadError).toBe(true);
   });
 
   test("compiled mode is treated like package mode for release-tag drift", () => {
-    const result = checkDbFreshness(
-      { schemaVersion: 8, pages: 500, commands: 5000, releaseTag: "v0.11.0-beta.92" },
-      { ...opts, mode: "compiled" },
-    );
+    const result = checkDbFreshness(probe(8, "v0.11.0-beta.92"), { ...opts, mode: "compiled" });
     expect(result.redownload).toBe(true);
     expect(result.hardFailOnDownloadError).toBe(false);
   });
 
   test("null releaseTag (pre-v5 DB) never triggers a release-tag mismatch by itself", () => {
-    const result = checkDbFreshness({ schemaVersion: 8, pages: 500, commands: 5000, releaseTag: null }, opts);
+    const result = checkDbFreshness(probe(8, null), opts);
     expect(result.redownload).toBe(false);
   });
 });

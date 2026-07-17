@@ -115,6 +115,16 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 Documentation covers RouterOS **v7 only**. v6 had different syntax and major subsystems — answers for v6 are unreliable. Prose is now sourced live from <https://manual.mikrotik.com>, which also has a CLI Reference with `/console/inspect`-derived command menus and argument types (not yet ingested — see B-0012's proposed follow-up tasks).
 
+## Local DB grounding (dev checkouts)
+
+In a checkout, dev mode serves the repo-root `ros-help.db` — a git-ignored file whose contents are arbitrary local state (a leftover `make extract` build, a partially-migrated corpus, or a schema bumped in place over stale data). **It is not trusted by default.** Before grounding a claim about shipped data on it, verify it.
+
+- **`make db-doctor`** (or `bun run db:doctor`) prints the resolved DB path, its `db_meta` provenance, and a grounding verdict; exits non-zero when the verdict is not `ok`. In-session, one `routeros_stats` call returns the same `provenance.grounding` block.
+- **`make db-sync`** (or `bun run db:sync`) fetches the newest CI-built release DB **matching this checkout's schema** into the resolved path — the **source of truth** for grounding claims, since it is what `bunx @tikoci/rosetta` consumers get. It uses `gh` to find the newest release that ships the DB asset, prereleases included (not `--refresh`, which would grab the newest *stable* and its older schema). The replace is atomic, so it is safe to run while an MCP server holds the old file open. Requires the `gh` CLI.
+- A local `make extract` build is intentionally **unstamped** (no `release_tag`/`source_commit`) — fine for extraction and pipeline work, but `db-doctor` reports it as `unstamped` to signal it is not a grounding source.
+
+Verdict statuses: `schema_mismatch` (pragma ≠ code schema), `internal_inconsistent` (`db_meta.schema_version` ≠ pragma — a corpus bumped in place, the classic "which DB is this?" trap), `unstamped`, `tag_behind`, and `ok`. In dev mode, MCP startup emits a loud but non-fatal banner when the verdict is not `ok` (it never fetches — a contributor's local build is never clobbered). See `.github/instructions/local-db-grounding.instructions.md`.
+
 ## Re-extracting a Local Database
 
 `make extract` and `make extract-full` fetch `/docs` prose live from manual.mikrotik.com and rebuild the versioned command tree, devices, changelogs, Dude cache, and skills:
