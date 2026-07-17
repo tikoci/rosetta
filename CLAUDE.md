@@ -22,7 +22,7 @@ Each file has one job. Prefer the canonical home instead of inventing a new top-
 | `.github/copilot-instructions.md` | Short Copilot-specific routing note |
 | `.github/instructions/*.instructions.md` | Narrow normative rules matched by `applyTo` |
 | `.github/prompts/*.prompt.md` | Repo-local Copilot prompt workflows |
-| `.github/skills/*/SKILL.md` | Repo-local Copilot skill workflows |
+| `.github/skills/*/SKILL.md` | Repo-local skill workflows — canonical home; symlinked into `.claude/skills/` so Claude Code triggers them too (same real-dir+symlink convention as the global `routeros-*` skills in `~/CLAUDE.md`) |
 
 ## Where does this go?
 
@@ -51,7 +51,8 @@ Agent-specific entrypoints are thin shims: Claude starts here, Codex starts with
 | Extraction and data-shape work | `extraction.instructions.md` plus `extractor-idempotent.instructions.md`, `extractor-import-side-effects.instructions.md`, `command-versions-vs-presence.instructions.md`, `schema-roundtrip-compat.instructions.md`, `data-source-naming-product-matrix.instructions.md`, `skill-attribution-boundary.instructions.md` |
 | Release / install / provenance | `release-via-ci.instructions.md`, `republish-assets-not-npm.instructions.md`, `db-meta-stamping.instructions.md` |
 | Markdown / doc-authoring rules | `markdownlint-fenced-code.instructions.md`, `llm-instruction-files-excluded-from-mdlint.instructions.md` |
-| Issue / briefing workflow | `tasks-vs-briefings.instructions.md`, `issue-pr-linking.instructions.md`, `pr-review-bots.instructions.md`, `tasks/README.md`, `briefings/README.md` |
+| Issue / briefing workflow | `tasks-vs-briefings.instructions.md`, `issue-pr-linking.instructions.md`, `tasks/README.md`, `briefings/README.md` |
+| PR is Ready for Review / you're about to say it's mergeable | Run the `pr-review-gate` skill (`.github/skills/pr-review-gate/SKILL.md`) — `reviewDecision` and green checks do not mean mergeable; unresolved bot threads block `main` independently. Rationale: `pr-review-bots.instructions.md` |
 
 ## Fast pointers
 

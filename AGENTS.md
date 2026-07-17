@@ -18,9 +18,11 @@ operator/reference material lives in `MANUAL.md`; narrow normative rules live in
   labels); PRs close issues via `Closes #N` — read
   `.github/instructions/issue-pr-linking.instructions.md`. `tasks/` is a frozen
   archive (see `tasks/README.md`); briefing rules are in `briefings/README.md`.
-- Repo-local Copilot skills live in `.github/skills/*/SKILL.md`; read the
-  relevant file when a user asks for that workflow, such as picking the next
-  issue, promoting an idea, re-extracting, or verifying acceptance criteria.
+- Repo-local skills live in `.github/skills/*/SKILL.md` (symlinked into
+  `.claude/skills/` for Claude Code); read the relevant file when a user asks
+  for that workflow, such as picking the next issue, promoting an idea,
+  re-extracting, verifying acceptance criteria, or gating a PR's review
+  threads before claiming it's mergeable.
 
 ## Development defaults
 

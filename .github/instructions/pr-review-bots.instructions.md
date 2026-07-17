@@ -4,6 +4,10 @@ applyTo: "src/**, bin/**, scripts/**, .github/**, *.md, tasks/**, briefings/**"
 ---
 # PR review bots (Copilot + CodeRabbit)
 
+This is the rationale doc. For the runnable step-by-step procedure (list unresolved
+threads, resolve them, re-check after a push), use the `pr-review-gate` skill
+(`.github/skills/pr-review-gate/SKILL.md`) instead of re-deriving the `gh` commands here.
+
 When a rosetta PR is marked **Ready for Review** (not while it is a draft), **two**
 bots review it: `copilot-pull-request-reviewer` and `coderabbitai`. They surface
 their findings through *different* GitHub mechanisms, so an agent that checks only

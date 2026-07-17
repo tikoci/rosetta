@@ -36,8 +36,11 @@ ros-help.db.gz
 # Anchored to root so .github/skills/ (Claude Code skills) is NOT ignored.
 /skills/
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (settings.local.json, scheduled_tasks.lock) —
+# but .claude/skills/ is committed: symlinks into .github/skills/ so Claude
+# Code can see this repo's skills, same as Copilot does.
+.claude/*
+!.claude/skills/
 .mcp.json
 
 # Coverage output should not be .git; CI saves as artifact
