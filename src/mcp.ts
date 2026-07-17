@@ -419,7 +419,7 @@ Read \`rosetta://schema.sql\` for full DDL. This guide explains relationships, F
 
 Row counts below are **order-of-magnitude only** — they orient query planning, not
 exact inventory. Call \`routeros_stats\` for live counts (the single source of truth);
-the corpus grows every extraction, so no number is baked in here.
+the corpus grows every extraction, so no exact count is baked in here.
 
 | Table | Rows (approx) | Description |
 |-------|-------------|-------------|
@@ -428,12 +428,12 @@ the corpus grows every extraction, so no number is baked in here.
 | \`properties\` | ~4.6K | CLI property rows extracted from doc tables and property lists. |
 | \`callouts\` | ~950 | Note/Warning/Info/Tip admonition blocks lifted from the docs. |
 | \`commands\` | ~40K | RouterOS command tree entries (dir/cmd/arg) from inspect.json. |
-| \`command_versions\` | ~1.7M | Junction: which command paths exist in which RouterOS versions. |
+| \`command_versions\` | ~2M+ | Junction: which command paths exist in which RouterOS versions. |
 | \`ros_versions\` | dozens | Metadata per extracted RouterOS version (range reported by \`routeros_stats\`). |
-| \`devices\` | ~145 | MikroTik hardware specs from product matrix CSV. |
+| \`devices\` | ~155 | MikroTik hardware specs from product matrix CSV. |
 | \`hardware_catalog\` | ~255 | Wider device universe (matrix + accessories/series/legacy) from manual.mikrotik.com/hardware + mikrotik.com/product. |
 | \`device_aliases\` | ~750 | Normalized alias/slug/code → canonical device, for free-form device resolution. |
-| \`device_test_results\` | ~2.9K | Ethernet/IPSec benchmark rows from mikrotik.com product pages. |
+| \`device_test_results\` | ~3K | Ethernet/IPSec benchmark rows from mikrotik.com product pages. |
 | \`changelogs\` | varies | Parsed per-entry changelog lines from MikroTik download server. |
 | \`videos\` | ~660 | MikroTik YouTube video metadata. |
 | \`video_segments\` | ~2.2K | Chapter-level transcript segments (one per chapter or one per video). |

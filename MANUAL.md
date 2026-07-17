@@ -350,7 +350,7 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 ### Tables
 
-> Row counts below are **order-of-magnitude orientation only** — the corpus grows every extraction, so no exact count is maintained here. Call `routeros_stats` on a built database for live figures (the single source of truth). Descriptions reflect the current Docusaurus-default schema; where a table still holds legacy Confluence rows that difference is called out.
+> Row counts below are **order-of-magnitude orientation only** — the corpus grows every extraction, so no exact count is maintained here. Call `routeros_stats` on a built database for live figures (the single source of truth). Descriptions reflect the current Docusaurus-default schema; where a table still holds legacy Confluence rows, that difference is called out.
 
 | Table | Rows | What's in it |
 |-------|------|-------------|
