@@ -295,16 +295,16 @@ The current pass writes one flat TSV per subject:
 ```text
 rosetta-datasets/
 ├── manifest.toml       # provenance (from db_meta) + serialization contract + per-file row counts + disclosures
-├── changelog.tsv       # changelogs: version, released, category, is_breaking, description, sort_order
-├── callouts.tsv        # callouts: page_id, section_id, type, content, sort_order
+├── changelog.tsv       # changelogs: version, released, category, is_breaking, sort_order, description
+├── callouts.tsv        # callouts joined to page rosetta_id + resolved section_anchor
 ├── properties.tsv      # properties joined to pages + resolved section_anchor
 ├── videos.tsv          # video metadata + per-video transcript segment/word/byte counts
 ├── commands.tsv        # command glossary: path, name, type, parent_path, page_id, description, ros_version
-├── pages.tsv           # one row per section: sizing (word/byte counts) + table counts (the granular view)
-└── pages_summary.tsv   # one row per page: rollup totals (section/table counts, bytes) — GitHub-readable
+├── pages.tsv           # one row per page: its own word count + section/empty/table rollup counts — GitHub-readable
+└── sections.tsv        # one row per section (incl. the '_lead' fragment): sizing + table counts (pivot-able)
 ```
 
-`pages.tsv` and `pages_summary.tsv` are the same core data for two audiences: the flat per-section rows suit a spreadsheet where you sort and group yourself, while the per-page rollup is small enough to read directly on GitHub. Product specs (`products/**`) and per-fragment table files (`pages/<slug>/**`) are not yet exported.
+`pages.tsv` and `sections.tsv` are the two views of the same core data: `pages.tsv` is one whole-page row (its own word count and `#sections`/`#empty`/table counts), small enough to read directly on GitHub; `sections.tsv` is one row per section, and grouping those rows by `page_id` in a spreadsheet pivots up to (near-)the page totals. The residual is heading-text lines that live in no fragment — `pages.tsv.word_count` is the authoritative whole-page figure, and a per-page sum over `sections.tsv` is the covered-body figure (~98%). Product specs (`products/**`) and per-fragment table files (`pages/<slug>/**`) are not yet exported.
 
 Serialization contract (stated in full in `manifest.toml`):
 

@@ -194,7 +194,8 @@ const ORDER_PAGE_FRAGMENT = "page_id, sort_order, id";
  * sort_order) makes this a total order.
  */
 function readChangelog(database: Database): Dataset {
-  const columns = ["version", "released", "category", "is_breaking", "description", "sort_order"];
+  // sort_order before description so the one long free-text column stays last.
+  const columns = ["version", "released", "category", "is_breaking", "sort_order", "description"];
   const rows = database.prepare(`SELECT ${columns.join(", ")} FROM changelogs`).all() as Array<Record<string, TsvScalar>>;
   rows.sort((a, b) => compareVersions(String(b.version), String(a.version)) || Number(a.sort_order) - Number(b.sort_order));
   return {
@@ -206,11 +207,23 @@ function readChangelog(database: Database): Dataset {
   };
 }
 
-/** callouts.tsv — direct from `callouts`; section_id is NULL when no section resolves. */
+/**
+ * callouts.tsv — `callouts` joined to `pages` (rosetta_id) and `sections` (anchor),
+ * so a reader identifies the owning page/section by name without joining back to the
+ * DB — the same rosetta_id/section_anchor pairing properties.tsv already emits. The
+ * raw FK ids stay as a loose column-name audit; section_id/section_anchor are NULL
+ * when no section resolves (rare since B-0023's `_lead`). Long `content` stays last.
+ */
 function readCallouts(database: Database): Dataset {
-  const columns = ["page_id", "section_id", "type", "content", "sort_order"];
+  const columns = ["page_id", "rosetta_id", "section_id", "section_anchor", "type", "sort_order", "content"];
   const rows = database
-    .prepare(`SELECT ${columns.join(", ")} FROM callouts ORDER BY ${ORDER_PAGE_FRAGMENT}`)
+    .prepare(`
+      SELECT c.page_id, pg.rosetta_id, c.section_id, s.anchor_id AS section_anchor,
+             c.type, c.sort_order, c.content
+      FROM callouts c
+      JOIN pages pg ON pg.id = c.page_id
+      LEFT JOIN sections s ON s.id = c.section_id
+      ORDER BY c.page_id, c.sort_order, c.id`)
     .all() as Array<Record<string, TsvScalar>>;
   return {
     name: "callouts.tsv",
@@ -304,13 +317,15 @@ function tableCounts(database: Database, key: "page_id" | "section_id"): Map<num
 }
 
 /**
- * pages.tsv — the flat, un-rolled-up view: one row per `sections` fragment, keyed to
- * its page, carrying the fragment's sizing (word count, UTF-8 text/code bytes) and
- * its table counts. A spreadsheet user does their own sorting/grouping here; the
- * page-level rollup lives in pages_summary.tsv (two audiences, same core data).
- * A fragment with word_count = 0 is a self-flagging empty section (#93).
+ * sections.tsv — one row per `sections` fragment (including the synthetic `_lead`
+ * fragment, B-0023), keyed to its page, carrying the fragment's sizing (word count,
+ * UTF-8 text/code bytes) and its table counts. This is the pivot-able view: grouping
+ * these rows by page_id rolls the section counts up to (near-)page totals — the small
+ * residual against pages.tsv is heading-text lines that live in no fragment. The
+ * whole-page counts live in pages.tsv (two audiences, same core data). A fragment
+ * with word_count = 0 is a self-flagging empty section (#93).
  */
-function readPagesFlat(database: Database): Dataset {
+function readSections(database: Database): Dataset {
   const columns = [
     "page_id", "rosetta_id", "slug", "title", "url",
     "section_id", "anchor_id", "heading", "level", "sort_order",
@@ -332,15 +347,17 @@ function readPagesFlat(database: Database): Dataset {
       s.word_count, utf8Bytes(s.text), utf8Bytes(s.code), t.tables, t.rows,
     ];
   });
-  return { name: "pages.tsv", source_table: "sections", columns, order_by: "page_id, sections.sort_order, sections.id", rows };
+  return { name: "sections.tsv", source_table: "sections", columns, order_by: "page_id, sections.sort_order, sections.id", rows };
 }
 
 /**
- * pages_summary.tsv — the rollup view: one row per `pages` record with the page's
- * stored word count, section/empty-section counts, UTF-8 text/code bytes, and table
- * counts. Small enough to read directly on GitHub; the granular rows are pages.tsv.
+ * pages.tsv — one row per `pages` record with the page's own stored word count,
+ * section/empty-section counts, UTF-8 text/code bytes, and table counts. This is the
+ * whole-page view, small enough to read directly on GitHub; the per-section rows that
+ * pivot up to (near-)these totals are sections.tsv. No section-sum column is emitted
+ * here — pivot sections.tsv for that — so the two files never duplicate a rollup.
  */
-function readPagesSummary(database: Database): Dataset {
+function readPages(database: Database): Dataset {
   const columns = [
     "page_id", "rosetta_id", "slug", "title", "url",
     "word_count", "section_count", "empty_section_count",
@@ -366,7 +383,7 @@ function readPagesSummary(database: Database): Dataset {
       utf8Bytes(p.text), utf8Bytes(p.code), t.tables, t.rows,
     ];
   });
-  return { name: "pages_summary.tsv", source_table: "pages", columns, order_by: "page_id", rows };
+  return { name: "pages.tsv", source_table: "pages", columns, order_by: "page_id", rows };
 }
 
 function readMeta(database: Database, key: string): string | null {
@@ -394,8 +411,8 @@ const DATASET_READERS = [
   readProperties,
   readVideos,
   readCommands,
-  readPagesFlat,
-  readPagesSummary,
+  readPages,
+  readSections,
 ];
 
 // Honest disclosures — what the DB cannot say, so a reader does not mistake an
@@ -415,7 +432,11 @@ const DISCLOSURES = [
   },
   {
     subject: "changelog.tsv prerelease ordering",
-    note: "Rows are version-ordered by the shared comparator, but it does not yet distinguish prerelease numbers (7.24beta1 vs 7.24beta2 compare equal), so same-base prereleases are ordered only by the secondary sort_order key. Deterministic, not fully version-sorted (issue #104).",
+    note: "Rows are version-ordered by the shared comparator, but it does not yet distinguish prerelease numbers (7.24beta1 vs 7.24beta2 compare equal), so same-base prereleases are ordered only by the secondary sort_order key. Deterministic, not fully version-sorted (issue #107).",
+  },
+  {
+    subject: "sections.tsv vs pages.tsv word counts",
+    note: "sections.tsv pivots up to nearly, not exactly, the pages.tsv word_count: section bodies (incl. the '_lead' fragment, B-0023) cover ~98% of page words, and the residual is heading-text lines, which belong to no fragment. pages.tsv.word_count is the authoritative whole-page count; a per-page sum over sections.tsv is the covered-body count, and the difference is that residual — not a drop.",
   },
 ];
 

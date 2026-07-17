@@ -64,8 +64,8 @@ beforeAll(() => {
 
   // FK targets for callouts (page + section).
   db.run(
-    `INSERT INTO pages (id, slug, title, path, depth, url, text, code, word_count, code_lines, html_file)
-     VALUES (${PAGE_ID}, 'ip-dhcp', 'DHCP', '/ip/dhcp', 0, 'https://example/ip-dhcp', 'body', '', 2, 0, 'ip-dhcp.html')`,
+    `INSERT INTO pages (id, rosetta_id, slug, title, path, depth, url, text, code, word_count, code_lines, html_file)
+     VALUES (${PAGE_ID}, 'ip-dhcp', 'ip-dhcp', 'DHCP', '/ip/dhcp', 0, 'https://example/ip-dhcp', 'body', '', 2, 0, 'ip-dhcp.html')`,
   );
   db.run(
     `INSERT INTO sections (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
@@ -120,7 +120,7 @@ beforeAll(() => {
   );
 });
 
-const ALL_FILES = ["callouts.tsv", "changelog.tsv", "commands.tsv", "pages.tsv", "pages_summary.tsv", "properties.tsv", "videos.tsv"];
+const ALL_FILES = ["callouts.tsv", "changelog.tsv", "commands.tsv", "pages.tsv", "properties.tsv", "sections.tsv", "videos.tsv"];
 
 function rowsOf(dir: string, file: string): (string | null)[][] {
   return parseTsv(readFileSync(path.join(dir, file), "utf-8")).rows;
@@ -200,21 +200,24 @@ describe("runExport", () => {
   test("changelog is ordered newest-first by the numeric comparator, not lexically", async () => {
     const dir = exportToTmp();
     await runExport(dir, db);
-    const { rows } = parseTsv(readFileSync(path.join(dir, "changelog.tsv"), "utf-8"));
+    const { columns, rows } = parseTsv(readFileSync(path.join(dir, "changelog.tsv"), "utf-8"));
+    expect(columns).toEqual(["version", "released", "category", "is_breaking", "sort_order", "description"]);
     // 7.24rc1 (both entries, by sort_order) before 7.9.2.
     expect(rows.map((r) => r[0])).toEqual(["7.24rc1", "7.24rc1", "7.9.2"]);
-    expect(rows.map((r) => r[5])).toEqual(["0", "1", "0"]);
+    expect(rows.map((r) => r[columns.indexOf("sort_order")])).toEqual(["0", "1", "0"]);
   });
 
   test("callouts round-trip: multiline content, NULL vs empty section_id/content", async () => {
     const dir = exportToTmp();
     await runExport(dir, db);
     const { columns, rows } = parseTsv(readFileSync(path.join(dir, "callouts.tsv"), "utf-8"));
-    expect(columns).toEqual(["page_id", "section_id", "type", "content", "sort_order"]);
-    // sort_order 0/1/2 by (page_id, sort_order, id).
-    expect(rows[0]).toEqual([String(PAGE_ID), null, "note", "simple note", "0"]);
-    expect(rows[1][3]).toBe(HARD_CONTENT); // exact bytes preserved
-    expect(rows[2]).toEqual([String(PAGE_ID), String(SECTION_ID), "info", "", "2"]); // empty content, not NULL
+    expect(columns).toEqual(["page_id", "rosetta_id", "section_id", "section_anchor", "type", "sort_order", "content"]);
+    // sort_order 0/1/2 by (page_id, sort_order, id). rosetta_id/section_anchor are the
+    // human-readable names joined in; section_anchor is NULL when section_id is NULL.
+    expect(rows[0]).toEqual([String(PAGE_ID), "ip-dhcp", null, null, "note", "0", "simple note"]);
+    expect(rows[1][columns.indexOf("content")]).toBe(HARD_CONTENT); // exact bytes preserved
+    expect(rows[1][columns.indexOf("section_anchor")]).toBe("notes"); // resolved section name
+    expect(rows[2]).toEqual([String(PAGE_ID), "ip-dhcp", String(SECTION_ID), "notes", "info", "2", ""]); // empty content, not NULL
   });
 
   test("every manifest row count matches the emitted file's data-row count", async () => {
@@ -267,25 +270,25 @@ describe("runExport", () => {
     expect(rowsOf(dir, "commands.tsv").map((r) => r[cols.indexOf("path")])).toEqual(["/ip", "/ip/address"]);
   });
 
-  test("pages.tsv is one row per section with byte + table counts", async () => {
+  test("sections.tsv is one row per section with byte + table counts", async () => {
     const dir = exportToTmp();
     await runExport(dir, db);
-    const cols = colsOf(dir, "pages.tsv");
+    const cols = colsOf(dir, "sections.tsv");
     // The shared in-memory DB may hold other files' sections, so locate ours by id
     // rather than assuming it is the only row.
-    const s = rowsOf(dir, "pages.tsv").find((r) => r[cols.indexOf("section_id")] === String(SECTION_ID));
-    if (!s) throw new Error("no pages.tsv row for the seeded section");
+    const s = rowsOf(dir, "sections.tsv").find((r) => r[cols.indexOf("section_id")] === String(SECTION_ID));
+    if (!s) throw new Error("no sections.tsv row for the seeded section");
     expect(s[cols.indexOf("word_count")]).toBe("1");
     expect(s[cols.indexOf("table_count")]).toBe("1");
     expect(s[cols.indexOf("table_row_count")]).toBe("3");
   });
 
-  test("pages_summary.tsv rolls up per page", async () => {
+  test("pages.tsv is one whole-page row with section/table rollup counts", async () => {
     const dir = exportToTmp();
     await runExport(dir, db);
-    const cols = colsOf(dir, "pages_summary.tsv");
-    const row = rowsOf(dir, "pages_summary.tsv").find((r) => r[cols.indexOf("page_id")] === String(PAGE_ID));
-    if (!row) throw new Error("no page_summary row for the seeded page");
+    const cols = colsOf(dir, "pages.tsv");
+    const row = rowsOf(dir, "pages.tsv").find((r) => r[cols.indexOf("page_id")] === String(PAGE_ID));
+    if (!row) throw new Error("no pages.tsv row for the seeded page");
     expect(row[cols.indexOf("section_count")]).toBe("1");
     expect(row[cols.indexOf("empty_section_count")]).toBe("0");
     expect(row[cols.indexOf("table_count")]).toBe("1");
