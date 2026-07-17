@@ -27,6 +27,7 @@ const {
   parseTsv,
   toTsv,
   countWords,
+  utf8Bytes,
   encodeFsName,
   TSV_NULL,
 } = await import("./export.ts");
@@ -309,7 +310,7 @@ describe("runExport", () => {
     // table_url deep-links to the containing section (url#anchor).
     expect(t[cols.indexOf("table_url")]).toBe("https://example/ip-dhcp#notes");
     // raw_bytes = UTF-8 length of the seeded raw markdown, not a rendered size.
-    expect(t[cols.indexOf("raw_bytes")]).toBe(String(Buffer.byteLength("| a | b |\n|---|---|\n| 1 | 2 |", "utf8")));
+    expect(t[cols.indexOf("raw_bytes")]).toBe(String(utf8Bytes("| a | b |\n|---|---|\n| 1 | 2 |")));
   });
 
   test("manifest provenance mirrors db_meta", async () => {
