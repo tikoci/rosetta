@@ -9,7 +9,7 @@
  * this env-var assignment win over Bun's static-import hoisting.
  */
 import { beforeAll, describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -400,6 +400,25 @@ describe("runExport", () => {
     await runExport(dir, db); // adopts our manifest; the traversal name must be skipped
 
     expect(existsSync(outsideFile)).toBe(true); // containment guard held
+  });
+
+  test("prune never follows a symlink escaping the export root", async () => {
+    const base = exportToTmp();
+    const dir = path.join(base, "ds");
+    await runExport(dir, db);
+    // A directory outside the export root, a victim file in it, and a symlink to it
+    // planted inside the export dir — the lexical path check alone would not catch this.
+    const outside = path.join(base, "outside");
+    mkdirSync(outside, { recursive: true });
+    const victim = path.join(outside, "victim.txt");
+    await Bun.write(victim, "must survive");
+    symlinkSync(outside, path.join(dir, "link"));
+    const manifestPath = path.join(dir, "manifest.toml");
+    await Bun.write(manifestPath, `${readFileSync(manifestPath, "utf-8")}\n[[files]]\nname = "link/victim.txt"\n`);
+
+    await runExport(dir, db); // must not delete through the symlink
+
+    expect(existsSync(victim)).toBe(true); // realpath containment held
   });
 
   test("writes freely into a brand-new (never-created) directory", async () => {

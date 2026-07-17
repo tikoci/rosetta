@@ -18,7 +18,7 @@
  */
 
 import type { Database } from "bun:sqlite";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { compareVersions } from "./version-compare.ts";
 
@@ -440,6 +440,26 @@ function priorManifest(resolved: string): { owned: string[] } | "foreign" | null
 }
 
 /**
+ * Resolve `relFile` under the export root to the absolute path to write/delete, or
+ * null if it escapes the root — lexically OR through a symlink. The lexical prefix
+ * check alone can't stop a symlinked component (`root/pages -> /outside`, so that
+ * touching `root/pages/x` acts on `/outside/x`); comparing the realpath of the
+ * deepest existing ancestor against the realpath of the root closes that hole. So
+ * neither a dataset write nor a stale-file prune can ever act outside the directory
+ * the export owns, even from a tampered manifest or a planted symlink.
+ */
+function containedTarget(root: string, relFile: string): string | null {
+  const target = path.resolve(root, relFile);
+  if (target !== root && !target.startsWith(root + path.sep)) return null;
+  let existing = target;
+  while (!existsSync(existing)) existing = path.dirname(existing);
+  const realRoot = realpathSync(root);
+  const realExisting = realpathSync(existing);
+  if (realExisting !== realRoot && !realExisting.startsWith(realRoot + path.sep)) return null;
+  return target;
+}
+
+/**
  * After pruning an owned file, remove the directories it left empty — up to but
  * never including the export root, and stopping at the first non-empty dir. So
  * dropping the last file under `pages/<slug>/` cleans that dir, while a dir the
@@ -566,23 +586,29 @@ export async function runExport(outDir: string, database: Database, opts: Export
     disclosures: DISCLOSURES,
   });
 
-  // Publish in three ordered steps: (1) write datasets (Bun.write creates parent
-  // dirs for nested names), (2) prune the PRIOR manifest's stale files, (3) write
-  // manifest.toml LAST. Pruning BEFORE the new manifest is what keeps a crash safe
-  // in both directions: the manifest still lands last, so it never names half-written
-  // data; and if the run dies mid-prune the OLD manifest is still on disk carrying
-  // the full owned set, so the next run re-prunes instead of orphaning stale files
-  // (which a manifest already narrowed to the produced set could never reclaim).
+  // Publish in three ordered steps: (1) prune the PRIOR manifest's stale files,
+  // (2) write datasets, (3) write manifest.toml LAST.
+  //
+  // Prune BEFORE the writes so a file↔directory transition works: an old flat file
+  // `pages` must be gone before a new `pages/<slug>/x.tsv` can be created (and the
+  // inverse). Pruning before the new manifest also keeps a crash safe — the manifest
+  // still lands last (never naming half-written data), and a run that dies mid-publish
+  // leaves the OLD manifest on disk carrying the full owned set, so the next run
+  // re-prunes rather than orphaning stale files. (A crash can still leave individual
+  // dataset files a mix of the prior and current run; the directory is a regenerable
+  // audit surface healed by the next successful export, not a transactional store.)
   const produced = new Set(datasets.map((d) => d.name));
-  for (const d of datasets) await Bun.write(path.join(resolved, d.name), toTsv(d.columns, d.rows));
   for (const stale of ownedBefore) {
     if (produced.has(stale) || stale === MANIFEST_NAME) continue;
-    // Defense in depth: only ever delete inside the export root. A hand-edited or
-    // otherwise tampered manifest with a `../` traversal name can never reach out.
-    const target = path.resolve(resolved, stale);
-    if (target !== resolved && !target.startsWith(resolved + path.sep)) continue;
+    const target = containedTarget(resolved, stale); // lexical + symlink containment
+    if (target === null) continue; // a traversal/symlink name can never delete outside the root
     rmSync(target, { force: true });
     removeEmptyAncestors(resolved, stale);
+  }
+  for (const d of datasets) {
+    const target = containedTarget(resolved, d.name);
+    if (target === null) throw new Error(`export: refusing to write ${d.name} — it resolves outside ${resolved} (traversal or symlink)`);
+    await Bun.write(target, toTsv(d.columns, d.rows));
   }
   await Bun.write(path.join(resolved, MANIFEST_NAME), manifest);
 
