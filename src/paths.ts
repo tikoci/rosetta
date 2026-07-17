@@ -80,6 +80,12 @@ export function detectMode(srcDir: string): InvocationMode {
   return "package";
 }
 
+/** True when the invocation is a git checkout (dev mode). Keeps the "dev" mode
+ *  policy comparison in one place so callers don't hard-code the literal. */
+export function isDevInvocation(mode: InvocationMode): boolean {
+  return mode === "dev";
+}
+
 /**
  * Schema version for ros-help.db.
  * Increment when making destructive schema changes (DROP/RENAME table or column).
@@ -132,4 +138,154 @@ export function resolveVersion(srcDir: string): string {
   } catch {
     return "unknown";
   }
+}
+
+/**
+ * Parse the MAJOR.MINOR.PATCH base of a version string, ignoring a `v` prefix
+ * and any prerelease suffix (`-rc.N`, `-beta.N`, `beta2`, …). Returns null when
+ * no numeric base is recoverable ("unknown").
+ *
+ * We deliberately drop the prerelease counter: a dev checkout's package.json
+ * routinely reads `0.11.0-rc.0` while the *published* DB it should ground on is
+ * `v0.11.0-rc.102`. Comparing rc counters would flag the correct DB as "ahead"
+ * on every session. Only the base triple is a meaningful staleness axis.
+ */
+function parseBaseVersion(v: string): [number, number, number] | null {
+  const m = v.trim().replace(/^v/, "").match(/^(\d+)\.(\d+)\.(\d+)/);
+  if (!m) return null;
+  return [Number(m[1]), Number(m[2]), Number(m[3])];
+}
+
+/** -1 / 0 / 1 comparing the base triples of two version strings. null if either is unparseable. */
+function compareBaseVersion(a: string, b: string): number | null {
+  const pa = parseBaseVersion(a);
+  const pb = parseBaseVersion(b);
+  if (!pa || !pb) return null;
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] !== pb[i]) return pa[i] < pb[i] ? -1 : 1;
+  }
+  return 0;
+}
+
+export type DbGroundingStatus =
+  | "ok"
+  | "schema_mismatch"
+  | "internal_inconsistent"
+  | "provenance_incomplete"
+  | "tag_behind"
+  | "unstamped";
+
+export type DbGroundingVerdict = {
+  status: DbGroundingStatus;
+  detail: string;
+  /** True only when status === "ok". Convenience for exit codes / boolean gates. */
+  ok: boolean;
+};
+
+/**
+ * Classify whether a resolved DB can be trusted to ground claims about the code
+ * that is querying it. Pure — no DB access — so it is shared unchanged by
+ * getDbStats (open connection), MCP startup, and the db-doctor CLI (probe).
+ *
+ * Precedence (first match wins):
+ *   1. schema_mismatch       — PRAGMA user_version ≠ code SCHEMA_VERSION. The
+ *      on-disk shape is unqueryable by this build; the hard case already forced
+ *      a redownload in checkDbFreshness. Terminal signal.
+ *   2. internal_inconsistent — db_meta.schema_version ≠ PRAGMA user_version. The
+ *      dead giveaway of a DB whose pragma was bumped in place by initDb() over a
+ *      stale corpus (the #94 "Frankenstein"): stamped provenance no longer
+ *      describes the bytes.
+ *   3. unstamped             — neither release_tag nor source_commit. A local
+ *      `make extract` working build: fine for extraction, not for grounding
+ *      claims about shipped data.
+ *   4. provenance_incomplete — claims release identity (has release_tag OR
+ *      source_commit) but is missing one of the four stamps a CI release always
+ *      writes (release_tag, source_commit, built_at, schema_version). Fail
+ *      closed: partial provenance can't be trusted as a grounding source.
+ *   5. tag_behind            — release_tag's MAJOR.MINOR.PATCH is behind the
+ *      running code's. Content predates this checkout.
+ *   6. ok                    — all four stamps present, schema coherent, tag
+ *      current (schema/release-compatible with this build — not proof the DB was
+ *      built from this exact commit; a release DB is built from an ancestor).
+ */
+export function classifyDbGrounding(input: {
+  pragmaSchema: number;
+  metaSchema: number | null;
+  releaseTag: string | null;
+  builtAt: string | null;
+  sourceCommit: string | null;
+  codeSchema: number;
+  codeVersion: string;
+  mode: InvocationMode;
+}): DbGroundingVerdict {
+  const verdict = (status: DbGroundingStatus, detail: string): DbGroundingVerdict => ({
+    status,
+    detail,
+    ok: status === "ok",
+  });
+
+  if (input.pragmaSchema !== input.codeSchema) {
+    return verdict(
+      "schema_mismatch",
+      `DB schema v${input.pragmaSchema} ≠ code schema v${input.codeSchema}; this build cannot query the on-disk shape.`,
+    );
+  }
+
+  if (input.metaSchema !== null && input.metaSchema !== input.pragmaSchema) {
+    return verdict(
+      "internal_inconsistent",
+      `db_meta.schema_version=${input.metaSchema} disagrees with PRAGMA user_version=${input.pragmaSchema} — the DB was bumped in place over a stale corpus; its provenance no longer describes its contents.`,
+    );
+  }
+
+  const hasReleaseIdentity = input.releaseTag !== null || input.sourceCommit !== null;
+  if (!hasReleaseIdentity) {
+    return verdict(
+      "unstamped",
+      "No release_tag/source_commit — a local extraction build, not a CI release. Fine for extraction work; not a grounding source for claims about shipped data.",
+    );
+  }
+
+  // Claims release identity — a real CI release stamps all four. Missing any is a
+  // malformed/partial artifact: fail closed rather than trust it (built_at is
+  // required here, so it is not merely informational).
+  if (
+    input.releaseTag === null ||
+    input.sourceCommit === null ||
+    input.builtAt === null ||
+    input.metaSchema === null
+  ) {
+    const missing = [
+      input.releaseTag === null ? "release_tag" : null,
+      input.sourceCommit === null ? "source_commit" : null,
+      input.builtAt === null ? "built_at" : null,
+      input.metaSchema === null ? "schema_version" : null,
+    ].filter(Boolean).join(", ");
+    return verdict(
+      "provenance_incomplete",
+      `Partial db_meta provenance (missing ${missing}); a CI release stamps all four, so this DB's origin cannot be trusted for grounding.`,
+    );
+  }
+
+  const cmp = compareBaseVersion(input.releaseTag, `v${input.codeVersion}`);
+  if (cmp === null) {
+    // All four stamps are present, but the release_tag (or code version) has no
+    // parseable MAJOR.MINOR.PATCH, so freshness cannot be verified. Never fall
+    // through to "ok" — an unverifiable version is not a grounded one.
+    return verdict(
+      "provenance_incomplete",
+      `Cannot compare DB release ${input.releaseTag} with running code v${input.codeVersion}; version is unparseable, so freshness is unverified.`,
+    );
+  }
+  if (cmp < 0) {
+    return verdict(
+      "tag_behind",
+      `DB release ${input.releaseTag} is behind the running code (v${input.codeVersion}); its content predates this checkout.`,
+    );
+  }
+
+  return verdict(
+    "ok",
+    `DB release ${input.releaseTag} (schema v${input.pragmaSchema}) is coherent with this build.`,
+  );
 }

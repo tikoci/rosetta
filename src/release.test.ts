@@ -103,6 +103,41 @@ describe("bin/rosetta.js", () => {
 // Build constants declarations
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// db-sync / db-doctor — local grounding tooling (#94)
+// ---------------------------------------------------------------------------
+
+describe("db grounding tooling", () => {
+  test("package.json wires db:doctor and db:sync to the scripts (db:sync is NOT --refresh)", () => {
+    const pkg = JSON.parse(readText("package.json"));
+    expect(pkg.scripts["db:doctor"]).toBe("bun run scripts/db-doctor.ts");
+    expect(pkg.scripts["db:sync"]).toBe("bun run scripts/db-sync.ts");
+    // --refresh pins to the placeholder package version and falls back to the
+    // newest *stable* (older schema) — the exact bug db-sync exists to avoid.
+    expect(pkg.scripts["db:sync"]).not.toContain("--refresh");
+  });
+
+  test("db-sync discovers releases (prereleases included) via gh and passes the ordered candidate list to downloadDb", () => {
+    const src = readText("scripts/db-sync.ts");
+    expect(src).toContain("gh api");
+    expect(src).toContain("ros-help.db.gz");
+    // Must hand downloadDb the WHOLE ordered candidate list (not just the newest
+    // tag) so it can walk down past a higher-schema release to the newest one
+    // that matches this checkout — finding #2 in the Codex review of #113.
+    expect(src).toContain("tags.map");
+    expect(src).toContain("downloadDb(dbPath, console.log, urls)");
+  });
+
+  test("Makefile db-sync/db-doctor targets are declared .PHONY and call the scripts", () => {
+    const mk = readText("Makefile");
+    const phony = getPhonyBlock(mk);
+    expect(phony).toContain("db-doctor");
+    expect(phony).toContain("db-sync");
+    expect(mk).toContain("bun run scripts/db-doctor.ts");
+    expect(mk).toContain("bun run scripts/db-sync.ts");
+  });
+});
+
 describe("build-time constants", () => {
   test("mcp.ts imports resolveVersion from paths.ts", () => {
     const src = readText("src/mcp.ts");

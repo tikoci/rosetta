@@ -38,7 +38,7 @@
  */
 
 import sqlite from "bun:sqlite";
-import { resolveDbPath, SCHEMA_VERSION } from "./paths.ts";
+import { classifyDbGrounding, detectMode, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 export { SCHEMA_VERSION };
 
@@ -1030,10 +1030,43 @@ export function getDbStats() {
       return null;
     }
   })();
+  const provenance = (() => {
+    const releaseTag = getDbMeta("release_tag");
+    const sourceCommit = getDbMeta("source_commit");
+    const builtAt = getDbMeta("built_at");
+    const metaSchemaRaw = getDbMeta("schema_version");
+    const metaSchema = metaSchemaRaw === null ? null : Number(metaSchemaRaw);
+    const mode = detectMode(import.meta.dirname);
+    const codeVersion = resolveVersion(import.meta.dirname);
+    const grounding = classifyDbGrounding({
+      pragmaSchema: schemaVersion ?? -1,
+      metaSchema,
+      releaseTag,
+      builtAt,
+      sourceCommit,
+      codeSchema: SCHEMA_VERSION,
+      codeVersion,
+      mode,
+    });
+    return {
+      db_path: DB_PATH,
+      mode,
+      is_ci_artifact: releaseTag !== null && sourceCommit !== null,
+      release_tag: releaseTag,
+      source_commit: sourceCommit,
+      built_at: builtAt,
+      schema_version_meta: metaSchema,
+      schema_version_pragma: schemaVersion,
+      code_schema_version: SCHEMA_VERSION,
+      code_version: codeVersion,
+      grounding,
+    };
+  })();
   return {
     db_path: DB_PATH,
     db_size_bytes: dbSizeBytes,
     schema_version: schemaVersion,
+    provenance,
     pages: count("SELECT COUNT(*) AS c FROM pages"),
     sections: count("SELECT COUNT(*) AS c FROM sections"),
     properties: count("SELECT COUNT(*) AS c FROM properties"),
@@ -1079,7 +1112,16 @@ export function getDbStats() {
       versions.sort(cmp);
       return { ros_version_min: versions[0], ros_version_max: versions[versions.length - 1] };
     })(),
-    doc_export: "2026-03-25 (Confluence HTML)",
+    // Derived from db_meta provenance, not hard-coded — a hard-coded export date
+    // silently lied whenever the resolved DB was a different corpus (#94). The
+    // string is self-describing (it is a DB build stamp, not a doc-export date),
+    // and a stamped artifact missing only `built_at` reports "build time unknown"
+    // rather than being mislabeled a local build.
+    doc_export: provenance.built_at
+      ? `DB built ${provenance.built_at}${provenance.release_tag ? ` (release ${provenance.release_tag})` : ""}`
+      : provenance.is_ci_artifact
+        ? `DB build time unknown${provenance.release_tag ? ` (release ${provenance.release_tag})` : ""}`
+        : "unstamped local build",
   };
 }
 

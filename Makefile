@@ -11,6 +11,7 @@ VERSION    ?=
         link gc-versions assess assess-hardware assess-www device-map device-map-check \
         extract-hardware-catalog search browse serve \
 	typecheck lint test preflight verify \
+        db-doctor db-sync \
         install setup clean eval eval-update eval-self eval-self-update
 
 # ── Development ──
@@ -20,6 +21,22 @@ install:
 
 serve:
 	bun run src/mcp.ts
+
+# Report whether the resolved ros-help.db matches this checkout (#94). Prints the
+# resolved path + db_meta provenance + a grounding verdict; non-zero when not "ok".
+# The latest CI-built release DB is the source of truth for grounding claims — a
+# local `make extract` build is for extraction work, not for claims about shipped data.
+db-doctor:
+	bun run scripts/db-doctor.ts
+
+# Fetch the newest CI-built release DB that matches this checkout's schema into
+# the resolved DB path (dev: repo root), so the MCP server / db-doctor ground on
+# what npm consumers actually get. Discovers the newest release shipping the DB
+# asset via `gh` (prereleases included — `--refresh`/`/releases/latest` would
+# grab the newest *stable*, an older schema). Atomic replace — safe to run while
+# an MCP server holds the old file open. Requires the `gh` CLI.
+db-sync:
+	bun run scripts/db-sync.ts
 
 search:
 	bun run src/search.ts $(query)

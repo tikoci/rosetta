@@ -22,7 +22,9 @@
     "lint": "biome check src/",
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "lint:spell": "cspell lint . --no-progress",
-    "browse": "bun run src/mcp.ts browse"
+    "browse": "bun run src/mcp.ts browse",
+    "db:doctor": "bun run scripts/db-doctor.ts",
+    "db:sync": "bun run scripts/db-sync.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

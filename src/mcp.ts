@@ -71,7 +71,7 @@ function link(url: string, display?: string): string {
  *     crashing startup over it.
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
-  const { resolveDbPath, SCHEMA_VERSION, resolveVersion, detectMode } = await import("./paths.ts");
+  const { resolveDbPath, SCHEMA_VERSION, resolveVersion, detectMode, classifyDbGrounding, isDevInvocation } = await import("./paths.ts");
   const { checkDbFreshness, cleanupAbandonedTempArtifacts, downloadDb, hasMinimumDbContent, probeDb } = await import(
     "./setup.ts"
   );
@@ -165,6 +165,30 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   // Quietly emit a one-line provenance banner so MCP-client logs show what's loaded.
   const tagInfo = p.releaseTag ? `, release ${p.releaseTag}` : "";
   log(`rosetta v${runningVersion} ready (DB schema v${p.schemaVersion}, ${p.pages} pages${tagInfo}).`);
+
+  // Dev-mode grounding warning (#94): checkDbFreshness intentionally ignores
+  // release-tag drift in a checkout so it never clobbers a contributor's local
+  // build — but that means a schema-matching, wrong-corpus DB (e.g. a pragma
+  // bumped in place over a stale corpus) starts up silently. Surface it loudly.
+  // Never triggers a fetch; the served DB is unchanged.
+  if (isDevInvocation(mode)) {
+    const verdict = classifyDbGrounding({
+      pragmaSchema: p.schemaVersion,
+      metaSchema: p.metaSchemaVersion,
+      releaseTag: p.releaseTag,
+      builtAt: p.builtAt,
+      sourceCommit: p.sourceCommit,
+      codeSchema: SCHEMA_VERSION,
+      codeVersion: runningVersion,
+      mode,
+    });
+    if (!verdict.ok) {
+      log(`⚠ DB grounding: ${verdict.status.toUpperCase()} — ${verdict.detail}`);
+      log(`  Resolved DB: ${dbPath}`);
+      log(`  This DB may not match the code you are reading. Run 'make db-sync' to fetch the latest CI release DB,`);
+      log(`  or 'bun run db:doctor' for full provenance. See MANUAL.md → "Local DB grounding (dev checkouts)".`);
+    }
+  }
 }
 
 if (args.includes("--version") || args.includes("-v")) {
@@ -917,15 +941,21 @@ server.registerTool(
   {
     description: `Get database statistics for the RouterOS documentation index.
 
-Returns page count, property count, callout count, changelog count, command count, link coverage,
-version range, documentation export date, and available agent skills.
+Returns live corpus counts (pages, properties, callouts, changelogs, commands, link coverage),
+version range, available agent skills, and a **provenance** block: the resolved DB path, its
+db_meta stamps (release_tag / source_commit / built_at / schema_version), and a **grounding
+verdict** (status ok / schema_mismatch / internal_inconsistent / provenance_incomplete / tag_behind
+/ unstamped). Use the verdict to confirm the DB you are querying is schema/release-compatible with
+the code you are reading before trusting counts — "ok" means compatible (schema coherent, all four
+stamps present, release not behind), not that the DB was built from this exact commit (#94). All
+counts here are live — do not rely on any numbers baked into prose elsewhere.
 
 Skills: Community-created agent guides from tikoci/routeros-skills are available as MCP resources
 at rosetta://skills/{name}. Use the resource listing to browse available skills.
 
 Knowledge boundaries:
-- Documentation: March 2026 Confluence HTML export (317 pages), aligned with long-term ~7.22
-- Command tree: RouterOS 7.9–7.23beta2 from inspect.json (with extra-packages from CHR)
+- Documentation corpus: see provenance.built_at / provenance.release_tag for what this DB actually is
+- Command tree: RouterOS 7.9+ from inspect.json (with extra-packages from CHR); see ros_version range
 - No RouterOS v6 data available — v6 syntax and subsystems differ significantly from v7
 - For versions older than 7.9, no command tree data exists
 - Versions older than current long-term are unpatched by MikroTik

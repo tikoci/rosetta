@@ -61,6 +61,7 @@ Agent-specific entrypoints are thin shims: Claude starts here, Codex starts with
 - Need **manual-site migration context**? MikroTik moved future docs to Docusaurus at <https://manual.mikrotik.com>; read `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` before touching extraction, MCP, or TUI search.
 - Need **external agent-benchmark context**? `~/GitHub/bench-routeros-tools` tests rosetta as one grounding approach for live RouterOS command generation; read `DESIGN.md` → "External benchmark feedback loop" before changing retrieval, skills, or command-validation surfaces.
 - Need **current corpus counts**? Use `routeros_stats` rather than hard-coded numbers here.
+- Need to **trust the local DB before grounding a claim**? In a checkout, repo-root `ros-help.db` is untrusted until verified. Run `make db-doctor` (or read `routeros_stats` → `provenance.grounding`); `make db-sync` fetches the latest CI release DB (the grounding source of truth). See `.github/instructions/local-db-grounding.instructions.md`.
 - Need **work status or open ideas**? Use `gh issue list` (active work), `briefings/`, and `BACKLOG.md`; `tasks/` is a frozen archive.
 
 Nothing else should be duplicated here. If this file starts growing operational detail, schema blocks, or long rule lists again, move that content back into its canonical home instead.
