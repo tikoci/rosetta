@@ -351,6 +351,48 @@ function readSections(database: Database): Dataset {
 }
 
 /**
+ * tables.tsv — one row per `page_tables` record: the inventory of every Markdown
+ * table the extractor captured (#92), keyed to its page and resolving section, with
+ * the table's shape (column/data-row counts, ragged flag) and source size as the
+ * UTF-8 byte length of the stored raw Markdown. This is the "what tables exist and
+ * where" list — a lightweight index answering most table-audit questions without
+ * exporting the cell data itself (E4's per-fragment files, issue #104). `table_url`
+ * deep-links to the section that contains the table (`url#anchor`); Docusaurus has no
+ * per-table anchor, so a table with no resolvable section (section_id NULL) links to
+ * the bare page URL, and a page with no URL yields NULL. Ordered by the
+ * UNIQUE(page_id, sort_order) key, so it is a total order.
+ */
+function readTables(database: Database): Dataset {
+  const columns = [
+    "page_id", "rosetta_id", "slug", "title", "url",
+    "section_id", "section_anchor", "source_heading",
+    "sort_order", "table_url",
+    "column_count", "data_row_count", "is_ragged", "raw_bytes",
+  ];
+  const rows = database
+    .prepare(`
+      SELECT pt.page_id, pg.rosetta_id, pg.slug, pg.title, pg.url,
+             pt.section_id, s.anchor_id AS section_anchor, pt.source_heading,
+             pt.sort_order, pt.raw_markdown, pt.column_count, pt.data_row_count, pt.is_ragged
+      FROM page_tables pt
+      JOIN pages pg ON pg.id = pt.page_id
+      LEFT JOIN sections s ON s.id = pt.section_id
+      ORDER BY pt.page_id, pt.sort_order, pt.id`)
+    .all() as Array<Record<string, TsvScalar> & { raw_markdown: string; url: string | null; section_anchor: string | null }>;
+  const rowsOut = rows.map((r) => {
+    // A NULL url can't form a link — emit NULL rather than the string "null#anchor".
+    const tableUrl = r.url == null ? null : r.section_anchor ? `${r.url}#${r.section_anchor}` : r.url;
+    return [
+      r.page_id, r.rosetta_id, r.slug, r.title, r.url,
+      r.section_id, r.section_anchor, r.source_heading,
+      r.sort_order, tableUrl,
+      r.column_count, r.data_row_count, r.is_ragged, utf8Bytes(r.raw_markdown),
+    ];
+  });
+  return { name: "tables.tsv", source_table: "page_tables", columns, order_by: "page_id, page_tables.sort_order, page_tables.id", rows: rowsOut };
+}
+
+/**
  * pages.tsv — one row per `pages` record with the page's own stored word count,
  * section/empty-section counts, UTF-8 text/code bytes, and table counts. This is the
  * whole-page view, small enough to read directly on GitHub; the per-section rows that
@@ -487,6 +529,7 @@ const DATASET_READERS = [
   readCommands,
   readPages,
   readSections,
+  readTables,
 ];
 
 // Honest disclosures — what the DB cannot say, so a reader does not mistake an
@@ -511,6 +554,10 @@ const DISCLOSURES = [
   {
     subject: "sections.tsv vs pages.tsv word counts",
     note: "sections.tsv pivots up to nearly, not exactly, the pages.tsv word_count: section bodies (incl. the '_lead' fragment, B-0023) cover ~98% of page words, and the residual is heading-text lines, which belong to no fragment. pages.tsv.word_count is the authoritative whole-page count; a per-page sum over sections.tsv is the covered-body count, and the difference is that residual — not a drop.",
+  },
+  {
+    subject: "tables.tsv table_url granularity + raw_bytes",
+    note: "table_url deep-links to the section that contains the table (url#anchor), not the table itself — manual.mikrotik.com (Docusaurus) exposes no per-table anchor. A table with no resolvable section (section_id NULL) links to the bare page URL; a page with no URL yields NULL. raw_bytes is the UTF-8 size of the stored source Markdown (raw_markdown), not rendered output. The table's cell data is not exported here — this is the inventory list; the per-fragment cell files are E4 (issue #104).",
   },
 ];
 
