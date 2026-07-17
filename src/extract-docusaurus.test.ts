@@ -345,13 +345,16 @@ describe("parseSections", () => {
     expect(sections[0].anchorId).toBe(LEAD_ANCHOR);
     expect(sections[0].level).toBe(0);
     expect(sections[0].wordCount).toBeGreaterThan(0);
+    expect(sections[0].text).not.toContain("# Address-lists");
   });
 
-  test("a lead fragment is minted for pre-first-heading prose and real sections follow it (B-0023)", () => {
+  test("a lead fragment excludes title headings around summary prose and precedes real sections (B-0023)", () => {
     const md = [
-      "# Page", // title H1 (dropped)
+      "# Page", // initial title H1 (dropped)
       "",
       "> Summary blockquote about the page.", // lead prose
+      "",
+      "# Page", // live Docusaurus shape repeats the title after the summary (also dropped)
       "",
       "Intro paragraph before any section.",
       "",
@@ -364,7 +367,7 @@ describe("parseSections", () => {
     expect(sections[0].sortOrder).toBe(0);
     expect(sections[0].text).toContain("Summary blockquote");
     expect(sections[0].text).toContain("Intro paragraph");
-    expect(sections[0].text).not.toContain("# Page"); // leading title line stripped
+    expect(sections[0].text).not.toContain("# Page");
     // real section follows the lead, renumbered to sort_order 1
     expect(sections[1].anchorId).toBe("real-section");
     expect(sections[1].sortOrder).toBe(1);

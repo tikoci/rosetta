@@ -83,7 +83,7 @@ export interface ParsedProperty {
   /** Raw text of the nearest preceding heading of ANY level (h1–h6). Retained as-is for
    * compatibility; `sectionAnchor` is the resolvable identity. See attributeSection(). */
   section: string | null;
-  /** anchor_id of the enclosing h1–h3 section, or null if the page has no heading context yet. */
+  /** anchor_id of the enclosing h1–h3 or synthetic lead section, or null when neither exists. */
   sectionAnchor: string | null;
   /** 0-based index of the source line this property was parsed from. */
   line: number;
@@ -109,7 +109,7 @@ export interface ParsedTable {
   sortOrder: number;
   /** Raw nearest h1-h6 heading text, distinct from the enclosing retrieval section. */
   sourceHeading: string | null;
-  /** anchor_id of the enclosing h1-h3 section, resolved by parsePage(). */
+  /** anchor_id of the enclosing h1-h3 or synthetic lead section, resolved by parsePage(). */
   sectionAnchor: string | null;
   /** 0-based source line of the header row. */
   line: number;
@@ -119,7 +119,7 @@ export interface ParsedCallout {
   type: string;
   content: string;
   sortOrder: number;
-  /** anchor_id of the enclosing h1–h3 section, or null if the page has no heading context yet. */
+  /** anchor_id of the enclosing h1–h3 or synthetic lead section, or null when neither exists. */
   sectionAnchor: string | null;
   /** 0-based index of the source line the callout's opening fence sits on. */
   line: number;
@@ -541,22 +541,22 @@ export function parseSections(md: string, title: string): ParsedSection[] {
 
   // Drop leading duplicate(s) of the page title (see doc comment above) — the live
   // source has repeated it exactly once so far, but loop rather than a single `if`
-  // in case a future page repeats it more than once.
-  while (headings.length > 0 && headings[0].heading === title) headings.shift();
+  // in case a future page repeats it more than once. Retain their source positions so
+  // the heading-marker lines can also be excluded from the synthetic lead's text.
+  const titleHeadingLines = new Set<number>();
+  while (headings.length > 0 && headings[0].heading === title) {
+    titleHeadingLines.add(headings[0].lineIndex);
+    headings.shift();
+  }
 
   const out: ParsedSection[] = [];
 
   // Lead (H0) fragment: everything before the first real (non-title) h1–h3 heading.
-  // Strip leading blank lines and title-heading lines so a title-only lead is empty and
-  // mints nothing; the title line itself belongs to no fragment (like every heading line).
+  // Remove the duplicate title-heading lines wherever they occur in the lead. In the live
+  // Markdown they appear both before and after the AI-summary blockquote, so trimming only
+  // the first line would leak a structural `# Title` marker into the fragment's text.
   const firstRealLine = headings[0]?.lineIndex ?? lines.length;
-  const leadLines = lines.slice(0, firstRealLine);
-  while (leadLines.length > 0) {
-    const first = leadLines[0];
-    const h = first.match(/^#{1,6}\s+(.+)$/);
-    if (first.trim() === "" || (h && h[1].trim() === title)) leadLines.shift();
-    else break;
-  }
+  const leadLines = lines.slice(0, firstRealLine).filter((_, lineIndex) => !titleHeadingLines.has(lineIndex));
   const leadMd = leadLines.join("\n").trim();
   if (leadMd.length > 0) {
     const { code } = extractCodeBlocks(leadMd);
@@ -1100,8 +1100,8 @@ async function main() {
   // reports high-90s%; a sharp drop signals a parser regression orphaning content.
   const coverage = db
     .query(
-      "SELECT sum(pw) AS page_words, sum(sw) AS section_words FROM " +
-        "(SELECT p.word_count AS pw, coalesce((SELECT sum(word_count) FROM sections s WHERE s.page_id = p.id), 0) AS sw FROM pages p)",
+      `SELECT (SELECT coalesce(sum(word_count), 0) FROM pages) AS page_words,
+              (SELECT coalesce(sum(word_count), 0) FROM sections) AS section_words`,
     )
     .get() as { page_words: number; section_words: number };
   const coveragePct =

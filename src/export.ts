@@ -206,7 +206,7 @@ function readChangelog(database: Database): Dataset {
   };
 }
 
-/** callouts.tsv — direct from `callouts`; section_id is NULL for page-level callouts. */
+/** callouts.tsv — direct from `callouts`; section_id is NULL when no section resolves. */
 function readCallouts(database: Database): Dataset {
   const columns = ["page_id", "section_id", "type", "content", "sort_order"];
   const rows = database
@@ -403,7 +403,7 @@ const DATASET_READERS = [
 const DISCLOSURES = [
   {
     subject: "callouts.section_id / properties.section_id",
-    note: "NULL marks a genuinely page-level row, not a missing value; the columns were added in schema v9 (issue #90). Pre-first-heading content now resolves to the synthetic lead fragment (anchor '_lead', B-0023), so a NULL here is content with no lead fragment at all (e.g. a title-only page) — rare. Distinguished from the empty string by the \\N token.",
+    note: "NULL marks a row with no resolvable section, not a missing value; the columns were added in schema v9 (issue #90). Pre-first-heading content now resolves to the synthetic lead fragment (anchor '_lead', B-0023) whenever that content exists, so current re-extractions should rarely produce NULL here. Distinguished from the empty string by the \\N token.",
   },
   {
     subject: "videos transcript provenance",
