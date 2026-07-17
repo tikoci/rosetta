@@ -23,6 +23,9 @@ ignores:
   # Repo-local Copilot prompt/skill workflows — also agent-facing, not rendered docs
   - ".github/prompts/**"
   - ".github/skills/**"
+  # Repo-local symlinks to prompt/skill for Claude Code
+  - ".claude/prompts/**"
+  - ".claude/skills/**"
   # Test fixtures — intentionally malformed Markdown that exercises the parser
   - "fixtures/**"
   # Frozen archive of the pre-2026-07 task queue (CLAUDE.md) — grep-able history,
