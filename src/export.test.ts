@@ -27,6 +27,7 @@ const {
   parseTsv,
   toTsv,
   countWords,
+  utf8Bytes,
   encodeFsName,
   TSV_NULL,
 } = await import("./export.ts");
@@ -120,7 +121,7 @@ beforeAll(() => {
   );
 });
 
-const ALL_FILES = ["callouts.tsv", "changelog.tsv", "commands.tsv", "pages.tsv", "properties.tsv", "sections.tsv", "videos.tsv"];
+const ALL_FILES = ["callouts.tsv", "changelog.tsv", "commands.tsv", "pages.tsv", "properties.tsv", "sections.tsv", "tables.tsv", "videos.tsv"];
 
 function rowsOf(dir: string, file: string): (string | null)[][] {
   return parseTsv(readFileSync(path.join(dir, file), "utf-8")).rows;
@@ -293,6 +294,23 @@ describe("runExport", () => {
     expect(row[cols.indexOf("empty_section_count")]).toBe("0");
     expect(row[cols.indexOf("table_count")]).toBe("1");
     expect(row[cols.indexOf("table_row_count")]).toBe("3");
+  });
+
+  test("tables.tsv lists each page_table with shape, size, and a section deep link", async () => {
+    const dir = exportToTmp();
+    await runExport(dir, db);
+    const cols = colsOf(dir, "tables.tsv");
+    const t = rowsOf(dir, "tables.tsv").find((r) => r[cols.indexOf("page_id")] === String(PAGE_ID));
+    if (!t) throw new Error("no tables.tsv row for the seeded table");
+    expect(t[cols.indexOf("section_anchor")]).toBe("notes");
+    expect(t[cols.indexOf("source_heading")]).toBe("Notes");
+    expect(t[cols.indexOf("column_count")]).toBe("2");
+    expect(t[cols.indexOf("data_row_count")]).toBe("3");
+    expect(t[cols.indexOf("is_ragged")]).toBe("0");
+    // table_url deep-links to the containing section (url#anchor).
+    expect(t[cols.indexOf("table_url")]).toBe("https://example/ip-dhcp#notes");
+    // raw_bytes = UTF-8 length of the seeded raw markdown, not a rendered size.
+    expect(t[cols.indexOf("raw_bytes")]).toBe(String(utf8Bytes("| a | b |\n|---|---|\n| 1 | 2 |")));
   });
 
   test("manifest provenance mirrors db_meta", async () => {
