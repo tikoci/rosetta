@@ -2,7 +2,8 @@
  * source-hygiene.test.ts — structural guards over the source tree itself, not runtime behavior.
  *
  * Two cheap, DB-less scans that make two "passes every other check but silently breaks" hazards
- * enforced rather than remembered (issue #98):
+ * enforced rather than remembered (issue #98). Both cover every source `.ts` file in the repo —
+ * `src/` and `scripts/` (see SOURCE_DIRS):
  *
  *   1. db.ts import guard — no `*.test.ts` that sets `process.env.DB_PATH` may *statically* import
  *      a module that transitively reaches `db.ts`. A static ESM import is hoisted ABOVE the
@@ -16,7 +17,7 @@
  *      `.github/instructions/extractor-import-side-effects.instructions.md` (hazard 2) and
  *      VALIDATION.md V-test-db-import-static-guard.
  *
- *   2. Control characters in source — no source file may contain a NUL or other disallowed C0/DEL
+ *   2. Control characters in source — no source `.ts` file may contain a NUL or other disallowed C0/DEL
  *      control byte. A stray NUL in a template literal makes `file` report the source as `data`
  *      and causes grep to silently match nothing in it, while tests/typecheck/biome all pass
  *      (the "Related" NUL-byte note on issue #98). Tab/newline/CR are allowed. See VALIDATION.md
@@ -27,9 +28,14 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join, resolve } from "node:path";
 
 const SRC_DIR = resolve(import.meta.dirname);
+const ROOT = resolve(SRC_DIR, "..");
+// The two source-`.ts` roots this repo ships: src/ (app + tests) and scripts/ (release/db tooling).
+// Both are scanned so "source .ts" in the guards below means exactly what CI enforces.
+const SOURCE_DIRS = ["src", "scripts"].map((d) => join(ROOT, d));
 
-/** Every `*.ts` file under src/, recursively (absolute paths). */
+/** Every `*.ts` file under `dir`, recursively (absolute paths). Skips a missing directory. */
 function listTsFiles(dir: string): string[] {
+  if (!statSync(dir, { throwIfNoEntry: false })?.isDirectory()) return [];
   const out: string[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -41,6 +47,9 @@ function listTsFiles(dir: string): string[] {
   }
   return out;
 }
+
+/** Repo-relative path for diagnostics (e.g. `src/foo.test.ts`, `scripts/db-doctor.ts`). */
+const relOf = (file: string) => file.slice(ROOT.length + 1);
 
 /**
  * Resolve a local relative import specifier to an absolute `.ts` path, or null if it is not a
@@ -85,7 +94,7 @@ function staticLocalValueImports(fromFile: string, source: string): string[] {
   return specs;
 }
 
-const tsFiles = listTsFiles(SRC_DIR);
+const tsFiles = SOURCE_DIRS.flatMap(listTsFiles);
 const sources = new Map<string, string>(tsFiles.map((f) => [f, readFileSync(f, "utf-8")]));
 const valueImports = new Map<string, string[]>(
   tsFiles.map((f) => [f, staticLocalValueImports(f, sources.get(f) ?? "")]),
@@ -127,11 +136,11 @@ describe("db.ts import guard (issue #98, V-test-db-import-static-guard)", () => 
   });
 
   for (const file of dbPathTests) {
-    const rel = file.slice(SRC_DIR.length + 1);
+    const rel = relOf(file);
     test(`${rel} has no static db.ts-reaching import`, () => {
       const offenders = (valueImports.get(file) ?? [])
         .filter((i) => reachesDb.has(i))
-        .map((i) => i.slice(SRC_DIR.length + 1));
+        .map(relOf);
       expect(
         offenders,
         `${rel} sets process.env.DB_PATH but statically imports [${offenders.join(", ")}], which ` +
@@ -150,7 +159,7 @@ describe("control characters in source (issue #98 Related, V-source-no-control-c
   const isDisallowed = (c: number) => (c <= 0x1f && c !== 0x09 && c !== 0x0a && c !== 0x0d) || c === 0x7f;
 
   for (const file of tsFiles) {
-    const rel = file.slice(SRC_DIR.length + 1);
+    const rel = relOf(file);
     test(`${rel} contains no NUL or disallowed control character`, () => {
       const src = sources.get(file) ?? "";
       let idx = -1;
