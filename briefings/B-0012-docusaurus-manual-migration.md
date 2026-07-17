@@ -7,7 +7,7 @@ related_tasks:
   - T-0036-release-yml-docusaurus-cutover
   - T-0037-npm-prerelease-dist-tag-channel
 created: 2026-05-29
-last_revisited: 2026-07-08
+last_revisited: 2026-07-16
 ---
 
 # Question
@@ -816,3 +816,19 @@ as the durable record and has **not** been consolidated/shortened in this
 pass — that housekeeping is still deliberately deferred, same as the
 2026-07-07 "Next steps" section already called out, until a later pass
 with nothing more urgent to do.
+
+## 2026-07-16 — export surfaced a refinement to the H4 section overlay
+
+The B-0022 DB-only export track shipped its spine and flat datasets
+([#101]/[#103] E1+E2; leftovers and next chunks in [#104]), and putting the
+resulting `pages.tsv` in front of a spreadsheet exposed a limit of the
+section model this briefing established. H4's decision — split the page body on
+**h1–h3** and fold deeper headings into the enclosing section — is correct as
+the *retrieval unit*, but it makes `sections` a **partial** overlay: on rc.99
+(schema 10, 363 pages) 11.7% of corpus words (76,815) and 40 whole pages live
+in no section row, so the parts don't sum to the page. That is a schema/ETL
+refinement, not a migration question, so it now lives in its own briefing —
+**`B-0023-page-section-normalization`** (mint a lead "H0" fragment so coverage
+becomes total; recorded under the #95 umbrella). The whole-page `pages.text`
+store and its FTS index — the spine this migration built — are unchanged; only
+the section overlay is proposed to become complete.

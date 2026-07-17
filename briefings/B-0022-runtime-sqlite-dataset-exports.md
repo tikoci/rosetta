@@ -2,9 +2,9 @@
 id: B-0022-runtime-sqlite-dataset-exports
 topic: Runtime SQLite-only dataset exports for local audit and future static hosting
 status: open
-related_tasks: ["#90", "#91", "#92", "#93", "#94", "#95", "#100", "#101"]
+related_tasks: ["#90", "#91", "#92", "#93", "#94", "#95", "#100", "#101", "#103", "#104", "B-0023"]
 created: 2026-07-15
-last_revisited: 2026-07-15
+last_revisited: 2026-07-16
 ---
 
 # Question
@@ -467,8 +467,13 @@ question for a human browsing the output, but it should follow a stable file set
 # Open questions
 
 - Does `pages.tsv` mixing page-rollup and section rows in one file actually read well in a spreadsheet,
-  or does the pivot-like shape want splitting once real data is in front of us? This is a "look at it in
-  Numbers" question, not an argue-about-it question.
-- Is the page/section sizing data escaping this briefing's scope? It is arguably more valuable to the
-  MCP/TUI retrieval-unit work (#27) than to the export, and may deserve its own briefing rather than
-  living here as a byproduct.
+  or does the pivot-like shape want splitting once real data is in front of us? **Answered by looking at
+  rc.99 in Numbers:** the shape is fine, but the *data* doesn't pivot because sections don't sum to the
+  page (11.7% of corpus words live in no section row; 40 pages have no sections at all). That is a
+  schema/ETL question, not an export-layout one — spun out to **B-0023** (page/section normalization).
+- ~~Is the page/section sizing data escaping this briefing's scope?~~ **Yes — resolved:** it is more
+  valuable to the MCP/TUI retrieval-unit work (#27) than to the export, so it now has its own briefing,
+  **B-0023-page-section-normalization**. This briefing stays scoped to the DB-only export surface.
+- Per-TSV export-output findings from the post-#103 review (callouts wanting page/section *names* alongside
+  ids; `changelog.tsv` column order; confirmation that `commands.tsv`/`properties.tsv` are working-as-
+  designed pending their own tracks) are recorded on **#104**, not here.
