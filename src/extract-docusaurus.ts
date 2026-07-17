@@ -83,7 +83,7 @@ export interface ParsedProperty {
   /** Raw text of the nearest preceding heading of ANY level (h1–h6). Retained as-is for
    * compatibility; `sectionAnchor` is the resolvable identity. See attributeSection(). */
   section: string | null;
-  /** anchor_id of the enclosing h1–h3 section, or null if the page has no heading context yet. */
+  /** anchor_id of the enclosing h1–h3 or synthetic lead section, or null when neither exists. */
   sectionAnchor: string | null;
   /** 0-based index of the source line this property was parsed from. */
   line: number;
@@ -109,7 +109,7 @@ export interface ParsedTable {
   sortOrder: number;
   /** Raw nearest h1-h6 heading text, distinct from the enclosing retrieval section. */
   sourceHeading: string | null;
-  /** anchor_id of the enclosing h1-h3 section, resolved by parsePage(). */
+  /** anchor_id of the enclosing h1-h3 or synthetic lead section, resolved by parsePage(). */
   sectionAnchor: string | null;
   /** 0-based source line of the header row. */
   line: number;
@@ -119,7 +119,7 @@ export interface ParsedCallout {
   type: string;
   content: string;
   sortOrder: number;
-  /** anchor_id of the enclosing h1–h3 section, or null if the page has no heading context yet. */
+  /** anchor_id of the enclosing h1–h3 or synthetic lead section, or null when neither exists. */
   sectionAnchor: string | null;
   /** 0-based index of the source line the callout's opening fence sits on. */
   line: number;
@@ -506,12 +506,27 @@ export function extractCodeBlocks(md: string): { code: string; codeLang: string 
 }
 
 /**
+ * Reserved `anchor_id` for the synthetic lead ("H0") fragment — the page body before
+ * the first h1–h3 heading (see B-0023). Provably collision-free with any real heading:
+ * `slugify()` deletes every character outside `[a-z0-9\s-]`, so no heading (and no
+ * `foo`/`foo-1` disambiguation suffix) can ever produce an `anchor_id` containing `_`.
+ */
+export const LEAD_ANCHOR = "_lead";
+
+/**
  * Split page body into sections by h1–h3 headings, mirroring extract-html.ts's
  * extractSections (which also only splits on h1–h3, folding deeper headings into
- * the enclosing section's text). Skips a leading duplicate of the page title — the
- * raw .md source repeats the H1 immediately after the AI-summary blockquote (observed
- * live on dhcp.md, dot1x.md, address-lists.md), which would otherwise mint a spurious
- * empty section.
+ * the enclosing section's text).
+ *
+ * Before the first h1–h3 heading, a page carries lead prose (an AI-summary blockquote,
+ * an intro paragraph) that would otherwise belong to no section — 11.7% of the corpus
+ * by word on rc.99, and the *entire* body of the 40 pages whose only heading is the
+ * title (B-0023). That content is captured as a synthetic lead fragment (level 0,
+ * anchor {@link LEAD_ANCHOR}, heading = page title) so section coverage is (near-)total
+ * and page-level rows get a resolvable `section_id`. Leading blank lines and duplicate
+ * title headings — the raw .md repeats the H1 after the AI-summary blockquote (observed
+ * on dhcp.md, dot1x.md, address-lists.md) — are stripped first, so a page that only
+ * repeats its title mints no lead fragment (the #93 empty rule: no empty fragments).
  */
 export function parseSections(md: string, title: string): ParsedSection[] {
   const lines = md.split("\n");
@@ -526,8 +541,36 @@ export function parseSections(md: string, title: string): ParsedSection[] {
 
   // Drop leading duplicate(s) of the page title (see doc comment above) — the live
   // source has repeated it exactly once so far, but loop rather than a single `if`
-  // in case a future page repeats it more than once.
-  while (headings.length > 0 && headings[0].heading === title) headings.shift();
+  // in case a future page repeats it more than once. Retain their source positions so
+  // the heading-marker lines can also be excluded from the synthetic lead's text.
+  const titleHeadingLines = new Set<number>();
+  while (headings.length > 0 && headings[0].heading === title) {
+    titleHeadingLines.add(headings[0].lineIndex);
+    headings.shift();
+  }
+
+  const out: ParsedSection[] = [];
+
+  // Lead (H0) fragment: everything before the first real (non-title) h1–h3 heading.
+  // Remove the duplicate title-heading lines wherever they occur in the lead. In the live
+  // Markdown they appear both before and after the AI-summary blockquote, so trimming only
+  // the first line would leak a structural `# Title` marker into the fragment's text.
+  const firstRealLine = headings[0]?.lineIndex ?? lines.length;
+  const leadLines = lines.slice(0, firstRealLine).filter((_, lineIndex) => !titleHeadingLines.has(lineIndex));
+  const leadMd = leadLines.join("\n").trim();
+  if (leadMd.length > 0) {
+    const { code } = extractCodeBlocks(leadMd);
+    out.push({
+      heading: title,
+      level: 0,
+      anchorId: LEAD_ANCHOR,
+      text: leadMd,
+      code,
+      wordCount: leadMd.split(/\s+/).filter(Boolean).length,
+      sortOrder: 0,
+      headingLine: -1, // before every content line, so attributeSection() treats it as the fallback
+    });
+  }
 
   const usedAnchors = new Map<string, number>();
   const anchorFor = (heading: string): string => {
@@ -537,23 +580,24 @@ export function parseSections(md: string, title: string): ParsedSection[] {
     return count === 0 ? base : `${base}-${count}`;
   };
 
-  return headings.map((h, i) => {
+  headings.forEach((h, i) => {
     const startLine = h.lineIndex + 1;
     const endLine = headings[i + 1]?.lineIndex ?? lines.length;
     const sectionMd = lines.slice(startLine, endLine).join("\n").trim();
     const { code } = extractCodeBlocks(sectionMd);
-    const text = sectionMd;
-    return {
+    out.push({
       heading: h.heading,
       level: h.level,
       anchorId: anchorFor(h.heading),
-      text,
+      text: sectionMd,
       code,
-      wordCount: text.split(/\s+/).filter(Boolean).length,
-      sortOrder: i,
+      wordCount: sectionMd.split(/\s+/).filter(Boolean).length,
+      sortOrder: out.length, // continues after the lead fragment if one was emitted
       headingLine: h.lineIndex,
-    };
+    });
   });
+
+  return out;
 }
 
 /**
@@ -571,8 +615,10 @@ export function parseSections(md: string, title: string): ParsedSection[] {
  * parseSections already disambiguates repeated headings into `foo`, `foo-1`, `foo-2`, and the
  * raw text throws that away.
  *
- * Returns null for content before the first section (e.g. a page's lead paragraph), which is
- * genuine absence of heading context, not a failure to resolve.
+ * Content before the first h1–h3 heading resolves to the lead fragment ({@link LEAD_ANCHOR}) when
+ * the page has one — parseSections gives that fragment `headingLine = -1`, so it is the fallback
+ * ancestor for every line. Returns null only when there is no lead fragment either (e.g. the sole
+ * pre-heading line was the title, which mints no lead), i.e. genuine absence of heading context.
  */
 export function attributeSection(line: number, sections: ParsedSection[]): string | null {
   let anchor: string | null = null;
@@ -1046,9 +1092,24 @@ async function main() {
     db.query("SELECT count(*) AS n FROM properties WHERE source_table_row_id IS NOT NULL").get() as { n: number }
   ).n;
 
+  const storedLeadSections = (
+    db.query("SELECT count(*) AS n FROM sections WHERE anchor_id = ?").get(LEAD_ANCHOR) as { n: number }
+  ).n;
+  // Coverage: how much of the page word count now lives in some section (B-0023). The
+  // residual is heading-text lines (which belong to no fragment by construction), so this
+  // reports high-90s%; a sharp drop signals a parser regression orphaning content.
+  const coverage = db
+    .query(
+      `SELECT (SELECT coalesce(sum(word_count), 0) FROM pages) AS page_words,
+              (SELECT coalesce(sum(word_count), 0) FROM sections) AS section_words`,
+    )
+    .get() as { page_words: number; section_words: number };
+  const coveragePct =
+    coverage.page_words > 0 ? ((100 * coverage.section_words) / coverage.page_words).toFixed(1) : "n/a";
+
   console.log(`\nExtraction complete:`);
   console.log(`  Pages:      ${parsedPages.length}`);
-  console.log(`  Sections:   ${storedSections}`);
+  console.log(`  Sections:   ${storedSections} (${storedLeadSections} lead/H0; ${coveragePct}% of page words covered)`);
   console.log(`  Tables:     ${storedTables} (${storedTableDataRows} data rows, ${storedTableCells} cells, ${tablesWithoutSection} with no section context)`);
   console.log(`  Properties: ${storedProperties} (${malformedProperties} malformed-emphasis, ${propertiesWithoutSection} with no section context)`);
   console.log(`  Callouts:   ${storedCallouts} (${calloutsWithoutSection} with no section context)`);

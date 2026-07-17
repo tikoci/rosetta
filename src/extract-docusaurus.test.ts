@@ -31,6 +31,7 @@ const {
   cardMetaFor,
   directChildIds,
   attributeSection,
+  LEAD_ANCHOR,
   splitTableRow,
   parseTables,
 } = await import("./extract-docusaurus.ts");
@@ -334,12 +335,49 @@ describe("parseSections", () => {
     expect(new Set(anchors).size).toBe(anchors.length);
   });
 
-  test("a page whose only headings are the duplicated title yields zero sections (content stays in page text)", () => {
+  test("a page whose only headings are the duplicated title yields a single lead (H0) fragment (B-0023)", () => {
     // address-lists.md has no h2/h3 at all — both its headings are the "Address-lists"
-    // title duplicate, so both get dropped. Matches extract-html.ts's own behavior for
-    // Confluence pages with no id-bearing headings: sections == [], full text elsewhere.
+    // title duplicate, so both get dropped. Its entire body is therefore lead content:
+    // one synthetic lead fragment (anchor "_lead", level 0) so the prose is addressable
+    // and rolls up, rather than orphaned as pre-B-0023 (this was the `[]` case before).
     const sections = parseSections(addressListsMd, "Address-lists");
-    expect(sections).toEqual([]);
+    expect(sections.length).toBe(1);
+    expect(sections[0].anchorId).toBe(LEAD_ANCHOR);
+    expect(sections[0].level).toBe(0);
+    expect(sections[0].wordCount).toBeGreaterThan(0);
+    expect(sections[0].text).not.toContain("# Address-lists");
+  });
+
+  test("a lead fragment excludes title headings around summary prose and precedes real sections (B-0023)", () => {
+    const md = [
+      "# Page", // initial title H1 (dropped)
+      "",
+      "> Summary blockquote about the page.", // lead prose
+      "",
+      "# Page", // live Docusaurus shape repeats the title after the summary (also dropped)
+      "",
+      "Intro paragraph before any section.",
+      "",
+      "## Real Section",
+      "body",
+    ].join("\n");
+    const sections = parseSections(md, "Page");
+    expect(sections[0].anchorId).toBe(LEAD_ANCHOR);
+    expect(sections[0].level).toBe(0);
+    expect(sections[0].sortOrder).toBe(0);
+    expect(sections[0].text).toContain("Summary blockquote");
+    expect(sections[0].text).toContain("Intro paragraph");
+    expect(sections[0].text).not.toContain("# Page");
+    // real section follows the lead, renumbered to sort_order 1
+    expect(sections[1].anchorId).toBe("real-section");
+    expect(sections[1].sortOrder).toBe(1);
+  });
+
+  test("a title-only lead (no prose before the first heading) mints no lead fragment (B-0023 empty rule)", () => {
+    const md = ["# Page", "", "## First", "body"].join("\n");
+    const sections = parseSections(md, "Page");
+    expect(sections.map((s) => s.anchorId)).toEqual(["first"]);
+    expect(sections[0].sortOrder).toBe(0);
   });
 });
 
@@ -377,8 +415,20 @@ describe("attributeSection — h4–h6 fold to nearest h1–h3 ancestor (issue #
     expect(attributeSection(11, sections)).toBe("other");
   });
 
-  test("content before the first section is null — genuine absence of heading context, not a failed lookup", () => {
+  test("content before the first section is null when there is no lead fragment (title-only lead)", () => {
+    // This fixture's only pre-heading line is the title, so no lead fragment is minted and
+    // pre-heading content is genuinely unattributed — the honest null (B-0023 empty rule).
     expect(attributeSection(1, sections)).toBeNull();
+  });
+
+  test("content before the first section resolves to the lead fragment when the page has one (B-0023)", () => {
+    const withLead = parseSections(
+      ["# Page", "", "Intro prose before any section.", "", "## Port Settings", "prop"].join("\n"),
+      "Page",
+    );
+    expect(withLead[0].anchorId).toBe(LEAD_ANCHOR);
+    // the intro line (line 2) is inside the lead fragment, not orphaned
+    expect(attributeSection(2, withLead)).toBe(LEAD_ANCHOR);
   });
 });
 
@@ -493,9 +543,12 @@ describe("parsePage — page-level table attribution and property provenance (#9
     "https://manual.mikrotik.com/docs/example",
   );
 
-  test("content before the first h1-h3 section remains honestly unattributed", () => {
+  test("content before the first h1-h3 section attributes to the lead (H0) fragment (B-0023)", () => {
+    // The table opens the page (no heading directly above it), so sourceHeading stays null,
+    // but the table now lives in the synthetic lead fragment rather than being orphaned —
+    // this was the pre-B-0023 `sectionAnchor === null` case.
     expect(page.tables[0].sourceHeading).toBeNull();
-    expect(page.tables[0].sectionAnchor).toBeNull();
+    expect(page.tables[0].sectionAnchor).toBe(LEAD_ANCHOR);
   });
 
   test("table-derived properties carry a source row while bullet properties stay unlinked", () => {
@@ -509,20 +562,25 @@ describe("parsePage — page-level table attribution and property provenance (#9
 describe("parseCallouts — dot1x.md section attribution (pre-#90 callouts had none at all)", () => {
   const page = parsePage(dot1xMd, "https://manual.mikrotik.com/docs/authentication-authorization-accounting/dot1x");
 
-  test("a callout inside a section resolves to that section", () => {
+  test("every callout resolves to a real section, and in-section callouts name their section", () => {
     const anchors = new Set(page.sections.map((s) => s.anchorId));
-    const attributed = page.callouts.filter((c) => c.sectionAnchor !== null);
-    expect(attributed.length).toBe(3);
-    for (const c of attributed) expect(anchors.has(c.sectionAnchor as string)).toBeTrue();
-    expect(attributed[0].sectionAnchor).toBe("server");
+    // Since B-0023 every callout attributes to a section (the opening warning to the lead
+    // fragment, the rest to their enclosing h1–h3 section) — none are orphaned.
+    for (const c of page.callouts) {
+      expect(c.sectionAnchor).not.toBeNull();
+      expect(anchors.has(c.sectionAnchor as string)).toBeTrue();
+    }
+    const inServer = page.callouts.filter((c) => c.sectionAnchor === "server");
+    expect(inServer.length).toBeGreaterThanOrEqual(1);
   });
 
-  test("the page-level warning above the first heading stays null rather than being forced into a section", () => {
-    // dot1x.md opens with a ':::warning' about SMIPS devices before any h2/h3. Null here is the
-    // honest answer — inventing an attribution would be worse than admitting there is none.
+  test("the page-level warning above the first heading resolves to the lead (H0) fragment (B-0023)", () => {
+    // dot1x.md opens with a ':::warning' about SMIPS devices before any h2/h3. Pre-B-0023 this
+    // was honestly null; now it belongs to the lead fragment so the warning is addressable and
+    // rolls up with the rest of the page's lead prose.
     const first = page.callouts[0];
     expect(first.content).toContain("not supported on SMIPS devices");
-    expect(first.sectionAnchor).toBeNull();
+    expect(first.sectionAnchor).toBe(LEAD_ANCHOR);
   });
 });
 
@@ -573,7 +631,9 @@ describe("parsePage — end-to-end shape", () => {
     expect(page.title).toBe("Address-lists");
     expect(page.properties).toEqual([]);
     expect(page.callouts).toEqual([]);
-    expect(page.sections).toEqual([]); // see parseSections' dedicated test for why
+    // One lead (H0) fragment holds the whole body (no h2/h3) — see parseSections' dedicated test.
+    expect(page.sections.length).toBe(1);
+    expect(page.sections[0].anchorId).toBe(LEAD_ANCHOR);
     expect(page.wordCount).toBeGreaterThan(0);
     expect(page.text).toContain("dynamic address list");
   });

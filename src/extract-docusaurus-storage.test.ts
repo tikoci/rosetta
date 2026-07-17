@@ -83,6 +83,21 @@ test(
       expect(counts.table_properties).toBeGreaterThan(0);
       expect(counts.non_table_properties).toBeGreaterThan(0);
 
+      // Section coverage is (near-)total since the lead ("H0") fragment (B-0023). A lead
+      // fragment exists, and the sum of section words reconciles to the page words within a
+      // small allowance (the only uncovered content being heading-text lines). A sharp drop
+      // here means a parser change started orphaning content — the whole point of the check.
+      const coverage = db
+        .query(`
+          SELECT (SELECT COUNT(*) FROM sections WHERE anchor_id = '_lead') AS leads,
+                 (SELECT COUNT(*) FROM sections WHERE level = 0 AND anchor_id != '_lead') AS bad_level0,
+                 (SELECT COALESCE(SUM(word_count), 0) FROM pages) AS page_words,
+                 (SELECT COALESCE(SUM(word_count), 0) FROM sections) AS section_words`)
+        .get() as Record<string, number>;
+      expect(coverage.leads).toBeGreaterThan(0);
+      expect(coverage.bad_level0).toBe(0); // level 0 is reserved for the lead fragment
+      expect(coverage.section_words / coverage.page_words).toBeGreaterThan(0.9);
+
       const phoneNumber = db
         .query(`
           SELECT r.row_order, c.value AS source_cell

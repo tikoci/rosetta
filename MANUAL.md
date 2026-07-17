@@ -403,19 +403,18 @@ callouts (
     id, page_id REFERENCES pages(id),
     type,          -- 'Note' | 'Warning' | 'Info' | 'Tip'
     content TEXT,
-    section_id,    -- REFERENCES sections(id); nullable, e.g. a page-level warning
-                   -- above the first heading (issue #90)
+    section_id,    -- REFERENCES sections(id); nullable when no section resolves
     sort_order
 )
 
 -- FTS5 over callouts
 callouts_fts USING fts5(content, ...)
 
--- Sections (page chunks split by h1–h3 headings)
+-- Sections (a synthetic Docusaurus lead fragment, then page chunks split by h1–h3 headings)
 sections (
     id, page_id REFERENCES pages(id),
-    heading, level,        -- heading text, 1/2/3
-    anchor_id,             -- Confluence heading ID for deep-link URLs
+    heading, level,        -- heading text, 1/2/3; Docusaurus lead uses title + level 0
+    anchor_id,             -- section anchor identity; Docusaurus lead reserves `_lead`
     text, code,
     word_count, sort_order
 )
@@ -425,7 +424,7 @@ sections (
 page_tables (
     id INTEGER PRIMARY KEY,
     page_id INTEGER NOT NULL REFERENCES pages(id),
-    section_id INTEGER REFERENCES sections(id), -- enclosing h1-h3; nullable above headings
+    section_id INTEGER REFERENCES sections(id), -- enclosing h1-h3 or synthetic lead; nullable
     source_heading TEXT,                         -- nearest h1-h6 heading; nullable
     raw_markdown TEXT NOT NULL,
     column_count INTEGER NOT NULL,              -- header width
@@ -466,8 +465,8 @@ properties (
 -- Extractors assert parsed == stored instead, so a drop fails the build.
 --
 -- For a property under an h4–h6, `section` and `section_id` deliberately disagree: `section`
--- names the h4, `section_id` resolves to the enclosing h1–h3 section (`sections` only mints
--- rows for h1–h3, and stays the retrieval unit). The h4 name remains recoverable from `section`.
+-- names the h4, `section_id` resolves to the enclosing h1–h3 section (`sections` also mints
+-- a synthetic lead row for pre-heading prose). The h4 name remains recoverable from `section`.
 
 -- FTS5 over properties
 properties_fts USING fts5(name, description, ...)
