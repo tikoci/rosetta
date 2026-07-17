@@ -2695,7 +2695,7 @@ function runVideosTitleQuery(ftsQuery: string, limit: number): VideoSearchResult
       .prepare(
         `SELECT v.video_id, v.title, v.url, v.upload_date,
                 vs.chapter_title, COALESCE(vs.start_s, 0) AS start_s,
-                snippet(videos_fts, 0, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) AS excerpt
+                snippet(videos_fts, -1, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) AS excerpt
          FROM videos_fts fts
          JOIN videos v ON v.id = fts.rowid
          LEFT JOIN video_segments vs

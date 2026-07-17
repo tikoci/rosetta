@@ -350,30 +350,30 @@ sqlite3 ros-help.db "SELECT title, url FROM pages_fts WHERE pages_fts MATCH 'DHC
 
 ### Tables
 
-> `pages`/`sections`/`properties`/`callouts` row counts and descriptions below are frozen at the legacy Confluence-era shape and have not been refreshed for the live Docusaurus build (see DESIGN.md's "Historical Corpus Snapshot"). For current counts, use `routeros_stats` on a built database; the generic-table, `videos`/`video_segments`, and hardware-overlay rows below describe the current schema.
+> Row counts below are **order-of-magnitude orientation only** — the corpus grows every extraction, so no exact count is maintained here. Call `routeros_stats` on a built database for live figures (the single source of truth). Descriptions reflect the current Docusaurus-default schema; where a table still holds legacy Confluence rows, that difference is called out.
 
 | Table | Rows | What's in it |
 |-------|------|-------------|
-| `pages` | 317 | Legacy documentation pages — title, breadcrumb path, full text, code blocks, help.mikrotik.com URL |
-| `sections` | 2,984 | Page chunks split by h1–h3 headings, with anchor IDs for deep linking |
-| `callouts` | 1,034 | Warning/Note/Info/Tip boxes extracted from Confluence callout macros |
-| `page_tables` | varies (~850) | Every Docusaurus pipe table with raw Markdown, source heading, section attribution, width, and raggedness |
-| `page_table_rows` | varies (~9K) | Header (`row_order = 0`) and data rows for `page_tables` |
-| `page_table_cells` | varies (~25K) | Decoded cells at their actual source width; backslash-escaped pipe syntax is stored without the backslash |
-| `properties` | 4,860 | Command properties — name, type, default value, description (from doc tables) |
-| `commands` | 40K+ | RouterOS command hierarchy — dirs, commands, arguments from `/console/inspect` |
-| `command_versions` | 1.67M | Junction table: which command paths exist in which RouterOS versions (7.9–7.23beta2) |
-| `schema_nodes` | 40K+ | Rich command-tree nodes from `deep-inspect.json` — arch tags, parsed descriptions, completion metadata |
+| `pages` | ~360 | Doc pages (Docusaurus `/docs`) — title, breadcrumb path, full text, code blocks, source URL; legacy Confluence rows carry help.mikrotik.com URLs |
+| `sections` | ~3K | Page chunks split by h1–h3 headings, with anchor IDs for deep linking |
+| `callouts` | ~950 | Warning/Note/Info/Tip admonition boxes extracted from the docs |
+| `page_tables` | ~850 | Every Docusaurus pipe table with raw Markdown, source heading, section attribution, width, and raggedness |
+| `page_table_rows` | ~9K | Header (`row_order = 0`) and data rows for `page_tables` |
+| `page_table_cells` | ~25K | Decoded cells at their actual source width; backslash-escaped pipe syntax is stored without the backslash |
+| `properties` | ~4.6K | Command properties — name, type, default value, description (from doc tables) |
+| `commands` | ~42K | RouterOS command hierarchy — dirs, commands, arguments from `/console/inspect` |
+| `command_versions` | ~2M+ | Junction table: which command paths exist in which RouterOS versions |
+| `schema_nodes` | ~40K | Rich command-tree nodes from `deep-inspect.json` — arch tags, parsed descriptions, completion metadata |
 | `schema_node_presence` | active heads only | Junction table: which `schema_nodes` exist in active channel-head versions; pruned during release builds |
-| `ros_versions` | 46 | Tracked RouterOS versions with channel (stable/development) |
-| `devices` | 156 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
-| `device_test_results` | 2,874 | Ethernet and IPSec throughput benchmarks for 125 devices — packet sizes, modes, Mbps/Kpps |
+| `ros_versions` | dozens | Tracked RouterOS versions with channel (stable/development) |
+| `devices` | ~155 | MikroTik hardware — CPU, RAM, storage, ports, PoE, wireless, license level, MSRP |
+| `device_test_results` | ~3K | Ethernet and IPSec throughput benchmarks — packet sizes, modes, Mbps/Kpps |
 | `hardware_catalog` | ~255 | `/hardware` + `mikrotik.com/product` device overlay — superset of `devices` (accessories, legacy/EOL SKUs included); never-null `name`, `category` from the `/hardware` sidebar taxonomy, raw www spec fields + non-default IP + FCC/IC IDs as JSON, optional `device_id` link back |
 | `device_aliases` | ~752 | Every observed device slug/code/name variant (matrix.csv, `/hardware` slug/link/table code, www requested/declared/compare code) resolved to one `hardware_catalog.rosetta_device_id` (priority-ranked, collision-counted) |
 | `device_overview` (view) | ~255 | Documented read surface: `hardware_catalog` joined to `devices` spec columns with per-device alias counts |
 | `changelogs` | varies | Parsed changelog entries per RouterOS version — category, description, breaking flag |
-| `videos` | 658 | MikroTik YouTube video metadata — title, description, duration, chapters |
-| `video_segments` | ~2,090 non-empty | Chapter-level transcript segments with timestamps for deep linking |
+| `videos` | ~660 | MikroTik YouTube video metadata — title, description, duration, chapters |
+| `video_segments` | ~2.2K non-empty | Chapter-level transcript segments with timestamps for deep linking |
 | `dude_pages` | varies | Archived Dude wiki pages from Wayback/cache |
 | `dude_images` | varies | Screenshot metadata for Dude wiki pages |
 | `skills` | 8 | Agent skill guides from tikoci/routeros-skills with provenance |

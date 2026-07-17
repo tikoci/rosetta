@@ -6,24 +6,26 @@
  * audit surface) can order versions without transitively importing the DB singleton.
  * Keep it that way — adding an import here re-couples every DB-only consumer.
  *
- * KNOWN LIMITATION: the prerelease *number* is not yet part of the order, so
- * `7.24beta1`, `7.24beta2`, `7.24beta3` compare equal (likewise `7.20rc1` vs
- * `7.20rc2`). Callers that sort changelog/command rows fall back to a secondary key,
- * so output stays deterministic, but it is not fully version-ordered across
- * prereleases of the same base. Tracked for a shared-comparator fix in issue #104;
- * fixing it here improves every caller at once.
+ * Ordering for one base version: `beta` < `rc` < final release, and within a
+ * prerelease channel the number breaks the tie (`7.24beta1` < `7.24beta2` <
+ * `7.24rc1` < `7.24`). A channel marker with no number (`beta`, `rc`) sorts as N=0,
+ * i.e. below its numbered siblings. Callers no longer need a secondary sort key to
+ * disambiguate same-base prereleases (though several keep one for stable ties on
+ * equal versions, which is fine).
  */
 
 /** Compare two RouterOS version strings: negative if a<b, positive if a>b, 0 if equal. */
 export function compareVersions(a: string, b: string): number {
   const normalize = (v: string) => {
-    const beta = v.includes("beta");
-    const rc = v.includes("rc");
+    const betaMatch = v.match(/beta(\d*)/);
+    const rcMatch = v.match(/rc(\d*)/);
     const clean = v.replace(/beta\d*/, "").replace(/rc\d*/, "");
     const parts = clean.split(".").map(Number);
     // beta < rc < release for the same numeric version
-    const suffix = beta ? 0 : rc ? 1 : 2;
-    return { parts, suffix };
+    const suffix = betaMatch ? 0 : rcMatch ? 1 : 2;
+    // within a prerelease channel, a higher number is newer (beta1 < beta2)
+    const pre = Number((betaMatch ?? rcMatch)?.[1] || 0);
+    return { parts, suffix, pre };
   };
   const na = normalize(a);
   const nb = normalize(b);
@@ -32,5 +34,6 @@ export function compareVersions(a: string, b: string): number {
     const pb = nb.parts[i] ?? 0;
     if (pa !== pb) return pa - pb;
   }
-  return na.suffix - nb.suffix;
+  if (na.suffix !== nb.suffix) return na.suffix - nb.suffix;
+  return na.pre - nb.pre;
 }
