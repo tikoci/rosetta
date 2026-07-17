@@ -417,22 +417,26 @@ Read \`rosetta://schema.sql\` for full DDL. This guide explains relationships, F
 
 ## Table Map
 
+Row counts below are **order-of-magnitude only** — they orient query planning, not
+exact inventory. Call \`routeros_stats\` for live counts (the single source of truth);
+the corpus grows every extraction, so no number is baked in here.
+
 | Table | Rows (approx) | Description |
 |-------|-------------|-------------|
-| \`pages\` | 317 | One row per Confluence HTML page. Primary content store. |
-| \`sections\` | 2,984 | h1–h3 chunks of pages with anchor IDs for deep-linking. |
-| \`properties\` | 4,860 | CLI property rows extracted from confluenceTable elements. |
-| \`callouts\` | 1,034 | Note/Warning/Info/Tip blocks from Confluence callout macros. |
+| \`pages\` | ~360 | One row per doc page. Primary content store (Docusaurus manual.mikrotik.com/docs). |
+| \`sections\` | ~3K | h1–h3 chunks of pages with anchor IDs for deep-linking. |
+| \`properties\` | ~4.6K | CLI property rows extracted from doc tables and property lists. |
+| \`callouts\` | ~950 | Note/Warning/Info/Tip admonition blocks lifted from the docs. |
 | \`commands\` | ~40K | RouterOS command tree entries (dir/cmd/arg) from inspect.json. |
-| \`command_versions\` | 1.67M | Junction: which command paths exist in which RouterOS versions. |
-| \`ros_versions\` | 46 | Metadata per extracted RouterOS version (7.9–7.23beta2). |
-| \`devices\` | 144 | MikroTik hardware specs from product matrix CSV. |
+| \`command_versions\` | ~1.7M | Junction: which command paths exist in which RouterOS versions. |
+| \`ros_versions\` | dozens | Metadata per extracted RouterOS version (range reported by \`routeros_stats\`). |
+| \`devices\` | ~145 | MikroTik hardware specs from product matrix CSV. |
 | \`hardware_catalog\` | ~255 | Wider device universe (matrix + accessories/series/legacy) from manual.mikrotik.com/hardware + mikrotik.com/product. |
 | \`device_aliases\` | ~750 | Normalized alias/slug/code → canonical device, for free-form device resolution. |
-| \`device_test_results\` | 2,874 | Ethernet/IPSec benchmark rows from mikrotik.com product pages. |
+| \`device_test_results\` | ~2.9K | Ethernet/IPSec benchmark rows from mikrotik.com product pages. |
 | \`changelogs\` | varies | Parsed per-entry changelog lines from MikroTik download server. |
-| \`videos\` | 658 | MikroTik YouTube video metadata. |
-| \`video_segments\` | ~2,090 | Chapter-level transcript segments (one per chapter or one per video). |
+| \`videos\` | ~660 | MikroTik YouTube video metadata. |
+| \`video_segments\` | ~2.2K | Chapter-level transcript segments (one per chapter or one per video). |
 
 ## Foreign Keys
 
@@ -685,8 +689,8 @@ Tips:
 - Pass a command path directly ("/ip/firewall/filter") and related.commands +
   related.command_node surface children and linked docs without a second call
 - For retired Dude GUI topics, use routeros_dude_search instead
-- Documentation: 317 pages from March 2026 Confluence export, ~7.22 long-term
-- Command data: RouterOS 7.9–7.23beta2. No v6 data.`,
+- Documentation: live manual.mikrotik.com/docs (Docusaurus) prose corpus; call routeros_stats for counts and version range
+- Command data: RouterOS v7 only (7.9+). No v6 data.`,
     inputSchema: {
       query: z.string().describe("Natural language search query, command path, or identifier"),
       limit: z
