@@ -548,10 +548,6 @@ const DISCLOSURES = [
     note: "No per-version path counts are emitted: command_versions is architecture-blind and dual-arch versions are last-writer-wins between x86 and arm64 (issue #91). commands.ros_version is the single stored value only.",
   },
   {
-    subject: "changelog.tsv prerelease ordering",
-    note: "Rows are version-ordered by the shared comparator, but it does not yet distinguish prerelease numbers (7.24beta1 vs 7.24beta2 compare equal), so same-base prereleases are ordered only by the secondary sort_order key. Deterministic, not fully version-sorted (issue #107).",
-  },
-  {
     subject: "sections.tsv vs pages.tsv word counts",
     note: "sections.tsv pivots up to nearly, not exactly, the pages.tsv word_count: section bodies (incl. the '_lead' fragment, B-0023) cover ~98% of page words, and the residual is heading-text lines, which belong to no fragment. pages.tsv.word_count is the authoritative whole-page count; a per-page sum over sections.tsv is the covered-body count, and the difference is that residual — not a drop.",
   },
