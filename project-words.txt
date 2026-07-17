@@ -72,6 +72,7 @@ crs
 csman
 ctx
 cubesa
+customisation
 cutover
 cwd
 cwmp
@@ -290,6 +291,7 @@ pickable
 pimsm
 pipefail
 pipestatus
+pivotable
 pmp
 poesettings
 powerlines

@@ -130,7 +130,7 @@ Make sections cover h4–h6 too, so `hotspot-customisation`'s 17 subsections bec
 Leave the schema; keep `pages_summary.tsv` honest by noting sections don't sum to the page.
 
 - **Pros:** zero risk; the export already discloses honestly.
-- **Cons:** leaves the 12% permanently unaddressable; blocks the #27 retrieval-unit direction; the
+- **Cons:** leaves the 12% permanently non-addressable; blocks the #27 retrieval-unit direction; the
   spreadsheet stays un-pivotable. Rejected as the *end* state, though it is the correct *interim* state
   until A lands.
 
