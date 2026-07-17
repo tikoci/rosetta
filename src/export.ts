@@ -403,7 +403,7 @@ const DATASET_READERS = [
 const DISCLOSURES = [
   {
     subject: "callouts.section_id / properties.section_id",
-    note: "NULL marks a genuinely page-level (or historical, pre-section-tracking) row, not a missing value; the columns were added in schema v9 (issue #90). Distinguished from the empty string by the \\N token.",
+    note: "NULL marks a genuinely page-level row, not a missing value; the columns were added in schema v9 (issue #90). Pre-first-heading content now resolves to the synthetic lead fragment (anchor '_lead', B-0023), so a NULL here is content with no lead fragment at all (e.g. a title-only page) — rare. Distinguished from the empty string by the \\N token.",
   },
   {
     subject: "videos transcript provenance",

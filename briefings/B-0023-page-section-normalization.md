@@ -60,6 +60,12 @@ customizations") that appears late, while ~17 `####` (h4) subsections sit above 
 h1–h3, every h4-organized subsection folds into "preamble" and never becomes an addressable fragment. A
 page authored at h4 depth is nearly invisible to the section table.
 
+**How broad is the h4-dominated case?** Of the 363 pages, **64 have >50% of their words orphaned**; of those,
+**41 have no section at all** and only **23 have some section but are still h4-dominated** (the
+`hotspot-customisation` shape). A lead fragment (Option A) recovers the preamble for **all 64**; splitting
+h4–h6 (Option B) would only *further* help the 23. That ratio is the grounding for keeping Option B out of
+scope: it's an exception-driven minority, and A alone closes the bulk of the gap.
+
 **The same gap shows up in the attribution columns** #90 added — rows that belong to page-level (pre-first-
 heading) content have `section_id = NULL` honestly, but that means they also cannot roll up to a section:
 
@@ -140,21 +146,34 @@ existing derived `code` / `code_lang` columns as a *view* over the same bytes, n
 (Tables already are separately stored *and* remain inline in the section text, so a table does not create a
 coverage hole — a code carve-out would.)
 
-# Current lean
+# Decision (2026-07-16, reviewed with maintainer)
 
-**Option A (lead fragment), as a 0.11.0 schema/ETL change, with a coverage-invariant assert.** Concretely:
+**Do Option A — a lead ("H0") fragment — as a 0.11.0 schema/ETL change.** The open questions below were
+reviewed and resolved; the design is settled enough to implement. Concretely:
 
-1. `parseSections()` emits a synthetic lead fragment for non-empty pre-first-heading content (reuse the
-   #93 empty rule; no lead row when the lead is empty).
-2. Reserve the lead `anchor_id` (empty string or `#lead`) and document it next to `attributeSection()`,
-   which then attributes lead-content rows to that anchor instead of `NULL`.
-3. Add an extractor assert in the spirit of #90/#92: the sum of fragment coverage reconciles to the page
-   (bytes, not just words, so it's exact) within a documented structural allowance for heading/title lines.
-   Decide up front where heading lines and the title/AI-summary blockquote "count" so the reconciliation is
-   defined, not approximate.
-4. Re-run the B-0022 export; `pages_summary.tsv` section words should now roll up to (page words − the
-   defined structural allowance), and the `section_id IS NULL` counts should drop to the genuinely
-   page-global rows.
+1. **`parseSections()` emits a synthetic lead fragment** for non-empty pre-first-heading content, reusing
+   the #93 empty rule: a page whose lead is empty/whitespace mints no lead row, so we don't manufacture
+   100+ empty fragments. It sits first (`sort_order = 0`); real h1–h3 sections shift to `1..n`, which is
+   the honest reading order (the lead genuinely precedes them).
+2. **Reserved anchor `_lead`, level `0`, heading = the page title.** The underscore is *provably*
+   collision-free, not merely unlikely: `slugify()` strips every character outside `[a-z0-9\s-]`, so no
+   real heading — and no `foo`/`foo-1` disambiguation suffix — can ever produce an `anchor_id` containing
+   `_`. That is stronger than a `#lead` token (which *could* collide with a literal "Lead" heading) and
+   self-documents that the fragment is synthetic. `attributeSection()` then returns `_lead` for
+   pre-first-heading lines instead of `null`, so lead-resident properties/callouts/tables resolve to a real
+   `section_id`.
+3. **Reconciliation is a test, not an extractor assert, and approximate is fine.** Exact `sum == page`
+   would force a home for every heading-marker line, title, and AI-summary blockquote — not worth bending
+   the schema for. A test checks that section coverage is within a reasonable delta of the page (the only
+   uncovered content being the h1–h3 heading-text lines, which belong to no fragment by construction), and
+   may compute the exact residual if a tighter check is ever wanted. The extractor's completion summary can
+   additionally *report* coverage so drift is visible without failing the build.
+4. **The lead is not separately FTS-indexed — because sections have no FTS table at all today.** Its text is
+   already in `pages_fts` via `pages.text`, so there is nothing to double-count. (Noted for #27: when
+   section-level search is built, the lead is often the *best* page summary — authors lead with what the
+   page is about — so it should be a first-class target then.)
+5. **Re-run the B-0022 export** to confirm `pages_summary.tsv` section words now roll up to the page (minus
+   the heading-line residual) and the `section_id IS NULL` counts drop to genuinely page-global rows.
 
 This is deliberately **schema/ETL only**. It ships the *data* that a future #27 tool change would need
 (section-level selection, term-at-line) without changing any MCP tool this release — matching the stated
@@ -176,18 +195,27 @@ This is deliberately **schema/ETL only**. It ships the *data* that a future #27 
   page/section *names*, changelog column order) are export-output shape and live in #104; this briefing is
   the underlying schema question, kept separate on purpose.
 
+# Resolved questions (2026-07-16)
+
+- **Lead anchor convention — resolved: `_lead`.** The maintainer's pedantic lean was `NULL` (most literally
+  "accurate"), but self-documentation wins for agentic development, so a reserved token it is. The
+  underscore was the deciding factor and turns out to be *provably* safe: `slugify()` deletes `_`, so no
+  heading can mint an `anchor_id` with an underscore, whereas a bare `lead` could collide with a literal
+  "Lead" heading. `_lead` it is.
+- **Exact reconciliation — resolved: not required.** `sum ~= page` within a reasonable delta is acceptable;
+  a test can check the delta (or compute the exact heading-line residual if ever wanted). The schema should
+  not bend over backwards for byte-exactness. Optionally surface coverage in the extractor's summary output.
+- **Lead FTS-indexing — resolved: yes in principle, no-op in practice.** Agreed the lead is often the best
+  page summary and should be a first-class search target — but there is no `sections_fts` today, and the
+  lead text is already in `pages_fts` via `pages.text`, so this change adds no FTS work. It's a note for #27.
+- **h4–h6 split (Option B) — resolved: out of scope now, counted for later.** The maintainer is interested
+  in the H0 side and in keeping MCP stable; h4–h6 is suspected to be exception/heuristic-driven (splitting
+  it risks minting near-empty or overhead-heavy micro-fragments on other pages), so it deserves its own
+  effort if #27 ever wants it. The count was done as quick grounding: 23 h4-dominated pages (see grounding
+  section) — a minority, confirming A-first.
+
 # Open questions
 
-- **Lead anchor convention:** empty string vs. a reserved `#lead`/`#_lead` token. Empty string is smallest
-  but is easy to mistake for "unset"; a reserved token is self-documenting but must be guaranteed
-  collision-free against `slugify()` output.
-- **Exact reconciliation:** bytes won't reconcile perfectly unless heading-text lines, the title, and the
-  AI-summary blockquote are each assigned a home. Is a *defined structural allowance* (heading lines belong
-  to no fragment, counted separately) acceptable, or do we want literal `sum == page`? The former is
-  simpler and still catches drift.
-- **Is the lead fragment FTS-indexed as a section?** Leaning yes (future section-level search needs it), but
-  it must be additive to page FTS, not double-counted in a way that skews BM25. Verify against the #26
-  ranking-regression fixtures before committing.
-- **h4–h6 (Option B):** parked for #27, but worth a cheap count now — how many pages are, like
-  `hotspot-customisation`, dominated by h4 structure? If it's a handful, A alone is enough; if it's broad,
-  #27 will want B sooner.
+- None blocking implementation. The remaining judgment call is *where exactly* the lead slice ends relative
+  to the dropped duplicate-title lines and the AI-summary blockquote — settled in code as "everything before
+  the first non-title h1–h3 heading," which keeps the raw-slice semantics the other sections already use.
