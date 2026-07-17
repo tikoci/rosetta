@@ -326,6 +326,7 @@ rbwmk
 recognised
 redownloads
 regen
+regenerable
 rehearsable
 reinits
 replac
