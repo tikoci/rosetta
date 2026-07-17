@@ -171,6 +171,7 @@ export type DbGroundingStatus =
   | "ok"
   | "schema_mismatch"
   | "internal_inconsistent"
+  | "provenance_incomplete"
   | "tag_behind"
   | "unstamped";
 
@@ -194,12 +195,18 @@ export type DbGroundingVerdict = {
  *      dead giveaway of a DB whose pragma was bumped in place by initDb() over a
  *      stale corpus (the #94 "Frankenstein"): stamped provenance no longer
  *      describes the bytes.
- *   3. unstamped             — no release_tag / source_commit. A local
+ *   3. unstamped             — neither release_tag nor source_commit. A local
  *      `make extract` working build: fine for extraction, not for grounding
  *      claims about shipped data.
- *   4. tag_behind            — release_tag's MAJOR.MINOR.PATCH is behind the
+ *   4. provenance_incomplete — claims release identity (has release_tag OR
+ *      source_commit) but is missing one of the four stamps a CI release always
+ *      writes (release_tag, source_commit, built_at, schema_version). Fail
+ *      closed: partial provenance can't be trusted as a grounding source.
+ *   5. tag_behind            — release_tag's MAJOR.MINOR.PATCH is behind the
  *      running code's. Content predates this checkout.
- *   5. ok                    — provenance present, schema coherent, tag current.
+ *   6. ok                    — all four stamps present, schema coherent, tag
+ *      current (schema/release-compatible with this build — not proof the DB was
+ *      built from this exact commit; a release DB is built from an ancestor).
  */
 export function classifyDbGrounding(input: {
   pragmaSchema: number;
@@ -231,20 +238,42 @@ export function classifyDbGrounding(input: {
     );
   }
 
-  if (input.releaseTag === null || input.sourceCommit === null) {
+  const hasReleaseIdentity = input.releaseTag !== null || input.sourceCommit !== null;
+  if (!hasReleaseIdentity) {
     return verdict(
       "unstamped",
       "No release_tag/source_commit — a local extraction build, not a CI release. Fine for extraction work; not a grounding source for claims about shipped data.",
     );
   }
 
+  // Claims release identity — a real CI release stamps all four. Missing any is a
+  // malformed/partial artifact: fail closed rather than trust it (built_at is
+  // required here, so it is not merely informational).
+  if (
+    input.releaseTag === null ||
+    input.sourceCommit === null ||
+    input.builtAt === null ||
+    input.metaSchema === null
+  ) {
+    const missing = [
+      input.releaseTag === null ? "release_tag" : null,
+      input.sourceCommit === null ? "source_commit" : null,
+      input.builtAt === null ? "built_at" : null,
+      input.metaSchema === null ? "schema_version" : null,
+    ].filter(Boolean).join(", ");
+    return verdict(
+      "provenance_incomplete",
+      `Partial db_meta provenance (missing ${missing}); a CI release stamps all four, so this DB's origin cannot be trusted for grounding.`,
+    );
+  }
+
   const cmp = compareBaseVersion(input.releaseTag, `v${input.codeVersion}`);
   if (cmp === null) {
-    // A stamped-but-unparseable release_tag (or an "unknown" code version) means
-    // freshness could not be verified. Never fall through to "ok" — an
-    // unverifiable version is not a grounded one.
+    // All four stamps are present, but the release_tag (or code version) has no
+    // parseable MAJOR.MINOR.PATCH, so freshness cannot be verified. Never fall
+    // through to "ok" — an unverifiable version is not a grounded one.
     return verdict(
-      "unstamped",
+      "provenance_incomplete",
       `Cannot compare DB release ${input.releaseTag} with running code v${input.codeVersion}; version is unparseable, so freshness is unverified.`,
     );
   }

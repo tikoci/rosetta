@@ -117,12 +117,15 @@ describe("db grounding tooling", () => {
     expect(pkg.scripts["db:sync"]).not.toContain("--refresh");
   });
 
-  test("db-sync discovers the newest release (prereleases included) via gh and overrides downloadDb's URL", () => {
+  test("db-sync discovers releases (prereleases included) via gh and passes the ordered candidate list to downloadDb", () => {
     const src = readText("scripts/db-sync.ts");
     expect(src).toContain("gh api");
     expect(src).toContain("ros-help.db.gz");
-    // Must reach past the newest *stable* — otherwise it grabs the old schema.
-    expect(src).toContain("downloadDb(dbPath");
+    // Must hand downloadDb the WHOLE ordered candidate list (not just the newest
+    // tag) so it can walk down past a higher-schema release to the newest one
+    // that matches this checkout — finding #2 in the Codex review of #113.
+    expect(src).toContain("tags.map");
+    expect(src).toContain("downloadDb(dbPath, console.log, urls)");
   });
 
   test("Makefile db-sync/db-doctor targets are declared .PHONY and call the scripts", () => {

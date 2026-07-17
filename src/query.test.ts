@@ -2159,6 +2159,10 @@ describe("getDbStats", () => {
   });
 
   test("exposes a provenance block with a grounding verdict (#94)", () => {
+    // A sibling test writes db_meta on the shared in-memory DB; clear it so this
+    // test controls its own provenance state (verdict logic itself is unit-tested
+    // in paths.test.ts — here we only assert getDbStats wires the block through).
+    db.run("DELETE FROM db_meta");
     const stats = getDbStats();
     expect(stats).toHaveProperty("provenance");
     const p = stats.provenance;
@@ -2166,8 +2170,7 @@ describe("getDbStats", () => {
     expect(p.code_schema_version).toBe(SCHEMA_VERSION);
     expect(p.grounding).toHaveProperty("status");
     expect(typeof p.grounding.ok).toBe("boolean");
-    // The in-memory test DB is initialized but never CI-stamped, so it is a
-    // schema-coherent but unstamped local build.
+    // No release_tag/source_commit stamped → a genuinely unstamped local build.
     expect(p.grounding.status).toBe("unstamped");
     expect(p.grounding.ok).toBe(false);
   });

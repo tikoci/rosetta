@@ -944,9 +944,11 @@ server.registerTool(
 Returns live corpus counts (pages, properties, callouts, changelogs, commands, link coverage),
 version range, available agent skills, and a **provenance** block: the resolved DB path, its
 db_meta stamps (release_tag / source_commit / built_at / schema_version), and a **grounding
-verdict** (status ok / schema_mismatch / internal_inconsistent / tag_behind / unstamped). Use the
-verdict to confirm the DB you are querying matches the code you are reading before trusting counts
-(#94). All counts here are live — do not rely on any numbers baked into prose elsewhere.
+verdict** (status ok / schema_mismatch / internal_inconsistent / provenance_incomplete / tag_behind
+/ unstamped). Use the verdict to confirm the DB you are querying is schema/release-compatible with
+the code you are reading before trusting counts — "ok" means compatible (schema coherent, all four
+stamps present, release not behind), not that the DB was built from this exact commit (#94). All
+counts here are live — do not rely on any numbers baked into prose elsewhere.
 
 Skills: Community-created agent guides from tikoci/routeros-skills are available as MCP resources
 at rosetta://skills/{name}. Use the resource listing to browse available skills.

@@ -424,22 +424,33 @@ export async function downloadDb(
   log: (msg: string) => void = console.log,
   urlsOverride?: string[],
 ): Promise<DbProbe> {
+  // An explicit URL override (db-sync) is a request to install a *specific*
+  // release, so the lock-contention shortcut must NOT silently reuse whatever
+  // schema-compatible DB happens to be on disk — that would report success while
+  // retaining an older/unrelated release. In that case we still wait for the
+  // other process to release the lock (via waitForUsableDb, which returns once
+  // the lock file disappears), but then re-acquire the lock and download the
+  // requested release below rather than returning the reused DB.
+  const forceDownload = !!(urlsOverride && urlsOverride.length > 0);
+
   let lock = tryAcquireDownloadLock(dbPath);
   if (!lock) {
     const reused = await waitForUsableDb(dbPath, log);
-    if (reused) {
-      const probe = probeDb(dbPath);
-      if (probe) {
-        log(`  Reused existing database: ${formatProbeSummary(probe)}`);
-        return probe;
+    if (!forceDownload) {
+      if (reused) {
+        const probe = probeDb(dbPath);
+        if (probe) {
+          log(`  Reused existing database: ${formatProbeSummary(probe)}`);
+          return probe;
+        }
       }
-    }
 
-    // Re-probe once — the lock may have been released with a healthy DB
-    const fallbackProbe = probeDb(dbPath);
-    if (isUsableDbProbe(fallbackProbe)) {
-      log(`  Reused existing database: ${formatProbeSummary(fallbackProbe)}`);
-      return fallbackProbe;
+      // Re-probe once — the lock may have been released with a healthy DB
+      const fallbackProbe = probeDb(dbPath);
+      if (isUsableDbProbe(fallbackProbe)) {
+        log(`  Reused existing database: ${formatProbeSummary(fallbackProbe)}`);
+        return fallbackProbe;
+      }
     }
 
     lock = tryAcquireDownloadLock(dbPath);

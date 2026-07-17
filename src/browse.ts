@@ -1097,6 +1097,11 @@ function renderStats(): string {
     out.push(`  ${dim("Schema:")} v${stats.schema_version}`);
   }
   out.push(`  ${dim("Provenance:")} ${stats.doc_export}`);
+  const grounding = stats.provenance?.grounding;
+  if (grounding) {
+    const label = grounding.ok ? "OK" : grounding.status.toUpperCase();
+    out.push(`  ${dim("Grounding:")} ${label}${grounding.ok ? "" : ` — ${grounding.detail}`}`);
+  }
   out.push("");
 
   const kv = (label: string, value: string | number) => {

@@ -97,6 +97,34 @@ describe("classifyDbGrounding", () => {
     expect(v.status).toBe("ok");
   });
 
+  test("partial provenance (missing built_at) fails closed as provenance_incomplete", () => {
+    // A real CI release stamps all four; release_tag + source_commit but no
+    // built_at is a malformed artifact and must not reach ok.
+    const v = classifyDbGrounding({
+      ...base,
+      pragmaSchema: 10,
+      metaSchema: 10,
+      releaseTag: "v0.11.0-rc.102",
+      sourceCommit: "abc123",
+      builtAt: null,
+    });
+    expect(v.status).toBe("provenance_incomplete");
+    expect(v.ok).toBe(false);
+  });
+
+  test("release_tag present but schema_version stamp missing → provenance_incomplete", () => {
+    const v = classifyDbGrounding({
+      ...base,
+      pragmaSchema: 10,
+      metaSchema: null, // no db_meta.schema_version stamp
+      releaseTag: "v0.11.0-rc.102",
+      sourceCommit: "abc123",
+      builtAt: "2026-07-17T00:00:00.000Z",
+    });
+    expect(v.status).toBe("provenance_incomplete");
+    expect(v.ok).toBe(false);
+  });
+
   test("unparseable release_tag is never classified ok — freshness is unverified", () => {
     const v = classifyDbGrounding({
       ...base,
@@ -106,7 +134,7 @@ describe("classifyDbGrounding", () => {
       sourceCommit: "abc123",
       builtAt: "2026-07-17T00:00:00.000Z",
     });
-    expect(v.status).toBe("unstamped");
+    expect(v.status).toBe("provenance_incomplete");
     expect(v.ok).toBe(false);
   });
 

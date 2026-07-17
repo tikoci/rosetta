@@ -39,9 +39,12 @@ Pure function, shared by `routeros_stats` (`getDbStats`), MCP startup, and
 |---|---|---|
 | `schema_mismatch` | `PRAGMA user_version` ≠ code `SCHEMA_VERSION` | `make db-sync` |
 | `internal_inconsistent` | `db_meta.schema_version` ≠ pragma — a corpus bumped in place by `initDb()`; provenance no longer describes the bytes (the #94 "Frankenstein") | `make db-sync` |
-| `unstamped` | no `release_tag`/`source_commit` — a local `make extract` build | fine for extraction; `make db-sync` to ground |
+| `unstamped` | neither `release_tag` nor `source_commit` — a local `make extract` build | fine for extraction; `make db-sync` to ground |
+| `provenance_incomplete` | claims release identity but is missing one of the four CI stamps (`release_tag`/`source_commit`/`built_at`/`schema_version`), or a stamped version that won't parse — fail closed | `make db-sync` |
 | `tag_behind` | `release_tag` base version behind the checkout | `make db-sync` |
-| `ok` | provenance present, schema coherent, tag current | — |
+| `ok` | all four stamps present, schema coherent, tag current | — |
+
+`ok` means the DB is **schema/release-compatible** with this build (coherent schema, complete provenance, release not behind) — not proof it was built from the exact checked-out commit. A release DB is legitimately built from an ancestor commit; `db-doctor` reports that source commit for inspection.
 
 The rc/beta counter is intentionally ignored — a dev checkout's `package.json`
 routinely reads `-rc.0` while the correct published DB is a much higher rc. Only

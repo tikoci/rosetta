@@ -29,13 +29,18 @@ const REPO = "tikoci/rosetta";
 const ASSET = "ros-help.db.gz";
 const dbPath = resolveDbPath(import.meta.dirname);
 
-// Newest non-draft release (prerelease OR stable) that carries the DB asset.
-// The releases API returns newest-first by created_at, so first() wins.
-const jq = `first(.[] | select(.draft | not) | select([.assets[].name] | index("${ASSET}")) | .tag_name)`;
+// All non-draft releases (prerelease OR stable) that carry the DB asset, newest
+// first (the releases API returns newest-first by created_at). We hand the WHOLE
+// ordered list to downloadDb: it validates each candidate's schema against this
+// build and walks down to the newest release that actually MATCHES — so an older
+// checkout still resolves a compatible DB even after a newer, higher-schema
+// release exists above it. Selecting only the newest tag would fail there.
+const jq = `[.[] | select(.draft | not) | select([.assets[].name] | index("${ASSET}")) | .tag_name]`;
 
-let tag = "";
+let tags: string[] = [];
 try {
-  tag = (await $`gh api ${`repos/${REPO}/releases?per_page=50`} --jq ${jq}`.text()).trim();
+  const out = (await $`gh api ${`repos/${REPO}/releases?per_page=50`} --jq ${jq}`.text()).trim();
+  tags = JSON.parse(out) as string[];
 } catch (e) {
   console.error("✗ Could not query GitHub releases via gh.");
   console.error(`  ${e instanceof Error ? e.message : e}`);
@@ -43,25 +48,25 @@ try {
   process.exit(1);
 }
 
-if (!tag) {
+if (tags.length === 0) {
   console.error(`✗ No release ships ${ASSET} yet — nothing to sync.`);
   process.exit(1);
 }
 
-const url = `https://github.com/${REPO}/releases/download/${tag}/${ASSET}`;
-console.log(`Newest release with ${ASSET}: ${tag}`);
-console.log(`Target DB path: ${dbPath}`);
+const urls = tags.map((tag) => `https://github.com/${REPO}/releases/download/${tag}/${ASSET}`);
+console.log(`Releases with ${ASSET} (newest first): ${tags.join(", ")}`);
+console.log(`Target schema: v${SCHEMA_VERSION}   Target DB path: ${dbPath}`);
 
 try {
-  const probe = await downloadDb(dbPath, console.log, [url]);
-  console.log(`✓ Synced: schema v${probe.schemaVersion}, ${probe.pages} pages, release ${probe.releaseTag ?? tag}.`);
+  const probe = await downloadDb(dbPath, console.log, urls);
+  console.log(`✓ Synced: schema v${probe.schemaVersion}, ${probe.pages} pages, release ${probe.releaseTag ?? "unknown"}.`);
   process.exit(0);
 } catch (e) {
   const msg = e instanceof Error ? e.message : String(e);
   console.error(`✗ Sync failed: ${msg}`);
   if (msg.includes("schema=")) {
     console.error(
-      `  The newest release (${tag}) ships a different schema than this checkout (expected v${SCHEMA_VERSION}).\n` +
+      `  None of the ${tags.length} candidate release(s) ship a DB matching this checkout's schema (v${SCHEMA_VERSION}).\n` +
         `  This checkout is likely ahead of any published release DB. Use 'make extract' for a local\n` +
         `  (unstamped) working DB until a matching release is published.`,
     );
