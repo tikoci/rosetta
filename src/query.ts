@@ -2663,19 +2663,43 @@ export function searchVideos(query: string, limit = 5): VideoSearchResult[] {
 function runVideosFtsQuery(ftsQuery: string, limit: number): VideoSearchResult[] {
   if (!ftsQuery) return [];
   try {
-    return db
+    // A video with several matching segments would otherwise consume multiple of the
+    // top-`limit` rows and, after the caller dedupes by video, hide eligible videos ranked
+    // just below the cutoff (issue #89 — "firewall filter" yielded 7 videos from 10 rows).
+    // fts5's snippet() can't run alongside a window function, so this is two bounded steps:
+    // (1) pick the best-ranked segment PER VIDEO, then (2) fetch the excerpt for just those.
+    const rows = db
       .prepare(
-        `SELECT v.video_id, v.title, v.url, v.upload_date,
-                vs.chapter_title, vs.start_s,
-                snippet(video_segments_fts, 1, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) as excerpt
-         FROM video_segments_fts fts
-         JOIN video_segments vs ON vs.id = fts.rowid
-         JOIN videos v ON v.id = vs.video_id
-         WHERE video_segments_fts MATCH ?
-         ORDER BY rank
+        `SELECT seg_id, video_id, title, url, upload_date, chapter_title, start_s
+         FROM (
+           SELECT video_segments_fts.rowid AS seg_id, v.video_id AS video_id, v.title AS title,
+                  v.url AS url, v.upload_date AS upload_date, vs.chapter_title AS chapter_title,
+                  vs.start_s AS start_s, video_segments_fts.rank AS r,
+                  ROW_NUMBER() OVER (PARTITION BY v.id ORDER BY video_segments_fts.rank) AS rn
+           FROM video_segments_fts
+           JOIN video_segments vs ON vs.id = video_segments_fts.rowid
+           JOIN videos v ON v.id = vs.video_id
+           WHERE video_segments_fts MATCH ?
+         )
+         WHERE rn = 1
+         ORDER BY r
          LIMIT ?`,
       )
-      .all(ftsQuery, limit) as VideoSearchResult[];
+      .all(ftsQuery, limit) as Array<VideoSearchResult & { seg_id: number }>;
+    if (rows.length === 0) return [];
+
+    const segIds = rows.map((r) => r.seg_id);
+    const excerpts = db
+      .prepare(
+        `SELECT rowid AS seg_id,
+                snippet(video_segments_fts, 1, '${EXCERPT_MARK_START}', '${EXCERPT_MARK_END}', '...', 25) AS excerpt
+         FROM video_segments_fts
+         WHERE video_segments_fts MATCH ? AND rowid IN (${segIds.map(() => "?").join(",")})`,
+      )
+      .all(ftsQuery, ...segIds) as Array<{ seg_id: number; excerpt: string }>;
+    const byId = new Map(excerpts.map((e) => [e.seg_id, e.excerpt]));
+
+    return rows.map(({ seg_id, ...rest }) => ({ ...rest, excerpt: byId.get(seg_id) ?? "" }));
   } catch {
     return [];
   }

@@ -527,6 +527,24 @@ beforeAll(() => {
     (id, video_id, chapter_title, start_s, end_s, transcript, sort_order)
     VALUES
     (4, 3, NULL, 0, NULL, 'In this release VRF offloading gets hardware support and DoH now runs over HTTP two.', 0)`);
+  // Dedup regression pair (issue #89): both videos match "gigabit throughput tuning" only in
+  // the transcript (never the title). video 4 has THREE matching segments; without per-video
+  // dedup its segments consume the SQL limit and hide video 5.
+  db.run(`INSERT INTO videos
+    (id, video_id, title, description, channel, upload_date, duration_s, url, has_chapters)
+    VALUES
+    (4, 'perf-a', 'Lab Session A', 'Benchmarking notes', 'MikroTik', '20240401', 700,
+     'https://www.youtube.com/watch?v=perf-a', 1)`);
+  db.run(`INSERT INTO videos
+    (id, video_id, title, description, channel, upload_date, duration_s, url, has_chapters)
+    VALUES
+    (5, 'perf-b', 'Lab Session B', 'Benchmarking notes', 'MikroTik', '20240402', 300,
+     'https://www.youtube.com/watch?v=perf-b', 0)`);
+  db.run(`INSERT INTO video_segments (id, video_id, chapter_title, start_s, end_s, transcript, sort_order) VALUES
+    (5, 4, 'Part 1', 0, 100, 'We measure gigabit throughput tuning on the test bench.', 0),
+    (6, 4, 'Part 2', 100, 200, 'More gigabit throughput tuning with different packet sizes.', 1),
+    (7, 4, 'Part 3', 200, 300, 'Final gigabit throughput tuning results and analysis.', 2),
+    (8, 5, NULL, 0, NULL, 'A quick look at gigabit throughput tuning for small setups.', 0)`);
 
   // Dude wiki page fixtures for searchDude tests
   db.run(`INSERT INTO dude_pages
@@ -2416,6 +2434,15 @@ describe("searchVideos", () => {
     expect(results[0].video_id).toBe("chg723");
     // Proves the hit came from the title, not the narration.
     expect(results[0].excerpt.toLowerCase()).toContain("changelog");
+  });
+
+  test("a video's multiple matching segments don't crowd out distinct videos (issue #89 dedup)", () => {
+    // video 4 (perf-a) has 3 matching segments, video 5 (perf-b) has 1 — both transcript-only.
+    const results = searchVideos("gigabit throughput tuning", 2);
+    const ids = results.map((r) => r.video_id);
+    expect(new Set(ids).size).toBe(ids.length); // each video appears at most once
+    expect(ids).toContain("perf-b"); // not hidden behind perf-a's three segments
+    expect(results.length).toBe(2);
   });
 
   test("returns empty array for empty query", () => {
