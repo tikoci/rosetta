@@ -119,6 +119,12 @@ beforeAll(() => {
     "INSERT INTO page_tables (page_id, section_id, source_heading, raw_markdown, column_count, data_row_count, is_ragged, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     [PAGE_ID, SECTION_ID, "Notes", "| a | b |\n|---|---|\n| 1 | 2 |", 2, 3, 0, 0],
   );
+  // Wire the "address" property back to this table (page_table_rows → source_table_row_id)
+  // so tables.tsv.is_property_source resolves to 1 for a table that actually fed a property.
+  const tableId = (db.prepare("SELECT id FROM page_tables WHERE page_id = ? AND sort_order = 0").get(PAGE_ID) as { id: number }).id;
+  db.run("INSERT INTO page_table_rows (table_id, row_order) VALUES (?, ?)", [tableId, 0]);
+  const rowId = (db.prepare("SELECT id FROM page_table_rows WHERE table_id = ?").get(tableId) as { id: number }).id;
+  db.run("UPDATE properties SET source_table_row_id = ? WHERE page_id = ? AND name = 'address'", [rowId, PAGE_ID]);
 });
 
 const ALL_FILES = ["callouts.tsv", "changelog.tsv", "commands.tsv", "pages.tsv", "properties.tsv", "sections.tsv", "tables.tsv", "videos.tsv"];
@@ -300,6 +306,13 @@ describe("runExport", () => {
     const dir = exportToTmp();
     await runExport(dir, db);
     const cols = colsOf(dir, "tables.tsv");
+    // Column order is a contract: human-readable identity + shape/size stats up front,
+    // identifier columns next, the two long URL columns last.
+    expect(cols).toEqual([
+      "page_id", "sort_order", "title", "source_heading",
+      "data_row_count", "column_count", "is_ragged", "is_property_source", "raw_bytes",
+      "slug", "section_anchor", "rosetta_id", "section_id", "table_url", "url",
+    ]);
     const t = rowsOf(dir, "tables.tsv").find((r) => r[cols.indexOf("page_id")] === String(PAGE_ID));
     if (!t) throw new Error("no tables.tsv row for the seeded table");
     expect(t[cols.indexOf("section_anchor")]).toBe("notes");
@@ -307,6 +320,9 @@ describe("runExport", () => {
     expect(t[cols.indexOf("column_count")]).toBe("2");
     expect(t[cols.indexOf("data_row_count")]).toBe("3");
     expect(t[cols.indexOf("is_ragged")]).toBe("0");
+    // is_property_source = 1: the "address" property's source_table_row_id resolves
+    // back to this table (page_table_rows → page_tables).
+    expect(t[cols.indexOf("is_property_source")]).toBe("1");
     // table_url deep-links to the containing section (url#anchor).
     expect(t[cols.indexOf("table_url")]).toBe("https://example/ip-dhcp#notes");
     // raw_bytes = UTF-8 length of the seeded raw markdown, not a rendered size.
