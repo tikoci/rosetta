@@ -362,12 +362,13 @@ function readSections(database: Database): Dataset {
  * shape/size stats up front, then the identifier columns, then the two long URL
  * columns last, so the file skims left-to-right for a human reviewer.
  *
- * `is_property_source` (0/1) flags whether this table actually fed ≥1 extracted
- * `lookup_property` row — a property's `source_table_row_id` resolves back through
- * `page_table_rows` to this table. It is "did extraction yield properties from
- * here", NOT "does this look like a property table": a property-shaped table the
- * gates skipped (the 27 property-headed tables of #100) is honestly 0, which is the
- * signal a human review uses to find the tables B-0077 still needs to recognize.
+ * `is_property_source` (0/1) flags whether this table actually produced ≥1 row in
+ * the `properties` table (the data `routeros_lookup_property` surfaces) — a
+ * property's `source_table_row_id` resolves back through `page_table_rows` to this
+ * table. It is "did extraction yield properties from here", NOT "does this look like
+ * a property table": a property-shaped table the gates skipped (the 27 property-
+ * headed tables of #100) is honestly 0, which is the signal a human review uses to
+ * find the tables B-0077 still needs to recognize.
  *
  * `table_url` deep-links to the section that contains the table (`url#anchor`);
  * Docusaurus has no per-table anchor, so a table with no resolvable section
@@ -569,7 +570,7 @@ const DISCLOSURES = [
   },
   {
     subject: "tables.tsv table_url granularity + raw_bytes + is_property_source",
-    note: "table_url deep-links to the section that contains the table (url#anchor), not the table itself — manual.mikrotik.com (Docusaurus) exposes no per-table anchor. A table with no resolvable section (section_id NULL) links to the bare page URL; a page with no URL yields NULL. raw_bytes is the UTF-8 size of the stored source Markdown (raw_markdown), not rendered output. is_property_source is 1 iff a lookup_property row's source_table_row_id resolves back to this table — i.e. extraction actually produced properties from it, NOT that the table merely looks property-shaped; a property-headed table the extractor gates skipped (issue #100) is honestly 0. The table's cell data is not exported here — this is the inventory list; the per-fragment cell files are E4 (issue #104).",
+    note: "table_url deep-links to the section that contains the table (url#anchor), not the table itself — manual.mikrotik.com (Docusaurus) exposes no per-table anchor. A table with no resolvable section (section_id NULL) links to the bare page URL; a page with no URL yields NULL. raw_bytes is the UTF-8 size of the stored source Markdown (raw_markdown), not rendered output. is_property_source is 1 if and only if a properties row's source_table_row_id (the data routeros_lookup_property surfaces) resolves back to this table — i.e. extraction actually produced properties from it, NOT that the table merely looks property-shaped; a property-headed table the extractor gates skipped (issue #100) is honestly 0. The table's cell data is not exported here — this is the inventory list; the per-fragment cell files are E4 (issue #104).",
   },
 ];
 

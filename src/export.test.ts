@@ -40,6 +40,9 @@ const HARD_CONTENT = "line one\nline two\r\ntab\there\\slash literal-\\N end";
 // process, so other files may have left pages/sections rows behind.
 const PAGE_ID = 999001;
 const SECTION_ID = 999010;
+// A second page carrying a property-headed table the extractor produced no property
+// from — the is_property_source = 0 case (the tables B-0077 still needs to recognize).
+const PAGE_ID_2 = 999002;
 
 beforeAll(() => {
   initDb();
@@ -60,7 +63,7 @@ beforeAll(() => {
     db.run(`DELETE FROM ${t}`);
   }
   db.run(`DELETE FROM sections WHERE id = ${SECTION_ID}`);
-  db.run(`DELETE FROM pages WHERE id = ${PAGE_ID}`);
+  db.run(`DELETE FROM pages WHERE id IN (${PAGE_ID}, ${PAGE_ID_2})`);
   db.run("PRAGMA foreign_keys = ON");
 
   // FK targets for callouts (page + section).
@@ -71,6 +74,10 @@ beforeAll(() => {
   db.run(
     `INSERT INTO sections (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
      VALUES (${SECTION_ID}, ${PAGE_ID}, 'Notes', 2, 'notes', 'x', '', 1, 0)`,
+  );
+  db.run(
+    `INSERT INTO pages (id, rosetta_id, slug, title, path, depth, url, text, code, word_count, code_lines, html_file)
+     VALUES (${PAGE_ID_2}, 'ip-pool', 'ip-pool', 'IP Pool', '/ip/pool', 0, 'https://example/ip-pool', 'body', '', 2, 0, 'ip-pool.html')`,
   );
 
   // Changelogs: versions deliberately out of lexical order so the numeric/beta/rc
@@ -119,12 +126,25 @@ beforeAll(() => {
     "INSERT INTO page_tables (page_id, section_id, source_heading, raw_markdown, column_count, data_row_count, is_ragged, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
     [PAGE_ID, SECTION_ID, "Notes", "| a | b |\n|---|---|\n| 1 | 2 |", 2, 3, 0, 0],
   );
-  // Wire the "address" property back to this table (page_table_rows → source_table_row_id)
-  // so tables.tsv.is_property_source resolves to 1 for a table that actually fed a property.
+  // Wire the "address" property back to this table so tables.tsv.is_property_source
+  // resolves to 1. Mirror the real extractor: row_order 0 is the header, and only DATA
+  // rows (row_order > 0) get a source_table_row_id — so link the property to row_order 1,
+  // never the header, matching what a runtime extraction can actually emit.
   const tableId = (db.prepare("SELECT id FROM page_tables WHERE page_id = ? AND sort_order = 0").get(PAGE_ID) as { id: number }).id;
-  db.run("INSERT INTO page_table_rows (table_id, row_order) VALUES (?, ?)", [tableId, 0]);
-  const rowId = (db.prepare("SELECT id FROM page_table_rows WHERE table_id = ?").get(tableId) as { id: number }).id;
-  db.run("UPDATE properties SET source_table_row_id = ? WHERE page_id = ? AND name = 'address'", [rowId, PAGE_ID]);
+  db.run("INSERT INTO page_table_rows (table_id, row_order) VALUES (?, ?)", [tableId, 0]); // header
+  const insDataRow = db.prepare("INSERT INTO page_table_rows (table_id, row_order) VALUES (?, ?)");
+  const dataRowId = Number(insDataRow.run(tableId, 1).lastInsertRowid); // first data row
+  db.run("UPDATE properties SET source_table_row_id = ? WHERE page_id = ? AND name = 'address'", [dataRowId, PAGE_ID]);
+
+  // Negative case: a property-headed table on PAGE_ID_2 that produced NO property (its
+  // rows exist but no property points back), so is_property_source must stay 0.
+  db.run(
+    "INSERT INTO page_tables (page_id, section_id, source_heading, raw_markdown, column_count, data_row_count, is_ragged, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    [PAGE_ID_2, null, "Properties", "| p | q |\n|---|---|\n| 3 | 4 |", 2, 1, 0, 0],
+  );
+  const tableId2 = (db.prepare("SELECT id FROM page_tables WHERE page_id = ? AND sort_order = 0").get(PAGE_ID_2) as { id: number }).id;
+  db.run("INSERT INTO page_table_rows (table_id, row_order) VALUES (?, ?)", [tableId2, 0]); // header
+  db.run("INSERT INTO page_table_rows (table_id, row_order) VALUES (?, ?)", [tableId2, 1]); // data, unlinked
 });
 
 const ALL_FILES = ["callouts.tsv", "changelog.tsv", "commands.tsv", "pages.tsv", "properties.tsv", "sections.tsv", "tables.tsv", "videos.tsv"];
@@ -327,6 +347,15 @@ describe("runExport", () => {
     expect(t[cols.indexOf("table_url")]).toBe("https://example/ip-dhcp#notes");
     // raw_bytes = UTF-8 length of the seeded raw markdown, not a rendered size.
     expect(t[cols.indexOf("raw_bytes")]).toBe(String(utf8Bytes("| a | b |\n|---|---|\n| 1 | 2 |")));
+
+    // Negative case: a property-headed table that produced no property stays 0 — the
+    // "looks like a property table but isn't recognized yet" signal B-0077 relies on.
+    const t2 = rowsOf(dir, "tables.tsv").find((r) => r[cols.indexOf("page_id")] === String(PAGE_ID_2));
+    if (!t2) throw new Error("no tables.tsv row for the property-headed table on PAGE_ID_2");
+    expect(t2[cols.indexOf("source_heading")]).toBe("Properties");
+    expect(t2[cols.indexOf("is_property_source")]).toBe("0");
+    // No section resolves → table_url is the bare page URL (no #anchor).
+    expect(t2[cols.indexOf("table_url")]).toBe("https://example/ip-pool");
   });
 
   test("manifest provenance mirrors db_meta", async () => {
