@@ -28,12 +28,13 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
+import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 import { loadSitemapUrls } from "./rosetta-id.ts";
 
 const BASE = "https://manual.mikrotik.com";
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_CACHE_DIR = resolve(PROJECT_ROOT, "manual", "pages", "hardware");
-const DEFAULT_MATRIX_CSV = resolve(PROJECT_ROOT, "matrix", "2026-07-07", "matrix.csv");
+const DEFAULT_MATRIX_CSV = resolve(PROJECT_ROOT, MATRIX_CSV_RELATIVE_PATH);
 const FETCH_DELAY_MS = 150;
 
 // ── CLI flags ──

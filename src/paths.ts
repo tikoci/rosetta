@@ -1,5 +1,6 @@
 /**
- * paths.ts — Shared DB path resolution for all entry points.
+ * paths.ts — Shared DB path resolution for all entry points, plus the
+ * committed data-snapshot paths that several extractors must agree on.
  *
  * Three modes:
  *   1. Compiled binary (IS_COMPILED) → next to executable
@@ -85,6 +86,18 @@ export function detectMode(srcDir: string): InvocationMode {
 export function isDevInvocation(mode: InvocationMode): boolean {
   return mode === "dev";
 }
+
+/**
+ * Current product-matrix snapshot, relative to the project root.
+ *
+ * Snapshots are date-stamped and committed under `matrix/` (see `matrix/CLAUDE.md`).
+ * Five entry points read this file — extract-devices, extract-hardware-catalog,
+ * build-device-map, assess-hardware, assess-www — and they must all read the *same*
+ * snapshot, or the `devices` table and the hardware overlay silently describe
+ * different product sets. Bump this one constant when committing a new
+ * `matrix/YYYY-MM-DD/` directory; committing the directory alone is a no-op.
+ */
+export const MATRIX_CSV_RELATIVE_PATH = "matrix/2026-07-20/matrix.csv";
 
 /**
  * Schema version for ros-help.db.

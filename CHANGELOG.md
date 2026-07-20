@@ -22,6 +22,18 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.1] — 2026-07-20
+
+### Fixed
+
+- **`hAP ax2` and `hAP ax3` linked to the wrong `/hardware` manual pages.** MikroTik shifted the slugs by one upstream: the hAP ax² page moved `/hardware/hap-ax` → `/hardware/hap-ax-2`, and the hAP ax³ page moved `/hardware/hap-ax-2` → `/hardware/hap-ax-3`. The committed device map still held the pre-shift slugs, which were correct when generated, so afterwards `hAP ax3` resolved to `/hardware/hap-ax-2` — a URL that now serves **hAP ax²** — and `hAP ax2` pointed at a slug that no longer exists. Refreshing the hardware assessment corrects both rows.
+
+### Changed
+
+- **YouTube transcript corpus refreshed — 658 → 722 videos, ~2,316 non-empty transcript segments.** The per-video duration cap rose from 1500s to 1600s so longer first-party channel videos qualify; recent MikroTik feature videos run past the old 25-minute cut, including the "Hermes explained" video (1528s) that discusses running an AI agent against RouterOS. `MUM_TITLE_PATTERNS` remains the direct filter for conference talks — the duration cap is only a coarse backstop for the untitled long tail. A residual handful of videos still fail per sweep on transient YouTube throttling rather than missing captions, and converge over subsequent reruns; they are deliberately **not** recorded in `transcripts/known-bad.json`, which is reserved for videos with genuinely no English captions.
+- **Product matrix snapshot refreshed to `matrix/2026-07-20/`** — no products added or removed; `Cube 60Pro ac` and `CubeSA 60Pro ac` correct `PoE out` from `18-48 V` to `18-57 V`.
+- **Hardware overlay artifacts re-scraped from live sources** (`ros-hardware-assessment.json`, `ros-www-assessment.json`, `device-map.tsv`), clearing the drift the scheduled Device Map Refresh reported. The `ros-www-assessment.json` diff is large but content-neutral: the same 288 products with identical values, reordered because the committed copy predated the candidate-sorting change — regenerating with current code canonicalizes it once rather than repeatedly.
+
 ## [0.11.0] — 2026-07-20
 
 ### Added
@@ -687,7 +699,8 @@ Initial public release.
   dev / package at `~/.rosetta/`).
 - Bun tests for the query planner + schema health.
 
-[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.11.1...HEAD
+[0.11.1]: https://github.com/tikoci/rosetta/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/tikoci/rosetta/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/tikoci/rosetta/compare/v0.9.3...v0.10.0
 [0.9.3]: https://github.com/tikoci/rosetta/compare/v0.9.2...v0.9.3

@@ -12,7 +12,7 @@
  *   bun run src/extract-videos.ts --limit=10      # dev: process at most 10 new videos
  *   bun run src/extract-videos.ts --force         # re-extract all (delete + reinsert)
  *   bun run src/extract-videos.ts --playlist=URL  # override channel URL
- *   bun run src/extract-videos.ts --max-duration=600  # cap at 10 min (default: 1500)
+ *   bun run src/extract-videos.ts --max-duration=600  # cap at 10 min (default: 1600)
  *
  * Requirements:
  *   brew install yt-dlp   # macOS
@@ -38,7 +38,11 @@ const DOWNLOAD_TIMEOUT_MS = 120_000; // 2 minutes
 const LIST_TIMEOUT_MS = 300_000; // 5 minutes
 
 const CHANNEL_URL = "https://www.youtube.com/@MikroTik/videos";
-const DEFAULT_MAX_DURATION = 1500; // 25 minutes — excludes long MUM talks
+// Raised 1500 -> 1600 so longer first-party channel videos qualify; recent MikroTik
+// feature videos run past the old 25-minute cut (the Hermes explainer is 1528s).
+// MUM_TITLE_PATTERNS below is the direct filter for conference talks — this cap is
+// only a coarse backstop for the untitled long tail.
+const DEFAULT_MAX_DURATION = 1600; // ~26.5 minutes
 const MIN_DURATION = 90; // 1.5 minutes — excludes Shorts
 
 /** Title substrings that indicate MUM conference content to skip. */

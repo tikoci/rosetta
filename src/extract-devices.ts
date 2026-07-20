@@ -9,6 +9,7 @@
 
 import { readFileSync } from "node:fs";
 import { db, initDb } from "./db.ts";
+import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
 /** Map of Unicode superscript/subscript digits → ASCII digits (e.g. ³→3, ²→2). */
 const DIGIT_SUPER_SUB: Record<string, string> = {
@@ -23,7 +24,7 @@ function normalizeSuperscripts(s: string): string {
   return s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]/g, (c) => DIGIT_SUPER_SUB[c] ?? c);
 }
 
-const DEFAULT_CSV = "matrix/2026-07-07/matrix.csv";
+const DEFAULT_CSV = MATRIX_CSV_RELATIVE_PATH;
 const csvPath = process.argv[2] || DEFAULT_CSV;
 
 /** Parse a CSV line respecting quoted fields. */

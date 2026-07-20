@@ -732,7 +732,7 @@
       "category": "Indoor wireless",
       "discontinued": 0,
       "specsJson": "{\"Product code\":\"C52iG-5HaxD2HaxD-TC\",\"Suggested price\":\"$99.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"IPQ-6010\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"864 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"IPQ-6010\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"1 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 50°C\",\"Wireless 2.4 GHz Max data rate\":\"574 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n/ax\",\"Antenna gain dBi for 2.4 GHz\":\"4\",\"Wireless 2.4 GHz chip model\":\"QCN-5022\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 6\",\"Wireless 5 GHz Max data rate\":\"1200 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac/ax\",\"Antenna gain dBi for 5 GHz\":\"4.5\",\"Wireless 5 GHz chip model\":\"QCN-5052\",\"Wireless 5 GHz generation\":\"Wi-Fi 6\",\"WiFi speed\":\"AX1800\",\"10/100/1000 Ethernet ports\":\"5\",\"Number of 1G Ethernet ports with PoE-out\":\"1\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-28 V\",\"Max power consumption\":\"27 W\",\"Max power consumption without attachments\":\"12 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-28 V\",\"PoE-out ports\":\"Ether 1\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"600 mA\",\"Max total out (A)\":\"0.6 A\",\"Total output current\":\"0.6\",\"Total output power\":\"16.8W\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"20\",\"CPU temperature monitor\":\"Yes\",\"Mode button\":\"Yes\",\"_www_title\":\"hAP ax²\",\"_www_tagline\":\"A Generation 6 version of the legendary hAP ac². With PoE-in and PoE-out,  much faster wireless, more RAM, and  a modern CPU.  The smallest fully-fledged AX router on the market!\",\"_hardware_title\":\"hAP ax²\",\"_fcc_id\":[\"TV7C52-5AXD2AXD\"]}",
-      "sourceHardwareSlug": "hap-ax",
+      "sourceHardwareSlug": "hap-ax-2",
       "sourceWwwCode": "hap_ax2"
     },
     {
@@ -742,7 +742,7 @@
       "category": "Indoor wireless",
       "discontinued": 0,
       "specsJson": "{\"Product code\":\"C53UiG+5HPaxD2HPaxD\",\"Suggested price\":\"$139.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"IPQ-6010\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"auto (864 - 1800) MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"IPQ-6010\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"1 GB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Wireless 2.4 GHz Max data rate\":\"574 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n/ax\",\"Antenna gain dBi for 2.4 GHz\":\"3.3\",\"Wireless 2.4 GHz chip model\":\"QCN-5022\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 6\",\"Wireless 5 GHz Max data rate\":\"1200 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac/ax\",\"Antenna gain dBi for 5 GHz\":\"5.5\",\"Wireless 5 GHz chip model\":\"QCN-5052\",\"Wireless 5 GHz generation\":\"Wi-Fi 6\",\"WiFi speed\":\"AX1800\",\"10/100/1000 Ethernet ports\":\"4\",\"Number of 1G Ethernet ports with PoE-out\":\"1\",\"Number of 2.5G Ethernet ports\":\"1\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB 3.0 type A\",\"Max USB current (A)\":\"1.5\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-28 V\",\"Max power consumption\":\"38 W\",\"Max power consumption without attachments\":\"15 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-28 V\",\"PoE-out ports\":\"Ether 1\",\"PoE out\":\"Passive PoE\",\"Low voltage PoE-Out current limit\":\"0.625 A\",\"Max total out (A)\":\"0.625 A\",\"Total output current\":\"0.625\",\"Total output power\":\"15\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"20\",\"CPU temperature monitor\":\"Yes\",\"Mode button\":\"Yes\",\"_www_title\":\"hAP ax³\",\"_www_tagline\":\"Our top-of-the-line AX home access point. With all the processing power and speed \\r\\nyour household might ever need.\\r\\nGen 6 wireless, 2.5 Gigabit Ethernet, PoE, WPA3, and more!\",\"_hardware_title\":\"hAP ax³\"}",
-      "sourceHardwareSlug": "hap-ax-2",
+      "sourceHardwareSlug": "hap-ax-3",
       "sourceWwwCode": "hap_ax3"
     },
     {
@@ -4858,12 +4858,12 @@
       "source": "hardware-slug"
     },
     {
-      "alias": "hap-ax",
+      "alias": "hap-ax-2",
       "rosettaDeviceId": "hap-ax2",
       "source": "hardware-slug"
     },
     {
-      "alias": "hap-ax-2",
+      "alias": "hap-ax-3",
       "rosettaDeviceId": "hap-ax3",
       "source": "hardware-slug"
     },
