@@ -18,10 +18,10 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Docusaurus manual `/docs` prose | <https://manual.mikrotik.com>, discovered via `sitemap.xml` | Raw Markdown (`{page}.md` / `{category}/index.md`) | Current default prose source (T-0035); 360 in-scope `/docs` pages as of 2026-07-07, matching `llms.txt` exactly |
 | Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export, frozen; kept only for `make extract-legacy-confluence` historical rebuilds |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
-| Product matrix | `matrix/2026-07-07/matrix.csv` | CSV, 34 columns | 156 products, July 2026 |
+| Product matrix | `matrix/2026-07-20/matrix.csv` | CSV, 34 columns | 156 products, July 2026 |
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
-| YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 658 videos, ~2,090 non-empty transcript segments |
+| YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 722 videos, ~2,316 non-empty transcript segments |
 | Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 8 skills, ~30K words (community content) |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
@@ -65,7 +65,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 
 - **Source:** Manual browser export from <https://mikrotik.com/products/matrix>.
 - **Format:** UTF-8 BOM CSV, 34 columns, 156 products in the current snapshot.
-- **Location:** `matrix/2026-07-07/matrix.csv`; snapshots are date-stamped and committed.
+- **Location:** `matrix/2026-07-20/matrix.csv`; snapshots are date-stamped and committed. The path lives in exactly one place in code — `MATRIX_CSV_RELATIVE_PATH` in `src/paths.ts` — because five entry points read it and must agree; committing a new `matrix/YYYY-MM-DD/` without bumping that constant is a silent no-op.
 - **Download path:** Use the site's export/download control, choose **All**, and save to `matrix/<ISODATE>/matrix.csv`.
 - **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
 - **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.

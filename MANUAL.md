@@ -107,7 +107,7 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
 
-- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (658 videos, ~2,090 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
+- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (722 videos, ~2,316 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
 
 - **Archived Dude Wiki** — Wayback Machine snapshots cached in `dude/pages/`, exposed through separate Dude tools because the retired GUI docs are not part of current RouterOS v7 help.
 
@@ -260,7 +260,8 @@ CI no longer bumps `package.json` or promotes `CHANGELOG.md` for you, on **any**
 
 1. Edit `package.json`'s `version` by hand to the version you intend to publish (see "npm channel" below for the prerelease vs. latest shape).
 2. For a **latest** (bare-version) release, promote `## [Unreleased]` in `CHANGELOG.md` to `## [<version>] — <date>` by hand, and start a fresh `## [Unreleased]` skeleton above it. The release workflow's "Verify CHANGELOG promotion for latest-channel release" step hard-fails if a matching `## [<version>]` heading isn't already there — this is the backstop for a forgotten promotion.
-3. Commit both files, merge to `main`, then dispatch `Release`.
+3. **Update the reference-style link definitions at the bottom of `CHANGELOG.md`** — add `[<version>]: <repo>/compare/v<previous>...v<version>` and update `[Unreleased]` to compare from `compare/v<version>...HEAD`. The version headings are reference links, so a heading promoted without its definition renders as literal `[0.11.0]` brackets and `[Unreleased]` keeps comparing from the *previous* release. **Nothing catches this**: the CHANGELOG gate only greps for the heading, and markdownlint's MD051 validates heading anchors, not undefined reference links — it was missed during the 0.11.0 promotion and caught only in PR review.
+4. Commit both files, merge to `main`, then dispatch `Release`.
 
 The existing "already published" npm preflight (`npm view <pkg>@<version>`) remains the backstop against re-dispatching an already-shipped version — loud failure, not silent, same as before.
 

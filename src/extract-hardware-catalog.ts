@@ -57,9 +57,10 @@ import { resolve } from "node:path";
 import { canon, loadMatrixRows, type MatrixRow, normCode, slugify } from "./assess-hardware.ts";
 import { db, initDb, setDbMeta } from "./db.ts";
 import { curatedWwwCodeForSlug } from "./hardware-www-map.ts";
+import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
-const DEFAULT_MATRIX_CSV = resolve(PROJECT_ROOT, "matrix", "2026-07-07", "matrix.csv");
+const DEFAULT_MATRIX_CSV = resolve(PROJECT_ROOT, MATRIX_CSV_RELATIVE_PATH);
 const HARDWARE_ASSESSMENT_PATH = resolve(PROJECT_ROOT, "ros-hardware-assessment.json");
 const WWW_ASSESSMENT_PATH = resolve(PROJECT_ROOT, "ros-www-assessment.json");
 export const BASELINE_PATH = resolve(PROJECT_ROOT, "fixtures", "hardware-catalog", "baseline.json");

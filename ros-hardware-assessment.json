@@ -1,7 +1,7 @@
 {
   "pageCount": 239,
   "seriesPageCount": 30,
-  "medianWordCount": 1656,
+  "medianWordCount": 1663,
   "matrixRowCount": 156,
   "matchedByCode": 55,
   "matchedByTable": 1,
@@ -847,8 +847,8 @@
         "hap-ac-lite",
         "hap-ac-lite-tc",
         "hap-ac3",
-        "hap-ax",
         "hap-ax-2",
+        "hap-ax-3",
         "hap-ax-lite",
         "hap-ax-lite-lte6",
         "hap-ax-s",
@@ -994,7 +994,7 @@
       "slug": "atlgm-and-eg18-ea",
       "title": "ATLGM&EG18-EA",
       "url": "https://manual.mikrotik.com/hardware/atlgm-and-eg18-ea",
-      "wordCount": 2335,
+      "wordCount": 2334,
       "tableCount": 3,
       "isSeries": false,
       "productLinks": [
@@ -1024,7 +1024,7 @@
       "slug": "atlgm-and-rg520f-eu",
       "title": "ATLGM&RG520F-EU",
       "url": "https://manual.mikrotik.com/hardware/atlgm-and-rg520f-eu",
-      "wordCount": 1656,
+      "wordCount": 1663,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1226,7 +1226,7 @@
       "slug": "cap-ax",
       "title": "cAP ax",
       "url": "https://manual.mikrotik.com/hardware/cap-ax",
-      "wordCount": 3321,
+      "wordCount": 3320,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -1519,7 +1519,7 @@
       "slug": "ccr2004-16g-2s-plus-pc",
       "title": "CCR2004-16G-2S+PC",
       "url": "https://manual.mikrotik.com/hardware/ccr2004-16g-2s-plus-pc",
-      "wordCount": 1413,
+      "wordCount": 1412,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -1597,7 +1597,7 @@
       "slug": "ccr2116-12g-4s-plus",
       "title": "CCR2116-12G-4S+",
       "url": "https://manual.mikrotik.com/hardware/ccr2116-12g-4s-plus",
-      "wordCount": 1051,
+      "wordCount": 1052,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1625,7 +1625,7 @@
       "slug": "ccr2216-1g-12xs-2xq",
       "title": "CCR2216-1G-12XS-2XQ",
       "url": "https://manual.mikrotik.com/hardware/ccr2216-1g-12xs-2xq",
-      "wordCount": 1042,
+      "wordCount": 1043,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1677,7 +1677,7 @@
       "slug": "chateau-5g-ax",
       "title": "Chateau 5G ax",
       "url": "https://manual.mikrotik.com/hardware/chateau-5g-ax",
-      "wordCount": 3280,
+      "wordCount": 3279,
       "tableCount": 3,
       "isSeries": false,
       "productLinks": [
@@ -1723,7 +1723,7 @@
       "slug": "chateau-5g-r17-ax",
       "title": "Chateau 5G R17 ax",
       "url": "https://manual.mikrotik.com/hardware/chateau-5g-r17-ax",
-      "wordCount": 2005,
+      "wordCount": 2012,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1775,7 +1775,7 @@
       "slug": "chateau-lte18-ax",
       "title": "Chateau LTE18 ax",
       "url": "https://manual.mikrotik.com/hardware/chateau-lte18-ax",
-      "wordCount": 1739,
+      "wordCount": 1740,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1851,7 +1851,7 @@
       "slug": "chateau-lte6-us",
       "title": "Chateau LTE6-US",
       "url": "https://manual.mikrotik.com/hardware/chateau-lte6-us",
-      "wordCount": 1992,
+      "wordCount": 1991,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -1887,7 +1887,7 @@
       "slug": "chateau-lte7",
       "title": "Chateau LTE7",
       "url": "https://manual.mikrotik.com/hardware/chateau-lte7",
-      "wordCount": 1465,
+      "wordCount": 1466,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -1915,7 +1915,7 @@
       "slug": "chateau-lte7-ax",
       "title": "Chateau LTE7 ax",
       "url": "https://manual.mikrotik.com/hardware/chateau-lte7-ax",
-      "wordCount": 1409,
+      "wordCount": 1410,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -2013,7 +2013,7 @@
       "slug": "crs-series",
       "title": "CRS-series",
       "url": "https://manual.mikrotik.com/hardware/crs-series",
-      "wordCount": 2545,
+      "wordCount": 2546,
       "tableCount": 1,
       "isSeries": true,
       "productLinks": [],
@@ -2075,7 +2075,7 @@
       "slug": "crs112-8p-4s-in",
       "title": "CRS112-8P-4S-IN",
       "url": "https://manual.mikrotik.com/hardware/crs112-8p-4s-in",
-      "wordCount": 1339,
+      "wordCount": 1340,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2121,7 +2121,7 @@
       "slug": "crs304-4xg-in",
       "title": "CRS304-4XG-IN",
       "url": "https://manual.mikrotik.com/hardware/crs304-4xg-in",
-      "wordCount": 985,
+      "wordCount": 987,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2149,7 +2149,7 @@
       "slug": "crs305-1g-4s-plus-in",
       "title": "CRS305-1G-4S+IN",
       "url": "https://manual.mikrotik.com/hardware/crs305-1g-4s-plus-in",
-      "wordCount": 1150,
+      "wordCount": 1152,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2177,7 +2177,7 @@
       "slug": "crs309-1g-8s-plus-in",
       "title": "CRS309-1G-8S+IN",
       "url": "https://manual.mikrotik.com/hardware/crs309-1g-8s-plus-in",
-      "wordCount": 1220,
+      "wordCount": 1222,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2205,7 +2205,7 @@
       "slug": "crs310-1g-5s-4s-plus-in",
       "title": "CRS310-1G-5S-4S+IN",
       "url": "https://manual.mikrotik.com/hardware/crs310-1g-5s-4s-plus-in",
-      "wordCount": 1072,
+      "wordCount": 1074,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2233,7 +2233,7 @@
       "slug": "crs310-8g-plus-2s-plus-in",
       "title": "CRS310-8G+2S+IN",
       "url": "https://manual.mikrotik.com/hardware/crs310-8g-plus-2s-plus-in",
-      "wordCount": 1031,
+      "wordCount": 1033,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2261,7 +2261,7 @@
       "slug": "crs312-4c-plus-8xg-rm",
       "title": "CRS312-4C+8XG-RM",
       "url": "https://manual.mikrotik.com/hardware/crs312-4c-plus-8xg-rm",
-      "wordCount": 1254,
+      "wordCount": 1256,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2289,7 +2289,7 @@
       "slug": "crs317-1g-16s-plus-rm",
       "title": "CRS317-1G-16S+RM",
       "url": "https://manual.mikrotik.com/hardware/crs317-1g-16s-plus-rm",
-      "wordCount": 1244,
+      "wordCount": 1246,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2317,7 +2317,7 @@
       "slug": "crs320-8p-8b-4s-plus-rm",
       "title": "CRS320-8P-8B-4S+RM",
       "url": "https://manual.mikrotik.com/hardware/crs320-8p-8b-4s-plus-rm",
-      "wordCount": 1669,
+      "wordCount": 1670,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2353,7 +2353,7 @@
       "slug": "crs326-24g-2s-plus-in",
       "title": "CRS326-24G-2S+IN",
       "url": "https://manual.mikrotik.com/hardware/crs326-24g-2s-plus-in",
-      "wordCount": 1023,
+      "wordCount": 1025,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2377,7 +2377,7 @@
       "slug": "crs326-24g-2s-plus-rm",
       "title": "CRS326-24G-2S+RM",
       "url": "https://manual.mikrotik.com/hardware/crs326-24g-2s-plus-rm",
-      "wordCount": 1161,
+      "wordCount": 1163,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2405,7 +2405,7 @@
       "slug": "crs326-24s-plus-2q-plus-rm",
       "title": "CRS326-24S+2Q+RM",
       "url": "https://manual.mikrotik.com/hardware/crs326-24s-plus-2q-plus-rm",
-      "wordCount": 1114,
+      "wordCount": 1116,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2433,7 +2433,7 @@
       "slug": "crs326-4c-plus-20g-plus-2q-plus-rm",
       "title": "CRS326-4C+20G+2Q+RM",
       "url": "https://manual.mikrotik.com/hardware/crs326-4c-plus-20g-plus-2q-plus-rm",
-      "wordCount": 1176,
+      "wordCount": 1178,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2461,7 +2461,7 @@
       "slug": "crs328-24p-4s-plus-rm",
       "title": "CRS328-24P-4S+RM",
       "url": "https://manual.mikrotik.com/hardware/crs328-24p-4s-plus-rm",
-      "wordCount": 1407,
+      "wordCount": 1409,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2489,7 +2489,7 @@
       "slug": "crs328-4c-20s-4s-plus-rm",
       "title": "CRS328-4C-20S-4S+RM",
       "url": "https://manual.mikrotik.com/hardware/crs328-4c-20s-4s-plus-rm",
-      "wordCount": 1221,
+      "wordCount": 1223,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2517,7 +2517,7 @@
       "slug": "crs354-48g-4s-plus-2q-plus-rm",
       "title": "CRS354-48G-4S+2Q+RM",
       "url": "https://manual.mikrotik.com/hardware/crs354-48g-4s-plus-2q-plus-rm",
-      "wordCount": 1065,
+      "wordCount": 1067,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2545,7 +2545,7 @@
       "slug": "crs354-48p-4s-plus-2q-plus-rm",
       "title": "CRS354-48P-4S+2Q+RM",
       "url": "https://manual.mikrotik.com/hardware/crs354-48p-4s-plus-2q-plus-rm",
-      "wordCount": 1201,
+      "wordCount": 1203,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -2573,7 +2573,7 @@
       "slug": "crs418-8p-8g-2s-plus-5axq2axq-rm",
       "title": "CRS418-8P-8G-2S+5axQ2axQ-RM",
       "url": "https://manual.mikrotik.com/hardware/crs418-8p-8g-2s-plus-5axq2axq-rm",
-      "wordCount": 1328,
+      "wordCount": 1330,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2601,7 +2601,7 @@
       "slug": "crs418-8p-8g-2s-plus-rm",
       "title": "CRS418-8P-8G-2S+RM",
       "url": "https://manual.mikrotik.com/hardware/crs418-8p-8g-2s-plus-rm",
-      "wordCount": 1230,
+      "wordCount": 1232,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2629,7 +2629,7 @@
       "slug": "crs504-4xq-in",
       "title": "CRS504-4XQ-IN",
       "url": "https://manual.mikrotik.com/hardware/crs504-4xq-in",
-      "wordCount": 1079,
+      "wordCount": 1081,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2657,7 +2657,7 @@
       "slug": "crs504-4xq-out",
       "title": "CRS504-4XQ-OUT",
       "url": "https://manual.mikrotik.com/hardware/crs504-4xq-out",
-      "wordCount": 942,
+      "wordCount": 944,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2685,7 +2685,7 @@
       "slug": "crs510-8xs-2xq-in",
       "title": "CRS510-8XS-2XQ-IN",
       "url": "https://manual.mikrotik.com/hardware/crs510-8xs-2xq-in",
-      "wordCount": 1043,
+      "wordCount": 1045,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2713,7 +2713,7 @@
       "slug": "crs518-16xs-2xq-rm",
       "title": "CRS518-16XS-2XQ-RM",
       "url": "https://manual.mikrotik.com/hardware/crs518-16xs-2xq-rm",
-      "wordCount": 1053,
+      "wordCount": 1055,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2741,7 +2741,7 @@
       "slug": "crs520-4xs-16xq-rm",
       "title": "CRS520-4XS-16XQ-RM",
       "url": "https://manual.mikrotik.com/hardware/crs520-4xs-16xq-rm",
-      "wordCount": 1192,
+      "wordCount": 1194,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2910,7 +2910,7 @@
       "slug": "css610-8p-2s-plus-in",
       "title": "CSS610-8P-2S+IN",
       "url": "https://manual.mikrotik.com/hardware/css610-8p-2s-plus-in",
-      "wordCount": 1489,
+      "wordCount": 1488,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -3109,7 +3109,7 @@
       "slug": "fiberbox-plus",
       "title": "FiberBox Plus",
       "url": "https://manual.mikrotik.com/hardware/fiberbox-plus",
-      "wordCount": 971,
+      "wordCount": 973,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -3302,7 +3302,7 @@
       "slug": "gperx6",
       "title": "GPERx6",
       "url": "https://manual.mikrotik.com/hardware/gperx6",
-      "wordCount": 573,
+      "wordCount": 565,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -3555,10 +3555,10 @@
       "mentionsLifecycleKeyword": false
     },
     {
-      "slug": "hap-ax",
+      "slug": "hap-ax-2",
       "title": "hAP ax²",
-      "url": "https://manual.mikrotik.com/hardware/hap-ax",
-      "wordCount": 2921,
+      "url": "https://manual.mikrotik.com/hardware/hap-ax-2",
+      "wordCount": 2920,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -3589,10 +3589,10 @@
       "mentionsLifecycleKeyword": false
     },
     {
-      "slug": "hap-ax-2",
+      "slug": "hap-ax-3",
       "title": "hAP ax³",
-      "url": "https://manual.mikrotik.com/hardware/hap-ax-2",
-      "wordCount": 3068,
+      "url": "https://manual.mikrotik.com/hardware/hap-ax-3",
+      "wordCount": 3067,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -3694,7 +3694,7 @@
       "slug": "hap-be-lite",
       "title": "hAP be lite",
       "url": "https://manual.mikrotik.com/hardware/hap-be-lite",
-      "wordCount": 1057,
+      "wordCount": 1058,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -3954,7 +3954,7 @@
       "slug": "hex-s-2025",
       "title": "hEX S (2025)",
       "url": "https://manual.mikrotik.com/hardware/hex-s-2025",
-      "wordCount": 1246,
+      "wordCount": 1247,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -4004,7 +4004,7 @@
       "slug": "knot-embedded-lte4-ec25-eu-and-kne",
       "title": "KNOT Embedded LTE4 EC25-EU&KNe",
       "url": "https://manual.mikrotik.com/hardware/knot-embedded-lte4-ec25-eu-and-kne",
-      "wordCount": 1214,
+      "wordCount": 1213,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -4030,7 +4030,7 @@
       "slug": "knot-embedded-lte4-global-eg25-g-and-kne",
       "title": "KNOT Embedded LTE4 Global EG25-G&KNe",
       "url": "https://manual.mikrotik.com/hardware/knot-embedded-lte4-global-eg25-g-and-kne",
-      "wordCount": 1237,
+      "wordCount": 1236,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -4056,7 +4056,7 @@
       "slug": "l009uigs-2haxd-in",
       "title": "L009UiGS-2HaxD-IN",
       "url": "https://manual.mikrotik.com/hardware/l009uigs-2haxd-in",
-      "wordCount": 1301,
+      "wordCount": 1300,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -4108,7 +4108,7 @@
       "slug": "l11ug-5haxd",
       "title": "L11UG-5HaxD",
       "url": "https://manual.mikrotik.com/hardware/l11ug-5haxd",
-      "wordCount": 1207,
+      "wordCount": 1205,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -4134,7 +4134,7 @@
       "slug": "l23ugsr-5haxd2haxd",
       "title": "L23UGSR-5HaxD2HaxD",
       "url": "https://manual.mikrotik.com/hardware/l23ugsr-5haxd2haxd",
-      "wordCount": 1256,
+      "wordCount": 1254,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -4188,7 +4188,7 @@
       "slug": "ldf-5-series",
       "title": "LDF 5-series",
       "url": "https://manual.mikrotik.com/hardware/ldf-5-series",
-      "wordCount": 2910,
+      "wordCount": 2911,
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
@@ -4247,7 +4247,7 @@
       "slug": "lhg-5axd",
       "title": "LHG-5axD",
       "url": "https://manual.mikrotik.com/hardware/lhg-5axd",
-      "wordCount": 1214,
+      "wordCount": 1215,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -4686,7 +4686,7 @@
       "slug": "ltap-kit-series",
       "title": "LtAP kit-series",
       "url": "https://manual.mikrotik.com/hardware/ltap-kit-series",
-      "wordCount": 2554,
+      "wordCount": 2555,
       "tableCount": 0,
       "isSeries": true,
       "productLinks": [],
@@ -4809,7 +4809,7 @@
       "slug": "ltap-mini-kit-series",
       "title": "LtAP mini kit-series",
       "url": "https://manual.mikrotik.com/hardware/ltap-mini-kit-series",
-      "wordCount": 3208,
+      "wordCount": 3209,
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
@@ -5113,7 +5113,7 @@
       "slug": "netbox-5",
       "title": "NetBox 5",
       "url": "https://manual.mikrotik.com/hardware/netbox-5",
-      "wordCount": 2818,
+      "wordCount": 2816,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -5142,7 +5142,7 @@
       "slug": "netbox-5-ax",
       "title": "NetBox 5 ax",
       "url": "https://manual.mikrotik.com/hardware/netbox-5-ax",
-      "wordCount": 2919,
+      "wordCount": 2918,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -5179,7 +5179,7 @@
       "slug": "netfiber-9",
       "title": "netFiber 9",
       "url": "https://manual.mikrotik.com/hardware/netfiber-9",
-      "wordCount": 2017,
+      "wordCount": 2019,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -5207,7 +5207,7 @@
       "slug": "netmetal-ac",
       "title": "NetMetal ac²",
       "url": "https://manual.mikrotik.com/hardware/netmetal-ac",
-      "wordCount": 2519,
+      "wordCount": 2520,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -5229,7 +5229,7 @@
       "slug": "netmetal-ax",
       "title": "NetMetal ax",
       "url": "https://manual.mikrotik.com/hardware/netmetal-ax",
-      "wordCount": 1880,
+      "wordCount": 1881,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -5273,7 +5273,7 @@
       "slug": "netpower-15fr",
       "title": "netPower 15FR",
       "url": "https://manual.mikrotik.com/hardware/netpower-15fr",
-      "wordCount": 2076,
+      "wordCount": 2078,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -5301,7 +5301,7 @@
       "slug": "netpower-16p",
       "title": "netPower 16P",
       "url": "https://manual.mikrotik.com/hardware/netpower-16p",
-      "wordCount": 2153,
+      "wordCount": 2155,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -5357,7 +5357,7 @@
       "slug": "netpower-lite-8p",
       "title": "netPower Lite 8P",
       "url": "https://manual.mikrotik.com/hardware/netpower-lite-8p",
-      "wordCount": 3242,
+      "wordCount": 3233,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -5506,7 +5506,7 @@
       "slug": "pwr-line",
       "title": "PWR-LINE",
       "url": "https://manual.mikrotik.com/hardware/pwr-line",
-      "wordCount": 941,
+      "wordCount": 942,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [],
@@ -5524,7 +5524,7 @@
       "slug": "pwr-line-ap",
       "title": "PWR-LINE AP",
       "url": "https://manual.mikrotik.com/hardware/pwr-line-ap",
-      "wordCount": 1804,
+      "wordCount": 1805,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [],
@@ -5628,7 +5628,7 @@
       "slug": "r11e-lr2",
       "title": "R11e-LR2",
       "url": "https://manual.mikrotik.com/hardware/r11e-lr2",
-      "wordCount": 1387,
+      "wordCount": 1386,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -5654,7 +5654,7 @@
       "slug": "r11e-lr8",
       "title": "R11e-LR8",
       "url": "https://manual.mikrotik.com/hardware/r11e-lr8",
-      "wordCount": 1310,
+      "wordCount": 1309,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -5674,7 +5674,7 @@
       "slug": "r11e-lr8g",
       "title": "R11e-LR8G",
       "url": "https://manual.mikrotik.com/hardware/r11e-lr8g",
-      "wordCount": 1003,
+      "wordCount": 1002,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -5698,7 +5698,7 @@
       "slug": "r11e-lr9",
       "title": "R11e-LR9",
       "url": "https://manual.mikrotik.com/hardware/r11e-lr9",
-      "wordCount": 1930,
+      "wordCount": 1929,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -5718,7 +5718,7 @@
       "slug": "r11e-lr9g",
       "title": "R11e-LR9G",
       "url": "https://manual.mikrotik.com/hardware/r11e-lr9g",
-      "wordCount": 995,
+      "wordCount": 994,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -5943,7 +5943,7 @@
       "slug": "rb260-series",
       "title": "RB260-series",
       "url": "https://manual.mikrotik.com/hardware/rb260-series",
-      "wordCount": 1341,
+      "wordCount": 1343,
       "tableCount": 0,
       "isSeries": true,
       "productLinks": [
@@ -6032,7 +6032,7 @@
       "slug": "rb4011igs-plus-rm",
       "title": "RB4011iGS+RM",
       "url": "https://manual.mikrotik.com/hardware/rb4011igs-plus-rm",
-      "wordCount": 1696,
+      "wordCount": 1697,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -6106,7 +6106,7 @@
       "slug": "rb5009upr-plus-s-plus-in",
       "title": "RB5009UPr+S+IN",
       "url": "https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-in",
-      "wordCount": 1294,
+      "wordCount": 1293,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -6132,7 +6132,7 @@
       "slug": "rb5009upr-plus-s-plus-out",
       "title": "RB5009UPr+S+OUT",
       "url": "https://manual.mikrotik.com/hardware/rb5009upr-plus-s-plus-out",
-      "wordCount": 1100,
+      "wordCount": 1099,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -6479,7 +6479,7 @@
       "slug": "sxt-kit-series",
       "title": "SXT kit-series",
       "url": "https://manual.mikrotik.com/hardware/sxt-kit-series",
-      "wordCount": 2716,
+      "wordCount": 2722,
       "tableCount": 3,
       "isSeries": true,
       "productLinks": [],
@@ -6526,7 +6526,7 @@
       "slug": "sxtsa-series",
       "title": "SXTSA-series",
       "url": "https://manual.mikrotik.com/hardware/sxtsa-series",
-      "wordCount": 2359,
+      "wordCount": 2360,
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [],
@@ -6581,7 +6581,7 @@
       "slug": "sxtsq-embedded-lte4",
       "title": "SXTsq Embedded LTE4",
       "url": "https://manual.mikrotik.com/hardware/sxtsq-embedded-lte4",
-      "wordCount": 1359,
+      "wordCount": 1366,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -7264,7 +7264,7 @@
       "slug": "wireless-wire-cube-pro-cube-60pro-ac",
       "title": "Wireless Wire Cube Pro, Cube 60Pro ac",
       "url": "https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac",
-      "wordCount": 2774,
+      "wordCount": 2773,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [

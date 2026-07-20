@@ -35,10 +35,11 @@ import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
 import { loadMatrixRows, normCode } from "./assess-hardware.ts";
 import { curatedWwwCodes } from "./hardware-www-map.ts";
+import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 const DEFAULT_CACHE_DIR = resolve(PROJECT_ROOT, "manual", "pages", "www");
-const DEFAULT_MATRIX_CSV = resolve(PROJECT_ROOT, "matrix", "2026-07-07", "matrix.csv");
+const DEFAULT_MATRIX_CSV = resolve(PROJECT_ROOT, MATRIX_CSV_RELATIVE_PATH);
 const HARDWARE_ASSESSMENT = resolve(PROJECT_ROOT, "ros-hardware-assessment.json");
 const FETCH_DELAY_MS = 150;
 

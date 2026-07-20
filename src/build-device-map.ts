@@ -25,9 +25,10 @@ import { resolve } from "node:path";
 import exceptions from "../device-exceptions.toml";
 import { canonForms, loadMatrixRows, type MatrixRow } from "./assess-hardware.ts";
 import { classifyHardwareKind } from "./hardware-kind.ts";
+import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
-const MATRIX_CSV = resolve(PROJECT_ROOT, "matrix", "2026-07-07", "matrix.csv");
+const MATRIX_CSV = resolve(PROJECT_ROOT, MATRIX_CSV_RELATIVE_PATH);
 const HARDWARE_ASSESSMENT = resolve(PROJECT_ROOT, "ros-hardware-assessment.json");
 const WWW_ASSESSMENT = resolve(PROJECT_ROOT, "ros-www-assessment.json");
 const OUT_TSV = resolve(PROJECT_ROOT, "device-map.tsv");

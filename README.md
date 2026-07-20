@@ -19,7 +19,7 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 | Hardware products | 156 current matrix devices — specs, pricing, block diagrams |
 | Hardware overlay | 255 devices (matrix + legacy/EOL + accessories), resolved via ~750 curated alias mappings for cross-source device lookup |
 | Performance benchmarks | 2,874 tests across 125 devices (ethernet + IPSec) |
-| YouTube transcripts | 658 videos, ~2,090 transcript segments |
+| YouTube transcripts | 722 videos, ~2,316 transcript segments |
 | Callout blocks | 943 warnings, notes, and tips |
 
 Documentation covers RouterOS **v7 only**, tracking the current long-term release (~7.22). Prose is extracted live from <https://manual.mikrotik.com> on each release build — no more stale export to keep in sync. The site's Docusaurus CLI Reference (`/console/inspect`-derived command menus) isn't ingested yet; the command tree instead comes directly from inspect.json (see `DESIGN.md`).
