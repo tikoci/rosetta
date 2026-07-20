@@ -26,7 +26,7 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
-- **`hAP ax2` and `hAP ax3` linked to the wrong `/hardware` manual pages.** MikroTik renamed the pages upstream (`/hardware/hap-ax` → `/hardware/hap-ax-3`), and because the committed device map still held the old slugs, `hAP ax3` resolved to **`hAP ax2`'s** page and `hAP ax2` to the now-renamed one — so a device lookup handed back another device's hardware manual. Refreshing the hardware assessment corrects both rows.
+- **`hAP ax2` and `hAP ax3` linked to the wrong `/hardware` manual pages.** MikroTik shifted the slugs by one upstream: the hAP ax² page moved `/hardware/hap-ax` → `/hardware/hap-ax-2`, and the hAP ax³ page moved `/hardware/hap-ax-2` → `/hardware/hap-ax-3`. The committed device map still held the pre-shift slugs, which were correct when generated, so afterwards `hAP ax3` resolved to `/hardware/hap-ax-2` — a URL that now serves **hAP ax²** — and `hAP ax2` pointed at a slug that no longer exists. Refreshing the hardware assessment corrects both rows.
 
 ### Changed
 

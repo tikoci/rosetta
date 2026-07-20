@@ -12,7 +12,7 @@
  *   bun run src/extract-videos.ts --limit=10      # dev: process at most 10 new videos
  *   bun run src/extract-videos.ts --force         # re-extract all (delete + reinsert)
  *   bun run src/extract-videos.ts --playlist=URL  # override channel URL
- *   bun run src/extract-videos.ts --max-duration=600  # cap at 10 min (default: 1500)
+ *   bun run src/extract-videos.ts --max-duration=600  # cap at 10 min (default: 1600)
  *
  * Requirements:
  *   brew install yt-dlp   # macOS
