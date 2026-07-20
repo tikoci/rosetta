@@ -22,6 +22,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-07-20
+
 ### Added
 
 - **The resolved DB now reports whether it can be trusted to ground claims about the code querying it** (issue #94, B-0022 export-audit umbrella). `routeros_stats` gains a `provenance` block — resolved `db_path`, invocation `mode`, the `db_meta` stamps (`release_tag`/`source_commit`/`built_at`/`schema_version`), and a **grounding verdict** (`ok` / `schema_mismatch` / `internal_inconsistent` / `tag_behind` / `unstamped`) — so one call self-checks the DB against the checkout instead of shelling into sqlite (the TUI `stats` screen shows it too, via shared `getDbStats`). A new `make db-doctor` / `bun run db:doctor` prints the same verdict and exits non-zero when not `ok` (CI/pre-commit-ready); `make db-sync` / `bun run db:sync` fetches the latest CI release DB — the documented grounding source of truth — into the resolved path (atomic, safe while a server holds the file open). In a dev checkout, MCP startup now emits a loud but **non-fatal** banner when the served DB has drifted (e.g. a corpus whose `PRAGMA user_version` was bumped in place so its stamped provenance no longer describes its bytes); it never fetches, so a contributor's local build is never clobbered. The load-bearing new signal is `internal_inconsistent` (`db_meta.schema_version` ≠ pragma), which every prior check missed. Durable guidance lives in `.github/instructions/local-db-grounding.instructions.md`.
