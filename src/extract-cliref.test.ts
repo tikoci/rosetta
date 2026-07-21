@@ -17,6 +17,12 @@ describe("cliRefSlug", () => {
   test("excludes out-of-section URLs", () => {
     expect(cliRefSlug("https://manual.mikrotik.com/docs/routing/bgp")).toBeNull();
   });
+
+  test("rejects a cached-sitemap value outside the strict slug grammar", () => {
+    expect(cliRefSlug("/docs/cli-reference/ip/address?x=1")).toBeNull();
+    expect(cliRefSlug("/docs/cli-reference/ip/%2e%2e/secret")).toBeNull();
+    expect(cliRefSlug("/docs/cli-reference/IP/address")).toBeNull();
+  });
 });
 
 describe("parsePage — structure", () => {

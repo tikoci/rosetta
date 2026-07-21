@@ -34,6 +34,7 @@ const BASE = "https://manual.mikrotik.com";
 const LLMS_TXT_URL = `${BASE}/llms.txt`;
 const SITEMAP_URL = `${BASE}/sitemap.xml`;
 const CLI_PREFIX = "/docs/cli-reference/";
+const CLI_SLUG = /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
 const PROJECT_ROOT = join(import.meta.dirname, "..");
 const DEFAULT_CACHE_DIR = join(PROJECT_ROOT, "manual", "cli-reference");
 const FETCH_DELAY_MS = 100;
@@ -62,7 +63,7 @@ export function cliRefSlug(urlOrPath: string): string | null {
   const slug = path.slice(CLI_PREFIX.length).replace(/\/$/, "");
   // The section root ("") and trailing-slash URLs are Docusaurus generated category
   // pages — navigation only, no .md source (every variant 404s, verified 2026-07-20).
-  if (slug === "" || path.endsWith("/")) return null;
+  if (slug === "" || path.endsWith("/") || !CLI_SLUG.test(slug)) return null;
   return slug;
 }
 
