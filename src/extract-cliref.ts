@@ -102,7 +102,7 @@ async function loadCliRefSlugs(): Promise<string[]> {
     try {
       xml = readFileSync(cached, "utf8");
     } catch {
-      throw new Error(`--from-cache set but no cached sitemap.xml at ${cached}`);
+      throw new Error(`--from-cache set but no cached _sitemap.txt at ${cached}`);
     }
   } else {
     const res = await fetch(SITEMAP_URL, { signal: AbortSignal.timeout(10_000) });
