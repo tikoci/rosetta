@@ -132,6 +132,7 @@ fasttrack
 fdb
 fiberboxplus
 figcaption
+flinks
 fmt
 footguns
 freeradius
@@ -440,6 +441,7 @@ usr
 utf
 validone
 vcheck
+vcmd
 vendordoc
 ver
 verbed
@@ -475,4 +477,6 @@ xdg
 ytdlp
 zenithlegacy
 zerotier
+ztcert
+ztname
 zwsp

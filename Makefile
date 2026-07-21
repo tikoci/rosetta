@@ -3,6 +3,7 @@ HTML_DIR   := box/latest/ROS
 VERSION    ?=
 .PHONY: extract extract-full extract-legacy-confluence extract-html extract-properties extract-commands \
         extract-docusaurus extract-docusaurus-from-cache extract-docusaurus-check-counts \
+        extract-cliref extract-cliref-from-cache link-cliref \
         extract-schema extract-all-versions extract-devices extract-test-results extract-changelogs \
         extract-changelogs-extended \
         extract-videos extract-videos-from-cache save-videos-cache \
@@ -132,9 +133,9 @@ verify:
 # wipes device_aliases + hardware_catalog (device_id links point at AUTOINCREMENT
 # ids that a devices rebuild invalidates), so running the hardware overlay first
 # would have its rows deleted out from under it. Ordering here is load-bearing.
-extract: extract-docusaurus extract-commands extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
+extract: extract-docusaurus extract-commands extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills extract-cliref link link-cliref
 
-extract-full: extract-docusaurus extract-all-versions extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills link
+extract-full: extract-docusaurus extract-all-versions extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills extract-cliref link link-cliref
 
 # Live fetch from manual.mikrotik.com's sitemap.xml, caching each page's raw
 # Markdown to manual/pages/ (gitignored — not the full-corpus fixture set).
@@ -149,6 +150,21 @@ extract-docusaurus-from-cache:
 # Non-blocking by design — prints a MATCH/MISMATCH line, does not fail the build.
 extract-docusaurus-check-counts:
 	bun run src/extract-docusaurus.ts --from-cache --check-counts
+
+# CLI-Reference overlay (issue #124): live fetch from the cli-reference sitemap,
+# caching each page's raw Markdown to manual/cli-reference/ (gitignored). Populates
+# cliref_pages/entries/fields/flags; link-cliref (below) adds the inspect crosswalk.
+extract-cliref:
+	bun run src/extract-cliref.ts
+
+extract-cliref-from-cache:
+	bun run src/extract-cliref.ts --from-cache --check-counts
+
+# Resolve cliref entries to schema_nodes (exact/alias/manual-only). MUST run after
+# both extract-cliref AND schema_nodes population (extract-all-versions/extract-schema);
+# with an empty schema_nodes every entry resolves manual-only.
+link-cliref:
+	bun run src/link-cliref.ts
 
 # Historical-rebuild path only (March 2026 Confluence export) — not run by
 # `extract`/`extract-full`. See DESIGN.md "Legacy Confluence HTML archive".

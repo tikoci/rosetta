@@ -198,6 +198,22 @@ The documentation pages cover all packages regardless of architecture, so the HT
 
 [tikoci/restraml PR #35](https://github.com/tikoci/restraml/pull/35) shipped and `argsWithCompletion` jumped from 0 to 11K+. Completion objects on `arg` nodes have `{ [value]: { style, preference, desc? } }` with 17 style types (`none`, `arg`, `dir,flag-title`, `syntax-meta`, etc.). Stored in `schema_nodes._attrs` as JSON. Exposed in `browseCommands()` and `browseCommandsAtVersion()` responses. Future: promote to structured columns once the shape is confirmed stable across versions.
 
+### CLI Reference overlay: source vs inspect identity
+
+The CLI-Reference overlay (`cliref_*` tables, issue #124) ingests `manual.mikrotik.com/docs/cli-reference/*` as a **source-faithful, version-less** layer *beside* the `inspect.json`-derived `schema_nodes` tree — never folded into it. The design rationale (full history: `briefings/B-0016-cli-reference-overlay-design.md`):
+
+- **An entry has a path; a field does not.** The CLI Reference has exactly three entry kinds — Directory, Settings Directory, Command (1,051 entries across 228 pages). A heading path identifies one entry. Its Argument / Read-only Argument rows are *named fields* of that entry, and its Flag rows are print-output markers. `inspect.json` is a different tree whose `arg` nodes are serialized at coordinates like `/ip/address/add/address` — but that does **not** make the field's path `/ip/address/address`. So `cliref_fields` has a name and an entry FK, never a path. The field→inspect mapping is genuinely many-to-many: 4,161 of 6,171 settable fields match 2–4 inspect `arg` nodes (e.g. `certificate.name` appears under seven commands).
+
+- **Store the entry link; compute the field links.** `cliref_entry_schema_links` is a stored table because it carries the non-derivable exact-vs-alias resolution. Field links are a **`CREATE VIEW`** (`cliref_field_inspect_links`), never stored: they are fully derivable from (entry link + field name + inspect subtree), and *storing* them would pin the version-less overlay to one versioned `schema_nodes` snapshot, going stale silently on every RouterOS-version rebuild. The view stays correct by construction.
+
+- **Occurrence identity, not semantic keys.** The source repeats four complete heading paths on one page (alternate hardware shapes) and 21 `(entry, kind, field name)` combinations, sometimes with different raw types. So identity is `id` + `source_order`, never a `UNIQUE` on path or name.
+
+- **Aliasing is auditable, never silent.** The manual leaks internal module segments into 24 headings (`caps-man/acl/access-list` → real `/caps-man/access-list`). The linker resolves these by dropping a single *internal* segment (never the root menu or leaf command — dropping the leaf would false-alias a genuinely-absent submenu onto its parent), stores `match_kind='alias'` with a human-readable `match_detail`, and leaves the source path unchanged. Ambiguous drops stay manual-only rather than guessing. 907 exact / 24 alias / 120 manual-only on the current corpus. Manual-only entries are first-class: they document commands a CHR `/console/inspect` cannot self-report (build-flag or hardware-gated menus), which is the overlay's whole point.
+
+- **`schema_nodes.inspect_type`.** Ingesting the overlay surfaced that `extract-schema.ts` collapses RouterOS' raw `path` node type to `dir`. The new `inspect_type` column preserves the raw `path`/`dir`/`cmd`/`arg` class while `type` keeps normalizing, so the crosswalk can reason about the real classification without breaking existing `type` consumers.
+
+- **`raw_type` stays unparsed.** Enums (`enum (a | b)`), ranges (`num { 0..7 }`), and composites are kept verbatim; retaining each page's exact source Markdown (hashed) makes that deferral lossless rather than destructive.
+
 ### CSV requires manual download
 
 The old `curl -X POST -d "ax=matrix"` API is dead (late 2025). MikroTik's product matrix is now a Laravel Livewire/PowerGrid table. Export via browser: visit `mikrotik.com/products/matrix`, click export, choose "All". See `matrix/CLAUDE.md` for column schema.
