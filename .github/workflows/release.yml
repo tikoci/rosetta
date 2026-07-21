@@ -341,8 +341,19 @@ jobs:
       - name: Extract CLI-Reference overlay
         run: bun run src/extract-cliref.ts
 
+      # link-cliref needs the command tree. "Extract command tree" only populates
+      # schema_nodes on the full-versions path (a single-version / non-dispatch build runs
+      # extract-commands, which fills the legacy `commands` table, not schema_nodes). Gate
+      # on the actual node count so the link runs iff a crosswalk can form, matching
+      # `make extract` (no link-cliref) vs `make extract-full` (link-cliref).
       - name: Link CLI-Reference to inspect
-        run: bun run src/link-cliref.ts
+        run: |
+          set -euo pipefail
+          if [ "$(sqlite3 ros-help.db "SELECT COUNT(*) FROM schema_nodes WHERE type IN ('dir','cmd')")" -gt 0 ]; then
+            bun run src/link-cliref.ts
+          else
+            echo "schema_nodes has no command tree (single-version build) — skipping link-cliref."
+          fi
 
       - name: Extract devices
         run: bun run src/extract-devices.ts

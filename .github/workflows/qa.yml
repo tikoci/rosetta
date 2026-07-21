@@ -236,6 +236,10 @@ jobs:
           CLIREF_ENTRIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM cliref_entries" 2>/dev/null || echo 0)
           CLIREF_FIELDS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM cliref_fields" 2>/dev/null || echo 0)
           CLIREF_LINKS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM cliref_entry_schema_links" 2>/dev/null || echo 0)
+          # The crosswalk only exists when the command tree was built (full-versions path).
+          # A single-version local-build (make extract) has no schema_nodes and runs no
+          # link-cliref, so the link floor + drift gate below are skipped for that DB.
+          SCHEMA_CMD_NODES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM schema_nodes WHERE type IN ('dir','cmd')" 2>/dev/null || echo 0)
           echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties ($TABLE_PROPERTIES table-linked), $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases, $CLIREF_ENTRIES cliref_entries ($CLIREF_FIELDS fields, $CLIREF_LINKS links)"
           fail=0
           if [ "${PAGES:-0}" -lt 200 ]; then
@@ -294,7 +298,7 @@ jobs:
             echo "::error::DB has only ${CLIREF_FIELDS} cliref_fields — expected ≥8000. Did extract-cliref run?"
             fail=1
           fi
-          if [ "${CLIREF_LINKS:-0}" -lt 800 ]; then
+          if [ "${SCHEMA_CMD_NODES:-0}" -gt 0 ] && [ "${CLIREF_LINKS:-0}" -lt 800 ]; then
             echo "::error::DB has only ${CLIREF_LINKS} cliref_entry_schema_links — expected ≥800. Did link-cliref run after schema_nodes was populated?"
             fail=1
           fi
@@ -307,7 +311,15 @@ jobs:
       # release build (which populated the links) — rehearsable here against the artifact.
       - name: CLI-Reference link drift (db-content)
         if: inputs.test_scope == 'db-content' || (inputs.test_scope == 'all' && (inputs.db_source == 'local-build' || inputs.db_source == 'artifact'))
-        run: make link-cliref-check
+        run: |
+          set -euo pipefail
+          # The crosswalk only exists on the full-versions path (see the floor step). Skip
+          # the byte-compare for a single-version local-build that built no schema_nodes.
+          if [ "$(sqlite3 ros-help.db "SELECT COUNT(*) FROM schema_nodes WHERE type IN ('dir','cmd')")" -gt 0 ]; then
+            make link-cliref-check
+          else
+            echo "schema_nodes has no command tree (single-version build) — skipping V-cliref-link-drift."
+          fi
 
       # V-cliref-db-integrity — structural + semantic invariants on the full overlay
       # (integrity/FK/orphans/enums/uniqueness + settable-only field view).
