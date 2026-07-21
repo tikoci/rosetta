@@ -45,3 +45,7 @@ ros-help.db.gz
 
 # Coverage output should not be .git; CI saves as artifact
 coverage/lcov.info
+
+# Experimental CLI-Reference extraction (experiments/cliref-*.ts) — regenerable
+experiments/cliref.db
+experiments/out/
