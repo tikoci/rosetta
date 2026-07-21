@@ -5,7 +5,8 @@ import { afterAll, describe, expect, test } from "bun:test";
 // module scope. Set DB_PATH BEFORE those imports and load them dynamically so the
 // env-var assignment wins over Bun's static-import hoisting — otherwise opening db.ts
 // against the real on-disk path would trip query.test.ts's singleton guard (an
-// order-dependent flake). This file's own tests use their own :memory: Database.
+// order-dependent flake). The view tests below build their OWN :memory: Database; the
+// link-drift baseline tests seed the shared db.ts singleton and clean up in afterAll.
 process.env.DB_PATH = ":memory:";
 const { CLIREF_FIELD_VIEW_SQL, db, initDb } = await import("./db.ts");
 const { resolveEntry, linkEntries, buildBaselineTsv, auditAliasSegments } = await import("./link-cliref.ts");

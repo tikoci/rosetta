@@ -344,7 +344,7 @@ jobs:
       # link-cliref needs the command tree. "Extract command tree" only populates
       # schema_nodes on the full-versions path (a single-version / non-dispatch build runs
       # extract-commands, which fills the legacy `commands` table, not schema_nodes). Gate
-      # on the actual node count so the link runs iff a crosswalk can form, matching
+      # on the actual node count so the link runs only when a crosswalk can form, matching
       # `make extract` (no link-cliref) vs `make extract-full` (link-cliref).
       - name: Link CLI-Reference to inspect
         run: |
