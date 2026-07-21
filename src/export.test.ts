@@ -549,3 +549,52 @@ describe("DB-only hard boundary", () => {
     expect(proc.exitCode).toBe(0);
   });
 });
+
+// Runs LAST so the cliref rows it inserts into the shared singleton never reach the
+// exact-file-set assertions above (which expect no cli-reference/* output). Uses unique
+// paths/names so the name-based field view stays deterministic against other files' rows.
+describe("runExport — cli-reference overlay (issue #124)", () => {
+  const CE = 990100; // entry/page id base, collision-proof
+  test("emits six TSVs + byte-exact source md, with entry_source_path not field_path", async () => {
+    db.run(
+      "INSERT INTO schema_nodes (path,name,type,inspect_type,parent_path) VALUES " +
+        "('/ztcert','ztcert','dir','dir','/'),('/ztcert/add','add','cmd','cmd','/ztcert'),('/ztcert/add/ztname','ztname','arg','arg','/ztcert/add')",
+    );
+    const md = "# Ztcert\n\n## ztcert\n\n**Type:** Directory\n\nprose\n";
+    const sha = new Bun.CryptoHasher("sha256").update(md).digest("hex");
+    db.run(`INSERT INTO cliref_pages (id,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE},'ztcert','u','Ztcert','','Ztcert',?,?,990000)`, [md, sha]);
+    db.run(`INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (${CE},${CE},'ztcert','ztcert','Directory',2,'prose',0,3,7)`);
+    db.run(`INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line) VALUES (${CE},${CE},'Argument','ztname','string',0,0,'The name',0,5)`);
+    db.run(`INSERT INTO cliref_flags (id,entry_id,flag,name,description_markdown,source_order,source_line) VALUES (${CE},${CE},'X','disabled','is disabled',0,4)`);
+    const nodeId = (db.prepare("SELECT id FROM schema_nodes WHERE path='/ztcert'").get() as { id: number }).id;
+    db.run(`INSERT INTO cliref_entry_schema_links (entry_id,schema_node_id,match_kind,match_detail) VALUES (${CE},${nodeId},'exact',NULL)`);
+
+    const dir = exportToTmp();
+    const summary = await runExport(dir, db);
+    const cli = summary.files.filter((f) => f.name.startsWith("cli-reference/")).map((f) => f.name).sort();
+    expect(cli).toEqual([
+      "cli-reference/entries.tsv",
+      "cli-reference/entry-inspect-links.tsv",
+      "cli-reference/field-inspect-links.tsv",
+      "cli-reference/fields.tsv",
+      "cli-reference/flags.tsv",
+      "cli-reference/pages.tsv",
+    ]);
+
+    const fields = parseTsv(readFileSync(path.join(dir, "cli-reference/fields.tsv"), "utf-8"));
+    expect(fields.columns).toContain("entry_source_path");
+    expect(fields.columns).not.toContain("field_path");
+
+    // The field view derives ztname -> /ztcert/add/ztname (unique, so exactly one row).
+    const flinks = parseTsv(readFileSync(path.join(dir, "cli-reference/field-inspect-links.tsv"), "utf-8"));
+    const mine = flinks.rows.filter((r) => r[flinks.columns.indexOf("field_name")] === "ztname");
+    expect(mine.map((r) => r[flinks.columns.indexOf("inspect_path")])).toEqual(["/ztcert/add/ztname"]);
+
+    // source md round-trips byte-for-byte to its manifest sha256.
+    const src = readFileSync(path.join(dir, "cli-reference/source/ztcert.md"));
+    const hash = new Bun.CryptoHasher("sha256").update(src).digest("hex");
+    const manifest = readFileSync(path.join(dir, "manifest.toml"), "utf-8");
+    expect(manifest).toContain(`sha256 = "${hash}"`);
+    expect(manifest).toContain('name = "cli-reference/source/ztcert.md"');
+  });
+});
