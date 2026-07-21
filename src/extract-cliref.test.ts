@@ -136,4 +136,10 @@ describe("parsePage — robustness", () => {
       "# T\n\nimport {ArgTable} from 'x';\n\n---\n\n## foo\n\n**Type:** Command\n\n<ArgTable c1=\"Nonsense\">\n<ArgTableRow arg=\"a\" typ=\"b\">c</ArgTableRow>\n</ArgTable>\n";
     expect(() => parsePage("bad", bad, "bad")).toThrow(/unknown ArgTable c1 header/);
   });
+
+  test("fails loud on an ArgTableRow missing a required arg/typ attribute", () => {
+    const bad =
+      "# T\n\nimport {ArgTable} from 'x';\n\n---\n\n## foo\n\n**Type:** Command\n\n<ArgTable c1=\"Argument\">\n<ArgTableRow typ=\"str\">no arg</ArgTableRow>\n</ArgTable>\n";
+    expect(() => parsePage("bad", bad, "bad")).toThrow(/ArgTableRow missing "arg" attribute/);
+  });
 });

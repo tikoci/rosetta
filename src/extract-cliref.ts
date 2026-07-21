@@ -265,12 +265,20 @@ function parseArgTable(
     const attr = (n: string) => attrs.match(new RegExp(`\\b${n}="([\\s\\S]*?)"`))?.[1] ?? null;
     // 1-based source line of this row = block start + newlines before the match.
     const rowLine = blockStartLine + block.slice(0, m.index).split("\n").length - 1;
+    // Required attributes fail loud like every other structural anomaly in this parser;
+    // a missing arg/typ would otherwise become an anonymous field/flag that the aggregate
+    // count-reconciliation cannot catch.
+    const requireAttr = (n: string) => {
+      const v = attr(n);
+      if (v === null) throw new Error(`${slug}: ArgTableRow missing "${n}" attribute at line ${rowLine}`);
+      return v;
+    };
     const body = trimBlankLines(decode(m[2]));
 
     if (kind === "Flag") {
       entry.flags.push({
-        flag: decode(attr("arg") ?? ""),
-        name: decode(attr("typ") ?? ""),
+        flag: decode(requireAttr("arg")),
+        name: decode(requireAttr("typ")),
         descriptionMarkdown: body,
         sourceOrder: entry.flags.length,
         sourceLine: rowLine,
@@ -278,8 +286,8 @@ function parseArgTable(
     } else if (kind === "Argument" || kind === "Read-only Argument") {
       entry.fields.push({
         fieldKind: kind,
-        name: decode(attr("arg") ?? ""),
-        rawType: decode(attr("typ") ?? ""),
+        name: decode(requireAttr("arg")),
+        rawType: decode(requireAttr("typ")),
         mandatory: attr("mandatory") === "1",
         unsettable: attr("unset") === "1",
         syscap: attr("syscap"),
