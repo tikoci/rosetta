@@ -497,8 +497,9 @@ export function initDb() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_type ON schema_nodes(type);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_path ON schema_nodes(path);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_page ON schema_nodes(page_id);`);
-  // Supports the cliref_field_inspect_links view's arg-by-name lookups.
+  // Supports the cliref_field_inspect_links view: args keyed by (parent command, name).
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_type_name ON schema_nodes(type, name);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sn_parent_name ON schema_nodes(parent_path, name);`);
 
   db.run(`CREATE TABLE IF NOT EXISTS schema_node_presence (
     node_id     INTEGER NOT NULL REFERENCES schema_nodes(id),
@@ -595,17 +596,28 @@ export function initDb() {
   // schema_nodes snapshot — never stored, so a version-less overlay never pins to a
   // versioned tree. Directory/Settings Directory entries match a field name under each
   // child command's arg nodes; Command entries match their direct arg children.
+  // Split into a UNION of the two cases rather than one OR-filtered join: the OR forces
+  // the planner to scan every arg by type alone, but each branch below keys args by
+  // (parent_path, name) via idx_sn_parent_name, which is what makes the view fast.
   db.run(`DROP VIEW IF EXISTS cliref_field_inspect_links;`);
   db.run(`CREATE VIEW cliref_field_inspect_links AS
+    -- Command entry: field is a direct arg child (/<entry>/<name>).
     SELECT f.id AS field_id, sn.id AS schema_node_id
     FROM cliref_fields f
     JOIN cliref_entries e             ON e.id = f.entry_id
     JOIN cliref_entry_schema_links el ON el.entry_id = e.id
-    JOIN schema_nodes en              ON en.id = el.schema_node_id
-    JOIN schema_nodes sn              ON sn.type = 'arg' AND sn.name = f.name
-    WHERE (en.type = 'cmd' AND sn.parent_path = en.path)
-       OR (en.type = 'dir' AND sn.parent_path IN
-            (SELECT c.path FROM schema_nodes c WHERE c.type = 'cmd' AND c.parent_path = en.path));`);
+    JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'cmd'
+    JOIN schema_nodes sn              ON sn.parent_path = en.path AND sn.name = f.name AND sn.type = 'arg'
+    UNION
+    -- Directory / Settings Directory entry: arg under each child command
+    -- (/<entry>/<verb>/<name>).
+    SELECT f.id AS field_id, sn.id AS schema_node_id
+    FROM cliref_fields f
+    JOIN cliref_entries e             ON e.id = f.entry_id
+    JOIN cliref_entry_schema_links el ON el.entry_id = e.id
+    JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'dir'
+    JOIN schema_nodes vcmd            ON vcmd.parent_path = en.path AND vcmd.type = 'cmd'
+    JOIN schema_nodes sn              ON sn.parent_path = vcmd.path AND sn.name = f.name AND sn.type = 'arg';`);
 
   // -- Devices (MikroTik product matrix) --
 
