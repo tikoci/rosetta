@@ -28,6 +28,14 @@ function getPhonyBlock(makefile: string): string {
   return makefile.slice(phonyStart, phonyEnd);
 }
 
+function getWorkflowShellFunction(workflow: string, name: string): string {
+  const start = mustIndex(workflow, `          ${name}() {`);
+  const nextFunction = workflow.indexOf("\n          ensure_release_exists() {", start + 1);
+  const end = nextFunction === -1 ? workflow.indexOf("\n          if [", start + 1) : nextFunction;
+  expect(end).toBeGreaterThan(start);
+  return workflow.slice(start, end).replace(/^ {10}/gm, "");
+}
+
 // ---------------------------------------------------------------------------
 // package.json health
 // ---------------------------------------------------------------------------
@@ -804,6 +812,25 @@ describe("release.yml", () => {
     expect(src).toContain("gh_retry()");
     expect(src).toContain("ensure_release_exists()");
     expect(src).toContain("GitHub can return a transient 5xx after creating the release");
+  });
+
+  test("gh_retry preserves the failing command exit status after retries", () => {
+    const src = readText(".github/workflows/release.yml");
+    const ghRetry = getWorkflowShellFunction(src, "gh_retry");
+    const proc = Bun.spawnSync(
+      [
+        "bash",
+        "-c",
+        `${ghRetry}
+sleep() { :; }
+failing_command() { return 42; }
+gh_retry failing_command
+exit $?`,
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    );
+
+    expect(proc.exitCode).toBe(42);
   });
 
   test("republish_assets controls immutable npm skips and release clobbering", () => {

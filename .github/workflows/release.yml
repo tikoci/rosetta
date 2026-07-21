@@ -664,11 +664,13 @@ jobs:
             local max_attempts=4
             local delay=5
             local label="$1 ${2:-} ${3:-}"
+            local status=0
             while true; do
               if "$@"; then
                 return 0
+              else
+                status=$?
               fi
-              local status=$?
               if [ "$attempt" -ge "$max_attempts" ]; then
                 return "$status"
               fi
