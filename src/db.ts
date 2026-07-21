@@ -57,6 +57,7 @@ export const CLIREF_FIELD_VIEW_SQL = `CREATE VIEW cliref_field_inspect_links AS
     JOIN cliref_entry_schema_links el ON el.entry_id = e.id
     JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'cmd'
     JOIN schema_nodes sn              ON sn.parent_path = en.path AND sn.name = f.name AND sn.type = 'arg'
+    WHERE f.field_kind = 'Argument'
     UNION
     -- Directory / Settings Directory entry: arg under each child command
     -- (/<entry>/<verb>/<name>).
@@ -66,7 +67,8 @@ export const CLIREF_FIELD_VIEW_SQL = `CREATE VIEW cliref_field_inspect_links AS
     JOIN cliref_entry_schema_links el ON el.entry_id = e.id
     JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'dir'
     JOIN schema_nodes vcmd            ON vcmd.parent_path = en.path AND vcmd.type = 'cmd'
-    JOIN schema_nodes sn              ON sn.parent_path = vcmd.path AND sn.name = f.name AND sn.type = 'arg';`;
+    JOIN schema_nodes sn              ON sn.parent_path = vcmd.path AND sn.name = f.name AND sn.type = 'arg'
+    WHERE f.field_kind = 'Argument';`;
 
 export const DB_PATH = resolveDbPath(import.meta.dirname);
 
@@ -492,7 +494,7 @@ export function initDb() {
     path         TEXT NOT NULL,
     name         TEXT NOT NULL,
     type         TEXT NOT NULL,
-    inspect_type TEXT,
+    inspect_type TEXT CHECK (inspect_type IS NULL OR inspect_type IN ('path', 'dir', 'cmd', 'arg')),
     parent_id    INTEGER REFERENCES schema_nodes(id),
     parent_path  TEXT,
     dir_role     TEXT,
@@ -516,7 +518,9 @@ export function initDb() {
   // NULL default, safe with foreign_keys=ON; repopulated by the next extract-schema run.
   const snCols = db.prepare("PRAGMA table_info(schema_nodes)").all() as Array<{ name: string }>;
   if (!snCols.some((c) => c.name === "inspect_type")) {
-    db.run("ALTER TABLE schema_nodes ADD COLUMN inspect_type TEXT;");
+    db.run(
+      "ALTER TABLE schema_nodes ADD COLUMN inspect_type TEXT CHECK (inspect_type IS NULL OR inspect_type IN ('path', 'dir', 'cmd', 'arg'));",
+    );
   }
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_parent ON schema_nodes(parent_path);`);
@@ -553,7 +557,7 @@ export function initDb() {
     source_title    TEXT,
     source_markdown TEXT NOT NULL,
     source_sha256   TEXT NOT NULL,
-    source_order    INTEGER NOT NULL UNIQUE
+    source_order    INTEGER NOT NULL UNIQUE CHECK (source_order >= 0)
   );`);
 
   db.run(`CREATE TABLE IF NOT EXISTS cliref_entries (
@@ -569,9 +573,9 @@ export function initDb() {
     conditions           TEXT,
     syscap               TEXT,
     description_markdown  TEXT NOT NULL,
-    source_order         INTEGER NOT NULL,
-    source_line          INTEGER NOT NULL,
-    source_end_line      INTEGER NOT NULL,
+    source_order         INTEGER NOT NULL CHECK (source_order >= 0),
+    source_line          INTEGER NOT NULL CHECK (source_line >= 1),
+    source_end_line      INTEGER NOT NULL CHECK (source_end_line >= source_line),
     UNIQUE (page_id, source_order)
   );`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_cliref_entries_page ON cliref_entries(page_id);`);
@@ -588,8 +592,8 @@ export function initDb() {
     unsettable           INTEGER NOT NULL CHECK (unsettable IN (0, 1)),
     syscap               TEXT,
     description_markdown  TEXT NOT NULL,
-    source_order         INTEGER NOT NULL,
-    source_line          INTEGER NOT NULL,
+    source_order         INTEGER NOT NULL CHECK (source_order >= 0),
+    source_line          INTEGER NOT NULL CHECK (source_line >= 1),
     UNIQUE (entry_id, source_order)
   );`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_cliref_fields_entry ON cliref_fields(entry_id, name);`);
@@ -600,8 +604,8 @@ export function initDb() {
     flag                 TEXT NOT NULL,
     name                 TEXT NOT NULL,
     description_markdown  TEXT NOT NULL,
-    source_order         INTEGER NOT NULL,
-    source_line          INTEGER NOT NULL,
+    source_order         INTEGER NOT NULL CHECK (source_order >= 0),
+    source_line          INTEGER NOT NULL CHECK (source_line >= 1),
     UNIQUE (entry_id, source_order)
   );`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_cliref_flags_entry ON cliref_flags(entry_id, flag);`);
@@ -612,7 +616,11 @@ export function initDb() {
     entry_id       INTEGER PRIMARY KEY REFERENCES cliref_entries(id),
     schema_node_id INTEGER NOT NULL REFERENCES schema_nodes(id),
     match_kind     TEXT NOT NULL CHECK (match_kind IN ('exact', 'alias')),
-    match_detail   TEXT
+    match_detail   TEXT,
+    CHECK (
+      (match_kind = 'exact' AND match_detail IS NULL) OR
+      (match_kind = 'alias' AND match_detail IS NOT NULL)
+    )
   );`);
   db.run(
     `CREATE INDEX IF NOT EXISTS idx_cliref_entry_links_node ON cliref_entry_schema_links(schema_node_id);`,

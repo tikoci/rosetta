@@ -39,6 +39,11 @@ describe("resolveEntry", () => {
     expect(r).toEqual({ schemaNodeId: 3, matchKind: "alias", matchDetail: 'dropped segment "acl"' });
   });
 
+  test("an undocumented droppable segment stays manual-only", () => {
+    const unknown = new Map([["/a/c", [{ id: 40, type: "dir" }]]]);
+    expect(resolveEntry("a/new-internal-name/c", "Directory", unknown)).toBeNull();
+  });
+
   test("never drops the LAST segment (a genuinely-absent submenu is manual-only, not an alias of its parent)", () => {
     // interface/bridge/msrp would collapse onto /interface/bridge if the leaf were dropped.
     expect(resolveEntry("interface/bridge/msrp", "Directory", index)).toBeNull();
@@ -84,10 +89,10 @@ describe("cliref_field_inspect_links view", () => {
     sn.run(7, "/ping/address", "address", "arg", "/ping");
 
     db.run("CREATE TABLE cliref_entries (id INTEGER PRIMARY KEY, source_path TEXT)");
-    db.run("CREATE TABLE cliref_fields (id INTEGER PRIMARY KEY, entry_id INTEGER, name TEXT)");
+    db.run("CREATE TABLE cliref_fields (id INTEGER PRIMARY KEY, entry_id INTEGER, name TEXT, field_kind TEXT)");
     db.run("CREATE TABLE cliref_entry_schema_links (entry_id INTEGER PRIMARY KEY, schema_node_id INTEGER, match_kind TEXT)");
     db.run("INSERT INTO cliref_entries VALUES (1,'certificate'),(2,'ping')");
-    db.run("INSERT INTO cliref_fields VALUES (1,1,'name'),(2,2,'address')");
+    db.run("INSERT INTO cliref_fields VALUES (1,1,'name','Argument'),(2,2,'address','Argument'),(3,1,'name','Read-only Argument')");
     db.run("INSERT INTO cliref_entry_schema_links VALUES (1,1,'exact'),(2,6,'exact')");
     db.run(CLIREF_FIELD_VIEW_SQL); // the shipped view — drift-proof, exercised as-is
     return db;
@@ -103,5 +108,11 @@ describe("cliref_field_inspect_links view", () => {
     const db = seed();
     const rows = db.query("SELECT schema_node_id FROM cliref_field_inspect_links WHERE field_id=2").all() as Array<{ schema_node_id: number }>;
     expect(rows.map((r) => r.schema_node_id)).toEqual([7]); // ping.address -> /ping/address
+  });
+
+  test("Read-only Argument rows never imply a settable inspect-arg link", () => {
+    const db = seed();
+    const rows = db.query("SELECT schema_node_id FROM cliref_field_inspect_links WHERE field_id=3").all();
+    expect(rows).toEqual([]);
   });
 });

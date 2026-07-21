@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cliRefSlug, parsePage } from "./extract-cliref.ts";
+import { cliRefSlug, countStructuralMarkers, parsePage } from "./extract-cliref.ts";
 
 const FIXTURE = readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", "sample.md"), "utf8");
 const page = parsePage("sample", FIXTURE, "Sample");
@@ -111,6 +111,18 @@ describe("parsePage — robustness", () => {
   test("fails loud on an unknown entry Type label", () => {
     const bad = "# T\n\nimport {ArgTable} from 'x';\n\n---\n\n## foo\n\n**Type:** Bogus\n";
     expect(() => parsePage("bad", bad, "bad")).toThrow(/unknown entry Type/);
+  });
+
+  test("fails loud when an entry Type marker is missing or duplicated", () => {
+    const missing = "# T\n\nimport {ArgTable} from 'x';\n\n---\n\n## foo\n\nprose\n";
+    expect(() => parsePage("bad", missing, "bad")).toThrow(/has no \*\*Type:\*\* marker/);
+    const duplicate =
+      "# T\n\nimport {ArgTable} from 'x';\n\n---\n\n## foo\n\n**Type:** Command\n**Type:** Command\n";
+    expect(() => parsePage("bad", duplicate, "bad")).toThrow(/duplicate Type marker/);
+  });
+
+  test("source marker census ignores fenced examples", () => {
+    expect(countStructuralMarkers(FIXTURE)).toEqual({ entries: 3, rows: 7 });
   });
 
   test("fails loud on an unknown ArgTable header", () => {

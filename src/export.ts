@@ -735,7 +735,7 @@ const DISCLOSURES = [
 const CLIREF_DISCLOSURES = [
   {
     subject: "cli-reference field-inspect-links (the field view)",
-    note: "field-inspect-links.tsv is derived by name from the stored entry crosswalk (cliref_field_inspect_links view), never stored — so it always reflects the current schema_nodes snapshot. A field matches inspect arg nodes by NAME under its entry's command subtree, so it can be zero-to-many (4,161 of 6,171 settable fields match 2–4 nodes). Matching is name-only: a Read-only Argument whose name coincides with a settable arg elsewhere will show links even though it is not itself settable — filter by fields.field_kind. inspect_link_count in fields.tsv is the row count of this view for that field.",
+    note: "field-inspect-links.tsv is derived by name from the stored entry crosswalk (cliref_field_inspect_links view), never stored — so it always reflects the current schema_nodes snapshot. A settable Argument matches inspect arg nodes by NAME under its entry's command subtree, so it can be zero-to-many; Read-only Argument rows are intentionally excluded because a same-name inspect arg describes input, not proof of an output field. inspect_link_count in fields.tsv is the row count of this view for that field.",
   },
   {
     subject: "cli-reference entry match_kind (exact / alias / manual-only)",

@@ -242,9 +242,11 @@ entry linked to a `Command` node, its direct `arg` children `<entry.path>/<field
 `source_heading` is verbatim; `source_path` is only the normalized slash form of that source heading.
 The resolved inspect coordinate comes through `cliref_entry_schema_links -> schema_nodes.path`, not a
 second path column silently promoted as canonical. `cliref_fields` deliberately has no path column.
-Many fields resolve to multiple inspect `arg` nodes (4,161 of 6,171 settable fields match 2–4 nodes —
-independently reproduced 2026-07-20); read-only/manual-only fields resolve to none. Flags are a
-separate table and never link to inspect arguments.
+Many fields resolve to multiple inspect `arg` nodes. The final stored-entry-crosswalk + computed-view
+round trip resolves 5,124 of 6,171 settable fields at least once (4,283 to 2–4 nodes and 8 to 5–7 nodes)
+against the 7.23.2 release tree. The view deliberately excludes read-only fields: a same-name inspect
+input is not evidence that a CLI-Reference output field is the same thing. Manual-only entries have no
+field links. Flags are a separate table and never link to inspect arguments.
 
 **Entry-link ambiguity policy (open Q7 refinement):** the alias rule fires only when dropping one
 documented internal segment yields *exactly one* inspect node. If a future docs rebuild makes it

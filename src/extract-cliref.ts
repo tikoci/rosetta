@@ -25,13 +25,14 @@
  *   bun run src/extract-cliref.ts --check-counts   # assert parsed == source markers
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { db, initDb } from "./db.ts";
-import { loadSitemapUrls } from "./rosetta-id.ts";
+import { parseSitemapLocs } from "./rosetta-id.ts";
 
 const BASE = "https://manual.mikrotik.com";
 const LLMS_TXT_URL = `${BASE}/llms.txt`;
+const SITEMAP_URL = `${BASE}/sitemap.xml`;
 const CLI_PREFIX = "/docs/cli-reference/";
 const PROJECT_ROOT = join(import.meta.dirname, "..");
 const DEFAULT_CACHE_DIR = join(PROJECT_ROOT, "manual", "cli-reference");
@@ -86,22 +87,33 @@ function safeCachePath(name: string): string {
   return target;
 }
 
-/** Slugs from cached filenames (offline discovery for --from-cache). Underscores in a
- * real segment never occur in CLI-Reference slugs, so "__" unambiguously marks a "/".
- * Excludes the section-landing `index.md` (`/docs/cli-reference/`): it is a prose
- * argument-type glossary, not command entries — sitemap discovery excludes it too (its
- * URL carries a trailing slash), and it has no `**Type:**` markers. Capturing that
- * glossary is a separate future task (relevant to the deferred raw_type parsing). */
-function cachedSlugs(): string[] {
-  if (!existsSync(CACHE_DIR)) return [];
-  return readdirSync(CACHE_DIR)
-    .filter((f) => f.endsWith(".md") && !f.startsWith("_") && f !== "index.md")
-    .map((f) => f.slice(0, -3).replace(/__/g, "/"));
-}
-
 /** URL-parent slug segment used as the sidebar group ("interface/wifi" -> "interface"). */
 function tocGroup(slug: string): string {
   return slug.includes("/") ? slug.slice(0, slug.lastIndexOf("/")) : "";
+}
+
+/** Page inventory from an exact cached/live sitemap snapshot. llms.txt is metadata,
+ * not discovery: it also names the section landing and generated category pages. */
+async function loadCliRefSlugs(): Promise<string[]> {
+  const cached = safeCachePath("_sitemap.txt");
+  let xml: string;
+  if (FROM_CACHE) {
+    try {
+      xml = readFileSync(cached, "utf8");
+    } catch {
+      throw new Error(`--from-cache set but no cached sitemap.xml at ${cached}`);
+    }
+  } else {
+    const res = await fetch(SITEMAP_URL, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`Failed to fetch ${SITEMAP_URL}: HTTP ${res.status}`);
+    xml = await res.text();
+    mkdirSync(CACHE_DIR, { recursive: true });
+    writeFileSync(cached, xml);
+  }
+  return parseSitemapLocs(xml)
+    .map(cliRefSlug)
+    .filter((s): s is string => s !== null)
+    .sort();
 }
 
 /** Sidebar labels from llms.txt link text — not derivable from the slug ("caps-man" -> "Caps Man"). */
@@ -289,6 +301,7 @@ export function parsePage(slug: string, md: string, tocName: string): CliRefPage
   let current: CliRefEntry | null = null;
   const descLines: string[] = [];
   let inFence = false;
+  const seenMarkers = new Map<number, Set<string>>();
 
   const flushDesc = () => {
     if (current) current.descriptionMarkdown = trimBlankLines(descLines.join("\n"));
@@ -343,6 +356,7 @@ export function parsePage(slug: string, md: string, tocName: string): CliRefPage
         flags: [],
       };
       entries.push(current);
+      seenMarkers.set(localId, new Set());
       parentStack.push({ level, localId });
       continue;
     }
@@ -351,6 +365,11 @@ export function parsePage(slug: string, md: string, tocName: string): CliRefPage
 
     const field = line.match(/^\*\*(Type|Package|Conditions|Syscap):\*\*\s*(.*)$/);
     if (field) {
+      const markers = seenMarkers.get(current.localId);
+      if (markers?.has(field[1])) {
+        throw new Error(`${slug}: duplicate ${field[1]} marker at line ${sourceLine}`);
+      }
+      markers?.add(field[1]);
       const value = field[2].trim() || null;
       if (field[1] === "Type") {
         if (value === null || !KNOWN_ENTRY_TYPES.has(value)) {
@@ -378,6 +397,12 @@ export function parsePage(slug: string, md: string, tocName: string): CliRefPage
     flushDesc();
   }
 
+  for (const entry of entries) {
+    if (!seenMarkers.get(entry.localId)?.has("Type")) {
+      throw new Error(`${slug}: entry ${JSON.stringify(entry.sourceHeading)} has no **Type:** marker`);
+    }
+  }
+
   return {
     slug,
     url: `${BASE}${CLI_PREFIX}${slug}`,
@@ -388,6 +413,23 @@ export function parsePage(slug: string, md: string, tocName: string): CliRefPage
     sourceSha256: new Bun.CryptoHasher("sha256").update(md).digest("hex"),
     entries,
   };
+}
+
+/** Count source structure while ignoring examples inside fenced code blocks. */
+export function countStructuralMarkers(md: string): { entries: number; rows: number } {
+  let entries = 0;
+  let rows = 0;
+  let inFence = false;
+  for (const line of md.split("\n")) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    if (/^\*\*Type:\*\*/.test(line)) entries++;
+    rows += line.match(/<ArgTableRow\b/g)?.length ?? 0;
+  }
+  return { entries, rows };
 }
 
 // ── Storage ──
@@ -472,19 +514,11 @@ function store(pages: CliRefPage[]): void {
 // ── Main ──
 
 async function main(): Promise<void> {
-  let slugs: string[];
-  if (FROM_CACHE) {
-    slugs = cachedSlugs().sort();
-    console.log(`Discovering pages from cache: ${CACHE_DIR}`);
-  } else {
-    slugs = (await loadSitemapUrls())
-      .map(cliRefSlug)
-      .filter((s): s is string => s !== null)
-      .sort();
-  }
+  const tocNames = await loadTocNames();
+  let slugs = await loadCliRefSlugs();
+  if (FROM_CACHE) console.log(`Discovering pages from cache: ${CACHE_DIR}`);
   if (LIMIT !== undefined) slugs = slugs.slice(0, LIMIT);
 
-  const tocNames = await loadTocNames();
   console.log(`Discovered ${slugs.length} CLI-Reference pages (excluding generated category stubs)`);
 
   const pages: CliRefPage[] = [];
@@ -509,21 +543,19 @@ async function main(): Promise<void> {
   if (missing.length > 0) {
     // In a full live run, a missing .md is a fetch failure that would silently ship a
     // partial overlay (the count asserts below only see fetched pages). Fail hard.
-    // --from-cache and --limit are intentionally partial, so only warn there.
+    // --limit is intentionally partial. A full cached run is expected to be complete:
+    // the cached sitemap supplies the offline page inventory, so a missing page is drift.
     const msg = `Missing (no .md): ${missing.join(", ")}`;
-    if (!FROM_CACHE && LIMIT === undefined) {
-      throw new Error(`${msg}\nRefusing to store a partial overlay from a full live run.`);
+    if (LIMIT === undefined) {
+      throw new Error(`${msg}\nRefusing to store a partial overlay from a full run.`);
     }
     console.log(msg);
   }
 
   // Crash-early: parsed structure must reconcile with the raw source markers.
-  const rawTypeMarkers = pages
-    .map((p) => p.sourceMarkdown.match(/^\*\*Type:\*\*/gm)?.length ?? 0)
-    .reduce((a, b) => a + b, 0);
-  const rawRows = pages
-    .map((p) => p.sourceMarkdown.match(/<ArgTableRow\b/g)?.length ?? 0)
-    .reduce((a, b) => a + b, 0);
+  const markerCounts = pages.map((p) => countStructuralMarkers(p.sourceMarkdown));
+  const rawTypeMarkers = markerCounts.reduce((sum, c) => sum + c.entries, 0);
+  const rawRows = markerCounts.reduce((sum, c) => sum + c.rows, 0);
   if (rawTypeMarkers !== entries.length) {
     throw new Error(`entry drift: ${rawTypeMarkers} **Type:** markers, ${entries.length} entries parsed`);
   }

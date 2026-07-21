@@ -30,6 +30,34 @@ interface SchemaNode {
   type: string;
 }
 
+/**
+ * Internal module names observed in the current CLI-Reference headings but absent
+ * from the public inspect path. Alias matching is deliberately an allowlist: accepting
+ * any droppable segment would silently normalize a new source mismatch instead of
+ * making the link-count drift gate report it.
+ */
+export const KNOWN_ALIAS_SEGMENTS = new Set([
+  "acl",
+  "cfg",
+  "chancfg",
+  "controller",
+  "dpathcfg",
+  "ifaceactual",
+  "ratescfg",
+  "remoteap",
+  "rule",
+  "seccfg",
+  "sta",
+  "poe",
+  "qos",
+  "easymesh",
+  "route",
+  "serial-interface",
+  "ddns",
+  "ifaces",
+  "queues",
+]);
+
 /** dir/cmd nodes keyed by path (a path may exist as more than one type). */
 function loadNodeIndex(): Map<string, SchemaNode[]> {
   const rows = db
@@ -89,6 +117,7 @@ export function resolveEntry(
   const candidates = new Map<number, { node: SchemaNode; dropped: string }>();
   for (let i = 1; i < segments.length - 1; i++) {
     const dropped = segments[i];
+    if (!KNOWN_ALIAS_SEGMENTS.has(dropped)) continue;
     const candidatePath = `/${segments.slice(0, i).concat(segments.slice(i + 1)).join("/")}`;
     const nodes = index.get(candidatePath);
     if (nodes) {
