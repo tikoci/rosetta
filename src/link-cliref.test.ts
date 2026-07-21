@@ -1,7 +1,14 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { CLIREF_FIELD_VIEW_SQL } from "./db.ts";
-import { resolveEntry } from "./link-cliref.ts";
+
+// db.ts (imported directly here and transitively via link-cliref.ts) opens the DB at
+// module scope. Set DB_PATH BEFORE those imports and load them dynamically so the
+// env-var assignment wins over Bun's static-import hoisting — otherwise opening db.ts
+// against the real on-disk path would trip query.test.ts's singleton guard (an
+// order-dependent flake). This file's own tests use their own :memory: Database.
+process.env.DB_PATH = ":memory:";
+const { CLIREF_FIELD_VIEW_SQL } = await import("./db.ts");
+const { resolveEntry } = await import("./link-cliref.ts");
 
 // A tiny dir/cmd node index (id, type) keyed by path, matching resolveEntry's shape.
 const index = new Map<string, Array<{ id: number; type: string }>>([

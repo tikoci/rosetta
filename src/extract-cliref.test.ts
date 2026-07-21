@@ -1,7 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { cliRefSlug, countStructuralMarkers, parsePage } from "./extract-cliref.ts";
+
+// extract-cliref.ts imports db.ts, which opens the DB at module scope. Set DB_PATH
+// BEFORE that import and load it dynamically so the env-var assignment wins over
+// Bun's static-import hoisting — otherwise this file opening db.ts against the real
+// on-disk path would trip query.test.ts's singleton guard (order-dependent flake).
+process.env.DB_PATH = ":memory:";
+const { cliRefSlug, countStructuralMarkers, parsePage } = await import("./extract-cliref.ts");
 
 const FIXTURE = readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", "sample.md"), "utf8");
 const page = parsePage("sample", FIXTURE, "Sample");
