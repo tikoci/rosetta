@@ -1069,6 +1069,7 @@ describe("qa.yml", () => {
       /DEVICE_ALIASES.*-lt 600/,
       /CLIREF_ENTRIES.*-lt 900/,
       /CLIREF_FIELDS.*-lt 8000/,
+      /CLIREF_FLAGS.*-lt 800/,
       /CLIREF_LINKS.*-lt 800/,
     ]) {
       expect(qa).toMatch(re);

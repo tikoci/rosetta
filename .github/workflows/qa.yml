@@ -235,12 +235,13 @@ jobs:
           DEVICE_ALIASES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM device_aliases" 2>/dev/null || echo 0)
           CLIREF_ENTRIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM cliref_entries" 2>/dev/null || echo 0)
           CLIREF_FIELDS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM cliref_fields" 2>/dev/null || echo 0)
+          CLIREF_FLAGS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM cliref_flags" 2>/dev/null || echo 0)
           CLIREF_LINKS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM cliref_entry_schema_links" 2>/dev/null || echo 0)
           # The crosswalk only exists when the command tree was built (full-versions path).
           # A single-version local-build (make extract) has no schema_nodes and runs no
           # link-cliref, so the link floor + drift gate below are skipped for that DB.
           SCHEMA_CMD_NODES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM schema_nodes WHERE type IN ('dir','cmd')" 2>/dev/null || echo 0)
-          echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties ($TABLE_PROPERTIES table-linked), $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases, $CLIREF_ENTRIES cliref_entries ($CLIREF_FIELDS fields, $CLIREF_LINKS links)"
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties ($TABLE_PROPERTIES table-linked), $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases, $CLIREF_ENTRIES cliref_entries ($CLIREF_FIELDS fields, $CLIREF_FLAGS flags, $CLIREF_LINKS links)"
           fail=0
           if [ "${PAGES:-0}" -lt 200 ]; then
             echo "::error::DB has only ${PAGES} pages — expected ≥200 (Docusaurus /docs export is ~365)."
@@ -296,6 +297,10 @@ jobs:
           fi
           if [ "${CLIREF_FIELDS:-0}" -lt 8000 ]; then
             echo "::error::DB has only ${CLIREF_FIELDS} cliref_fields — expected ≥8000. Did extract-cliref run?"
+            fail=1
+          fi
+          if [ "${CLIREF_FLAGS:-0}" -lt 800 ]; then
+            echo "::error::DB has only ${CLIREF_FLAGS} cliref_flags — expected ≥800 (observed ~948). Did extract-cliref run?"
             fail=1
           fi
           if [ "${SCHEMA_CMD_NODES:-0}" -gt 0 ] && [ "${CLIREF_LINKS:-0}" -lt 800 ]; then
