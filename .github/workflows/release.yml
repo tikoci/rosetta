@@ -659,22 +659,73 @@ jobs:
           - **Full version extraction:** ${{ inputs.full_versions }}
           - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
+          gh_retry() {
+            local attempt=1
+            local max_attempts=4
+            local delay=5
+            local label="$1 ${2:-} ${3:-}"
+            local status=0
+            while true; do
+              if "$@"; then
+                return 0
+              else
+                status=$?
+              fi
+              if [ "$attempt" -ge "$max_attempts" ]; then
+                return "$status"
+              fi
+              echo "::warning::GitHub release command failed with exit $status (attempt $attempt/$max_attempts): ${label}; retrying in ${delay}s"
+              sleep "$delay"
+              attempt=$((attempt + 1))
+              delay=$((delay * 2))
+            done
+          }
+
+          ensure_release_exists() {
+            if gh release view "$VERSION" >/dev/null 2>&1; then
+              return 0
+            fi
+
+            local attempt=1
+            local max_attempts=4
+            local delay=5
+            while true; do
+              if gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"; then
+                return 0
+              fi
+              # GitHub can return a transient 5xx after creating the release.
+              # Treat "now visible" as success so reruns and in-step retries are idempotent.
+              if gh release view "$VERSION" >/dev/null 2>&1; then
+                echo "::warning::Release $VERSION exists after a failed create response; continuing with asset upload."
+                return 0
+              fi
+              if [ "$attempt" -ge "$max_attempts" ]; then
+                return 1
+              fi
+              echo "::warning::GitHub release create failed (attempt $attempt/$max_attempts); retrying in ${delay}s"
+              sleep "$delay"
+              attempt=$((attempt + 1))
+              delay=$((delay * 2))
+            done
+          }
+
           if [ "$REPUBLISH_ASSETS" = "true" ]; then
             # Create release if it doesn't exist, then reupload assets with clobber.
-            gh release create "$VERSION" --title "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}" 2>/dev/null || true
-            gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
-            gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
+            ensure_release_exists
+            gh_retry gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh_retry gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION updated"
           elif gh release view "$VERSION" >/dev/null 2>&1; then
             # A previous run may have created the GitHub Release and then failed
             # at npm publish. The npm preflight above rejects already-published
             # package versions, so this retry path is safe to clobber assets.
-            gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
-            gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
+            gh_retry gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh_retry gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION updated before npm publish retry"
           else
-            gh release create "$VERSION" dist/*.zip dist/ros-help.db.gz \
-              --title "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
+            ensure_release_exists
+            gh_retry gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh_retry gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION created"
           fi
 

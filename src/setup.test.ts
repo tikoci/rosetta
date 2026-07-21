@@ -34,19 +34,36 @@ const { SCHEMA_VERSION } = await import("./paths.ts");
 
 function writeUsableDb(dbFile: string, releaseTag = "v0.0.0-test"): void {
   const db = new sqlite(dbFile);
-  db.run(`PRAGMA user_version = ${SCHEMA_VERSION};`);
-  db.run("CREATE TABLE pages (id INTEGER PRIMARY KEY, title TEXT);");
-  db.run("CREATE TABLE commands (id INTEGER PRIMARY KEY, path TEXT);");
-  db.run("CREATE TABLE db_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+  let insertPage: ReturnType<typeof db.prepare> | null = null;
+  let insertCmd: ReturnType<typeof db.prepare> | null = null;
 
-  const insertPage = db.prepare("INSERT INTO pages (title) VALUES (?)");
-  for (let i = 0; i < 100; i++) insertPage.run(`page-${i}`);
+  try {
+    db.run(`PRAGMA user_version = ${SCHEMA_VERSION};`);
+    db.run("CREATE TABLE pages (id INTEGER PRIMARY KEY, title TEXT);");
+    db.run("CREATE TABLE commands (id INTEGER PRIMARY KEY, path TEXT);");
+    db.run("CREATE TABLE db_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
 
-  const insertCmd = db.prepare("INSERT INTO commands (path) VALUES (?)");
-  for (let i = 0; i < 1000; i++) insertCmd.run(`/cmd/${i}`);
+    insertPage = db.prepare("INSERT INTO pages (title) VALUES (?)");
+    insertCmd = db.prepare("INSERT INTO commands (path) VALUES (?)");
 
-  db.run("INSERT INTO db_meta (key, value) VALUES ('release_tag', ?);", [releaseTag]);
-  db.close();
+    // Keep the fixture faithful to the package DB minimums without paying
+    // 1,100 autocommit disk syncs. Shared GitHub runners can otherwise stall long
+    // enough to trip Bun's per-test timeout before the lock/probe assertion runs.
+    db.run("BEGIN");
+    for (let i = 0; i < 100; i++) insertPage.run(`page-${i}`);
+    for (let i = 0; i < 1000; i++) insertCmd.run(`/cmd/${i}`);
+    db.run("INSERT INTO db_meta (key, value) VALUES ('release_tag', ?);", [releaseTag]);
+    db.run("COMMIT");
+  } catch (e) {
+    try {
+      db.run("ROLLBACK");
+    } catch {}
+    throw e;
+  } finally {
+    insertPage?.finalize();
+    insertCmd?.finalize();
+    db.close();
+  }
 }
 
 // ---------------------------------------------------------------------------
