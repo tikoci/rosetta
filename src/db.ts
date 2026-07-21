@@ -462,32 +462,43 @@ export function initDb() {
   // with zero downstream churn.
 
   db.run(`CREATE TABLE IF NOT EXISTS schema_nodes (
-    id          INTEGER PRIMARY KEY,
-    path        TEXT NOT NULL,
-    name        TEXT NOT NULL,
-    type        TEXT NOT NULL,
-    parent_id   INTEGER REFERENCES schema_nodes(id),
-    parent_path TEXT,
-    dir_role    TEXT,
-    desc_raw    TEXT,
-    data_type   TEXT,
-    enum_values TEXT,
-    enum_multi  INTEGER,
-    type_tag    TEXT,
-    range_min   TEXT,
-    range_max   TEXT,
-    max_length  INTEGER,
-    _arch       TEXT,
-    _package    TEXT,
-    _attrs      TEXT,
-    page_id     INTEGER REFERENCES pages(id),
+    id           INTEGER PRIMARY KEY,
+    path         TEXT NOT NULL,
+    name         TEXT NOT NULL,
+    type         TEXT NOT NULL,
+    inspect_type TEXT,
+    parent_id    INTEGER REFERENCES schema_nodes(id),
+    parent_path  TEXT,
+    dir_role     TEXT,
+    desc_raw     TEXT,
+    data_type    TEXT,
+    enum_values  TEXT,
+    enum_multi   INTEGER,
+    type_tag     TEXT,
+    range_min    TEXT,
+    range_max    TEXT,
+    max_length   INTEGER,
+    _arch        TEXT,
+    _package     TEXT,
+    _attrs       TEXT,
+    page_id      INTEGER REFERENCES pages(id),
     UNIQUE(path, type)
   );`);
+
+  // inspect_type preserves RouterOS' raw /console/inspect class (path|dir|cmd|arg)
+  // that `type` normalizes (extract-schema.ts collapses raw `path` → `dir`). Additive,
+  // NULL default, safe with foreign_keys=ON; repopulated by the next extract-schema run.
+  const snCols = db.prepare("PRAGMA table_info(schema_nodes)").all() as Array<{ name: string }>;
+  if (!snCols.some((c) => c.name === "inspect_type")) {
+    db.run("ALTER TABLE schema_nodes ADD COLUMN inspect_type TEXT;");
+  }
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_parent ON schema_nodes(parent_path);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_type ON schema_nodes(type);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_path ON schema_nodes(path);`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_sn_page ON schema_nodes(page_id);`);
+  // Supports the cliref_field_inspect_links view's arg-by-name lookups.
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sn_type_name ON schema_nodes(type, name);`);
 
   db.run(`CREATE TABLE IF NOT EXISTS schema_node_presence (
     node_id     INTEGER NOT NULL REFERENCES schema_nodes(id),
@@ -496,6 +507,105 @@ export function initDb() {
   );`);
 
   db.run(`CREATE INDEX IF NOT EXISTS idx_snp_version ON schema_node_presence(version);`);
+
+  // -- CLI-Reference overlay (manual.mikrotik.com/docs/cli-reference/*) --
+  //
+  // A source-faithful, version-less overlay of the official CLI Reference, kept
+  // structurally separate from the inspect.json-derived schema_nodes tree. An entry
+  // (a heading path) is one of Directory/Settings Directory/Command; its fields are
+  // named Argument/Read-only Argument rows; its flags are print-output markers. A
+  // field has NO path — it maps to zero-to-many inspect coordinates. See #124 and
+  // briefings/B-0016-cli-reference-overlay-design.md for the identity rationale.
+
+  db.run(`CREATE TABLE IF NOT EXISTS cliref_pages (
+    id              INTEGER PRIMARY KEY,
+    slug            TEXT NOT NULL UNIQUE,
+    url             TEXT NOT NULL UNIQUE,
+    toc_name        TEXT NOT NULL,
+    toc_group       TEXT NOT NULL,
+    source_title    TEXT,
+    source_markdown TEXT NOT NULL,
+    source_sha256   TEXT NOT NULL,
+    source_order    INTEGER NOT NULL UNIQUE
+  );`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS cliref_entries (
+    id                   INTEGER PRIMARY KEY,
+    page_id              INTEGER NOT NULL REFERENCES cliref_pages(id),
+    source_parent_id     INTEGER REFERENCES cliref_entries(id),
+    source_heading       TEXT NOT NULL,
+    source_path          TEXT NOT NULL,
+    source_type          TEXT NOT NULL
+      CHECK (source_type IN ('Directory', 'Settings Directory', 'Command')),
+    heading_level        INTEGER NOT NULL CHECK (heading_level BETWEEN 1 AND 6),
+    package              TEXT,
+    conditions           TEXT,
+    syscap               TEXT,
+    description_markdown  TEXT NOT NULL,
+    source_order         INTEGER NOT NULL,
+    source_line          INTEGER NOT NULL,
+    source_end_line      INTEGER NOT NULL,
+    UNIQUE (page_id, source_order)
+  );`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cliref_entries_page ON cliref_entries(page_id);`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cliref_entries_path ON cliref_entries(source_path);`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS cliref_fields (
+    id                   INTEGER PRIMARY KEY,
+    entry_id             INTEGER NOT NULL REFERENCES cliref_entries(id),
+    field_kind           TEXT NOT NULL
+      CHECK (field_kind IN ('Argument', 'Read-only Argument')),
+    name                 TEXT NOT NULL,
+    raw_type             TEXT NOT NULL,
+    mandatory            INTEGER NOT NULL CHECK (mandatory IN (0, 1)),
+    unsettable           INTEGER NOT NULL CHECK (unsettable IN (0, 1)),
+    syscap               TEXT,
+    description_markdown  TEXT NOT NULL,
+    source_order         INTEGER NOT NULL,
+    source_line          INTEGER NOT NULL,
+    UNIQUE (entry_id, source_order)
+  );`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cliref_fields_entry ON cliref_fields(entry_id, name);`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS cliref_flags (
+    id                   INTEGER PRIMARY KEY,
+    entry_id             INTEGER NOT NULL REFERENCES cliref_entries(id),
+    flag                 TEXT NOT NULL,
+    name                 TEXT NOT NULL,
+    description_markdown  TEXT NOT NULL,
+    source_order         INTEGER NOT NULL,
+    source_line          INTEGER NOT NULL,
+    UNIQUE (entry_id, source_order)
+  );`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cliref_flags_entry ON cliref_flags(entry_id, flag);`);
+
+  // STORED: carries the non-derivable exact/alias resolution. entry_id as PRIMARY KEY
+  // enforces the ≤1-inspect-link-per-entry invariant. Ambiguous aliases stay unlinked.
+  db.run(`CREATE TABLE IF NOT EXISTS cliref_entry_schema_links (
+    entry_id       INTEGER PRIMARY KEY REFERENCES cliref_entries(id),
+    schema_node_id INTEGER NOT NULL REFERENCES schema_nodes(id),
+    match_kind     TEXT NOT NULL CHECK (match_kind IN ('exact', 'alias')),
+    match_detail   TEXT
+  );`);
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_cliref_entry_links_node ON cliref_entry_schema_links(schema_node_id);`,
+  );
+
+  // COMPUTED: field→inspect arg crosswalk, correct by construction against the current
+  // schema_nodes snapshot — never stored, so a version-less overlay never pins to a
+  // versioned tree. Directory/Settings Directory entries match a field name under each
+  // child command's arg nodes; Command entries match their direct arg children.
+  db.run(`DROP VIEW IF EXISTS cliref_field_inspect_links;`);
+  db.run(`CREATE VIEW cliref_field_inspect_links AS
+    SELECT f.id AS field_id, sn.id AS schema_node_id
+    FROM cliref_fields f
+    JOIN cliref_entries e             ON e.id = f.entry_id
+    JOIN cliref_entry_schema_links el ON el.entry_id = e.id
+    JOIN schema_nodes en              ON en.id = el.schema_node_id
+    JOIN schema_nodes sn              ON sn.type = 'arg' AND sn.name = f.name
+    WHERE (en.type = 'cmd' AND sn.parent_path = en.path)
+       OR (en.type = 'dir' AND sn.parent_path IN
+            (SELECT c.path FROM schema_nodes c WHERE c.type = 'cmd' AND c.parent_path = en.path));`);
 
   // -- Devices (MikroTik product matrix) --
 
