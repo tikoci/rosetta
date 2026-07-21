@@ -8,7 +8,7 @@
  * DB_PATH must be set BEFORE db.ts is first imported; dynamic imports below make
  * this env-var assignment win over Bun's static-import hoisting.
  */
-import { beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -550,11 +550,23 @@ describe("DB-only hard boundary", () => {
   });
 });
 
-// Runs LAST so the cliref rows it inserts into the shared singleton never reach the
-// exact-file-set assertions above (which expect no cli-reference/* output). Uses unique
-// paths/names so the name-based field view stays deterministic against other files' rows.
+// Inserts cliref_* rows into the shared singleton, so it cleans up after itself
+// (afterAll) rather than leaning on run order — the exact-file-set assertions above
+// expect no cli-reference/* output. Uses unique paths/names so the name-based field
+// view stays deterministic against other files' rows while it is populated.
 describe("runExport — cli-reference overlay (issue #124)", () => {
   const CE = 990100; // entry/page id base, collision-proof
+
+  afterAll(() => {
+    // Undo the overlay rows this block inserts so no later test sees a populated overlay.
+    db.run(`DELETE FROM cliref_entry_schema_links WHERE entry_id = ${CE}`);
+    db.run(`DELETE FROM cliref_flags WHERE entry_id = ${CE}`);
+    db.run(`DELETE FROM cliref_fields WHERE entry_id = ${CE}`);
+    db.run(`DELETE FROM cliref_entries WHERE id = ${CE}`);
+    db.run(`DELETE FROM cliref_pages WHERE id = ${CE}`);
+    db.run("DELETE FROM schema_nodes WHERE path IN ('/ztcert','/ztcert/add','/ztcert/add/ztname')");
+  });
+
   test("emits six TSVs + byte-exact source md, with entry_source_path not field_path", async () => {
     db.run(
       "INSERT INTO schema_nodes (path,name,type,inspect_type,parent_path) VALUES " +
