@@ -154,10 +154,15 @@ hang a column off at all, and the alias problem means the join key itself needs 
 
 ```text
 cliref_pages (slug PK, url, toc_name, title, toc_group, node_count, arg_count)
-cliref_nodes (node_id PK, slug FK, path, heading_level, type, package, conditions, syscap, …)
-cliref_args  (arg_id PK, node_id FK, path, table_kind, name, raw_type, mandatory, unsettable,
-              syscap, description, …)
+cliref_nodes (node_id PK, slug FK, path_raw, path_resolved, heading_level, type,
+              package, conditions, syscap, …)
+cliref_args  (arg_id PK, node_id FK, path_resolved, table_kind, name, raw_type, mandatory,
+              unsettable, syscap, description, …)
 ```
+
+`path_raw` is the verbatim heading path; `path_resolved` is the normalized join key (see
+"Join-key robustness"). Storing both is what keeps alias resolution auditable rather than a silent
+rewrite — the same pair named in #124's acceptance criteria.
 
 `raw_type` is stored **unparsed** on purpose — enums (`enum (a | b)`), ranges (`num { 0..7 }`), and
 composites (`composite { , }`) are a separate pass, deliberately not blocking the structural work.
@@ -180,11 +185,14 @@ composites (`composite { , }`) are a separate pass, deliberately not blocking th
 Questions 2 and 4 are **answered** by the 2026-07-20 experiment above; 1 has a defended strawman.
 The rest still need answers before the ETL half of #25 is spec-settled enough for `agent-ready`:
 
-1. **Table shape.** New standalone table (e.g. `cli_reference_overlay`) keyed by `(command_path, arg_name
-   NULL-able)`, or new nullable columns bolted onto `schema_nodes`? A standalone table keeps the
-   version-less/versioned distinction structurally obvious (matches the `command_versions` vs
-   `schema_node_presence` separation principle) but adds a join; columns-on-`schema_nodes` are cheaper to
-   query but risk exactly the concept-collapse the versions-vs-presence instruction warns against.
+1. ~~**Table shape.**~~ **Decided 2026-07-20: three standalone `cliref_*` tables**, not columns on
+   `schema_nodes`. The experiment gave two reasons beyond the version-less/versioned separation principle
+   (`command_versions` vs `schema_node_presence`): read-only args and `Flag` rows have no `schema_nodes`
+   row to hang a column off at all, and the alias problem means the join key itself needs storage
+   (`path_raw` + `path_resolved`). The rejected columns-on-`schema_nodes` alternative would have risked the
+   concept-collapse the versions-vs-presence instruction warns against. See "Strawman schema" above; the
+   remaining tradeoff inside the three-table design (the extra join at query time) is accepted. Open
+   sub-question folded into Q9 below: whether `Flag` rows share `cliref_args` or get their own table.
 2. ~~**Join key robustness.**~~ **Answered 2026-07-20: no, not 1:1.** 24 nodes carry a spurious internal
    module segment (`caps-man/acl/access-list` → `/caps-man/access-list`). Needs a normalization step plus
    a stored raw-vs-resolved path pair. See "Join-key robustness" above.
@@ -227,17 +235,18 @@ The rest still need answers before the ETL half of #25 is spec-settled enough fo
 
 ## Current lean
 
-**Lean, as of 2026-07-20:** a standalone three-table `cliref_*` overlay (question 1 option (a)),
-normalized join key with the raw heading path retained, types stored unparsed. Enough is settled to cut a
-scoped extractor issue; questions 3 (provenance format) and 5 (agent surfacing) remain genuinely open and
-should not block it. Question 5 in particular is now better answered *after* the overlay exists and can be
-inspected, since the read-only-argument finding changed what there is to surface.
+**Lean, as of 2026-07-20:** a standalone three-table `cliref_*` overlay (question 1, now decided),
+normalized join key with the raw heading path retained (`path_raw` + `path_resolved`), types stored
+unparsed. The scoped extractor issue is cut ([#124](https://github.com/tikoci/rosetta/issues/124));
+questions 3 (provenance format) and 5 (agent surfacing) remain genuinely open and do not block it.
+Question 5 in particular is now better answered *after* the overlay exists and can be inspected, since
+the read-only-argument finding changed what there is to surface.
 
-Still deliberately unresolved: the briefing stays `open` until the extractor issue is cut and question 3
-has an answer.
+Still deliberately unresolved: the briefing stays `open` until #124's extractor lands and is validated
+**and** question 3 has an answer — the issue-cut gate is already cleared.
 
 ## Open questions
 
-See "Open design questions" above. Questions 2 and 4 are answered; 1 has a defended strawman; 3, 5, 6 and
-new questions 7–10 remain. Next revisit trigger: cutting the extractor issue, or any upstream docs rebuild
-that changes the page count away from 228.
+See "Open design questions" above. Questions 1, 2, and 4 are settled; 3, 5, 6 and new questions 7–10
+remain. Next revisit trigger: #124 landing, or any upstream docs rebuild that changes the page count away
+from 228.
