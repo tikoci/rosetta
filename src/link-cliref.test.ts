@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
+import { CLIREF_FIELD_VIEW_SQL } from "./db.ts";
 import { resolveEntry } from "./link-cliref.ts";
 
 // A tiny dir/cmd node index (id, type) keyed by path, matching resolveEntry's shape.
@@ -21,6 +22,16 @@ describe("resolveEntry", () => {
     const poly = new Map([["/x", [{ id: 10, type: "dir" }, { id: 11, type: "cmd" }]]]);
     expect(resolveEntry("x", "Command", poly)?.schemaNodeId).toBe(11);
     expect(resolveEntry("x", "Directory", poly)?.schemaNodeId).toBe(10);
+  });
+
+  test("a path present only as the wrong type is not an exact match (no silent fallback)", () => {
+    // Only a `dir` exists at /y, but the entry is a Command — must not link the dir.
+    // With no alias candidate either, it stays manual-only.
+    const only = new Map([["/y", [{ id: 30, type: "dir" }]]]);
+    expect(resolveEntry("y", "Command", only)).toBeNull();
+    // And an alias search must likewise skip a type-mismatched candidate.
+    const aliasMismatch = new Map([["/a/c", [{ id: 31, type: "cmd" }]]]);
+    expect(resolveEntry("a/b/c", "Directory", aliasMismatch)).toBeNull();
   });
 
   test("alias drops an internal module segment", () => {
@@ -78,22 +89,7 @@ describe("cliref_field_inspect_links view", () => {
     db.run("INSERT INTO cliref_entries VALUES (1,'certificate'),(2,'ping')");
     db.run("INSERT INTO cliref_fields VALUES (1,1,'name'),(2,2,'address')");
     db.run("INSERT INTO cliref_entry_schema_links VALUES (1,1,'exact'),(2,6,'exact')");
-    // The shipped view definition (kept in sync with db.ts).
-    db.run(`CREATE VIEW cliref_field_inspect_links AS
-      SELECT f.id AS field_id, sn.id AS schema_node_id
-      FROM cliref_fields f
-      JOIN cliref_entries e             ON e.id = f.entry_id
-      JOIN cliref_entry_schema_links el ON el.entry_id = e.id
-      JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'cmd'
-      JOIN schema_nodes sn              ON sn.parent_path = en.path AND sn.name = f.name AND sn.type = 'arg'
-      UNION
-      SELECT f.id AS field_id, sn.id AS schema_node_id
-      FROM cliref_fields f
-      JOIN cliref_entries e             ON e.id = f.entry_id
-      JOIN cliref_entry_schema_links el ON el.entry_id = e.id
-      JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'dir'
-      JOIN schema_nodes vcmd            ON vcmd.parent_path = en.path AND vcmd.type = 'cmd'
-      JOIN schema_nodes sn              ON sn.parent_path = vcmd.path AND sn.name = f.name AND sn.type = 'arg';`);
+    db.run(CLIREF_FIELD_VIEW_SQL); // the shipped view — drift-proof, exercised as-is
     return db;
   }
 

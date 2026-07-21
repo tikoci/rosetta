@@ -47,12 +47,15 @@ Second line of the same description, which must not be whitespace-flattened.</Ar
 **Package:** system
 **Type:** Settings Directory
 
-A settings directory with a fenced transcript whose row-number header is a false heading:
+A settings directory with a fenced transcript whose row-number header is a false heading,
+and example markup that must NOT be parsed as structure:
 
 ```text
 Columns: NAME
 #   NAME
 0   disk1
+**Package:** not-a-real-gate
+<ArgTable c1="Argument"><ArgTableRow arg="fake" typ="x">nope</ArgTableRow></ArgTable>
 ```
 
 <ArgTable c1="Argument" c2="Type" c3="Description">

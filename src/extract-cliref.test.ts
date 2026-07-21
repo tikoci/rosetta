@@ -89,12 +89,17 @@ describe("parsePage — fields and flags", () => {
 });
 
 describe("parsePage — robustness", () => {
-  test("a #-prefixed line inside a fenced code block is not a heading", () => {
-    // disk's fenced transcript contains "#   NAME" — it must stay in the description,
-    // never become a fourth entry.
+  test("nothing inside a fenced code block is parsed as structure", () => {
+    // disk's fence contains a "#   NAME" false heading, a fake "**Package:**" gate, and
+    // an example <ArgTable>. None may become an entry/gate/field — all stay in the prose.
     expect(page.entries.length).toBe(3);
     const disk = page.entries[2];
     expect(disk.descriptionMarkdown).toContain("#   NAME");
+    expect(disk.descriptionMarkdown).toContain("**Package:** not-a-real-gate");
+    expect(disk.descriptionMarkdown).toContain("<ArgTable");
+    // The real gate wins; the fenced fake one is ignored; no phantom field is created.
+    expect(disk.package).toBe("system");
+    expect(disk.fields.map((f) => f.name)).toEqual(["slot"]);
   });
 
   test("source line spans are ordered and non-empty", () => {

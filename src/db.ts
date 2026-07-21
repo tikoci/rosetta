@@ -42,6 +42,32 @@ import { classifyDbGrounding, detectMode, resolveDbPath, resolveVersion, SCHEMA_
 
 export { SCHEMA_VERSION };
 
+/**
+ * The `cliref_field_inspect_links` view (issue #124) — field→inspect-arg crosswalk,
+ * derived not stored. Exported so tests exercise the shipped SQL instead of a copy.
+ * Split into a UNION of the cmd/dir cases rather than one OR-filtered join: the OR forces
+ * a full arg-by-type scan, but each branch keys args by (parent_path, name) via
+ * idx_sn_parent_name, which is what makes the view fast (~200ms vs >14s).
+ */
+export const CLIREF_FIELD_VIEW_SQL = `CREATE VIEW cliref_field_inspect_links AS
+    -- Command entry: field is a direct arg child (/<entry>/<name>).
+    SELECT f.id AS field_id, sn.id AS schema_node_id
+    FROM cliref_fields f
+    JOIN cliref_entries e             ON e.id = f.entry_id
+    JOIN cliref_entry_schema_links el ON el.entry_id = e.id
+    JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'cmd'
+    JOIN schema_nodes sn              ON sn.parent_path = en.path AND sn.name = f.name AND sn.type = 'arg'
+    UNION
+    -- Directory / Settings Directory entry: arg under each child command
+    -- (/<entry>/<verb>/<name>).
+    SELECT f.id AS field_id, sn.id AS schema_node_id
+    FROM cliref_fields f
+    JOIN cliref_entries e             ON e.id = f.entry_id
+    JOIN cliref_entry_schema_links el ON el.entry_id = e.id
+    JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'dir'
+    JOIN schema_nodes vcmd            ON vcmd.parent_path = en.path AND vcmd.type = 'cmd'
+    JOIN schema_nodes sn              ON sn.parent_path = vcmd.path AND sn.name = f.name AND sn.type = 'arg';`;
+
 export const DB_PATH = resolveDbPath(import.meta.dirname);
 
 export const db = new sqlite(DB_PATH);
@@ -596,28 +622,10 @@ export function initDb() {
   // schema_nodes snapshot — never stored, so a version-less overlay never pins to a
   // versioned tree. Directory/Settings Directory entries match a field name under each
   // child command's arg nodes; Command entries match their direct arg children.
-  // Split into a UNION of the two cases rather than one OR-filtered join: the OR forces
-  // the planner to scan every arg by type alone, but each branch below keys args by
-  // (parent_path, name) via idx_sn_parent_name, which is what makes the view fast.
+  // Definition + rationale live in the exported CLIREF_FIELD_VIEW_SQL constant so tests
+  // exercise the shipped SQL rather than a hand-copied duplicate.
   db.run(`DROP VIEW IF EXISTS cliref_field_inspect_links;`);
-  db.run(`CREATE VIEW cliref_field_inspect_links AS
-    -- Command entry: field is a direct arg child (/<entry>/<name>).
-    SELECT f.id AS field_id, sn.id AS schema_node_id
-    FROM cliref_fields f
-    JOIN cliref_entries e             ON e.id = f.entry_id
-    JOIN cliref_entry_schema_links el ON el.entry_id = e.id
-    JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'cmd'
-    JOIN schema_nodes sn              ON sn.parent_path = en.path AND sn.name = f.name AND sn.type = 'arg'
-    UNION
-    -- Directory / Settings Directory entry: arg under each child command
-    -- (/<entry>/<verb>/<name>).
-    SELECT f.id AS field_id, sn.id AS schema_node_id
-    FROM cliref_fields f
-    JOIN cliref_entries e             ON e.id = f.entry_id
-    JOIN cliref_entry_schema_links el ON el.entry_id = e.id
-    JOIN schema_nodes en              ON en.id = el.schema_node_id AND en.type = 'dir'
-    JOIN schema_nodes vcmd            ON vcmd.parent_path = en.path AND vcmd.type = 'cmd'
-    JOIN schema_nodes sn              ON sn.parent_path = vcmd.path AND sn.name = f.name AND sn.type = 'arg';`);
+  db.run(CLIREF_FIELD_VIEW_SQL);
 
   // -- Devices (MikroTik product matrix) --
 

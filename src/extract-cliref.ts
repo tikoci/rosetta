@@ -26,7 +26,7 @@
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import { db, initDb } from "./db.ts";
 import { loadSitemapUrls } from "./rosetta-id.ts";
 
@@ -70,6 +70,22 @@ function cacheName(slug: string): string {
   return `${slug.replace(/\//g, "__")}.md`;
 }
 
+/**
+ * Absolute cache path for a name, guaranteed to stay inside CACHE_DIR. cacheName()
+ * already neutralizes "/" (→ "__"), but names derive from the network sitemap, so this
+ * is an explicit containment backstop — a write can never escape the cache dir even from
+ * a hostile slug (mirrors extract-docusaurus.ts's cache guard; satisfies CodeQL's
+ * network-data-to-file / traversal check).
+ */
+function safeCachePath(name: string): string {
+  const target = resolve(CACHE_DIR, name);
+  const root = resolve(CACHE_DIR);
+  if (target !== root && !target.startsWith(root + sep)) {
+    throw new Error(`cache name ${JSON.stringify(name)} resolves outside ${CACHE_DIR}`);
+  }
+  return target;
+}
+
 /** Slugs from cached filenames (offline discovery for --from-cache). Underscores in a
  * real segment never occur in CLI-Reference slugs, so "__" unambiguously marks a "/".
  * Excludes the section-landing `index.md` (`/docs/cli-reference/`): it is a prose
@@ -90,10 +106,15 @@ function tocGroup(slug: string): string {
 
 /** Sidebar labels from llms.txt link text — not derivable from the slug ("caps-man" -> "Caps Man"). */
 async function loadTocNames(): Promise<Map<string, string>> {
-  const cached = join(CACHE_DIR, "_llms.txt");
+  const cached = safeCachePath("_llms.txt");
   let txt: string;
-  if (FROM_CACHE && existsSync(cached)) {
-    txt = readFileSync(cached, "utf8");
+  if (FROM_CACHE) {
+    // --from-cache is an offline contract: never fall through to a live fetch.
+    try {
+      txt = readFileSync(cached, "utf8");
+    } catch {
+      throw new Error(`--from-cache set but no cached llms.txt at ${cached}`);
+    }
   } else {
     const res = await fetch(LLMS_TXT_URL, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) throw new Error(`Failed to fetch ${LLMS_TXT_URL}: HTTP ${res.status}`);
@@ -110,8 +131,14 @@ async function loadTocNames(): Promise<Map<string, string>> {
 }
 
 async function fetchPage(slug: string): Promise<string | null> {
-  const file = join(CACHE_DIR, cacheName(slug));
-  if (existsSync(file)) return readFileSync(file, "utf8");
+  const file = safeCachePath(cacheName(slug));
+  // Read directly (try/catch) rather than existsSync-then-read, closing the check-then-use
+  // race CodeQL flags and keeping cache-hit the fast path.
+  try {
+    return readFileSync(file, "utf8");
+  } catch {
+    // not cached — fall through
+  }
   if (FROM_CACHE) return null;
   const res = await fetch(`${BASE}${CLI_PREFIX}${slug}.md`, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) return null;
@@ -272,16 +299,22 @@ export function parsePage(slug: string, md: string, tocName: string): CliRefPage
     const line = lines[i];
     const sourceLine = bodyStartLine + i; // 1-based line in the full file
 
-    // Fenced code blocks hold CLI transcripts whose `print` output starts with "#"
-    // (row-number column header) — routing/id is the example. Guard so those lines
-    // don't parse as command headings. Fence lines themselves stay in the description.
+    // Fenced code blocks hold CLI transcripts / example markdown. Nothing inside a fence
+    // is structural: a "#"-prefixed row-number header (routing/id) must not parse as a
+    // heading, and an example `**Type:**` line or `<ArgTable>` must not parse as a gate
+    // marker or table. Toggle on the fence, keep every fenced line verbatim in the
+    // description, and skip all structural detection until the fence closes.
     if (/^\s*```/.test(line)) {
       inFence = !inFence;
       if (current) descLines.push(line);
       continue;
     }
+    if (inFence) {
+      if (current) descLines.push(line);
+      continue;
+    }
 
-    const heading = inFence ? null : line.match(/^(#{1,6})\s+(.+?)\s*$/);
+    const heading = line.match(/^(#{1,6})\s+(.+?)\s*$/);
     if (heading) {
       if (current) {
         current.sourceEndLine = sourceLine - 1;
@@ -473,7 +506,16 @@ async function main(): Promise<void> {
   console.log(
     `Parsed ${pages.length} pages -> ${entries.length} entries, ${fields.length} fields, ${flags.length} flags`,
   );
-  if (missing.length > 0) console.log(`Missing (no .md): ${missing.join(", ")}`);
+  if (missing.length > 0) {
+    // In a full live run, a missing .md is a fetch failure that would silently ship a
+    // partial overlay (the count asserts below only see fetched pages). Fail hard.
+    // --from-cache and --limit are intentionally partial, so only warn there.
+    const msg = `Missing (no .md): ${missing.join(", ")}`;
+    if (!FROM_CACHE && LIMIT === undefined) {
+      throw new Error(`${msg}\nRefusing to store a partial overlay from a full live run.`);
+    }
+    console.log(msg);
+  }
 
   // Crash-early: parsed structure must reconcile with the raw source markers.
   const rawTypeMarkers = pages

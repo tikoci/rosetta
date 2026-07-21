@@ -49,9 +49,16 @@ function preferredType(sourceType: string): string {
   return sourceType === "Command" ? "cmd" : "dir"; // Directory / Settings Directory → dir
 }
 
-function pickNode(nodes: SchemaNode[], sourceType: string): SchemaNode {
+/**
+ * The node at a path whose type matches the entry kind, or null when only a
+ * type-mismatched node exists there (Command source over a `dir` node, or vice versa).
+ * A mismatch is treated as "no candidate" rather than silently linking the wrong-typed
+ * node — the field view branches on the linked node's type, so a mismatched link would
+ * silently produce wrong/empty field→inspect mappings. Never falls back to nodes[0].
+ */
+function pickNode(nodes: SchemaNode[], sourceType: string): SchemaNode | null {
   const want = preferredType(sourceType);
-  return nodes.find((n) => n.type === want) ?? nodes[0];
+  return nodes.find((n) => n.type === want) ?? null;
 }
 
 export interface EntryLink {
@@ -67,7 +74,10 @@ export function resolveEntry(
 ): EntryLink | null {
   const exact = index.get(`/${sourcePath}`);
   if (exact) {
-    return { schemaNodeId: pickNode(exact, sourceType).id, matchKind: "exact", matchDetail: null };
+    const node = pickNode(exact, sourceType);
+    // A path that exists only as the wrong type is not a valid exact match — fall
+    // through to the alias search rather than linking a type-mismatched node.
+    if (node) return { schemaNodeId: node.id, matchKind: "exact", matchDetail: null };
   }
 
   // Alias: drop one *internal* segment at a time; collect distinct matching nodes.
@@ -83,7 +93,7 @@ export function resolveEntry(
     const nodes = index.get(candidatePath);
     if (nodes) {
       const node = pickNode(nodes, sourceType);
-      candidates.set(node.id, { node, dropped });
+      if (node) candidates.set(node.id, { node, dropped });
     }
   }
   if (candidates.size === 1) {
@@ -95,6 +105,16 @@ export function resolveEntry(
 
 export function linkEntries(): { exact: number; alias: number; manual: number } {
   const index = loadNodeIndex();
+  // Fail fast before the DELETE: with no dir/cmd nodes, schema_nodes hasn't been
+  // populated (extract-schema/extract-all-versions must run first). Proceeding would
+  // wipe any previously-correct links and re-resolve everything to manual-only — a
+  // silent regression. This is why `make extract` (which loads only the legacy
+  // `commands` table) does NOT run link-cliref; `make extract-full` does.
+  if (index.size === 0) {
+    throw new Error(
+      "link-cliref: schema_nodes has no dir/cmd nodes — run extract-schema/extract-all-versions first. Refusing to wipe cliref_entry_schema_links.",
+    );
+  }
   const entries = db
     .query("SELECT id, source_path, source_type FROM cliref_entries")
     .all() as Array<{ id: number; source_path: string; source_type: string }>;

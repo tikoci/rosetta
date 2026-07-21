@@ -133,8 +133,14 @@ verify:
 # wipes device_aliases + hardware_catalog (device_id links point at AUTOINCREMENT
 # ids that a devices rebuild invalidates), so running the hardware overlay first
 # would have its rows deleted out from under it. Ordering here is load-bearing.
-extract: extract-docusaurus extract-commands extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills extract-cliref link link-cliref
+# `extract` (dev) loads the legacy `commands` table via extract-commands, which does
+# NOT populate schema_nodes — so it runs extract-cliref (source tables) but NOT
+# link-cliref (which needs schema_nodes and fails fast without it). Run `extract-full`
+# or `make extract-schema link-cliref` to add the inspect crosswalk.
+extract: extract-docusaurus extract-commands extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills extract-cliref link
 
+# `extract-full` uses extract-all-versions, which populates schema_nodes, so link-cliref
+# (last, after schema_nodes exists) resolves the entry crosswalk.
 extract-full: extract-docusaurus extract-all-versions extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills extract-cliref link link-cliref
 
 # Live fetch from manual.mikrotik.com's sitemap.xml, caching each page's raw
