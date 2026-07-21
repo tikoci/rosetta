@@ -55,10 +55,12 @@ catlinks
 ccr
 cdx
 centrs
+chancfg
 changefreq
 chateaulte
 chipset
 cli
+cliref
 cmdver
 cmp
 coderabbit
@@ -80,6 +82,7 @@ datapath
 datasheet
 dbi
 ddl
+ddns
 dedup
 defconf
 deprioritizing
@@ -99,8 +102,10 @@ dockerfiles
 dockerhub
 docu
 donato
+dpathcfg
 dscp
 dynadish
+easymesh
 easyops
 ebusy
 editsection
@@ -162,6 +167,8 @@ hwmp
 idx
 iex
 iface
+ifaceactual
+ifaces
 igmp
 igs
 initialises
@@ -254,6 +261,7 @@ nocase
 nochr
 nonexistentterm
 nonexistentwidgetxyz
+nonverb
 noprint
 normalisation
 normalise
@@ -312,10 +320,12 @@ pyc
 pycache
 pyproject
 qca
+qos
 quectel
 quickchr
 quickset
 raml
+ratescfg
 rbcapgi
 rbd
 rbdisc
@@ -329,7 +339,9 @@ redownloads
 regen
 regenerable
 rehearsable
+reimplementation
 reinits
+remoteap
 replac
 repull
 restraml
@@ -346,6 +358,7 @@ rulebooks
 samp
 scep
 seafile
+seccfg
 sed
 seg
 segs
@@ -399,6 +412,7 @@ tokenises
 traceroute
 tsc
 tsq
+typeless
 uag
 uias
 uib
@@ -416,6 +430,7 @@ unprobeable
 unprobed
 unpushed
 unqueryable
+unsettable
 unthrottled
 upnp
 upserts
