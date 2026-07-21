@@ -4,6 +4,7 @@ VERSION    ?=
 .PHONY: extract extract-full extract-legacy-confluence extract-html extract-properties extract-commands \
         extract-docusaurus extract-docusaurus-from-cache extract-docusaurus-check-counts \
         extract-cliref extract-cliref-from-cache link-cliref \
+        link-cliref-baseline link-cliref-check cliref-db-check \
         extract-schema extract-all-versions extract-devices extract-test-results extract-changelogs \
         extract-changelogs-extended \
         extract-videos extract-videos-from-cache save-videos-cache \
@@ -171,6 +172,22 @@ extract-cliref-from-cache:
 # with an empty schema_nodes every entry resolves manual-only.
 link-cliref:
 	bun run src/link-cliref.ts
+
+# Regenerate the committed reviewable crosswalk (cli-reference-links.tsv) after a corpus
+# refresh — links, then rewrites the baseline. Commit the result. (V-cliref-link-drift)
+link-cliref-baseline:
+	bun run src/link-cliref.ts --write-baseline
+
+# V-cliref-link-drift gate: re-link the built DB and fail if the exact/alias/manual-only
+# crosswalk drifts from the committed cli-reference-links.tsv, or an alias names a segment
+# outside KNOWN_ALIAS_SEGMENTS. Needs a schema_nodes+cliref DB (release/qa build).
+link-cliref-check:
+	bun run src/link-cliref.ts --check
+
+# V-cliref-db-integrity gate: structural + semantic invariants on the full built overlay
+# (integrity/FK/orphans/enums/uniqueness + settable-only field view). Runs in qa.yml.
+cliref-db-check:
+	bun run src/check-cliref-db.ts
 
 # Historical-rebuild path only (March 2026 Confluence export) — not run by
 # `extract`/`extract-full`. See DESIGN.md "Legacy Confluence HTML archive".

@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, test } from "bun:test";
+import { afterAll, describe, expect, test } from "bun:test";
 
 // db.ts (imported directly here and transitively via link-cliref.ts) opens the DB at
 // module scope. Set DB_PATH BEFORE those imports and load them dynamically so the
@@ -7,8 +7,8 @@ import { describe, expect, test } from "bun:test";
 // against the real on-disk path would trip query.test.ts's singleton guard (an
 // order-dependent flake). This file's own tests use their own :memory: Database.
 process.env.DB_PATH = ":memory:";
-const { CLIREF_FIELD_VIEW_SQL } = await import("./db.ts");
-const { resolveEntry } = await import("./link-cliref.ts");
+const { CLIREF_FIELD_VIEW_SQL, db, initDb } = await import("./db.ts");
+const { resolveEntry, linkEntries, buildBaselineTsv, auditAliasSegments } = await import("./link-cliref.ts");
 
 // A tiny dir/cmd node index (id, type) keyed by path, matching resolveEntry's shape.
 const index = new Map<string, Array<{ id: number; type: string }>>([
@@ -121,5 +121,58 @@ describe("cliref_field_inspect_links view", () => {
     const db = seed();
     const rows = db.query("SELECT schema_node_id FROM cliref_field_inspect_links WHERE field_id=3").all();
     expect(rows).toEqual([]);
+  });
+});
+
+// V-cliref-link-drift: the committed-baseline builder + alias audit, against the db.ts
+// singleton (:memory: for this file). Seeds one exact, one alias, one manual-only entry.
+describe("link drift baseline (buildBaselineTsv / auditAliasSegments)", () => {
+  // The seed writes into the shared :memory: db.ts singleton; clean up so no later test
+  // file sees these rows (they'd collide with export.test.ts's own overlay fixture).
+  afterAll(() => {
+    for (const t of ["cliref_entry_schema_links", "cliref_entries", "schema_nodes", "cliref_pages"]) {
+      db.run(`DELETE FROM ${t}`);
+    }
+  });
+
+  function seedSingleton(): void {
+    initDb();
+    for (const t of ["cliref_entry_schema_links", "cliref_entries", "schema_nodes", "cliref_pages"]) {
+      db.run(`DELETE FROM ${t}`);
+    }
+    db.run(
+      "INSERT INTO schema_nodes (id,path,name,type,inspect_type,parent_path) VALUES " +
+        "(1,'/ip/address','address','dir','dir','/ip'),(2,'/caps-man/access-list','access-list','dir','dir','/caps-man')",
+    );
+    db.run("INSERT INTO cliref_pages (id,slug,url,toc_name,toc_group,source_markdown,source_sha256,source_order) VALUES (1,'p','u','P','','md','sha',0)");
+    // exact, alias (drops internal "acl"), manual-only (no node).
+    const ins = db.prepare(
+      "INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (?,1,?,?,?,2,'d',?,1,1)",
+    );
+    ins.run(1, "address", "ip/address", "Directory", 0);
+    ins.run(2, "access-list", "caps-man/acl/access-list", "Directory", 1);
+    ins.run(3, "ghost", "no/such/menu", "Directory", 2);
+  }
+
+  test("baseline lists alias + manual-only rows with a counts header pinning exact/entries", () => {
+    seedSingleton();
+    expect(linkEntries()).toEqual({ exact: 1, alias: 1, manual: 1 });
+    const tsv = buildBaselineTsv();
+    expect(tsv).toContain("# counts\texact=1\talias=1\tmanual-only=1\tentries=3");
+    expect(tsv).toContain('caps-man/acl/access-list\tDirectory\talias\tdropped segment "acl"');
+    expect(tsv).toContain("no/such/menu\tDirectory\tmanual-only\t");
+    // The exact entry is NOT listed in the body (only alias + manual-only are audit-worthy).
+    expect(tsv).not.toContain("ip/address\tDirectory\texact");
+    expect(auditAliasSegments()).toEqual([]);
+  });
+
+  test("auditAliasSegments flags an alias whose dropped segment is not allowlisted", () => {
+    seedSingleton();
+    linkEntries();
+    // Forge an alias naming a segment outside KNOWN_ALIAS_SEGMENTS.
+    db.run("UPDATE cliref_entry_schema_links SET match_detail = 'dropped segment \"bogus\"' WHERE entry_id = 2");
+    const problems = auditAliasSegments();
+    expect(problems.length).toBe(1);
+    expect(problems[0]).toContain("not in KNOWN_ALIAS_SEGMENTS");
   });
 });

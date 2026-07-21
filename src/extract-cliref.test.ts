@@ -148,4 +148,17 @@ describe("parsePage — robustness", () => {
       "# T\n\nimport {ArgTable} from 'x';\n\n---\n\n## foo\n\n**Type:** Command\n\n<ArgTable c1=\"Argument\">\n<ArgTableRow typ=\"str\">no arg</ArgTableRow>\n</ArgTable>\n";
     expect(() => parsePage("bad", bad, "bad")).toThrow(/ArgTableRow missing "arg" attribute/);
   });
+
+  test("parses an ArgTableRow whose typ value contains a literal '>' (e.g. iface_enum { <l2tp>: })", () => {
+    // interface/pppoe-server ships typ="iface_enum { <l2tp>:0xfffffffe }". A naive
+    // `[^>]`/`.*?>` tag matcher stops at the '>' inside <l2tp>, truncating the attributes so
+    // typ loses its closing quote and reads as missing (silently stored raw_type="" pre-fix).
+    const md =
+      '# T\n\nimport {ArgTable} from \'x\';\n\n---\n\n## foo\n\n**Type:** Command\n\n<ArgTable c1="Argument" c2="Type" c3="Description">\n<ArgTableRow arg="interface" typ="iface_enum { <l2tp>:0xfffffffe }" mandatory="1"></ArgTableRow>\n<ArgTableRow arg="mtu" typ="num">the mtu</ArgTableRow>\n</ArgTable>\n';
+    const p = parsePage("pppoe", md, "Pppoe");
+    expect(p.entries[0].fields.map((f) => [f.name, f.rawType, f.mandatory])).toEqual([
+      ["interface", "iface_enum { <l2tp>:0xfffffffe }", true],
+      ["mtu", "num", false],
+    ]);
+  });
 });
