@@ -590,6 +590,10 @@ describe("runExport — cli-reference overlay (issue #124)", () => {
     const mine = flinks.rows.filter((r) => r[flinks.columns.indexOf("field_name")] === "ztname");
     expect(mine.map((r) => r[flinks.columns.indexOf("inspect_path")])).toEqual(["/ztcert/add/ztname"]);
 
+    // the returned summary reports the source md file (not just the TSV datasets).
+    expect(summary.sourceFiles.map((f) => f.name)).toEqual(["cli-reference/source/ztcert.md"]);
+    expect(summary.sourceFiles[0].bytes).toBe(Buffer.byteLength(md, "utf8"));
+
     // source md round-trips byte-for-byte to its manifest sha256.
     const src = readFileSync(path.join(dir, "cli-reference/source/ztcert.md"));
     const hash = new Bun.CryptoHasher("sha256").update(src).digest("hex");

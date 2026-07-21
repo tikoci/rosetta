@@ -488,13 +488,16 @@ function readCliRefDatasets(database: Database): Dataset[] {
   const pageCols = ["page_id", "slug", "url", "toc_name", "toc_group", "source_title", "source_order", "source_bytes", "source_sha256", "entry_count"];
   const entryByPage = new Map<number, number>();
   for (const r of database.prepare("SELECT page_id, COUNT(*) AS c FROM cliref_entries GROUP BY page_id").all() as Array<{ page_id: number; c: number }>) entryByPage.set(r.page_id, r.c);
-  const pages = database.prepare("SELECT id, slug, url, toc_name, toc_group, source_title, source_order, source_markdown, source_sha256 FROM cliref_pages ORDER BY source_order").all() as Array<Record<string, TsvScalar> & { id: number; source_markdown: string }>;
+  // source_bytes is computed in SQLite (length of the UTF-8 BLOB) so pages.tsv never loads
+  // the full source_markdown into memory — cliRefSourceFiles() reads it separately to write
+  // source/<slug>.md, and loading it twice doubled the large-text reads for nothing.
+  const pages = database.prepare("SELECT id, slug, url, toc_name, toc_group, source_title, source_order, length(CAST(source_markdown AS BLOB)) AS source_bytes, source_sha256 FROM cliref_pages ORDER BY source_order").all() as Array<Record<string, TsvScalar> & { id: number; source_bytes: number }>;
   const pagesDs: Dataset = {
     name: "cli-reference/pages.tsv",
     source_table: "cliref_pages",
     columns: pageCols,
     order_by: "source_order",
-    rows: pages.map((p) => [p.id, p.slug, p.url, p.toc_name, p.toc_group, p.source_title, p.source_order, utf8Bytes(p.source_markdown), p.source_sha256, entryByPage.get(p.id) ?? 0]),
+    rows: pages.map((p) => [p.id, p.slug, p.url, p.toc_name, p.toc_group, p.source_title, p.source_order, p.source_bytes, p.source_sha256, entryByPage.get(p.id) ?? 0]),
   };
 
   // entries.tsv — the entry inventory with its exact/alias/manual-only match status,
@@ -617,7 +620,8 @@ function readMeta(database: Database, key: string): string | null {
 // ── The command ───────────────────────────────────────────────────────────────
 
 export type ExportedFile = { name: string; source_table: string; rows: number; columns: string[]; order_by: string };
-export type ExportSummary = { outDir: string; files: ExportedFile[] };
+export type ExportedSourceFile = { name: string; bytes: number; sha256: string };
+export type ExportSummary = { outDir: string; files: ExportedFile[]; sourceFiles: ExportedSourceFile[] };
 
 export type ExportOptions = {
   /** Overwrite a non-empty directory that carries no rosetta manifest.toml. */
@@ -854,5 +858,9 @@ export async function runExport(outDir: string, database: Database, opts: Export
   }
   await Bun.write(path.join(resolved, MANIFEST_NAME), manifest);
 
-  return { outDir: resolved, files: datasets.map((d) => ({ name: d.name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by })) };
+  return {
+    outDir: resolved,
+    files: datasets.map((d) => ({ name: d.name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by })),
+    sourceFiles: rawFiles.map((f) => ({ name: f.name, bytes: f.bytes, sha256: f.sha256 })),
+  };
 }
