@@ -198,8 +198,9 @@ future parser improvements possible without pretending the first classifier capt
 
 #### Revised DB shape
 
-The current lean is six standalone source/overlay tables, plus preservation of the raw inspect node
-type on `schema_nodes`:
+The current lean is **four standalone source tables + one stored entry-level crosswalk**, plus a
+**computed view** for field-level crosswalks, plus preservation of the raw inspect node type on
+`schema_nodes`:
 
 ```text
 cliref_pages
@@ -221,18 +222,35 @@ cliref_flags
   id PK, entry_id FK, flag, name, description_markdown,
   source_order, source_line
 
-cliref_entry_schema_links
-  entry_id FK, schema_node_id FK, match_kind (exact | alias), composite PK
+cliref_entry_schema_links            -- STORED (carries exact/alias resolution)
+  entry_id FK PK, schema_node_id FK, match_kind (exact | alias), match_detail
 
-cliref_field_schema_links
-  field_id FK, schema_node_id FK, composite PK
+cliref_field_inspect_links           -- VIEW, not a table (see below)
+  field_id, schema_node_id
 ```
+
+**Field crosswalks are computed, not stored (decided 2026-07-20).** They are fully derivable from
+(`cliref_entry_schema_links` → the field's `name` → the linked inspect subtree), so a `CREATE VIEW`
+keeps them correct by construction. Storing them would pin the *version-less* overlay to a specific
+*versioned* `schema_nodes` snapshot and go silently stale whenever `schema_nodes` is rebuilt for a new
+RouterOS version — the exact hazard the overlay/versioned separation is meant to avoid. Only the
+**entry** link is stored, because it carries the exact-vs-alias resolution decision that is *not*
+re-derivable from a string comparison. The view derivation: for an entry linked to a `Directory`/
+`Settings Directory` node, a field matches `arg` nodes at `<entry.path>/<verb>/<field.name>`; for an
+entry linked to a `Command` node, its direct `arg` children `<entry.path>/<field.name>`.
 
 `source_heading` is verbatim; `source_path` is only the normalized slash form of that source heading.
 The resolved inspect coordinate comes through `cliref_entry_schema_links -> schema_nodes.path`, not a
 second path column silently promoted as canonical. `cliref_fields` deliberately has no path column.
-Many fields link to multiple inspect `arg` nodes; read-only/manual-only fields link to none. Flags are a
+Many fields resolve to multiple inspect `arg` nodes (4,161 of 6,171 settable fields match 2–4 nodes —
+independently reproduced 2026-07-20); read-only/manual-only fields resolve to none. Flags are a
 separate table and never link to inspect arguments.
+
+**Entry-link ambiguity policy (open Q7 refinement):** the alias rule fires only when dropping one
+documented internal segment yields *exactly one* inspect node. If a future docs rebuild makes it
+ambiguous (≥2 candidates), the entry stays **manual-only** (no link row) and validation flags the new
+shape loudly, rather than the extractor guessing. `entry_id` as the crosswalk PK enforces the ≤1-link
+invariant structurally.
 
 `raw_type` remains deliberately unparsed — enums (`enum (a | b)`), ranges (`num { 0..7 }`), and
 composites (`composite { , }`) are a separate later pass. Raw Markdown retention means that deferral is
@@ -251,8 +269,8 @@ has no equivalent runtime-DB export command) in the same issue. A useful DB-only
 - `cli-reference/entries.tsv`
 - `cli-reference/fields.tsv`
 - `cli-reference/flags.tsv`
-- `cli-reference/entry-inspect-links.tsv`
-- `cli-reference/field-inspect-links.tsv`
+- `cli-reference/entry-inspect-links.tsv` (from the stored entry crosswalk)
+- `cli-reference/field-inspect-links.tsv` (from the computed field view)
 - exact source pages under `cli-reference/source/`, reconstructed byte-for-byte from the runtime DB
 
 The TSVs may repeat an entry's source path as display context, but must not invent a field path. The two
@@ -281,10 +299,12 @@ Questions 2 and 4 are **answered** by the 2026-07-20 experiment above. The secon
 question 1: standalone tables remain the right boundary, but three tables are not enough to preserve
 source semantics and overlay multiplicity.
 
-1. **Table shape.** **Revised 2026-07-20: standalone `cliref_*` source tables plus explicit crosswalks,**
-   not columns on `schema_nodes`. The current six-table lean is in "Revised DB shape" above. Remaining
-   review question: whether all six should be physical tables or whether one crosswalk is better exposed
-   as a view; source pages, entries, fields, and flags are not candidates for collapse.
+1. ~~**Table shape.**~~ **Resolved 2026-07-20: four standalone `cliref_*` source tables + one stored
+   entry crosswalk + a computed field-link view**, not columns on `schema_nodes`. The maintainer chose to
+   compute field links (they are derivable and would otherwise pin the version-less overlay to a versioned
+   `schema_nodes` snapshot) while storing the entry link (it carries the non-derivable exact/alias
+   decision). See "Revised DB shape" above. Source pages, entries, fields, and flags are never candidates
+   for collapse.
 2. ~~**Join key robustness.**~~ **Answered 2026-07-20: no, not 1:1.** 24 nodes carry a spurious internal
    module segment (`caps-man/acl/access-list` → `/caps-man/access-list`). Keep the source path unchanged
    and represent exact/alias resolution in `cliref_entry_schema_links`. See "Join-key robustness" and
@@ -328,23 +348,25 @@ source semantics and overlay multiplicity.
 
 ## Current lean
 
-**Lean, as of 2026-07-20:** an occurrence-based standalone `cliref_*` source model, exact page/description
-Markdown retained, flags separated, and explicit entry/field crosswalks to `schema_nodes`. Preserve raw
-inspect `path` versus `dir` while retaining the existing normalized type for compatibility. Do not put a
-path on a CLI-Reference field: an entry has a source path; a field has a name and zero-to-many inspect
-tree coordinates. Raw types stay unparsed.
+**Lean, as of 2026-07-20 (schema accepted):** an occurrence-based standalone `cliref_*` source model —
+four source tables (`pages`/`entries`/`fields`/`flags`), one stored entry crosswalk, and a computed
+field-link view — with exact page/description Markdown retained and flags separated. Preserve raw inspect
+`path` versus `dir` via a new `inspect_type` column while retaining the existing normalized type for
+compatibility. Do not put a path on a CLI-Reference field: an entry has a source path; a field has a name
+and zero-to-many inspect tree coordinates, expressed through the view. Raw types stay unparsed. The
+maintainer accepted this shape 2026-07-20 and chose to build the full schema + export in one issue.
 
-The implementation issue is [#124](https://github.com/tikoci/rosetta/issues/124), but it is no longer
-ready to hand to an implementation agent until the revised schema/export contract is reviewed. Questions
-3 (provenance format) and 5 (agent surfacing) remain genuinely open and do not block DB/ETL/export work.
-Question 5 in particular is better answered *after* the overlay exists and can be inspected, since the
-read-only-field finding changed what there is to surface.
+The implementation issue is [#124](https://github.com/tikoci/rosetta/issues/124), now cleared to
+implement. Questions 3 (provenance format) and 5 (agent surfacing) remain genuinely open and do not block
+DB/ETL/export work. Question 5 in particular is better answered *after* the overlay exists and can be
+inspected, since the read-only-field finding changed what there is to surface.
 
 Still deliberately unresolved: the briefing stays `open` until #124's extractor lands and is validated
-**and** question 3 has an answer — the issue-cut gate is already cleared.
+**and** question 3 has an answer.
 
 ## Open questions
 
-See "Open design questions" above. Questions 2, 4, and 9 are settled; question 1 has a revised concrete
-proposal awaiting review; 3, 5, 7, and 8 remain. Next revisit trigger: acceptance of #124's DB and
-export contract, #124 landing, or any upstream docs rebuild that changes the page count away from 228.
+See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled; 3, 5, 7, and 8 remain (7
+now has a concrete ambiguity policy — manual-only + loud validation — pending only its `VALIDATION.md`
+row). Next revisit trigger: #124 landing, or any upstream docs rebuild that changes the page count away
+from 228.
