@@ -132,8 +132,13 @@ export const MATRIX_CSV_RELATIVE_PATH = "matrix/2026-07-20/matrix.csv";
  *   v10 — adds normalized `page_tables`, `page_table_rows`, and `page_table_cells`
  *         storage for every Docusaurus pipe table; `properties.source_table_row_id`
  *         links table-derived properties to their exact generic source row (#92).
+ *   v11 — CLI-Reference overlay (#124): `cliref_pages`/`cliref_entries`/`cliref_fields`/
+ *         `cliref_flags` source-faithful tables, `cliref_entry_schema_links` stored
+ *         entry crosswalk, `cliref_field_inspect_links` computed view; adds
+ *         `schema_nodes.inspect_type` preserving the raw path/dir/cmd/arg class that
+ *         `type` normalizes (path→dir).
  */
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 
 /**
  * Resolve the version string.

@@ -22,6 +22,15 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **CLI-Reference overlay (`cliref_*` tables + `rosetta export` datasets, issue #124).** A source-faithful, version-less overlay of `manual.mikrotik.com/docs/cli-reference/*`: `cliref_pages` / `cliref_entries` / `cliref_fields` / `cliref_flags` retain each page's byte-exact Markdown (+ SHA-256), verbatim entry/field/flag descriptions, occurrence order, and line spans. Entries carry the manual-only facts a CHR `/console/inspect` cannot self-report (`package` / `conditions` / `syscap`). A stored `cliref_entry_schema_links` crosswalk resolves each entry to its `schema_nodes` command node (exact / single-internal-segment alias / manual-only), and the `cliref_field_inspect_links` **view** derives the zero-to-many field→argument mapping. `rosetta export` gains seven `cli-reference/*` outputs (six TSVs + byte-exact `source/<slug>.md`). Build via `make extract-cliref` + `make link-cliref`.
+- **`schema_nodes.inspect_type`.** Preserves RouterOS' raw `/console/inspect` class (`path` | `dir` | `cmd` | `arg`) that the existing `type` column normalizes (raw `path` → `dir`). Additive; existing `type` consumers are unchanged.
+
+### Changed
+
+- **Schema version 10 → 11** for the CLI-Reference overlay tables/view and `schema_nodes.inspect_type`.
+
 ## [0.11.1] — 2026-07-20
 
 ### Fixed

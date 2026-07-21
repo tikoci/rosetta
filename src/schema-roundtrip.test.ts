@@ -31,25 +31,26 @@ function createTestDb(): Database {
 
   // schema_nodes
   db.run(`CREATE TABLE schema_nodes (
-    id          INTEGER PRIMARY KEY,
-    path        TEXT NOT NULL,
-    name        TEXT NOT NULL,
-    type        TEXT NOT NULL,
-    parent_id   INTEGER REFERENCES schema_nodes(id),
-    parent_path TEXT,
-    dir_role    TEXT,
-    desc_raw    TEXT,
-    data_type   TEXT,
-    enum_values TEXT,
-    enum_multi  INTEGER,
-    type_tag    TEXT,
-    range_min   TEXT,
-    range_max   TEXT,
-    max_length  INTEGER,
-    _arch       TEXT,
-    _package    TEXT,
-    _attrs      TEXT,
-    page_id     INTEGER REFERENCES pages(id),
+    id           INTEGER PRIMARY KEY,
+    path         TEXT NOT NULL,
+    name         TEXT NOT NULL,
+    type         TEXT NOT NULL,
+    inspect_type TEXT,
+    parent_id    INTEGER REFERENCES schema_nodes(id),
+    parent_path  TEXT,
+    dir_role     TEXT,
+    desc_raw     TEXT,
+    data_type    TEXT,
+    enum_values  TEXT,
+    enum_multi   INTEGER,
+    type_tag     TEXT,
+    range_min    TEXT,
+    range_max    TEXT,
+    max_length   INTEGER,
+    _arch        TEXT,
+    _package     TEXT,
+    _attrs       TEXT,
+    page_id      INTEGER REFERENCES pages(id),
     UNIQUE(path, type)
   );`);
 
@@ -191,6 +192,19 @@ describe("fixture import", () => {
     expect(arm64Nodes.length).toBe(33);
   });
 
+  test("walk preserves raw inspect_type, collapsing path→dir in type", () => {
+    // A raw `path` node (RouterOS uses it for pure namespace nodes) must surface as
+    // type='dir' (normalized, back-compatible) but inspectType='path' (raw, preserved).
+    const nodes: FlatNode[] = [];
+    walk({ routing: { _type: "path", id: { _type: "dir", x: { _type: "arg", desc: "" } } } }, "", nodes);
+    const routing = nodes.find((n) => n.path === "/routing");
+    expect(routing?.type).toBe("dir");
+    expect(routing?.inspectType).toBe("path");
+    const id = nodes.find((n) => n.path === "/routing/id");
+    expect(id?.type).toBe("dir");
+    expect(id?.inspectType).toBe("dir");
+  });
+
   test("arch diff detection", () => {
     const x86Nodes: FlatNode[] = [];
     const arm64Nodes: FlatNode[] = [];
@@ -266,6 +280,15 @@ describe("fixture import", () => {
     expect(count("SELECT COUNT(*) as c FROM schema_nodes WHERE _arch = 'x86'")).toBe(3);
     expect(count("SELECT COUNT(*) as c FROM schema_nodes WHERE _arch = 'arm64'")).toBe(3);
     expect(count("SELECT COUNT(*) as c FROM schema_nodes WHERE _attrs IS NOT NULL")).toBe(4);
+
+    // inspect_type preserves the raw /console/inspect class. The fixture has no raw
+    // `path` nodes, so every node's inspect_type equals its normalized type; the
+    // path→dir divergence is exercised separately. Assert it is populated, never NULL.
+    expect(count("SELECT COUNT(*) as c FROM schema_nodes WHERE inspect_type IS NULL")).toBe(0);
+    expect(count("SELECT COUNT(*) as c FROM schema_nodes WHERE inspect_type = type")).toBe(36);
+    expect(count("SELECT COUNT(*) as c FROM schema_nodes WHERE inspect_type = 'arg'")).toBe(
+      count("SELECT COUNT(*) as c FROM schema_nodes WHERE type = 'arg'"),
+    );
 
     // Verify dir_role
     const ipAddr = testDb.prepare("SELECT dir_role FROM schema_nodes WHERE path = '/ip/address'").get() as { dir_role: string };

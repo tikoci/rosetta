@@ -97,7 +97,9 @@ In VS Code Copilot, attach them via **Add Context > MCP Resources** or **MCP: Br
 
 The database combines multiple MikroTik data sources into a single SQLite file with [FTS5](https://www.sqlite.org/fts5.html) full-text search, [porter stemming](https://www.sqlite.org/fts5.html#porter_tokenizer), and [BM25 ranking](https://www.sqlite.org/fts5.html#the_bm25_function):
 
-- **Docusaurus Documentation** — `/docs` prose from MikroTik's current manual at <https://manual.mikrotik.com>, discovered via `sitemap.xml` and fetched as raw Markdown (`{page}.md` / `{category}/index.md`). Populates `pages`, `sections`, `properties`, and `callouts` the same way the legacy Confluence extractor did, plus a `rosetta_id` identity column (see [DESIGN.md](DESIGN.md#docusaurus-manual-current-primary-prose-corpus)). CLI Reference (`/docs/cli-reference/*`) and the standalone `/hardware` section are out of scope for this extractor — see B-0012's proposed follow-up tasks.
+- **Docusaurus Documentation** — `/docs` prose from MikroTik's current manual at <https://manual.mikrotik.com>, discovered via `sitemap.xml` and fetched as raw Markdown (`{page}.md` / `{category}/index.md`). Populates `pages`, `sections`, `properties`, and `callouts` the same way the legacy Confluence extractor did, plus a `rosetta_id` identity column (see [DESIGN.md](DESIGN.md#docusaurus-manual-current-primary-prose-corpus)). The standalone `/hardware` section is out of scope for this extractor; the CLI Reference has its own extractor (below).
+
+- **CLI Reference overlay** — `/docs/cli-reference/*` (228 pages) parsed by `src/extract-cliref.ts` (build: `make extract-cliref`) into a source-faithful, version-less overlay: `cliref_pages` (byte-exact source Markdown + SHA-256), `cliref_entries` (Directory / Settings Directory / Command menus, with the manual-only `package`/`conditions`/`syscap` gates), `cliref_fields` (Argument / Read-only Argument), and `cliref_flags` (print-output markers). `src/link-cliref.ts` (`make link-cliref`, after `schema_nodes` is populated) resolves each entry to its inspect command node — exact, single-internal-segment alias, or manual-only — in `cliref_entry_schema_links`; the `cliref_field_inspect_links` **view** derives the zero-to-many field→argument mapping. An entry has a source path; a field has a name and zero-to-many inspect coordinates, never a path (see [DESIGN.md](DESIGN.md#cli-reference-overlay-source-vs-inspect-identity)). Issue #124.
 
 - **Legacy HTML Documentation** — Confluence space export from help.mikrotik.com (March 2026, frozen). 317 pages broken into sections, callouts, and property tables (~515K words). Kept only for rebuilding historical pre-migration release DBs — see "Re-extracting a Local Database" below.
 
@@ -113,7 +115,7 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Agent Skills** — Community-created agent guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) (8 skills, ~30K words). NOT official MikroTik documentation — AI-generated, human-reviewed, served with provenance attribution. Practical domain knowledge for topics like containers, QEMU CHR, netinstall, and RouterOS fundamentals.
 
-Documentation covers RouterOS **v7 only**. v6 had different syntax and major subsystems — answers for v6 are unreliable. Prose is now sourced live from <https://manual.mikrotik.com>, which also has a CLI Reference with `/console/inspect`-derived command menus and argument types (not yet ingested — see B-0012's proposed follow-up tasks).
+Documentation covers RouterOS **v7 only**. v6 had different syntax and major subsystems — answers for v6 are unreliable. Prose is now sourced live from <https://manual.mikrotik.com>; its CLI Reference is ingested separately as the source-faithful overlay described above.
 
 ## Local DB grounding (dev checkouts)
 
@@ -322,6 +324,8 @@ Serialization contract (stated in full in `manifest.toml`):
 
 - **TSV**, UTF-8, LF line endings, a header row, and stable row/column ordering — a rebuild on the same DB is byte-identical.
 - **Escaping** follows the Postgres COPY text convention: `\\`=backslash, `\t`=tab, `\n`=LF, `\r`=CR, applied as a general backstop to every value. A field exactly equal to `\N` is SQL NULL; an empty field is the empty string. This keeps the one-line-equals-one-record property (parseable by `awk -F '\t'`) while remaining losslessly reversible.
+
+When the CLI-Reference overlay is populated, the export also writes a `cli-reference/` subtree (issue #124): `pages.tsv`, `entries.tsv`, `fields.tsv`, `flags.tsv`, `entry-inspect-links.tsv` (the stored exact/alias crosswalk), `field-inspect-links.tsv` (the zero-to-many field→argument view), and `source/<slug>.md` — the byte-exact fetched Markdown for every page, hashing back to `pages.tsv`'s `source_sha256`. `fields.tsv` labels its entry column `entry_source_path` and deliberately carries **no** `field_path`: a settable Argument maps to zero-to-many inspect coordinates, which `field-inspect-links.tsv` exposes explicitly (a field's `inspect_link_count` is the count of those rows). Read-only fields have zero links: a same-name inspect input is not evidence that a CLI-Reference output field is the same thing. An entry with no crosswalk row is manual-only (a menu CHR `/console/inspect` cannot self-report, not an extraction gap). These outputs appear only when the overlay has rows; an empty overlay exports nothing under `cli-reference/`.
 
 Because the export reads only the DB, a column it cannot produce is omitted and disclosed in `manifest.toml` rather than recovered from a source artifact.
 

@@ -50,7 +50,8 @@ interface CompletionValue {
 export interface FlatNode {
   path: string;
   name: string;
-  type: string; // 'dir' | 'cmd' | 'arg'
+  type: string; // normalized: 'dir' | 'cmd' | 'arg' (raw 'path' collapsed to 'dir')
+  inspectType: string; // raw /console/inspect class: 'path' | 'dir' | 'cmd' | 'arg'
   parentPath: string | null;
   descRaw: string | null;
   completion: Record<string, CompletionValue> | null;
@@ -101,6 +102,7 @@ export function walk(obj: Record<string, unknown>, parentPath: string, nodes: Fl
       path: currentPath,
       name: key,
       type: normalizedType,
+      inspectType: nodeType,
       parentPath: parentPath || null,
       descRaw,
       completion,
@@ -373,11 +375,11 @@ export function importSchemaNodes(
     // Insert schema_nodes
     const insertNode = db.prepare(`
       INSERT INTO schema_nodes
-        (path, name, type, parent_path, dir_role, desc_raw,
+        (path, name, type, inspect_type, parent_path, dir_role, desc_raw,
          data_type, enum_values, enum_multi, type_tag,
          range_min, range_max, max_length,
          _arch, _package, _attrs)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertNodes = db.transaction(() => {
@@ -391,6 +393,7 @@ export function importSchemaNodes(
           node.path,
           node.name,
           node.type,
+          node.inspectType,
           node.parentPath,
           node.type === "dir" ? (dirRoles.get(node.path) ?? null) : null,
           node.descRaw,

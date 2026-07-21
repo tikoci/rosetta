@@ -263,8 +263,10 @@ if (args[0] === "export") {
         ? (dir) => (prompt(`export: ${dir} is not empty and has no rosetta manifest. Overwrite? [y/N]`) ?? "").trim().toLowerCase().startsWith("y")
         : undefined,
     });
-    console.log(`Wrote ${summary.files.length} datasets + manifest.toml to ${summary.outDir}`);
+    const srcNote = summary.sourceFiles.length > 0 ? ` + ${summary.sourceFiles.length} source files` : "";
+    console.log(`Wrote ${summary.files.length} datasets${srcNote} + manifest.toml to ${summary.outDir}`);
     for (const f of summary.files) console.log(`  ${f.name}  (${f.rows} rows)`);
+    for (const f of summary.sourceFiles) console.log(`  ${f.name}  (${f.bytes} bytes)`);
     process.exit(0);
   } catch (e) {
     console.error(e instanceof Error ? e.message : String(e));
