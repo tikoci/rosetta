@@ -260,7 +260,11 @@ function parseArgTable(
   slug: string,
 ): void {
   const kind = block.match(/<ArgTable\b[^>]*\bc1="([^"]*)"/)?.[1] ?? "";
-  for (const m of block.matchAll(/<ArgTableRow\b([\s\S]*?)>([\s\S]*?)<\/ArgTableRow>/g)) {
+  // The attribute list runs to the first `>` that is NOT inside a quoted value — a `typ`
+  // like `iface_enum { <l2tp>:0xfffffffe }` embeds a literal `>`, so a naive `[^>]` / `.*?>`
+  // stops mid-tag and truncates the attributes. `(?:[^">]|"[^"]*")*` consumes whole quoted
+  // runs (including embedded `>` and newlines) so the tag closes on the real `>`.
+  for (const m of block.matchAll(/<ArgTableRow\b((?:[^">]|"[^"]*")*)>([\s\S]*?)<\/ArgTableRow>/g)) {
     const attrs = m[1];
     const attr = (n: string) => attrs.match(new RegExp(`\\b${n}="([\\s\\S]*?)"`))?.[1] ?? null;
     // 1-based source line of this row = block start + newlines before the match.

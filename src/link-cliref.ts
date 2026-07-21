@@ -17,13 +17,22 @@
  *   3. manual-only — no link row; a first-class entry inspect cannot self-report.
  *
  * Usage:
- *   bun run src/link-cliref.ts            # link against the current DB
- *   bun run src/link-cliref.ts --report   # print exact/alias/manual-only breakdown
+ *   bun run src/link-cliref.ts                  # link against the current DB
+ *   bun run src/link-cliref.ts --report         # print exact/alias/manual-only breakdown
+ *   bun run src/link-cliref.ts --write-baseline # link + (re)write cli-reference-links.tsv
+ *   bun run src/link-cliref.ts --check          # link + fail if the committed baseline drifts
  */
 
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { db, initDb } from "./db.ts";
 
 const REPORT = process.argv.includes("--report");
+const WRITE_BASELINE = process.argv.includes("--write-baseline");
+const CHECK = process.argv.includes("--check");
+
+// Committed reviewable crosswalk (V-cliref-link-drift). Repo root, next to device-map.tsv.
+const BASELINE_PATH = join(import.meta.dirname, "..", "cli-reference-links.tsv");
 
 interface SchemaNode {
   id: number;
@@ -170,10 +179,85 @@ export function linkEntries(): { exact: number; alias: number; manual: number } 
   return { exact, alias, manual };
 }
 
+interface CrosswalkRow {
+  source_path: string;
+  source_type: string;
+  match_kind: string; // 'exact' | 'alias' | 'manual-only'
+  match_detail: string;
+}
+
+/** Every entry's resolution, manual-only entries surfaced (LEFT JOIN → NULL match). */
+export function readCrosswalk(): CrosswalkRow[] {
+  return db
+    .query(
+      `SELECT e.source_path                          AS source_path,
+              e.source_type                          AS source_type,
+              COALESCE(l.match_kind, 'manual-only')  AS match_kind,
+              COALESCE(l.match_detail, '')           AS match_detail
+       FROM cliref_entries e
+       LEFT JOIN cliref_entry_schema_links l ON l.entry_id = e.id
+       -- (page_id, source_order) is the entry identity and breaks ties fully: the corpus
+       -- allows duplicate heading paths, so source_path/source_type alone leaves tied rows
+       -- in undefined order and the baseline TSV could reorder harmlessly and trip --check.
+       ORDER BY e.source_path, e.source_type, e.page_id, e.source_order`,
+    )
+    .all() as CrosswalkRow[];
+}
+
+/**
+ * The committed reviewable crosswalk. Body lists only the audit-worthy rows — alias
+ * (the manual leaked an internal module segment) and manual-only (no inspect node) —
+ * since an exact match is just source_path == inspect path. A `# counts` header pins
+ * exact/alias/manual-only/entries so a pure exact-count shift can't slip past the
+ * byte-compare. Any drift (new mismatch, changed alias segment, count move) shows in
+ * the diff, exactly like device-map.tsv.
+ */
+export function buildBaselineTsv(): string {
+  const rows = readCrosswalk();
+  let exact = 0;
+  let alias = 0;
+  let manual = 0;
+  const body: string[] = [];
+  for (const r of rows) {
+    if (r.match_kind === "exact") {
+      exact++;
+      continue;
+    }
+    if (r.match_kind === "alias") alias++;
+    else manual++;
+    // source_path/source_type/match_detail are slug/enum/quoted-segment text — no tabs
+    // or newlines — but sanitize defensively so a row can never break the TSV grid.
+    body.push([r.source_path, r.source_type, r.match_kind, r.match_detail].map((c) => c.replace(/[\t\r\n]/g, " ")).join("\t"));
+  }
+  return [
+    "# cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)",
+    `# counts\texact=${exact}\talias=${alias}\tmanual-only=${manual}\tentries=${rows.length}`,
+    ["source_path", "source_type", "match_kind", "match_detail"].join("\t"),
+    ...body,
+    "",
+  ].join("\n");
+}
+
+/** Every stored alias must name a KNOWN_ALIAS_SEGMENTS member (the linker allowlist). */
+export function auditAliasSegments(): string[] {
+  const problems: string[] = [];
+  const aliases = db
+    .query("SELECT e.source_path, l.match_detail FROM cliref_entry_schema_links l JOIN cliref_entries e ON e.id = l.entry_id WHERE l.match_kind = 'alias'")
+    .all() as Array<{ source_path: string; match_detail: string }>;
+  for (const a of aliases) {
+    const dropped = a.match_detail.match(/^dropped segment "(.+)"$/)?.[1];
+    if (dropped === undefined || !KNOWN_ALIAS_SEGMENTS.has(dropped)) {
+      problems.push(`alias for ${a.source_path} names an unexpected segment: ${JSON.stringify(a.match_detail)} (not in KNOWN_ALIAS_SEGMENTS)`);
+    }
+  }
+  return problems;
+}
+
 if (import.meta.main) {
   initDb();
   const { exact, alias, manual } = linkEntries();
   console.log(`Linked cliref entries: ${exact} exact, ${alias} alias, ${manual} manual-only`);
+
   if (REPORT) {
     const rows = db
       .query(
@@ -184,5 +268,29 @@ if (import.meta.main) {
       .all() as Array<{ source_path: string; match_kind: string; match_detail: string }>;
     console.log(`\nAlias resolutions (${rows.length}):`);
     for (const r of rows) console.log(`  ${r.source_path}  (${r.match_detail})`);
+  }
+
+  if (WRITE_BASELINE) {
+    const tsv = buildBaselineTsv();
+    await Bun.write(BASELINE_PATH, tsv);
+    console.log(`\nWrote crosswalk baseline (${alias} alias + ${manual} manual-only rows) to ${BASELINE_PATH}`);
+  }
+
+  if (CHECK) {
+    const problems = auditAliasSegments();
+    const fresh = buildBaselineTsv();
+    const committed = existsSync(BASELINE_PATH) ? readFileSync(BASELINE_PATH, "utf8") : "";
+    if (committed !== fresh) {
+      problems.push(
+        `cli-reference-links.tsv is STALE — the built DB's crosswalk differs from the committed baseline. ` +
+          `Review the change; if intended, run 'make link-cliref-baseline' and commit cli-reference-links.tsv.`,
+      );
+    }
+    if (problems.length > 0) {
+      console.error(`\nV-cliref-link-drift FAILED (${problems.length}):`);
+      for (const p of problems) console.error(`  ✗ ${p}`);
+      process.exit(1);
+    }
+    console.log(`\nV-cliref-link-drift OK — crosswalk matches the committed baseline; all aliases are allowlisted.`);
   }
 }

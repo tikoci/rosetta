@@ -701,6 +701,20 @@ describe("release.yml", () => {
     expect(skillsBlock).toContain("$" + "{{ github.token }}");
   });
 
+  test("wires the CLI-Reference overlay: extract-cliref then link-cliref AFTER schema_nodes (#127)", () => {
+    const src = readText(".github/workflows/release.yml");
+    const commandTreeIdx = mustIndex(src, "Extract command tree");
+    const extractCliRefIdx = mustIndex(src, "Extract CLI-Reference overlay");
+    const linkCliRefIdx = mustIndex(src, "Link CLI-Reference to inspect");
+    const devicesIdx = mustIndex(src, "Extract devices");
+    // link-cliref fails fast on an empty schema_nodes, so it MUST follow the command tree.
+    expect(commandTreeIdx).toBeLessThan(extractCliRefIdx);
+    expect(extractCliRefIdx).toBeLessThan(linkCliRefIdx);
+    expect(linkCliRefIdx).toBeLessThan(devicesIdx);
+    expect(src).toContain("bun run src/extract-cliref.ts");
+    expect(src).toContain("bun run src/link-cliref.ts");
+  });
+
   test("runs the fast-fail quality gate in the build job (contract/eval moved to the qa job)", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("bun run typecheck");
@@ -1053,9 +1067,26 @@ describe("qa.yml", () => {
       /TABLE_PROPERTIES.*-lt 4000/,
       /HARDWARE_CATALOG.*-lt 200/,
       /DEVICE_ALIASES.*-lt 600/,
+      /CLIREF_ENTRIES.*-lt 900/,
+      /CLIREF_FIELDS.*-lt 8000/,
+      /CLIREF_FLAGS.*-lt 800/,
+      /CLIREF_LINKS.*-lt 800/,
     ]) {
       expect(qa).toMatch(re);
     }
+  });
+
+  test("gates the CLI-Reference overlay in db-content: link-drift + db-integrity (#127)", () => {
+    const qa = readText(".github/workflows/qa.yml");
+    expect(qa).toContain("make link-cliref-check");
+    expect(qa).toContain("make cliref-db-check");
+    // Both run on a built DB (local-build OR the release artifact), same guard as the floors.
+    expect(qa).toMatch(
+      /CLI-Reference link drift[\s\S]*?inputs\.db_source == 'local-build' \|\| inputs\.db_source == 'artifact'/,
+    );
+    expect(qa).toMatch(
+      /CLI-Reference DB integrity[\s\S]*?inputs\.db_source == 'local-build' \|\| inputs\.db_source == 'artifact'/,
+    );
   });
 
   test("supports db_source=artifact for the release path — downloads the build artifact and floors it", () => {

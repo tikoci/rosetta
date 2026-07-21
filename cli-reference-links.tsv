@@ -1,0 +1,147 @@
+# cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
+# counts	exact=907	alias=24	manual-only=120	entries=1051
+source_path	source_type	match_kind	match_detail
+caps-man/acl/access-list	Directory	alias	dropped segment "acl"
+caps-man/cfg/configuration	Directory	alias	dropped segment "cfg"
+caps-man/chancfg/channel	Directory	alias	dropped segment "chancfg"
+caps-man/controller/manager	Settings Directory	alias	dropped segment "controller"
+caps-man/controller/manager/interface	Directory	alias	dropped segment "controller"
+caps-man/dpathcfg/datapath	Directory	alias	dropped segment "dpathcfg"
+caps-man/ifaceactual/actual-interface-configuration	Directory	alias	dropped segment "ifaceactual"
+caps-man/ratescfg/rates	Directory	alias	dropped segment "ratescfg"
+caps-man/remoteap/remote-cap	Directory	alias	dropped segment "remoteap"
+caps-man/remoteap/remote-cap/provision	Command	alias	dropped segment "remoteap"
+caps-man/remoteap/remote-cap/set-identity	Command	alias	dropped segment "remoteap"
+caps-man/remoteap/remote-cap/upgrade	Command	alias	dropped segment "remoteap"
+caps-man/rule/provisioning	Directory	alias	dropped segment "rule"
+caps-man/seccfg/security	Directory	alias	dropped segment "seccfg"
+caps-man/sta/registration-table	Directory	alias	dropped segment "sta"
+colon/root	Directory	manual-only	
+colon/root/terminal	Directory	manual-only	
+disk/raid-scrub-cancel	Command	manual-only	
+interface/bridge/msrp	Directory	manual-only	
+interface/bridge/msrp/attributes	Directory	manual-only	
+interface/bridge/msrp/domain	Directory	manual-only	
+interface/bridge/msrp/domain/attributes	Directory	manual-only	
+interface/bridge/msrp/domain/monitor	Command	manual-only	
+interface/ethernet/poe	Directory	manual-only	
+interface/ethernet/poe/monitor	Command	alias	dropped segment "poe"
+interface/ethernet/poe/power-cycle	Command	manual-only	
+interface/ethernet/poe/settings	Settings Directory	manual-only	
+interface/ethernet/switch/acl	Directory	manual-only	
+interface/ethernet/switch/acl/policer	Directory	manual-only	
+interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
+interface/ethernet/switch/dscp-to-dscp	Directory	manual-only	
+interface/ethernet/switch/egress-vlan-tag	Directory	manual-only	
+interface/ethernet/switch/egress-vlan-translation	Directory	manual-only	
+interface/ethernet/switch/ingress-port-policer	Directory	manual-only	
+interface/ethernet/switch/ingress-vlan-translation	Directory	manual-only	
+interface/ethernet/switch/l3hw-settings	Settings Directory	manual-only	
+interface/ethernet/switch/l3hw-settings/advanced	Settings Directory	manual-only	
+interface/ethernet/switch/l3hw-settings/advanced/monitor	Command	manual-only	
+interface/ethernet/switch/l3hw-settings/monitor	Command	manual-only	
+interface/ethernet/switch/mac-based-vlan	Directory	manual-only	
+interface/ethernet/switch/multicast-fdb	Directory	manual-only	
+interface/ethernet/switch/one2one-vlan-switching	Directory	manual-only	
+interface/ethernet/switch/policer-qos-map	Directory	manual-only	
+interface/ethernet/switch/port-leakage	Directory	manual-only	
+interface/ethernet/switch/prbs/reset-prbs	Command	manual-only	
+interface/ethernet/switch/prbs/start-prbs	Command	manual-only	
+interface/ethernet/switch/prbs/stop-prbs	Command	manual-only	
+interface/ethernet/switch/protocol-based-vlan	Directory	manual-only	
+interface/ethernet/switch/qos	Directory	manual-only	
+interface/ethernet/switch/qos-group	Directory	manual-only	
+interface/ethernet/switch/qos/map	Directory	manual-only	
+interface/ethernet/switch/qos/map/ip	Directory	manual-only	
+interface/ethernet/switch/qos/map/vlan	Directory	manual-only	
+interface/ethernet/switch/qos/monitor	Command	manual-only	
+interface/ethernet/switch/qos/port	Directory	alias	dropped segment "qos"
+interface/ethernet/switch/qos/port/reset-counters	Command	alias	dropped segment "qos"
+interface/ethernet/switch/qos/priority-flow-control	Directory	manual-only	
+interface/ethernet/switch/qos/profile	Directory	manual-only	
+interface/ethernet/switch/qos/settings	Settings Directory	manual-only	
+interface/ethernet/switch/qos/tx-manager	Directory	manual-only	
+interface/ethernet/switch/qos/tx-manager/queue	Directory	manual-only	
+interface/ethernet/switch/reserved-fdb	Directory	manual-only	
+interface/ethernet/switch/shaper	Directory	manual-only	
+interface/ethernet/switch/stats	Settings Directory	manual-only	
+interface/ethernet/switch/trunk	Directory	manual-only	
+interface/ethernet/switch/unicast-fdb	Directory	manual-only	
+interface/ethernet/switch/unicast-fdb/flush	Command	manual-only	
+interface/pwr-link/pwr-line	Directory	manual-only	
+interface/pwr-link/pwr-line/blink	Command	manual-only	
+interface/pwr-link/pwr-line/configure	Command	manual-only	
+interface/pwr-link/pwr-line/join	Command	manual-only	
+interface/pwr-link/pwr-line/leave	Command	manual-only	
+interface/pwr-link/pwr-line/monitor	Command	manual-only	
+interface/pwr-link/pwr-line/reset-counters	Command	manual-only	
+interface/pwr-link/pwr-line/reset-mac-address	Command	manual-only	
+interface/pwr-link/pwr-line/upgrade-firmware	Command	manual-only	
+interface/w60g	Directory	manual-only	
+interface/w60g/align	Command	manual-only	
+interface/w60g/monitor	Command	manual-only	
+interface/w60g/reset-configuration	Command	manual-only	
+interface/w60g/scan	Command	manual-only	
+interface/w60g/station	Directory	manual-only	
+interface/w60g/station/monitor	Command	manual-only	
+interface/wifi/dashboard/settings	Settings Directory	manual-only	
+interface/wifi/dashboard/show	Command	manual-only	
+interface/wifi/dashboard/show-clients	Command	manual-only	
+interface/wifi/dashboard/show-logs	Command	manual-only	
+interface/wifi/dpp-bootstrap-info/gen-qr-code	Command	manual-only	
+interface/wifi/easymesh/bss	Directory	manual-only	
+interface/wifi/easymesh/dpp-trigger	Command	manual-only	
+interface/wifi/easymesh/sta	Directory	manual-only	
+interface/wifi/easymesh/topology	Directory	manual-only	
+interface/wifi/easymesh/wps-push-button	Command	alias	dropped segment "easymesh"
+interface/wifi/trigger-radar	Command	manual-only	
+iot/gpio	Directory	manual-only	
+iot/gpio/analog	Directory	manual-only	
+iot/gpio/digital	Directory	manual-only	
+ip/cloud/app/update	Command	manual-only	
+lcd	Settings Directory	manual-only	
+lcd/backlight	Command	manual-only	
+lcd/interface	Directory	manual-only	
+lcd/interface/default-wireless	Command	manual-only	
+lcd/interface/display	Command	manual-only	
+lcd/interface/pages	Directory	manual-only	
+lcd/pin	Settings Directory	manual-only	
+lcd/recalibrate	Command	manual-only	
+lcd/screen	Directory	manual-only	
+lcd/show	Command	manual-only	
+lcd/take-screenshot	Command	manual-only	
+partitions	Directory	manual-only	
+partitions/activate	Command	manual-only	
+partitions/copy-to	Command	manual-only	
+partitions/repartition	Command	manual-only	
+partitions/restore-config-from	Command	manual-only	
+partitions/save-config-to	Command	manual-only	
+routing/bfd/authentication	Directory	manual-only	
+routing/route/rule	Directory	alias	dropped segment "route"
+system/dashboard/settings	Settings Directory	manual-only	
+system/dashboard/show	Command	manual-only	
+system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
+system/license/output	Command	manual-only	
+system/ptp	Directory	manual-only	
+system/ptp/monitor	Command	manual-only	
+system/ptp/port	Directory	manual-only	
+system/ptp/status	Directory	manual-only	
+system/resource/irq/rps	Directory	manual-only	
+system/routerboard/settings/keep-frequency	Command	manual-only	
+system/serial-interface/read	Command	manual-only	
+system/serial-interface/serial-terminal	Command	alias	dropped segment "serial-interface"
+system/serial-interface/start	Command	manual-only	
+system/serial-interface/stop	Command	manual-only	
+system/serial-interface/write	Command	manual-only	
+system/swos	Settings Directory	manual-only	
+system/swos/load-config	Command	manual-only	
+system/swos/password	Command	manual-only	
+system/swos/reset-config	Command	manual-only	
+system/swos/save-config	Command	manual-only	
+system/swos/upgrade	Command	manual-only	
+tool/apptraffic/stats	Directory	manual-only	
+tool/apptraffic/stats/categories	Directory	manual-only	
+tool/apptraffic/stats/clear	Command	manual-only	
+tool/ddns/dns-update	Command	alias	dropped segment "ddns"
+tool/graphing/ifaces/interface	Directory	alias	dropped segment "ifaces"
+tool/graphing/queues/queue	Directory	alias	dropped segment "queues"
