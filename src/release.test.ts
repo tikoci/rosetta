@@ -801,6 +801,9 @@ describe("release.yml", () => {
   test("creates GitHub Release", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("gh release create");
+    expect(src).toContain("gh_retry()");
+    expect(src).toContain("ensure_release_exists()");
+    expect(src).toContain("GitHub can return a transient 5xx after creating the release");
   });
 
   test("republish_assets controls immutable npm skips and release clobbering", () => {
@@ -821,6 +824,9 @@ describe("release.yml", () => {
     expect(republishBranchIdx).toBeLessThan(clobberIdx);
     expect(src).toContain('elif gh release view "$VERSION"');
     expect(src).toContain("updated before npm publish retry");
+    expect(src).toContain("ensure_release_exists");
+    expect(src).toContain("gh_retry gh release upload");
+    expect(src).toContain("gh_retry gh release edit");
 
     expect(src).toContain("if: inputs.republish_assets != true");
     expect(src).toContain("if: inputs.republish_assets == true");
