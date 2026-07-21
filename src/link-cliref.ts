@@ -196,7 +196,10 @@ export function readCrosswalk(): CrosswalkRow[] {
               COALESCE(l.match_detail, '')           AS match_detail
        FROM cliref_entries e
        LEFT JOIN cliref_entry_schema_links l ON l.entry_id = e.id
-       ORDER BY e.source_path, e.source_type`,
+       -- (page_id, source_order) is the entry identity and breaks ties fully: the corpus
+       -- allows duplicate heading paths, so source_path/source_type alone leaves tied rows
+       -- in undefined order and the baseline TSV could reorder harmlessly and trip --check.
+       ORDER BY e.source_path, e.source_type, e.page_id, e.source_order`,
     )
     .all() as CrosswalkRow[];
 }
