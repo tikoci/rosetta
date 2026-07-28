@@ -1,5 +1,7 @@
 # rosetta
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Ftikoci%2Frosetta.svg)](https://mcptoplist.com/server/glama%2Ftikoci%2Frosetta)
+
 MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation — 363 pages extracted live from MikroTik's official Docusaurus manual (<https://manual.mikrotik.com>), 4,587 properties, a 40,000-entry command tree, hardware specs for 156 current products (part of a wider 255-device overlay also covering legacy/EOL gear and accessories), 722 YouTube video transcripts, and direct links to source docs.
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation. **No AI required** — rosetta includes a [terminal browser](#browse-without-ai) for searching the database directly.
