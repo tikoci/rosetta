@@ -7,8 +7,10 @@ related_tasks:
   - "#28"
   - "#33"
   - "#124"
+  - "#131"
+  - "B-0024"
 created: 2026-07-10
-last_revisited: 2026-07-20
+last_revisited: 2026-07-31
 ---
 
 # Question
@@ -324,6 +326,23 @@ source semantics and overlay multiplicity.
    or only via the CLI-Reference URL pointer? This is where the ETL question and #25's query-behavior
    question meet — the overlay's shape should be decided with the consuming shape in mind, even though
    the query-behavior change itself stays out of scope here.
+
+   **First concrete consumer identified 2026-07-31 (B-0024) — and it is not advisory metadata.**
+   The #131/#132 triage found that `commands.page_id` — a single fuzzy, page-grained scalar — is the only
+   join between rosetta's structure stores and its prose store, and that it produces both `high`-confidence
+   wrong answers and `low`-confidence correct ones. `cliref_entries.source_path` +
+   `cliref_field_inspect_links` is a **curated, exact/alias-resolved command→field-name index**, which is
+   exactly what that join lacks: `lookupProperty(name, path)` could *corroborate* a candidate property row
+   against the overlay ("does `/interface/bridge/port` really have a field named `pvid`?") and demote the
+   fuzzy page link to ranking evidence, instead of using it as a scope gate. Verified in the vendored
+   source: `manual/cli-reference/interface__bridge.md` carries `pvid` at lines 56 and 1025.
+
+   This uses the overlay as a **correctness input to an existing tool**, not as a new note on a result —
+   a stronger justification for #25's query-behavior half than its current arch-as-advisory framing. It
+   also depends on the "structural, not narrative" finding above rather than being weakened by it: with
+   only 1,657 of 10,118 argument rows carrying prose, cliref is the *index* and `properties` stays the
+   *content*. Untested end to end — `cliref_entries` is empty in the local `ros-help.db`. See
+   `briefings/B-0024-command-prose-join.md`.
 6. ~~**Coverage gaps.**~~ **Answered for storage 2026-07-20:** retain every real page, every entry, its
    exact source Markdown, and entry prose even when it has no `<ArgTable>`. Twelve of 228 pages have no
    table at all (H3 counted 13/236 on the larger denominator), and **193 of 1,051 entries have zero

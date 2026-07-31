@@ -2,9 +2,9 @@
 id: B-0023-page-section-normalization
 topic: Normalize a page as a complete set of sections (make section coverage total) so page prose is sliceable, not just whole-page
 status: open
-related_tasks: ["#27", "#93", "#95", "B-0012", "B-0022"]
+related_tasks: ["#27", "#93", "#95", "#131", "B-0012", "B-0022", "B-0024"]
 created: 2026-07-16
-last_revisited: 2026-07-16
+last_revisited: 2026-07-31
 ---
 
 # Question
@@ -186,6 +186,16 @@ This is deliberately **schema/ETL only**. It ships the *data* that a future #27 
 - **#27 (MCP/TUI surface alignment)** — the *consumer* of total coverage. This briefing is the data
   precondition; the actual `get_page(section=)` / lighter-`routeros_search()` design stays in #27 and is
   explicitly **not** proposed here.
+- **B-0024 (command↔prose join) — a second, independent consumer, added 2026-07-31.** #27 wants total
+  coverage for *ergonomics* (select fragments instead of trimming a whole page). The command↔prose join
+  wants it for *correctness*: "which page owns `/interface/bridge`?" has no good answer (page 10 holds
+  all 226 property rows but is a section index; page 27 has the right name and zero properties), while
+  "which section documents `pvid` for bridge ports?" does. A join that targets a section instead of a
+  page dissolves that false choice. Two notes that do **not** change the Option A / `_lead` decision:
+  (1) #131's bridge case does *not* need this briefing — those property rows already carry correct
+  `section_id` and anchors, so section granularity exists for them today and what is missing is a join
+  that uses it; (2) having a correctness consumer as well as an ergonomics one raises this work's
+  priority. See B-0024 for the measurement.
 - **#95 (schema/ETL umbrella)** — this is a schema/ETL finding of exactly the kind #95 tracks; recorded
   there as a not-yet-filed child (promotion to an agent-ready issue is earned once the lead-anchor
   convention and the reconciliation allowance are pinned — see #95's own E2–E4 discipline).
