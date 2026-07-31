@@ -389,22 +389,42 @@ function decodeTablePipes(text: string): string {
   return text.replace(/&#0*124;|&vert;/gi, "|");
 }
 
-/** Strip emphasis markers from a dedicated Type/Default cell; empty becomes null. */
+/**
+ * Strip Markdown emphasis from a dedicated Type/Default cell; empty becomes null.
+ *
+ * Removes only *paired* delimiters (`**bold**`, `*italic*`), because the corpus writes value
+ * syntax as several spans in one cell (`*yes* &#124; *no*` -> `yes | no`) rather than one outer
+ * wrapper. An unpaired asterisk is content and survives: a RouterOS default of `*` (wildcard)
+ * or a type containing `a*b` must not be silently deleted.
+ */
 function normalizeAnnotationCell(cell: string | undefined): string | null {
   if (cell === undefined) return null;
-  return decodeTablePipes(cell).replace(/\*+/g, "").trim() || null;
+  return (
+    decodeTablePipes(cell)
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
+      .trim() || null
+  );
 }
 
 /**
  * Resolve a table's property columns by header name, or null when it is not a property table.
  *
- * Requiring an explicit `Description` column is what excludes the device-mode feature matrix
- * (its columns are Home/Basic/Advanced/ROSE) and `| Parameter | Value |`. Both already yielded
- * either garbage or nothing, so nothing real is lost — see #132 and B-0024's header census.
+ * The name header must be *exactly* `Property` or `Parameter` after normalization, not merely
+ * contain the word. `| **Feature / Property** | ... |` (device-mode) and `| Menu | Parameter
+ * names | Page link |` both name something other than a property in their first column;
+ * matching them loosely fabricates rows whose "description" is an unrelated column. The current
+ * corpus happens to reject the device-mode matrix on the missing-Description rule alone, but a
+ * two-column `| Feature / Property | Description |` would still slip through — so the contract
+ * is enforced here rather than left to the corpus's present shape.
+ *
+ * Requiring an explicit `Description` column then excludes matrices like `| Parameter | Value |`.
+ * Both already yielded either garbage or nothing, so nothing real is lost — see #132 and
+ * B-0024's header census (all 589 property tables span 10 distinct header shapes).
  */
 export function resolvePropertyColumns(headerCells: string[]): PropertyColumns | null {
   const normalized = headerCells.map(normalizeHeaderCell);
-  const name = normalized.findIndex((cell) => /\b(property|parameter)\b/.test(cell));
+  const name = normalized.findIndex((cell) => cell === "property" || cell === "parameter");
   const description = normalized.indexOf("description");
   if (name === -1 || description === -1 || description <= name) return null;
   const indexOfOrNull = (label: string) => {

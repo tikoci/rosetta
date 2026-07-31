@@ -191,11 +191,16 @@ This is deliberately **schema/ETL only**. It ships the *data* that a future #27 
   wants it for *correctness*: "which page owns `/interface/bridge`?" has no good answer (page 10 holds
   all 226 property rows but is a section index; page 27 has the right name and zero properties), while
   "which section documents `pvid` for bridge ports?" does. A join that targets a section instead of a
-  page dissolves that false choice. Two notes that do **not** change the Option A / `_lead` decision:
-  (1) #131's bridge case does *not* need this briefing — those property rows already carry correct
-  `section_id` and anchors, so section granularity exists for them today and what is missing is a join
-  that uses it; (2) having a correctness consumer as well as an ergonomics one raises this work's
-  priority. See B-0024 for the measurement.
+  page dissolves that false choice.
+
+  This briefing's own work **already landed in PR #105** (`940458c`), so B-0024 *consumes* total
+  section coverage rather than adding urgency to it — the remaining work is a new section→command
+  join, which lives in B-0024, not here. B-0024's current lean (extract menu paths per **section**
+  and use the candidate row's own section alignment as the discriminating key) is only possible
+  because coverage is total: measured on `v0.11.2-alpha.109`, the four `pvid` property rows resolve
+  to sections `Port Settings` / `Bridge Port Settings` / `Bridge Interface Setup` (page 10) and
+  `Properties` (page 38 Apps), and only the first three name a `/interface/bridge` path in their own
+  text. That is the discrimination a page-grained key cannot express.
 - **#95 (schema/ETL umbrella)** — this is a schema/ETL finding of exactly the kind #95 tracks; recorded
   there as a not-yet-filed child (promotion to an agent-ready issue is earned once the lead-anchor
   convention and the reconciliation allowance are pinned — see #95's own E2–E4 discipline).

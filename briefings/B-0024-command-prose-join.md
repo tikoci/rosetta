@@ -1,6 +1,6 @@
 ---
 id: B-0024-command-prose-join
-topic: The command↔prose join — should `commands.page_id` stop being a single fuzzy page-grained scalar?
+topic: The command↔prose join — `commands.page_id` is a page-level proxy for a key that does not exist
 status: open
 related_tasks: ["#58", "#61", "#131", "#132", "#100", "#25", "B-0001", "B-0011", "B-0016", "B-0023"]
 created: 2026-07-31
@@ -9,54 +9,67 @@ last_revisited: 2026-07-31
 
 # Question
 
-Rosetta holds RouterOS structure and RouterOS prose in different stores, and joins them through
-exactly one column: `commands.page_id`. That column is a **nullable scalar**, **page-grained**, and
-produced by a **fuzzy slug-trailing heuristic** (`src/link-ranking.ts`). Every property lookup that
-takes a command path passes through it.
+Rosetta holds RouterOS structure and RouterOS prose in different stores. A `properties` row has
+`page_id`, `section_id`, and `source_table_row_id` — **no** column identifying the command it
+documents. `commands.page_id` is the only thing standing in for that missing key, and it is a
+nullable **scalar**, **page-grained**, and produced by a **fuzzy slug-trailing heuristic**
+(`src/link-ranking.ts`).
 
-Should that join be replaced by one that is *corroborated* (against curated structure), *section-grained*
-(B-0023's unit, not the page), and *multi-evidence* (able to say "this page is the reference owner, that
-one is a related guide")?
+What should the real key be, and can it be built from data that already ships?
 
-This briefing exists because #58, #61, and #131 have been filed and re-filed as three separate linkage
-bugs across three releases, and each fix has moved the symptom rather than closed the class. The
-2026-07-31 triage of #131/#132 measured the join directly for the first time; that measurement is below
-and it reframes all three.
+This briefing exists because #58, #61, and #131 have been filed and re-filed as three separate
+linkage bugs across three releases, and each fix has moved the symptom rather than closed the class.
 
 # What's grounding this
 
-All figures measured 2026-07-31. Extractor findings come from the vendored source Markdown
-(`manual/pages/**`) plus running the real `parseProperties()` on it — independent of any DB. Linkage
-findings come from repo-root `ros-help.db`, which carries no `meta` table (untrusted per
-`local-db-grounding.instructions.md`) but reproduces the v0.11.1 figures in #131 exactly
-(1,552 NULL / 23→page 26 / 14→page 344), so it is the same corpus.
+Two different sources, deliberately:
 
-## The measurement that reframes #58/#61/#131
+- **Extractor findings** come from the vendored source Markdown (`manual/pages/**`) plus running
+  the real `parseProperties()` on it — independent of any DB.
+- **DB findings** are measured on the CI release artifact **`v0.11.2-alpha.109`**
+  (`schema_version` 11, `source_commit` `4cd7413` = current `main`), synced via `make db-sync` per
+  `local-db-grounding.instructions.md` — not a local rebuild and not the repo-root DB.
 
-Actual `lookupProperty(name, commandPath)` output today:
+That artifact already ships the CLI-Reference overlay: **228** `cliref_pages`, **1,051**
+`cliref_entries`, **10,118** `cliref_fields`, **931** stored `cliref_entry_schema_links`, and
+**13,036** rows through the computed `cliref_field_inspect_links` view.
 
-| Call | Returns | Confidence | Verdict |
+> **Provenance note.** An earlier draft called the repo-root DB "untrusted, no `meta` table". That
+> was a wrong check — the provenance table is **`db_meta`**, and it reports the repo-root DB as
+> exactly `v0.11.1` / `e00bc69` / schema 10. There was never any need to infer corpus identity from
+> matching aggregate counts. Use `db_meta`, and prefer the synced CI artifact regardless.
+
+## Pre-fix baseline: what the join returned before #132
+
+**These four rows are the v0.11.1 baseline, measured before the #132 parser fix landed** (PR #133).
+The first two are *corrected* by that fix; they are retained because they are what made the
+confidence signal's behaviour legible:
+
+| Call | Returned (pre-fix) | Confidence | Verdict |
 |---|---|---|---|
-| `auto-update @ /app/add` | `*yes* &#124; *no*` ×2 | **high** | high + wrong |
-| `address @ /interface/veth/add` | `"IPv4/IPv6 address"` | **high** | high + wrong |
+| `auto-update @ /app/add` | `*yes* &#124; *no*` ×2 | **high** | high + wrong — **fixed by #132** |
+| `address @ /interface/veth/add` | `"IPv4/IPv6 address"` | **high** | high + wrong — **fixed by #132** |
 | `vlan-ids @ /interface/bridge/vlan/add` | correct prose, section `bridge-vlan-table` | **low** | right answer, wrong label |
 | `pvid @ /interface/bridge/port/add` | correct page-10 prose ×3, Apps `*integer*` ranked **first** | **low** | right, mislabeled, polluted |
 
-Three consequences, none of which were visible from the issue text alone:
+Three consequences, none visible from the issue text alone:
 
-1. **#131's "unreachable / dead data" framing is wrong.** The `pvid` prose *is* returned, with correct
-   `section_anchor` values (`bridge-interface-setup`, `port-settings`, `bridge-port-settings`). What is
-   broken is the **confidence label** and the **ordering** — not reachability. This materially shrinks
-   #131 and turns its proposed acceptance criterion ("resolves HIGH to page 10") into a confidence
-   *recalibration*, not a linkage fix.
+1. **#131's reachability claim, stated precisely.** The issue is right that the bridge properties are
+   unreachable *through `commands.page_id` / command-grounded lookup* — that join is genuinely
+   absent. What the measurement adds is that the rows remain **globally discoverable**: the
+   same-name fallback returns the page-10 prose with correct section anchors, at `low`. That
+   fallback is useful recovery, **not** evidence that those rows document the requested command.
+   The defect is the missing join; the confidence label and the ordering are how the absence
+   surfaces. (An earlier draft of this briefing over-corrected to "the framing is wrong" — that
+   overstated it.)
 
-2. **The extraction bug (#132) is the higher-severity defect.** It is the only one producing
-   **high-confidence wrong content**. A mislabeled-but-correct answer degrades trust; a `high` badge on
-   `"IPv4/IPv6 address"` (the Type cell, not the description) actively misleads a downstream consumer.
+2. **The extraction bug (#132) was the higher-severity defect**, because it was the only one
+   producing **high-confidence wrong content**. A mislabeled-but-correct answer degrades trust; a
+   `high` badge on `"IPv4/IPv6 address"` (a Type cell) actively misleads.
 
-3. **#132 pollutes #131.** `lookupProperty`'s global fallback orders by `pg.title`, so `"Apps"` sorts
-   before `"Bridging and Switching"` and the corrupted `pvid = *integer*` row leads **every** unscoped
-   `pvid` lookup. Fixing #132 measurably improves the bridge symptom with no linker change at all.
+3. **#132 was polluting #131.** The global fallback orders by `pg.title`, so `"Apps"` sorted before
+   `"Bridging and Switching"` and the corrupted `pvid = *integer*` row led **every** unscoped `pvid`
+   lookup. Fixing #132 improved the bridge symptom with no linker change at all.
 
 ## Why the fuzzy join cannot reach the bridge reference content
 
@@ -71,178 +84,194 @@ Three consequences, none of which were visible from the issue text alone:
      0  /interface/bridge      -> 10  Bridging and Switching (226 props)
 ```
 
-- `vlans-on-wireless`.startsWith(`vlan`) scores 2 under `segMatch`; `bridge-vlan-table` scores 0. That is
-  the whole of #131's first defect.
+- `vlans-on-wireless`.startsWith(`vlan`) scores 2 under `segMatch`; `bridge-vlan-table` scores 0.
 - Page 26 beats page 27 only on `propCount` (2030 vs 2000).
-- **Page 10 scores 0 in every case and no segment-matching tweak reaches it.** `bridging-and-switching`
-  versus `bridge` would require stemming, not hyphen-splitting. This is the load-bearing finding: the
-  page holding all 226 bridge property rows is *structurally unreachable* by the current ranker, so
-  "link bridge to page 10" is not a scorer change — it is new machinery.
-- Both pages 10 and 27 **are already candidates** (page 10 mentions `/interface/bridge/vlan` 9×, page 27
-  7×). They are being scored to zero, not missed.
-- There is **no override/anchor mechanism in `link-commands.ts` today.** The "#62 anchors" (firewall,
-  DHCP, WireGuard, VXLAN) cited during triage are not curated anchors; they are cases where slug
-  alignment happens to work, plus unit cases in `link-ranking.test.ts`.
+- **Page 10 scores 0 in every case and no segment-matching tweak reaches it.**
+  `bridging-and-switching` versus `bridge` would require stemming. The page holding all 226 bridge
+  property rows is *structurally unreachable* by the current ranker.
+- Both pages 10 and 27 **are already candidates** (page 10 mentions `/interface/bridge/vlan` 9×,
+  page 27 7×). They are scored to zero, not missed.
+- There is **no override/anchor mechanism in `link-commands.ts`.** The "#62 anchors" (firewall,
+  DHCP, WireGuard, VXLAN) are cases where slug alignment happens to work, plus unit cases in
+  `link-ranking.test.ts`.
 
 ## The structural picture
 
 | Store | Authoritative for | Prose |
 |---|---|---|
 | `schema_nodes` / `commands` (inspect, versioned) | existence per version | none |
-| `cliref_*` (version-less overlay, landed #124/#126/#128) | CLI shape, `Package`/`Conditions`/`Syscap`, read-only args | sparse — B-0016 measured 1,657 of 10,118 arg rows |
+| `cliref_*` (version-less overlay, landed #124/#126/#128) | CLI shape, `Package`/`Conditions`/`Syscap`, read-only args | sparse — B-0016 measured 1,657 of 10,118 field rows |
 | `pages` / `sections` / `properties` | — | **the only narrative source** (B-0001's own finding) |
 
-`commands.page_id` is the only bridge between the structure stores and the prose store. Its four
-limitations map one-to-one onto the open issues:
+Four limitations of the stand-in key, mapping onto the open issues:
 
 | Limitation | Symptom | Issue |
 |---|---|---|
 | **Scalar** — one page per command | cannot express "page 10 is the reference owner, page 27 is the related guide" | #131 |
-| **Page-grained** | cannot target the section that actually documents the property | #131, B-0023 |
+| **Page-grained** | cannot target the section that documents the property | #131 |
 | **Fuzzy** | page 10 unreachable at any score; `/ip/dhcp-server address-pool` → `hotspot-captive-portal` | #58 |
 | **Lossy / one-directional** | 26.8% of linkable rows linked; prose-only and dotted properties never join | #61 |
 
-# The candidate answer: corroborate instead of scope
+# What the CLI-Reference overlay can and cannot do
 
-`lookupProperty` currently uses `commands.page_id` as a **scope gate**: resolve path → page, then only
-look at properties on that page; fall back to a global name search at `low`. That gate is what produces
-both failure modes — a wrong page yields `high` + wrong, and a NULL/empty page discards a correct global
-answer down to `low`.
+The complete crosswalk is a two-hop join, and both hops matter:
 
-The CLI-Reference overlay that landed in #124/#126/#128 supplies the missing piece: `cliref_entries.source_path`
-plus `cliref_field_inspect_links` is a **curated, auditable, exact/alias-resolved** command→field-name
-index. Verified in the vendored source: `manual/cli-reference/interface__bridge.md` carries `pvid` at
-both bridge levels (lines 56 and 1025).
+```text
+cliref_entries.source_path                     -- verbatim heading path, normalized only
+  -> cliref_entry_schema_links (STORED)        -- carries the exact | alias resolution decision
+     -> schema_nodes.path                      -- the inspect command coordinate
+cliref_fields.name  (entry_id -> cliref_entries)
+  -> cliref_field_inspect_links (COMPUTED VIEW) -- zero-to-many field -> inspect `arg` nodes
+     -> schema_nodes.path
+```
 
-So the join could invert:
+Only the **entry** link is stored, because it carries the non-derivable exact/alias decision; field
+links are a view so they cannot go stale against a rebuilt `schema_nodes` (B-0016).
 
-- **Corroborate** — ask cliref "does this command path really have a field named `pvid`?" That is a
-  curated yes/no, not a slug heuristic.
-- **Rank** — use `commands.page_id`, page/section title alignment, and property count as *evidence* for
-  ordering, not as a gate.
-- **Reject** — a candidate row whose page belongs to an unrelated cliref entry (the Apps `*integer*` row,
-  whose entry is `/app`, not `/interface/bridge`) drops out on corroboration.
+**What it proves.** Verified on the artifact — the view yields `/interface/bridge/add/pvid`,
+`/interface/bridge/set/pvid`, `/interface/bridge/port/add/pvid`, `/interface/bridge/port/reset/pvid`.
+So `(`/interface/bridge/port/add`, `pvid`)` is a real, curated field.
 
-Applied to the measurement table, this returns the page-10 `pvid` rows at **high** for
-`/interface/bridge/port/add`, and drops the Apps row — without any change to `link-commands.ts`.
+**What it cannot do — and this is the correction that reshaped this briefing.** That result is a
+**boolean about the query**, not about a candidate row. Every globally-found property named `pvid`
+gets the identical answer:
 
-**Why cliref does not replace `properties`:** B-0016 measured only 1,657 of 10,118 argument rows carrying
-prose. The overlay is *structural, not narrative*. That is precisely why it works as the index while
-`properties` remains the content — they are complementary, not competing.
+| property id | page | section | corroboration says |
+|---|---|---|---|
+| 486 | 10 Bridging and Switching | Bridge Interface Setup | field exists ✓ |
+| 541 | 10 Bridging and Switching | Port Settings | field exists ✓ |
+| 609 | 10 Bridging and Switching | Bridge Port Settings | field exists ✓ |
+| 1474 | 38 **Apps** | Properties | field exists ✓ |
 
-**Caveat — untested end to end.** `cliref_entries` is empty (0 rows) in the local `ros-help.db`, so this
-was reasoned from B-0016's measured coverage plus the vendored `manual/cli-reference/*` source, not
-executed. Confirming it against a DB with the overlay populated is the first homework item.
+There is no relational edge to break the tie: `properties` has no `entry_id` / `field_id` /
+`schema_node_id`, and `cliref_entries.page_id` references **`cliref_pages`**, a different page store
+from `properties.page_id -> pages`. An earlier draft claimed corroboration could promote the bridge
+rows and reject the Apps row. **It cannot.** Confirmed empirically on `v0.11.2-alpha.109`.
 
-# Relationship to the other briefings
-
-## B-0023 (page/section normalization) — a second, independent consumer
-
-B-0023 lists **#27 (MCP/TUI surface alignment)** as the consumer of total section coverage. The
-command↔prose join is a **second consumer, and a correctness driver rather than a UX one**: the join
-wants to target a *section*, because "the page that owns `/interface/bridge`" has no good answer while
-"the section that documents `pvid` for bridge ports" does.
-
-Two refinements, neither of which changes B-0023's decision (Option A / `_lead` stands):
-
-- **#131 does not need B-0023.** The bridge property rows already carry correct `section_id` and anchors;
-  section granularity is available for this case today. What is missing is a *join* that can use it.
-- **B-0023's priority rises**, because it now has two consumers and one of them is a correctness bug
-  class rather than a future ergonomics win.
-
-## B-0016 (CLI-Reference overlay) — Q5 gets its first concrete consumer
-
-B-0016 Q5 ("what surfaces to agents, and how") has been open pending something to surface. The
-corroborated join is a consumer that is **not** advisory metadata: it uses the overlay as a
-correctness input to an existing tool rather than as a new note on a result. That is a stronger
-justification for #25's query-behavior half than its current arch-as-advisory framing.
-
-## B-0001 / B-0011 (retire `routeros_lookup_property`) — revisit trigger
-
-B-0001 resolved (2026-07-14) that `lookup_property` should be **retired**, folding exact lookup into
-`routeros_get_page` (surface page-extracted properties) and `routeros_command_tree` (point at related
-paths). B-0011 carries that as a consolidation candidate.
-
-The 2026-07-31 measurement is a revisit trigger, for two reasons:
-
-1. **Both fold targets sit on the wrong side of the broken join.** `get_page` is page-scoped — it assumes
-   the page is the right one. `command_tree` surfaces `page_title`/`page_url` through that same
-   `commands.page_id`. Folding the lookup into them does not remove the fuzzy join; it hides it.
-2. **`lookupProperty` is the only surface carrying the `high | medium | low` honesty signal**
-   (`src/query.ts:1054`), and the measurement shows that signal is currently **miscalibrated in both
-   directions** — `high` on corrupted Apps/VETH rows, `low` on correct bridge rows. Neither fold target
-   has a way to express that uncertainty, so folding now would launder it.
-
-The resulting sequencing, agreed with the maintainer 2026-07-31: **fix the join, recalibrate confidence,
-then decide the surface.** B-0001's retirement lean is not overturned — it is *conditioned*. The
-extraction ETL behind the tool was never in question (B-0001 already says so) and still is not.
+The rule that follows: **do not label a result `high` merely because the requested field exists.**
+High confidence needs evidence that *the returned prose row* documents that field, or the design
+launders the same ambiguity it set out to fix.
 
 # Options considered
 
-### A. Corroborated, section-grained join — **current lean**
+### A. Section-grained path extraction as the candidate key — **current lean**
 
-Demote `commands.page_id` from scope gate to ranking evidence; corroborate candidate property rows
-against `cliref_*`; return `section_anchor` as the addressable unit; recalibrate confidence so it
-reflects corroboration rather than "did the fuzzy link fire."
+Extract RouterOS menu paths from each **section's** text (not each page's, as `link-commands.ts`
+does today) and use path alignment *of the candidate row's own section* as the discriminating
+evidence. B-0023's total section coverage — landed in PR #105 — is what makes every property row
+reachable from an addressable fragment.
 
-- **Pros:** fixes #58 and #131's real half without touching the ranker; makes the confidence signal
-  honest, which is the precondition for B-0001/B-0011's retirement decision; uses the overlay that just
-  landed rather than building new curation machinery; degrades gracefully where cliref has no entry
-  (fall back to today's behavior).
-- **Cons:** unproven end to end (cliref empty locally); cliref coverage is not total — 144 of 1,051
-  manual nodes do not match inspect, and manual-only entries have no field links, so some commands get
-  no corroboration signal at all; needs a decision on what confidence means when cliref is silent.
+Measured on `v0.11.2-alpha.109`, for the four `pvid` candidates above:
 
-### B. Curated page-ownership table (the 2026-07-31 triage suggestion)
+| Section | Page | Menu paths in its own text |
+|---|---|---|
+| `Port Settings` (147) | 10 | `/interface/bridge/port/set`, `/interface/bridge/port` |
+| `Bridge Port Settings` (168) | 10 | `/interface/bridge/port` |
+| `Bridge Interface Setup` (140) | 10 | `/interface/bridge`, `/interface/bridge/host` |
+| `Properties` (666) | 38 Apps | **none matching** |
+
+That discriminates exactly where corroboration could not: for `pvid @ /interface/bridge/port/add`,
+sections 147 and 168 align on `/interface/bridge/port`, section 140 aligns only on the parent
+`/interface/bridge`, and the Apps section does not align at all.
+
+- **Pros:** it is a *row-level* key, which is what the join actually lacks; built from data that
+  already ships; reuses `link-commands.ts`'s existing path-extraction and its `isRouterOsPath()`
+  filter, which already rejects the relative doc-slug false positives visible in the section text
+  (`/firewall-and-quality-of-service/packet-flow-in-routeros`); degrades to today's behaviour when a
+  section mentions no path; naturally multi-valued, so the scalar limitation disappears.
+- **Cons:** unproven beyond this one hand-checked family — needs a corpus-wide precision/recall pass
+  before it can be called a lean rather than a hypothesis; sections that document a property without
+  naming its menu path get no signal (likely common in prose-only pages, which is #61's territory);
+  no decision yet on how section alignment, page alignment, and property count combine into a rank.
+- **CLI-Reference's role here is secondary but real:** it validates `(requested path, name)` — that
+  the field exists at all — which is what distinguishes "no prose found for a real field" (#61's
+  honest "known, undocumented") from "no such field". It does **not** rank candidates.
+
+### B. Curated page-ownership table
 
 Hand-curate "page 10 owns the `/interface/bridge` subtree", keyed by stable `rosetta_id`, inherited
 recursively through `dir`/`cmd` descendants.
 
 - **Pros:** directly fixes the bridge case; explicit and auditable.
-- **Cons:** new machinery that does not exist today; hand-curation does not scale to the 1,552 unlinked
-  bridge rows' equivalents corpus-wide; picks page 10 *or* page 27 when the honest answer is "10 for
-  reference, 27 for the guide" — i.e. it works around the scalar limitation instead of removing it;
-  the curated list has the same "is it closed?" problem B-0016 Q7 already flags for the alias list.
+- **Cons:** new machinery; hand-curation does not scale corpus-wide; picks page 10 *or* page 27 when
+  the honest answer is "10 for reference, 27 for the guide"; has the same "is the list closed?"
+  problem B-0016 Q7 already flags for the alias list.
 
 ### C. Loosen the ranker (hyphen-component matching)
 
-Split slug segments on `-` and score exact component matches above prefix matches, so `bridge-vlan-table`
-beats `vlans-on-wireless`.
+Split slug segments on `-` and score exact component matches above prefix matches, so
+`bridge-vlan-table` beats `vlans-on-wireless`.
 
-- **Pros:** small, unit-testable, fixes the visibly-silly `/interface/bridge/vlan` → *VLANs on Wireless*
-  mislink; improves what `get_page`/`command_tree` point a human at.
-- **Cons:** **does not fix property lookup** — page 27 has zero property rows, so a scoped lookup finds
-  nothing and falls through to the same global result as today. Cannot reach page 10 at all. Risks
-  reintroducing #58-class mislinks corpus-wide without a before/after audit.
-- **Disposition:** worth doing as a *cosmetic* fix on its own merits (this is what #131 should be
-  narrowed to), but must not be sold as fixing the reported problem.
+- **Pros:** small, unit-testable; fixes the visibly-silly `/interface/bridge/vlan` → *VLANs on
+  Wireless* mislink; improves what `get_page`/`command_tree` point a human at.
+- **Cons:** **does not fix property lookup** — page 27 has zero property rows. Cannot reach page 10.
+  Risks reintroducing #58-class mislinks without a corpus-wide before/after audit.
+- **Disposition:** worth doing as a *cosmetic* fix on its own merits (this is what #131 is narrowed
+  to), but it must not be sold as fixing the reported problem.
 
 ### D. Do nothing; keep the honest `low`
 
-- **Pros:** the correct answer is already returned today for the bridge case.
-- **Cons:** leaves `high` + wrong (#132's class) unaddressed once extraction is fixed elsewhere; leaves
-  the confidence signal uninterpretable, which blocks B-0001/B-0011 indefinitely.
+- **Pros:** the correct answer is already returned for the bridge case.
+- **Cons:** leaves the confidence signal uninterpretable, which blocks B-0001/B-0011 indefinitely.
+
+# Relationship to the other briefings
+
+## B-0023 (page/section normalization) — implemented; now the substrate
+
+B-0023's lead-fragment work **landed in PR #105** (`940458c`), so section coverage is already total
+and `LEAD_ANCHOR` ships. This briefing does not raise its priority — it consumes its output.
+
+B-0023 named #27 (MCP/TUI surface alignment) as the consumer of total coverage. Option A is a
+**second consumer, and a correctness one**: "which page owns `/interface/bridge`?" has no good
+answer (page 10 holds 226 property rows but is a section index; page 27 has the right name and zero
+properties), while "which *section* documents `pvid` for bridge ports?" does. The remaining work is
+a new section→command join, not more section-coverage work.
+
+## B-0016 (CLI-Reference overlay) — Q5 gets a bounded answer
+
+Q5 ("what surfaces to agents, and how") gains a consumer that is not advisory metadata — but a
+**bounded** one, per the section above. The overlay validates `(path, name)`; it does not rank prose.
+That is still a stronger justification for #25's query-behavior half than the arch-as-advisory
+framing alone, and it is honest about the limit.
+
+## B-0001 / B-0011 (retire `routeros_lookup_property`) — revisit trigger
+
+B-0001 resolved (2026-07-14) that `lookup_property` should be retired, folding exact lookup into
+`routeros_get_page` and `routeros_command_tree`. Two reasons that is not yet decidable:
+
+1. **Both fold targets sit on the wrong side of the missing key.** `get_page` is page-scoped — it
+   assumes the page is right. `command_tree` surfaces `page_title`/`page_url` through the same fuzzy
+   `commands.page_id`. Folding does not remove the bad join; it hides it.
+2. **`lookupProperty` is the only surface carrying the `high | medium | low` signal**
+   (`src/query.ts:1054`), and pre-fix it was miscalibrated in both directions. Neither fold target
+   can express that uncertainty.
+
+**Sequencing agreed with the maintainer 2026-07-31: fix the join, recalibrate confidence, then
+decide the surface.** The lean is *conditioned*, not overturned; the extraction ETL behind the tool
+was never in question.
 
 # Recommended next steps
 
-1. **Land #132 first.** Highest severity (only producer of `high` + wrong), and it removes the Apps row
-   that pollutes every global `pvid` lookup. It must also precede #100 — see below.
-2. **Narrow #131 to Option C** (ranker fix only), stating explicitly in the issue that it does not fix
-   property lookup.
-3. **Homework for Option A:** rebuild with `cliref_*` populated and re-run the measurement table. Confirm
-   the corroboration step returns page-10 `pvid` at `high` for `/interface/bridge/port/add` and drops the
-   Apps row. Report cliref-silent coverage so the "what does confidence mean when cliref has no entry"
-   question can be answered with data.
-4. **Re-anchor #58 and #61 here** rather than carrying them as independent linkage bugs.
-5. Revisit B-0001/B-0011 only after step 3.
+1. ~~**Land #132.**~~ **Done — PR #133** (header-name column resolution; 52 rows corrected, 14
+   fabricated rows removed). It also removed the Apps row that polluted every global `pvid` lookup.
+2. **Narrow #131 to Option C** (ranker fix only), stating in the issue that it does not fix property
+   lookup.
+3. **Validate Option A corpus-wide.** The one-family check above is a hypothesis, not a result. Needed
+   before Option A can be called a lean: how many property rows sit in a section that names a menu
+   path at all; how often the aligned section's path matches the command the property really
+   documents; false-positive rate from doc-slug lookalikes after `isRouterOsPath()` filtering; and
+   what happens on prose-only pages. Re-run against `v0.11.2-alpha.109` or newer.
+4. **Then** design the rank/confidence contract — how section alignment, page alignment, property
+   count, and CLI-Reference validation combine, and what `high` is allowed to mean.
+5. **Re-anchor #58 and #61 here** rather than carrying them as independent linkage bugs.
+6. Revisit B-0001/B-0011 only after 3 and 4.
 
 # A sequencing constraint discovered alongside this (#132 → #100)
 
-Not part of the join, but found in the same pass and recorded here because it is easy to lose:
-`parseProperties()` hardcodes `description: row.cells[1]` (`src/extract-docusaurus.ts:375`). A census of
-all 589 property/parameter tables in the vendored corpus:
+Not part of the join, but found in the same pass. `parseProperties()` previously hardcoded
+`description: row.cells[1]`. A census of all 589 property/parameter tables in the vendored corpus:
 
-| Count | Header shape | Current behavior |
+| Count | Header shape | Behavior before #133 |
 |---|---|---|
 | 573 | `Property\|Description`, `Parameter\|Description` | correct |
 | 5 | `Property \| Description \| ` (ragged trailing) | correct |
@@ -252,41 +281,39 @@ all 589 property/parameter tables in the vendored corpus:
 | 1 | `Feature / Property\|Home\|Basic\|Advanced\|ROSE` | **14 fabricated rows** |
 | 1 | `Parameter\|Value` · 1 `Menu\|Parameter names\|Page link` | yield nothing (fine) |
 
-Two findings that are not in #132 as filed:
+Two findings that were not in #132 as filed:
 
-- **`system-information-and-utilities/device-mode.md:85` produces 14 rows that are not properties at
-  all.** A device-mode feature matrix passes the header gate because its first cell reads
-  `**Feature / Property**`. Source rows look like `| **Containers** (/container) | No | No | No | Yes |`,
-  so `parsePropertyCell` takes `Containers` as the name and `(/container)` as the type annotation, and
-  `cells[1]` — the *Home* column — becomes the description. Output includes `Containers` /
-  `type="/container"` / `description="No"`, `IPsec` → `"Yes"`, plus `Email`, `Fetch`, `Hotspot`, `PPTP`,
-  `SMB`, `Proxy`, `RoMon`, `Scheduler`, `Sniffer`, `ZeroTier`, `Partitions`, `L2TP`. (Only 14 of the 19
-  rows survive; multi-word names like `**Bandwidth Test**` fail the kebab gate.) Resolving columns by
-  header name *and requiring a Description column* eliminates these for free. The two tables newly
-  excluded by that rule already yield zero rows, so there is no regression cost.
+- **`system-information-and-utilities/device-mode.md:85` produced 14 rows that are not properties at
+  all.** Source rows look like `| **Containers** (/container) | No | No | No | Yes |`, so
+  `parsePropertyCell` took `Containers` as the name and `(/container)` as the type, and `cells[1]` —
+  the *Home* column — became the description. (Only 14 of 19 rows survived; multi-word names like
+  `**Bandwidth Test**` fail the kebab gate.) #133 resolves columns by header name **and requires a
+  Description column**, which removes these.
 
-  **Why #100's audit did not catch this.** The #100 classification enumerated the 27 tables that pass the
-  header gate and yield **zero** properties, then judged each accept/reject — and correctly rejected a
-  device-mode table on that basis. But a table producing *wrong* rows is not in the zero-yield set, so it
-  was structurally invisible to that audit. "Which property-headed tables yield nothing?" and "which
-  property-headed tables yield garbage?" are two different coverage questions, and only the first has ever
-  been asked. A census by **header shape** (above) asks the second.
-- **#132 must land before #100.** The two `Property|Type|Description` tables in
-  `route-selection-and-filtering.md` hold 70 data rows that currently yield zero properties because of
-  the name gate #100 targets. If #100 loosens that gate first, those 70 rows ingest with Type-as-description
-  — the same bug, 70 more rows.
+  **Why #100's audit did not catch it.** The #100 classification enumerated the 27 tables that pass
+  the header gate and yield **zero** properties, then judged each accept/reject — correctly rejecting
+  a device-mode table on that basis. A table producing *wrong* rows is not in the zero-yield set, so
+  it was structurally invisible. "Which property-headed tables yield nothing?" and "which yield
+  garbage?" are two different coverage questions, and only the first had ever been asked. A census by
+  **header shape** asks the second.
+
+- **#132 had to land before #100.** The two `Property|Type|Description` tables in
+  `route-selection-and-filtering.md` hold 70 rows that yield nothing today because of the name gate
+  #100 targets. Had #100 loosened that gate first, those rows would have ingested with
+  Type-as-description.
 
 # Open questions
 
-- **What does confidence mean when cliref is silent?** 144 of 1,051 manual nodes do not match inspect,
-  and manual-only entries carry no field links. Is "cliref has no entry for this path" a reason to stay
-  at today's behavior, or its own confidence tier?
-- **Does the corroborated join subsume the ranker, or coexist with it?** Option A leaves
-  `commands.page_id` in place as ranking evidence. If corroboration proves strong enough, is the fuzzy
-  link still worth computing at all — and what breaks in `get_page`/`command_tree` if it goes?
-- **Where does the "reference owner vs related guide" distinction live** once the scalar limitation is
-  acknowledged? A second column, a link table, or a section-level link that makes the question moot?
-- **#61's prose-only properties are still out of reach.** Corroboration tells you `/ip/firewall/filter`
-  has an `action` field; it does not extract a description from a prose bullet list. Does that stay a
-  parser problem, or does the schema surface "known, undocumented" honestly (as #61 asks)?
-- Next revisit trigger: #132 landing, or a rebuild with `cliref_*` populated — whichever comes first.
+- **Is section-grained path extraction precise enough to be the key?** Step 3 above. If a large share
+  of property-bearing sections name no menu path, Option A is a partial answer and the residual needs
+  its own mechanism.
+- **What is `high` allowed to mean?** Explicitly *not* "the field exists" — that is a query-level
+  fact. Does it require the candidate's own section to align, and what is the tier when only the page
+  aligns?
+- **Where does "reference owner vs related guide" live** once the scalar limitation is acknowledged?
+  A second column, a link table, or a section-level link that makes the question moot?
+- **#61's prose-only properties remain out of reach.** Section alignment needs a section; corroboration
+  needs a field name. Neither extracts a description from a prose bullet list on
+  `common-firewall-matchers-and-actions`.
+- Next revisit trigger: the step-3 corpus-wide validation, or any rebuild that changes the cliref
+  counts away from 228/1,051/10,118.

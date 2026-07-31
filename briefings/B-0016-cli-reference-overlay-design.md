@@ -327,21 +327,38 @@ source semantics and overlay multiplicity.
    question meet — the overlay's shape should be decided with the consuming shape in mind, even though
    the query-behavior change itself stays out of scope here.
 
-   **First concrete consumer identified 2026-07-31 (B-0024) — and it is not advisory metadata.**
+   **First concrete consumer identified 2026-07-31 (B-0024) — bounded, and not advisory metadata.**
    The #131/#132 triage found that `commands.page_id` — a single fuzzy, page-grained scalar — is the only
-   join between rosetta's structure stores and its prose store, and that it produces both `high`-confidence
-   wrong answers and `low`-confidence correct ones. `cliref_entries.source_path` +
-   `cliref_field_inspect_links` is a **curated, exact/alias-resolved command→field-name index**, which is
-   exactly what that join lacks: `lookupProperty(name, path)` could *corroborate* a candidate property row
-   against the overlay ("does `/interface/bridge/port` really have a field named `pvid`?") and demote the
-   fuzzy page link to ranking evidence, instead of using it as a scope gate. Verified in the vendored
-   source: `manual/cli-reference/interface__bridge.md` carries `pvid` at lines 56 and 1025.
+   thing standing in for a `properties`→command key that does not exist, and that it produces both
+   `high`-confidence wrong answers and `low`-confidence correct ones.
 
-   This uses the overlay as a **correctness input to an existing tool**, not as a new note on a result —
-   a stronger justification for #25's query-behavior half than its current arch-as-advisory framing. It
-   also depends on the "structural, not narrative" finding above rather than being weakened by it: with
-   only 1,657 of 10,118 argument rows carrying prose, cliref is the *index* and `properties` stays the
-   *content*. Untested end to end — `cliref_entries` is empty in the local `ros-help.db`. See
+   The overlay answers part of that. The **complete crosswalk is a two-hop join**, and a consumer must
+   use both hops:
+
+   ```text
+   cliref_entries.source_path                      -- verbatim heading path, normalized only
+     -> cliref_entry_schema_links (STORED)         -- carries the exact | alias resolution decision
+        -> schema_nodes.path
+   cliref_fields.name  (entry_id -> cliref_entries)
+     -> cliref_field_inspect_links (COMPUTED VIEW) -- zero-to-many field -> inspect `arg` nodes
+        -> schema_nodes.path
+   ```
+
+   Verified on release `v0.11.2-alpha.109`: the view yields `/interface/bridge/port/add/pvid`, so
+   `(path, name)` validation works — `lookupProperty(name, path)` can confirm a requested field is real.
+
+   **What it cannot do, confirmed empirically:** that result is a boolean about the *query*, not about a
+   *candidate prose row*. All four `properties` rows named `pvid` (three on page 10, one on page 38 Apps)
+   get the identical answer, and there is no relational edge to break the tie — `properties` has no
+   `entry_id`/`field_id`/`schema_node_id`, and `cliref_entries.page_id` references `cliref_pages`, a
+   different page store from `properties.page_id -> pages`. So the overlay validates the query and must
+   **not** be used to rank or reject prose candidates; B-0024's discriminating key is section-grained path
+   extraction instead.
+
+   This is still a **correctness input to an existing tool** rather than a note on a result — a stronger
+   justification for #25's query-behavior half than the arch-as-advisory framing alone — and it is
+   consistent with the "structural, not narrative" finding above: with only 1,657 of 10,118 field rows
+   carrying prose, cliref is the *index* and `properties` stays the *content*. See
    `briefings/B-0024-command-prose-join.md`.
 6. ~~**Coverage gaps.**~~ **Answered for storage 2026-07-20:** retain every real page, every entry, its
    exact source Markdown, and entry prose even when it has no `<ArgTable>`. Twelve of 228 pages have no

@@ -278,6 +278,14 @@ describe("resolvePropertyColumns — header-name column resolution (issue #132)"
     expect(shape("| **Feature / Property** | **Home** | **Basic** | **Advanced** | **ROSE** |")).toBeNull();
   });
 
+  test("requires an exact Property/Parameter header even when a Description column is present", () => {
+    // The missing-Description rule alone would accept this; the corpus does not contain it
+    // today, but the contract is "resolve by header name", not "whatever the corpus happens
+    // to hold". Same reason `| Menu | Parameter names | Page link |` must not resolve.
+    expect(shape("| Feature / Property | Description |")).toBeNull();
+    expect(shape("| Parameter names | Description |")).toBeNull();
+  });
+
   test("rejects a table with no Description column at all", () => {
     expect(shape("| Parameter | Value |")).toBeNull();
     expect(shape("| Menu | Parameter names | Page link |")).toBeNull();
@@ -384,6 +392,29 @@ describe("parseProperties — synthetic column shapes (issue #132)", () => {
       "| **containers** (/container) | No | Yes |",
     ].join("\n");
     expect(parseProperties(md)).toEqual([]);
+  });
+
+  test("yields nothing from a two-column feature matrix that does have a Description column", () => {
+    const md = [
+      "| Feature / Property | Description |",
+      "|---|---|",
+      "| **containers** | Supported feature. |",
+    ].join("\n");
+    expect(parseProperties(md)).toEqual([]);
+  });
+
+  test("strips paired emphasis from Type/Default cells but preserves a literal asterisk", () => {
+    const md = [
+      "| Property | Type | Default | Description |",
+      "|---|---|---|---|",
+      "| **match** | *string* | `*` | Wildcard default must survive. |",
+      "| **glob** | a*b | **None** | An unpaired interior asterisk is content. |",
+    ].join("\n");
+    const [match, glob] = parseProperties(md);
+    expect(match.rawType).toBe("string");
+    expect(match.defaultVal).toBe("`*`");
+    expect(glob.rawType).toBe("a*b");
+    expect(glob.defaultVal).toBe("None");
   });
 });
 
