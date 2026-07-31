@@ -30,6 +30,7 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Property tables wider than two columns stored the wrong cell as the description (issue #132).** `parseProperties` hardcoded `cells[1]`, so the five `| Property | Type | Default | Description |` tables in the corpus (Apps, VETH) had their **Type** cell stored as the description with `type`/`default_val` left NULL — 52 rows, e.g. `/interface/veth/add address` returning "IPv4/IPv6 address" instead of its prose, at `high` confidence. Columns are now resolved by header name (`Property`/`Parameter`, optional `Type`, optional `Default`, `Description`), and the Markdown pipe escape `&#124;` is decoded once the cell is split (`page_tables.raw_markdown` stays byte-exact). Requiring an explicit `Description` column also drops **14 rows that were never properties** — a `device-mode` feature matrix (`| **Feature / Property** | **Home** | ... |`) whose "descriptions" were the Home column's `Yes`/`No`. Apps' two `auto-update` records are retained: they only looked duplicated because the shift replaced both descriptions with the same Type cell.
 - **CLI-Reference extractor truncated `<ArgTableRow>` attributes at a `>` inside a quoted value.** A `typ` like `iface_enum { <l2tp>:0xfffffffe }` (e.g. on `interface/pppoe-server`) contains a literal `>`, which the row parser mistook for the tag close — the field's `raw_type` was silently stored empty with a garbled description. The tag matcher now skips over whole quoted attribute values, so those fields carry their full type.
 
 ### Changed
