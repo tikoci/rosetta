@@ -355,10 +355,91 @@ function parseBulletProperty(
 }
 
 /**
+ * A property table's column layout, resolved by header name rather than by position.
+ *
+ * Issue #132: the corpus is not uniformly two-column. A census of all 589 property/parameter
+ * tables found five `| Property | Type | Default | Description |` tables (Apps, VETH) whose
+ * Type cell was being stored as the description because the parser hardcoded `cells[1]`, plus
+ * a five-column device-mode *feature matrix* (`| **Feature / Property** | **Home** | ... |`)
+ * that passed the old header regex and minted 14 rows that are not properties at all.
+ */
+interface PropertyColumns {
+  name: number;
+  type: number | null;
+  default: number | null;
+  description: number;
+}
+
+/** Header-cell text stripped of emphasis/backticks and lowercased, for name-based matching. */
+function normalizeHeaderCell(cell: string): string {
+  return cell
+    .replace(/[*`]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Markdown tables escape a literal pipe inside a cell as `&#124;`, so value-syntax strings
+ * arrive as `*yes* &#124; *no*`. That entity is table *syntax*, not content — decode it once
+ * the cell has been split. Deliberately narrow: general entity decoding would rewrite
+ * `&quot;`/`&lt;` across the whole corpus, which is not this issue's scope, and
+ * `page_tables.raw_markdown` must stay byte-exact either way.
+ */
+function decodeTablePipes(text: string): string {
+  return text.replace(/&#0*124;|&vert;/gi, "|");
+}
+
+/**
+ * Strip Markdown emphasis from a dedicated Type/Default cell; empty becomes null.
+ *
+ * Removes only *paired* delimiters (`**bold**`, `*italic*`), because the corpus writes value
+ * syntax as several spans in one cell (`*yes* &#124; *no*` -> `yes | no`) rather than one outer
+ * wrapper. An unpaired asterisk is content and survives: a RouterOS default of `*` (wildcard)
+ * or a type containing `a*b` must not be silently deleted.
+ */
+function normalizeAnnotationCell(cell: string | undefined): string | null {
+  if (cell === undefined) return null;
+  return (
+    decodeTablePipes(cell)
+      .replace(/\*\*([^*]+)\*\*/g, "$1")
+      .replace(/\*([^*]+)\*/g, "$1")
+      .trim() || null
+  );
+}
+
+/**
+ * Resolve a table's property columns by header name, or null when it is not a property table.
+ *
+ * The name header must be *exactly* `Property` or `Parameter` after normalization, not merely
+ * contain the word. `| **Feature / Property** | ... |` (device-mode) and `| Menu | Parameter
+ * names | Page link |` both name something other than a property in their first column;
+ * matching them loosely fabricates rows whose "description" is an unrelated column. The current
+ * corpus happens to reject the device-mode matrix on the missing-Description rule alone, but a
+ * two-column `| Feature / Property | Description |` would still slip through — so the contract
+ * is enforced here rather than left to the corpus's present shape.
+ *
+ * Requiring an explicit `Description` column then excludes matrices like `| Parameter | Value |`.
+ * Both already yielded either garbage or nothing, so nothing real is lost — see #132 and
+ * B-0024's header census (all 589 property tables span 10 distinct header shapes).
+ */
+export function resolvePropertyColumns(headerCells: string[]): PropertyColumns | null {
+  const normalized = headerCells.map(normalizeHeaderCell);
+  const name = normalized.findIndex((cell) => cell === "property" || cell === "parameter");
+  const description = normalized.indexOf("description");
+  if (name === -1 || description === -1 || description <= name) return null;
+  const indexOfOrNull = (label: string) => {
+    const at = normalized.indexOf(label);
+    return at === -1 || at === name || at === description ? null : at;
+  };
+  return { name, type: indexOfOrNull("type"), default: indexOfOrNull("default"), description };
+}
+
+/**
  * Parse Markdown property tables: `| Property | Description |` or `| Parameter | Description |`
  * (both header spellings observed live — sms.md uses "Parameter", dhcp.md uses "Property"),
- * plus bullet-list property definitions (issue #20 — 32 pages use bullets instead of tables,
- * though characterizing them showed most of those pages are non-property prose; see
+ * with optional `Type` and `Default` columns resolved by header name (#132), plus bullet-list
+ * property definitions (issue #20 — 32 pages use bullets instead of tables, though
+ * characterizing them showed most of those pages are non-property prose; see
  * parseBulletProperty's doc comment for the false-positive guard that follows from that).
  * Section attribution is the nearest preceding heading of any level, matching extract-html.ts's
  * "nearest preceding heading" behavior for the Confluence corpus.
@@ -369,23 +450,25 @@ export function parseProperties(md: string, tables = parseTables(md)): ParsedPro
   let currentSection: string | null = null;
   const isFenced = makeFenceTracker();
 
-  // Preserve the production parser's existing gate exactly while deriving accepted rows from
-  // the shared generic-table objects. Broadening what qualifies as a property table is later
-  // corpus-classification work, not an incidental change in #92.
+  // The name gate (parsePropertyCell's bold-kebab requirement) is deliberately unchanged here —
+  // broadening what qualifies as a property *name* is #100's corpus-classification work. This
+  // loop only resolves which *column* holds which field.
   for (const table of tables) {
-    const [headerLine, separatorLine] = table.rawMarkdown.split("\n", 2);
-    if (!/^\|.*\b(property|parameter)\b.*\|$/i.test(headerLine) || !/^\|[\s:|-]+\|$/.test(separatorLine)) {
-      continue;
-    }
+    const columns = resolvePropertyColumns(table.header.cells);
+    if (!columns) continue;
     for (const row of table.rows) {
-      if (row.cells.length < 2) continue;
-      const parsed = parsePropertyCell(row.cells[0]);
+      if (row.cells.length <= columns.description) continue;
+      const parsed = parsePropertyCell(row.cells[columns.name]);
       if (!parsed) continue;
+      // A dedicated column wins over the parenthetical annotation in the name cell; a page
+      // using four-column tables does not also repeat the type inline.
+      const columnType = columns.type === null ? null : normalizeAnnotationCell(row.cells[columns.type]);
+      const columnDefault = columns.default === null ? null : normalizeAnnotationCell(row.cells[columns.default]);
       properties.push({
         name: parsed.name,
-        rawType: parsed.rawType,
-        defaultVal: parsed.defaultVal,
-        description: row.cells[1],
+        rawType: columnType ?? parsed.rawType,
+        defaultVal: columnDefault ?? parsed.defaultVal,
+        description: decodeTablePipes(row.cells[columns.description]),
         section: table.sourceHeading,
         sectionAnchor: null,
         line: row.line,

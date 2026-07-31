@@ -34,6 +34,7 @@ const {
   LEAD_ANCHOR,
   splitTableRow,
   parseTables,
+  resolvePropertyColumns,
 } = await import("./extract-docusaurus.ts");
 
 const FIXTURES_DIR = join(import.meta.dirname, "..", "fixtures", "docusaurus");
@@ -49,6 +50,8 @@ const productNamingMd = read("product-naming.md");
 // Four "Properties" headings on one page — the natural fixture for issue #90's repeated-heading
 // collision, named as such in the issue itself.
 const pppAaaMd = read("ppp-aaa.md");
+const appsMd = read("apps.md");
+const vethMd = read("veth.md");
 
 const DHCP_URL = "https://manual.mikrotik.com/docs/network-management/dhcp";
 const SMS_URL = "https://manual.mikrotik.com/docs/mobile-networking/sms";
@@ -224,6 +227,194 @@ describe("parseProperties — sms.md (real 'Parameter' header spelling, not 'Pro
 describe("parseProperties — address-lists.md (no property table at all)", () => {
   test("returns an empty array rather than a false-positive match", () => {
     expect(parseProperties(addressListsMd)).toEqual([]);
+  });
+});
+
+describe("resolvePropertyColumns — header-name column resolution (issue #132)", () => {
+  const shape = (header: string) => resolvePropertyColumns(splitTableRow(header));
+
+  test("resolves the plain two-column shape that dominates the corpus", () => {
+    expect(shape("| Property | Description |")).toEqual({ name: 0, type: null, default: null, description: 1 });
+  });
+
+  test("resolves four-column Property/Type/Default/Description", () => {
+    expect(shape("| Property | Type | Default | Description |")).toEqual({
+      name: 0,
+      type: 1,
+      default: 2,
+      description: 3,
+    });
+  });
+
+  test("resolves the 'Parameter' header spelling identically to 'Property'", () => {
+    expect(shape("| Parameter | Type | Default | Description |")).toEqual({
+      name: 0,
+      type: 1,
+      default: 2,
+      description: 3,
+    });
+  });
+
+  test("resolves three-column Property/Type/Description (route-selection-and-filtering shape)", () => {
+    expect(shape("| Property | Type | Description |")).toEqual({ name: 0, type: 1, default: null, description: 2 });
+  });
+
+  test("tolerates bold header cells", () => {
+    expect(shape("| **Property** | **Description** |")).toEqual({ name: 0, type: null, default: null, description: 1 });
+  });
+
+  test("ignores trailing columns it does not recognize (Parameter/Description/Example)", () => {
+    expect(shape("| Parameter | Description | Example |")).toEqual({
+      name: 0,
+      type: null,
+      default: null,
+      description: 1,
+    });
+  });
+
+  test("rejects a feature matrix whose first header cell merely contains 'Property' (device-mode)", () => {
+    // The real regression: `| **Feature / Property** | **Home** | **Basic** | **Advanced** | **ROSE** |`
+    // passed the old header regex and minted 14 rows whose "description" was the Home column.
+    expect(shape("| **Feature / Property** | **Home** | **Basic** | **Advanced** | **ROSE** |")).toBeNull();
+  });
+
+  test("requires an exact Property/Parameter header even when a Description column is present", () => {
+    // The missing-Description rule alone would accept this; the corpus does not contain it
+    // today, but the contract is "resolve by header name", not "whatever the corpus happens
+    // to hold". Same reason `| Menu | Parameter names | Page link |` must not resolve.
+    expect(shape("| Feature / Property | Description |")).toBeNull();
+    expect(shape("| Parameter names | Description |")).toBeNull();
+  });
+
+  test("rejects a table with no Description column at all", () => {
+    expect(shape("| Parameter | Value |")).toBeNull();
+    expect(shape("| Menu | Parameter names | Page link |")).toBeNull();
+  });
+
+  test("rejects a table whose Description column precedes the name column", () => {
+    expect(shape("| Description | Property |")).toBeNull();
+  });
+});
+
+describe("parseProperties — apps.md (real four-column table, issue #132)", () => {
+  const properties = parseProperties(appsMd);
+
+  test("stores the Description column as the description, not the Type column", () => {
+    const autoUpdate = properties.find((p) => p.name === "auto-update");
+    expect(autoUpdate?.description).toBe(
+      "Enables or disables automatic updating when a new container image version is available.",
+    );
+  });
+
+  test("populates rawType and defaultVal from their own columns", () => {
+    const autoUpdate = properties.find((p) => p.name === "auto-update");
+    expect(autoUpdate?.rawType).toBe("yes | no");
+    expect(autoUpdate?.defaultVal).toBe("no");
+  });
+
+  test("decodes the Markdown &#124; pipe escape rather than storing the literal entity", () => {
+    expect(properties.some((p) => p.description.includes("&#124;"))).toBeFalse();
+    expect(properties.some((p) => (p.rawType ?? "").includes("&#124;"))).toBeFalse();
+    const network = properties.find((p) => p.name === "network");
+    expect(network?.rawType).toBe("default | lan | internal");
+  });
+
+  test("keeps both auto-update records — they are distinct properties, not duplicates", () => {
+    // #132 reported these as duplicated rows; they only *looked* identical because the
+    // column shift replaced both descriptions with the same Type cell. Do not dedupe.
+    const autoUpdates = properties.filter((p) => p.name === "auto-update");
+    expect(autoUpdates).toHaveLength(2);
+    expect(autoUpdates[0].description).not.toBe(autoUpdates[1].description);
+  });
+
+  test("recovers descriptions on rows whose Type cell is empty", () => {
+    // `| **app-size** | | | The total size of the application. |` previously stored "".
+    const appSize = properties.find((p) => p.name === "app-size");
+    expect(appSize?.description).toBe("The total size of the application.");
+    expect(appSize?.rawType).toBeNull();
+  });
+});
+
+describe("parseProperties — veth.md (four-column table with no entity to flag it, issue #132)", () => {
+  const properties = parseProperties(vethMd);
+
+  test("stores the prose description, not the Type cell", () => {
+    const address = properties.find((p) => p.name === "address");
+    expect(address?.description).toBe("IPv4 or IPv6 address that will be assigned to the interface");
+    expect(address?.rawType).toBe("IPv4/IPv6 address");
+    expect(address?.defaultVal).toBe("None");
+  });
+
+  test("extracts every row of the single Parameter table", () => {
+    expect(properties.map((p) => p.name)).toEqual([
+      "address",
+      "gateway",
+      "gateway6",
+      "mac-address",
+      "container-mac-address",
+      "dhcp",
+      "name",
+    ]);
+  });
+});
+
+describe("parseProperties — synthetic column shapes (issue #132)", () => {
+  test("a dedicated Type column wins over a parenthetical annotation in the name cell", () => {
+    const md = [
+      "| Property | Type | Description |",
+      "|---|---|---|",
+      "| **speed** (legacy-inline) | *integer* | Link speed. |",
+    ].join("\n");
+    const [property] = parseProperties(md);
+    expect(property.rawType).toBe("integer");
+    expect(property.description).toBe("Link speed.");
+  });
+
+  test("falls back to the name-cell annotation when the row's Type cell is empty", () => {
+    const md = ["| Property | Type | Description |", "|---|---|---|", "| **speed** (integer) | | Link speed. |"].join(
+      "\n",
+    );
+    const [property] = parseProperties(md);
+    expect(property.rawType).toBe("integer");
+  });
+
+  test("skips a row too short to reach its Description column instead of storing undefined", () => {
+    const md = ["| Property | Type | Default | Description |", "|---|---|---|---|", "| **speed** | *integer* |"].join(
+      "\n",
+    );
+    expect(parseProperties(md)).toEqual([]);
+  });
+
+  test("yields nothing from a feature matrix even when its name cells are bold kebab-case", () => {
+    const md = [
+      "| **Feature / Property** | **Home** | **Advanced** |",
+      "|---|---|---|",
+      "| **containers** (/container) | No | Yes |",
+    ].join("\n");
+    expect(parseProperties(md)).toEqual([]);
+  });
+
+  test("yields nothing from a two-column feature matrix that does have a Description column", () => {
+    const md = [
+      "| Feature / Property | Description |",
+      "|---|---|",
+      "| **containers** | Supported feature. |",
+    ].join("\n");
+    expect(parseProperties(md)).toEqual([]);
+  });
+
+  test("strips paired emphasis from Type/Default cells but preserves a literal asterisk", () => {
+    const md = [
+      "| Property | Type | Default | Description |",
+      "|---|---|---|---|",
+      "| **match** | *string* | `*` | Wildcard default must survive. |",
+      "| **glob** | a*b | **None** | An unpaired interior asterisk is content. |",
+    ].join("\n");
+    const [match, glob] = parseProperties(md);
+    expect(match.rawType).toBe("string");
+    expect(match.defaultVal).toBe("`*`");
+    expect(glob.rawType).toBe("a*b");
+    expect(glob.defaultVal).toBe("None");
   });
 });
 

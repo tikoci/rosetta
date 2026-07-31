@@ -2,9 +2,9 @@
 id: B-0011-tool-surface-review
 topic: Audit the 14-tool MCP surface for consolidation candidates
 status: open
-related_tasks: []
+related_tasks: ["#131", "#132", "B-0001", "B-0024"]
 created: 2026-05-02
-last_revisited: 2026-07-14
+last_revisited: 2026-07-31
 ---
 
 # Question
@@ -28,6 +28,15 @@ Are any of the current 14 MCP tools redundant, under-used, or candidates for con
   page-extracted properties) and `routeros_command_tree` (point at related paths). The extraction ETL
   behind it stays — manual.mikrotik.com prose is still the only source of narrative property
   descriptions. This audit should turn that lean into a concrete fold/deprecation plan.
+
+  **Precondition added 2026-07-31 — do not schedule this fold yet.** The #131/#132 triage measured
+  `lookupProperty` and found its `high | medium | low` signal miscalibrated in both directions (`high`
+  on column-shifted Apps/VETH rows, `low` on correct bridge rows). Both fold targets sit on the *wrong
+  side* of the broken `commands.page_id` join — `get_page` is page-scoped and assumes the page is right;
+  `command_tree` reads that same fuzzy link — and neither can express the uncertainty the tool currently
+  reports. Folding now would launder it. Order of operations: **fix the join, recalibrate confidence,
+  then decide the surface.** See `briefings/B-0024-command-prose-join.md` and B-0001's revisit trigger.
+  This does not change the lean; it blocks acting on it until B-0024 step 3 has data.
 
 # Method for the audit
 

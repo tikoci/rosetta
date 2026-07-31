@@ -67,7 +67,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 
 | ID | Topic | Status |
 |----|-------|--------|
-| B-0001 | Should `routeros_lookup_property` grow broad FTS query mode? — resolved 2026-07-14: no, lean shifted to retiring the tool from the MCP/TUI surface (see B-0011) | resolved |
+| B-0001 | Should `routeros_lookup_property` grow broad FTS query mode? — resolved 2026-07-14: no, lean shifted to retiring the tool from the MCP/TUI surface (see B-0011). Revisit trigger 2026-07-31: retirement **conditioned** on fixing the command↔prose join first — both fold targets sit on the wrong side of it (see B-0024) | resolved |
 | B-0002 | How aggressively to de-emphasize standalone binaries | open |
 | B-0003 | Why no `run_sql` MCP tool | resolved |
 | B-0004 | inspect.json / deep-inspect coverage gaps — superseded 2026-07-14 by the CLI-Reference overlay track (B-0016, #25/#33/#28) | resolved |
@@ -77,18 +77,20 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0008 | `/app` auto-update pull-vs-cache behaviour | open |
 | B-0009 | Future ETL pipeline streamlining — resolved 2026-07-14: CI already extracts from cache consistently; only remaining gap (yt-dlp-in-CI) moved to BACKLOG Inbox | resolved |
 | B-0010 | MCP behavioral testing phases 3+ | open |
-| B-0011 | Audit the 14-tool MCP surface for consolidation | open |
+| B-0011 | Audit the 14-tool MCP surface for consolidation. 2026-07-31: the `routeros_lookup_property` fold is **preconditioned** on B-0024 — fix the join, recalibrate confidence, then decide the surface | open |
 | B-0012 | Docusaurus manual migration after Confluence retirement | open |
 | B-0013 | Steering / skills / rosetta / centrs positioning ladder | open |
 | B-0014 | CI is release-workflow-locked, not PR/main-gated — QA cleanup plan | open |
 | B-0015 | Unified "explain" static + live across the tikoci trilogy (rosetta/centrs/lsp) | open |
-| B-0016 | CLI-Reference overlay: precursor ETL design ([#33](https://github.com/tikoci/rosetta/issues/33)); 2026-07-20 extraction experiment answered join-key + parsing → scoped extractor issue [#124](https://github.com/tikoci/rosetta/issues/124) cut. Provenance format (Q3) still open | open |
+| B-0016 | CLI-Reference overlay: precursor ETL design ([#33](https://github.com/tikoci/rosetta/issues/33)); 2026-07-20 extraction experiment answered join-key + parsing → scoped extractor issue [#124](https://github.com/tikoci/rosetta/issues/124) cut, landed via [#126](https://github.com/tikoci/rosetta/issues/126)/[#128](https://github.com/tikoci/rosetta/issues/128). Provenance format (Q3) still open; Q5 (agent surfacing) got its first concrete consumer 2026-07-31 — the corroborated join in B-0024 | open |
 | B-0017 | `/hardware` overlay: device-resolution research (issue [#34](https://github.com/tikoci/rosetta/issues/34); absorbs B-0006/B-0007) | open |
 | B-0018 | Product-naming ↔ three-source map: human/MikroTik guide to `device-map.tsv`, parsing tricks, and known `/hardware` gaps (companion to B-0017) | open |
 | B-0019 | Hardware overlay Phase 2: surfacing `hardware_catalog`/`device_aliases` in MCP/TUI — design done, [#39](https://github.com/tikoci/rosetta/issues/39) closed; build spawned as [#49](https://github.com/tikoci/rosetta/issues/49)/[#50](https://github.com/tikoci/rosetta/issues/50) | resolved |
 | B-0020 | 0.11 retrieval-quality audit | open |
 | B-0021 | Off-matrix nomenclature (2B) + `&`-module / derivative-part taxonomy (2C) — decision-support for [#70](https://github.com/tikoci/rosetta/issues/70) | open |
 | B-0022 | Runtime SQLite-only dataset exports for local audit and future static hosting — feasibility inventory grounded on the CI artifact; schema/ETL findings spawned as [#95](https://github.com/tikoci/rosetta/issues/95) umbrella (`export-audit`). Re-grounded on rc.99 after [#90](https://github.com/tikoci/rosetta/issues/90)/[#92](https://github.com/tikoci/rosetta/issues/92) landed; export decomposed into E1–E4 with E1 filed as [#101](https://github.com/tikoci/rosetta/issues/101), and the table census produced [#100](https://github.com/tikoci/rosetta/issues/100) | open |
+| B-0023 | Page/section normalization — make section coverage total (lead `_lead` fragment) so page prose is sliceable. Decision 2026-07-16 (Option A); **implemented in [#105](https://github.com/tikoci/rosetta/pull/105)**. Consumers: [#27](https://github.com/tikoci/rosetta/issues/27) ergonomics, and the command↔prose join in B-0024 (correctness), which consumes total coverage while its own key is still open | resolved |
+| B-0024 | The command↔prose join — `commands.page_id` is the only bridge between the structure stores and the prose store, and it is a fuzzy, page-grained scalar. Root-cause pass behind [#131](https://github.com/tikoci/rosetta/issues/131)/[#132](https://github.com/tikoci/rosetta/issues/132); re-anchors [#58](https://github.com/tikoci/rosetta/issues/58) and [#61](https://github.com/tikoci/rosetta/issues/61). **Hypothesis** (not a lean): fragment-grained menu-path extraction as a discriminating signal — coarseness unmeasured, one section can be shared by 49 rows and collapses 1:1 onto its table; a proximity join may be needed instead. CLI-Reference validates `(path, name)` only; it cannot rank prose candidates. Gates B-0001/B-0011's `lookup_property` retirement | open |
 
 ## Done index
 

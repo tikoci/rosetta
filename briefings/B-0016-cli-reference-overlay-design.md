@@ -7,8 +7,10 @@ related_tasks:
   - "#28"
   - "#33"
   - "#124"
+  - "#131"
+  - "B-0024"
 created: 2026-07-10
-last_revisited: 2026-07-20
+last_revisited: 2026-07-31
 ---
 
 # Question
@@ -324,6 +326,40 @@ source semantics and overlay multiplicity.
    or only via the CLI-Reference URL pointer? This is where the ETL question and #25's query-behavior
    question meet — the overlay's shape should be decided with the consuming shape in mind, even though
    the query-behavior change itself stays out of scope here.
+
+   **First concrete consumer identified 2026-07-31 (B-0024) — bounded, and not advisory metadata.**
+   The #131/#132 triage found that `commands.page_id` — a single fuzzy, page-grained scalar — is the only
+   thing standing in for a `properties`→command key that does not exist, and that it produces both
+   `high`-confidence wrong answers and `low`-confidence correct ones.
+
+   The overlay answers part of that. The **complete crosswalk is a two-hop join**, and a consumer must
+   use both hops:
+
+   ```text
+   cliref_entries.source_path                      -- verbatim heading path, normalized only
+     -> cliref_entry_schema_links (STORED)         -- carries the exact | alias resolution decision
+        -> schema_nodes.path
+   cliref_fields.name  (entry_id -> cliref_entries)
+     -> cliref_field_inspect_links (COMPUTED VIEW) -- zero-to-many field -> inspect `arg` nodes
+        -> schema_nodes.path
+   ```
+
+   Verified on release `v0.11.2-alpha.109`: the view yields `/interface/bridge/port/add/pvid`, so
+   `(path, name)` validation works — `lookupProperty(name, path)` can confirm a requested field is real.
+
+   **What it cannot do, confirmed empirically:** that result is a boolean about the *query*, not about a
+   *candidate prose row*. All four `properties` rows named `pvid` (three on page 10, one on page 38 Apps)
+   get the identical answer, and there is no relational edge to break the tie — `properties` has no
+   `entry_id`/`field_id`/`schema_node_id`, and `cliref_entries.page_id` references `cliref_pages`, a
+   different page store from `properties.page_id -> pages`. So the overlay validates the query and must
+   **not** be used to rank or reject prose candidates. What *does* discriminate between candidate prose rows
+   is still open — B-0024 is evaluating fragment/proximity signals and has not established a key.
+
+   This is still a **correctness input to an existing tool** rather than a note on a result — a stronger
+   justification for #25's query-behavior half than the arch-as-advisory framing alone — and it is
+   consistent with the "structural, not narrative" finding above: with only 1,657 of 10,118 field rows
+   carrying prose, cliref is the *index* and `properties` stays the *content*. See
+   `briefings/B-0024-command-prose-join.md`.
 6. ~~**Coverage gaps.**~~ **Answered for storage 2026-07-20:** retain every real page, every entry, its
    exact source Markdown, and entry prose even when it has no `<ArgTable>`. Twelve of 228 pages have no
    table at all (H3 counted 13/236 on the larger denominator), and **193 of 1,051 entries have zero
@@ -358,17 +394,26 @@ compatibility. Do not put a path on a CLI-Reference field: an entry has a source
 and zero-to-many inspect tree coordinates, expressed through the view. Raw types stay unparsed. The
 maintainer accepted this shape 2026-07-20 and chose to build the full schema + export in one issue.
 
-The implementation issue is [#124](https://github.com/tikoci/rosetta/issues/124), now cleared to
-implement. Questions 3 (provenance format) and 5 (agent surfacing) remain genuinely open and do not block
-DB/ETL/export work. Question 5 in particular is better answered *after* the overlay exists and can be
-inspected, since the read-only-field finding changed what there is to surface.
+**The ETL has landed and is validated (updated 2026-07-31).** Implementation issue
+[#124](https://github.com/tikoci/rosetta/issues/124) is closed; the overlay shipped via
+[#126](https://github.com/tikoci/rosetta/pull/126) and its CI-publish + gate wiring via
+[#128](https://github.com/tikoci/rosetta/pull/128). Release `v0.11.2-alpha.109` carries **228**
+`cliref_pages`, **1,051** `cliref_entries`, **10,118** `cliref_fields`, **931** stored
+`cliref_entry_schema_links`, and **13,036** rows through the computed `cliref_field_inspect_links`
+view, gated by `V-cliref-link-drift` and `V-cliref-db-integrity`. The schema question (Q1), the
+join-key question (Q2), parsing (Q4), coverage/storage (Q6), flags (Q9), and page title (Q10) are all
+settled and shipped.
 
-Still deliberately unresolved: the briefing stays `open` until #124's extractor lands and is validated
-**and** question 3 has an answer.
+The briefing therefore stays `open` **only** for the genuinely unresolved work: **Q3** (quasi-provenance
+format — now owned by [#25](https://github.com/tikoci/rosetta/issues/25) rather than being a precursor),
+**Q5** (agent surfacing — partially answered 2026-07-31 by B-0024's bounded `(path, name)` validation,
+but the wider "how do `Conditions`/`Syscap`/`Package` reach an agent" question is untouched), **Q7**
+(is the alias list closed — pending its `VALIDATION.md` row), and **Q8** (how read-only arguments
+surface).
 
 ## Open questions
 
-See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled; 3, 5, 7, and 8 remain (7
-now has a concrete ambiguity policy — manual-only + loud validation — pending only its `VALIDATION.md`
-row). Next revisit trigger: #124 landing, or any upstream docs rebuild that changes the page count away
-from 228.
+See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled **and implemented**;
+3, 5, 7, and 8 remain (7 now has a concrete ambiguity policy — manual-only + loud validation — pending
+only its `VALIDATION.md` row). Next revisit trigger: an answer to Q3 on #25, or any upstream docs
+rebuild that changes the page count away from 228.
