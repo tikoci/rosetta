@@ -154,7 +154,7 @@ launders the same ambiguity it set out to fix.
 
 # Options considered
 
-### A. Fragment-grained path extraction as the candidate key — **hypothesis, not yet a lean**
+### A. Fragment-grained path extraction as the candidate key — **measured: a ranking signal, not a key**
 
 Extract RouterOS menu paths from each **section's** text (not each page's, as `link-commands.ts`
 does today) and use path alignment *of the candidate row's own fragment* as the discriminating
@@ -186,11 +186,12 @@ coarse to call this a row-level key:**
 
 - **Pros:** built from data that already ships; reuses `link-commands.ts`'s existing extraction and
   `isRouterOsPath()`; degrades to today's behaviour when a fragment mentions no path; naturally
-  multi-valued, so the scalar limitation disappears.
-- **Cons:** the coarseness above — one hand-checked family is not evidence of precision; sections
-  that document a property without naming its menu path give no signal (likely common on prose-only
-  pages, #61's territory); no decision yet on how fragment alignment, page alignment, and property
-  count combine into a rank.
+  multi-valued, so the scalar limitation disappears. **Measured:** 76.1% conditional precision and a
+  6.5× narrower candidate set than page granularity.
+- **Cons:** the coarseness above, now quantified — **42.7%** of property-owning sections name no menu
+  path (the guess that this is common on prose-only pages was right, and it is the dominant failure
+  mode), and a section is shared by every property in it, so it can never separate two rows under the
+  same heading. See "Step 3 result" below.
 - **A table-grained key is *not* the nearer key — checked, and it is the same key.** An earlier draft
   suggested `properties.source_table_row_id` → `page_table_rows` → `page_tables` as a strictly finer
   fragment. On `v0.11.2-alpha.109` it is not: section 140's 49 properties all point into **one**
@@ -202,10 +203,12 @@ coarse to call this a row-level key:**
 
   What would actually help is **positional**, not structural: the `/interface/bridge` submenu context
   precedes the table in the source, and the discriminating signal is proximity to the property's own
-  row — a *nearest-preceding-menu-path* join. That needs source-position/proximity provenance the
-  schema does not carry today (`page_tables` and `page_table_rows` retain line spans, but nothing
-  associates a row with the nearest menu path before it). Treat it as a candidate requiring new
-  provenance, not an existing key to switch to.
+  row — a *nearest-preceding-menu-path* join. That needs source-position provenance the schema does
+  not carry today. (An earlier draft said `page_tables` and `page_table_rows` "retain line spans".
+  They do not — the only ordering column on either is `sort_order`, and `properties` carries none at
+  all. Verified against `v0.11.2-alpha.109`; the census prints the full column lists so this cannot be
+  asserted from memory again.) Treat it as a candidate requiring new provenance, not an existing key
+  to switch to.
 - **CLI-Reference's role here is secondary but real:** it validates `(requested path, name)` — that
   the field exists at all — which is what distinguishes "no prose found for a real field" (#61's
   honest "known, undocumented") from "no such field". It does **not** rank candidates.
@@ -236,6 +239,127 @@ Split slug segments on `-` and score exact component matches above prefix matche
 
 - **Pros:** the correct answer is already returned for the bridge case.
 - **Cons:** leaves the confidence signal uninterpretable, which blocks B-0001/B-0011 indefinitely.
+
+# Step 3 result — Option A measured corpus-wide (2026-07-31)
+
+Measured by `src/eval/command-prose-join.ts` on **`v0.11.2-alpha.109`** (schema 11, `source_commit`
+`4cd7413`), the same artifact as the rest of this briefing. The census is committed so this is
+re-checkable rather than trusted: `DB_PATH=… bun run src/eval/command-prose-join.ts`.
+
+**The oracle.** An inspect `arg` row `/interface/bridge/port/add/pvid` means the menu
+`/interface/bridge/port` accepts `pvid`. That is what "the aligned path is right" is scored against.
+It covers **3,223 of 4,587** property rows (70.3%); the other 1,364 carry names inspect has never
+heard of and are unscorable by construction — largely #61's territory.
+
+## The verdict
+
+**Option A is a strong ranking signal and not a key.** It does discriminate on the families that
+motivated #131 and #58 — but it is silent on about half the corpus, and silence is not a key.
+
+| Measure (linker's current extraction rules) | Result |
+|---|---|
+| Property rows whose own section names any menu path | 3,122 / 4,587 (**68.1%**) |
+| ... same, page-grained (what the linker uses today) | 4,440 / 4,587 (96.8%) |
+| Property-owning sections naming no menu path at all | 200 / 468 (**42.7%**) |
+| Scorable rows whose section names an **accepting** path | 1,660 / 3,223 (**51.5%**) |
+| ... exactly one such path (unambiguous) | 1,446 (44.9%) |
+| **Conditional** precision — of rows whose section names *any* path | 1,660 / 2,181 (**76.1%**) |
+| Mean candidate paths per fragment — section vs page | **1.0 vs 6.4** (6.5× narrower) |
+
+The two numbers that matter together: **76.1% conditional precision but only 68.1% coverage.** When a
+section names a path, that path is usually the right one — the dominant failure mode is *silence*,
+not misalignment. That is the opposite of the failure mode the fuzzy page ranker has, and it is why
+this composes as a tier rather than replacing anything.
+
+**A cascade recovers most of the loss.** Section-first, page-fallback, over scorable rows:
+
+| Tier that resolved the row | Rows |
+|---|---|
+| section names an accepting path | 1,660 (51.5%) |
+| fell back to the page | 1,221 (37.9%) |
+| unresolved by either | 342 (**10.6%**) |
+
+## Where it is still too coarse
+
+- **A section is shared.** 63.6% of property rows sit in a section holding 11+ properties; five
+  sections hold 353 rows between them. Section alignment can never distinguish two properties in the
+  same section — it is a *fragment* verdict applied to every row inside.
+- **The `/ip/settings` class is real and quantified.** Of 433 (section, path) pairs where the section
+  owns scorable properties, **115 (26.6%)** are paths that accept *none* of them — a genuine menu,
+  mentioned in passing, unrelated to the properties beside it. Against that, 184 pairs (42.5%) accept
+  90–100%. So the signal is bimodal: mostly excellent or entirely spurious, which is exactly the
+  shape a support-ratio filter can exploit.
+- **"The menu accepts this name" is weak evidence on its own.** Only 36.9% of scorable rows have a
+  name accepted at exactly one menu corpus-wide; **21.0% have names accepted at 26+ menus**
+  (`comment`, `disabled`, `name`). For those rows acceptance is nearly free and must not be read as
+  belonging. This is the measured form of the rule already recorded above: *do not label a result
+  `high` merely because the requested field exists.*
+
+## Two extraction defects found while measuring — they affect the linker shipping today
+
+Both are in `link-commands.ts`'s path extraction, now factored out to `src/menu-paths.ts` so the
+census and the linker cannot drift apart, with the current behaviour anchored in `menu-paths.test.ts`.
+
+1. **Bare top-level menus are invisible.** `MENU_PATH_RE` requires a *second* segment, so `/certificate`,
+   `/queue`, `/user` are never extracted — a page whose only mention is the bare menu is never a
+   candidate for it. Cost, measured (`TOP_LEVEL=1`): coverage 68.1% → **70.5%**, section-tier precision
+   51.5% → **53.2%**, unresolved 10.6% → 9.6%. Real but modest; it is a linker bug independent of this
+   briefing.
+2. **`normalizeMenuPath` fabricates pseudo-paths.** Mapping spaces to slashes turns
+   `/certificate/import file-name=x` into `/certificate/import/file-name`, which is not a menu and can
+   never match. `link-commands.ts` already walks such a path back to the nearest real `dir` when
+   building candidates, so the linker is not misled — but any *new* consumer of the extractor must do
+   the same walk deliberately. That is why `resolveToDir` is an explicit, tested option rather than a
+   detail buried in the linker.
+
+## Table granularity — closed
+
+The one-family check above generalizes. Across all **562** property-bearing tables, a table's own path
+set is **never** wider than (33) or disjoint from (0) its section's; **495 name no path at all**. A
+table-grained key can therefore only ever *lose* information relative to the section. **Option A at
+table granularity is dead**, and the finer structural fragment this briefing went looking for does not
+exist in the shipped schema. The remaining candidate is positional (proximity), which needs new
+extraction-time provenance.
+
+## The motivating families do resolve
+
+| Case | Section | Verdict |
+|---|---|---|
+| `pvid` (#131) | 147 `Port Settings`, 168 `Bridge Port Settings` (page 10) | **exact** `/interface/bridge/port` |
+| `pvid` (#131) | 140 `Bridge Interface Setup` (page 10) | ancestor-only (`/interface/bridge`, plus the spurious `/ip/settings`) |
+| `pvid` (#131) | 666 `Properties` (page 38 Apps) | **no signal** — the polluting row drops out |
+| `vlan-ids` (#131) | 606 `Bridge VLAN Table` (page 10) | **exact** `/interface/bridge/vlan` |
+| `address-pool` (#58) | 2600 `DHCP Server Properties` (page 233) | **exact** `/ip/dhcp-server` |
+| `address-pool` (#58) | 107/142 HotSpot, 3405 IPsec | **no signal** — today's mislink targets drop out |
+
+Both reported defects are discriminated correctly, including the negative cases. That is what promotes
+Option A from hypothesis to *adopted signal* — while the 42.7% of barren sections is what keeps it from
+being the key.
+
+# Step 4 — the rank/confidence contract this supports
+
+Stated now because step 3 bounds it. Tiers for a command-scoped property lookup, in order:
+
+| Tier | Requires | Reachable share of scorable rows |
+|---|---|---|
+| `high` | the candidate row's **own section** names the requested menu exactly, and inspect confirms that menu accepts the name | ≤ 51.5% (upper bound; exact-menu alignment is a subset) |
+| `medium` | the section names an **ancestor** of the requested menu, or only the **page** aligns | ~37.9% via the page tier |
+| `low` | name-only global fallback — no path evidence anywhere | ~10.6% + all 1,364 unscorable rows |
+
+Three rules the measurement forces:
+
+1. **Field existence never sets the tier.** CLI-Reference / inspect validation answers "is this a real
+   field", a fact about the *query*. It may only *confirm* a tier reached by path alignment, and may
+   demote (a section-aligned path that does not accept the name is suspect), never promote.
+2. **Ubiquitous names cannot reach `high` on acceptance.** For the 21.0% of rows whose name is accepted
+   at 26+ menus, acceptance carries no information; the tier must rest on alignment alone.
+3. **Silence is `low`, not `medium`.** 42.7% of property-owning sections name no path. Treating absent
+   evidence as partial evidence is precisely the miscalibration that made the pre-#132 `high` labels
+   misleading.
+
+Open for the design pass: whether a per-(section, path) **support ratio** filter (drop paths accepting
+none of their section's properties — 26.6% of pairs) should gate the `high` tier, and how "reference
+owner vs related guide" is expressed once a row can align to more than one menu.
 
 # Relationship to the other briefings
 
@@ -280,28 +404,30 @@ was never in question.
    fabricated rows removed). It also removed the Apps row that polluted every global `pvid` lookup.
 2. **Narrow #131 to Option C** (ranker fix only), stating in the issue that it does not fix property
    lookup.
-3. **Validate Option A corpus-wide — and measure its granularity, not just its accuracy.** The
-   one-family check above is a hypothesis, not a result. Needed before Option A can be called a lean:
-   - **Fragment coarseness.** Distribution of properties-per-section and paths-per-section, and how
-     often a section's path set contains a path unrelated to the properties in it (the `/ip/settings`
-     case). A key that is right on average but shared by 49 rows is not a row-level key.
-   - **How often table granularity differs from section granularity at all.** Section 140 collapses
-     1:1 onto one table, so it buys nothing there; measure the corpus-wide distribution of
-     tables-per-section before assuming a finer *structural* fragment exists.
-   - **Whether a nearest-preceding-menu-path (proximity) join is feasible**, and what provenance it
-     would require — this is the candidate that could actually beat fragment alignment, and it is a
-     schema question, not a query one.
-   - **Coverage.** How many property rows sit in a fragment naming any menu path at all; what happens
-     on prose-only pages.
-   - **Precision.** How often the aligned path matches the command the property actually documents,
-     and the false-positive rate after `isRouterOsPath()` filtering.
+3. ~~**Validate Option A corpus-wide.**~~ **Done — see "Step 3 result" above.** Verdict: adopted as a
+   ranking signal, rejected as a key. Census committed at `src/eval/command-prose-join.ts`. The
+   sub-questions as originally posed, and what they returned:
+   - **Fragment coarseness** → confirmed as the limiting factor. 63.6% of rows sit in sections of 11+
+     properties; 26.6% of (section, path) pairs are spurious.
+   - **Table granularity** → **dead end, closed.** No table names a path its section lacks; 495 of 562
+     name none. The finer structural fragment does not exist.
+   - **Proximity feasibility** → needs new extraction-time provenance. No line/offset column exists on
+     `sections`, `page_tables`, `page_table_rows`, or `properties` — only `sort_order`.
+   - **Coverage** → 68.1% of rows (70.5% if bare top-level menus are matched); the prose-only guess was
+     right.
+   - **Precision** → 76.1% conditional. Two extraction defects found in the process, both recorded above.
 
-   Re-run against `v0.11.2-alpha.109` or newer. If coarseness dominates, Option A is a ranking signal
-   rather than a key, and the key question reopens.
-4. **Then** design the rank/confidence contract — how section alignment, page alignment, property
-   count, and CLI-Reference validation combine, and what `high` is allowed to mean.
+   The predicted branch is the one that happened: coarseness dominates, so **Option A is a ranking
+   signal rather than a key, and the key question reopens** — now with proximity as the only live
+   candidate, and its cost known (new provenance, not a new query).
+4. **Design the rank/confidence contract** — drafted above from the step-3 bounds. Remaining: decide the
+   support-ratio gate and the reference-owner-vs-guide representation, then implement against
+   `lookupProperty`'s `high | medium | low`.
 5. **Re-anchor #58 and #61 here** rather than carrying them as independent linkage bugs.
-6. Revisit B-0001/B-0011 only after 3 and 4.
+6. Revisit B-0001/B-0011 only after 4.
+7. **Fix the two extractor defects** (bare top-level menus; document `resolveToDir` as the required walk
+   for new consumers) — independent of the join, and they improve today's linker. Landing the top-level
+   fix changes `commands.page_id` output, so it needs a before/after link diff, not just unit tests.
 
 # A sequencing constraint discovered alongside this (#132 → #100)
 
@@ -341,18 +467,22 @@ Two findings that were not in #132 as filed:
 
 # Open questions
 
-- **Is fragment-grained path extraction precise *and fine* enough to be the key?** Step 3 above. Two
-  distinct failure modes: too little coverage (fragments naming no menu path) and too little
-  resolution (one section's path set shared by 49 rows, including unrelated menus like `/ip/settings`).
-  The second is the one the hand-check already exposes, and it may mean the answer is a table-grained
-  key, or a ranking signal rather than a key at all.
-- **What is `high` allowed to mean?** Explicitly *not* "the field exists" — that is a query-level
-  fact. Does it require the candidate's own section to align, and what is the tier when only the page
-  aligns?
+- ~~**Is fragment-grained path extraction precise *and fine* enough to be the key?**~~ **Answered: no —
+  precise enough (76.1% conditional), not fine enough (42.7% barren sections, 63.6% of rows sharing a
+  section with 10+ others).** Both predicted failure modes are real; coverage is the larger one. It is
+  a ranking signal. Table granularity, floated as the alternative, is closed.
+- ~~**What is `high` allowed to mean?**~~ **Drafted in step 4 above** — exact section↔menu alignment plus
+  inspect confirmation, never field existence alone, never for a name accepted at 26+ menus. What
+  remains is whether the support-ratio filter gates it.
 - **Where does "reference owner vs related guide" live** once the scalar limitation is acknowledged?
-  A second column, a link table, or a section-level link that makes the question moot?
+  A second column, a link table, or a section-level link that makes the question moot? Still open, and
+  now the main design question, since section alignment is naturally multi-valued.
+- **Is proximity worth its provenance cost?** The only live candidate for an actual key. Requires
+  capturing source position at extraction time so a property row can be joined to the nearest menu path
+  preceding it. Unmeasured — it cannot be measured from a shipped DB, only from the vendored source.
 - **#61's prose-only properties remain out of reach.** Section alignment needs a section; corroboration
   needs a field name. Neither extracts a description from a prose bullet list on
-  `common-firewall-matchers-and-actions`.
-- Next revisit trigger: the step-3 corpus-wide validation, or any rebuild that changes the cliref
-  counts away from 228/1,051/10,118.
+  `common-firewall-matchers-and-actions`. The census puts a number on the adjacent gap: **1,364 rows
+  (29.7%)** carry names inspect has never heard of and cannot be validated at all.
+- Next revisit trigger: the step-4 design pass landing, a decision on proximity provenance, or any
+  rebuild that changes the cliref counts away from 228/1,051/10,118.

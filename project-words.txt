@@ -34,6 +34,7 @@ baselined
 bdi
 bdo
 behavioural
+behaviours
 bfd
 blackhole
 bridgingand
@@ -227,6 +228,7 @@ mirrorable
 mis
 misattributed
 miscalibrated
+miscalibration
 misdetects
 mislink
 mislinked
@@ -362,6 +364,8 @@ rtrace
 rulebooks
 samp
 scep
+scorable
+scorables
 seafile
 seccfg
 sed
@@ -435,6 +439,7 @@ unprobeable
 unprobed
 unpushed
 unqueryable
+unscorable
 unsettable
 unthrottled
 upnp
