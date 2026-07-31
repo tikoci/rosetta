@@ -394,17 +394,26 @@ compatibility. Do not put a path on a CLI-Reference field: an entry has a source
 and zero-to-many inspect tree coordinates, expressed through the view. Raw types stay unparsed. The
 maintainer accepted this shape 2026-07-20 and chose to build the full schema + export in one issue.
 
-The implementation issue is [#124](https://github.com/tikoci/rosetta/issues/124), now cleared to
-implement. Questions 3 (provenance format) and 5 (agent surfacing) remain genuinely open and do not block
-DB/ETL/export work. Question 5 in particular is better answered *after* the overlay exists and can be
-inspected, since the read-only-field finding changed what there is to surface.
+**The ETL has landed and is validated (updated 2026-07-31).** Implementation issue
+[#124](https://github.com/tikoci/rosetta/issues/124) is closed; the overlay shipped via
+[#126](https://github.com/tikoci/rosetta/pull/126) and its CI-publish + gate wiring via
+[#128](https://github.com/tikoci/rosetta/pull/128). Release `v0.11.2-alpha.109` carries **228**
+`cliref_pages`, **1,051** `cliref_entries`, **10,118** `cliref_fields`, **931** stored
+`cliref_entry_schema_links`, and **13,036** rows through the computed `cliref_field_inspect_links`
+view, gated by `V-cliref-link-drift` and `V-cliref-db-integrity`. The schema question (Q1), the
+join-key question (Q2), parsing (Q4), coverage/storage (Q6), flags (Q9), and page title (Q10) are all
+settled and shipped.
 
-Still deliberately unresolved: the briefing stays `open` until #124's extractor lands and is validated
-**and** question 3 has an answer.
+The briefing therefore stays `open` **only** for the genuinely unresolved work: **Q3** (quasi-provenance
+format — now owned by [#25](https://github.com/tikoci/rosetta/issues/25) rather than being a precursor),
+**Q5** (agent surfacing — partially answered 2026-07-31 by B-0024's bounded `(path, name)` validation,
+but the wider "how do `Conditions`/`Syscap`/`Package` reach an agent" question is untouched), **Q7**
+(is the alias list closed — pending its `VALIDATION.md` row), and **Q8** (how read-only arguments
+surface).
 
 ## Open questions
 
-See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled; 3, 5, 7, and 8 remain (7
-now has a concrete ambiguity policy — manual-only + loud validation — pending only its `VALIDATION.md`
-row). Next revisit trigger: #124 landing, or any upstream docs rebuild that changes the page count away
-from 228.
+See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled **and implemented**;
+3, 5, 7, and 8 remain (7 now has a concrete ambiguity policy — manual-only + loud validation — pending
+only its `VALIDATION.md` row). Next revisit trigger: an answer to Q3 on #25, or any upstream docs
+rebuild that changes the page count away from 228.

@@ -154,35 +154,48 @@ launders the same ambiguity it set out to fix.
 
 # Options considered
 
-### A. Section-grained path extraction as the candidate key — **current lean**
+### A. Fragment-grained path extraction as the candidate key — **hypothesis, not yet a lean**
 
 Extract RouterOS menu paths from each **section's** text (not each page's, as `link-commands.ts`
-does today) and use path alignment *of the candidate row's own section* as the discriminating
+does today) and use path alignment *of the candidate row's own fragment* as the discriminating
 evidence. B-0023's total section coverage — landed in PR #105 — is what makes every property row
 reachable from an addressable fragment.
 
-Measured on `v0.11.2-alpha.109`, for the four `pvid` candidates above:
+Measured on `v0.11.2-alpha.109`, for the four `pvid` candidates — **every** path each section's text
+contains, with the `isRouterOsPath()` verdict, not just the convenient ones:
 
-| Section | Page | Menu paths in its own text |
-|---|---|---|
-| `Port Settings` (147) | 10 | `/interface/bridge/port/set`, `/interface/bridge/port` |
-| `Bridge Port Settings` (168) | 10 | `/interface/bridge/port` |
-| `Bridge Interface Setup` (140) | 10 | `/interface/bridge`, `/interface/bridge/host` |
-| `Properties` (666) | 38 Apps | **none matching** |
+| Section | Page | Rows sharing it | Paths in its own text |
+|---|---|---|---|
+| `Port Settings` (147) | 10 | 26 | `/interface/bridge/port/set`, `/interface/bridge/port`, ~~`/virtual-private-networks/eoip`~~ |
+| `Bridge Port Settings` (168) | 10 | 4 | `/interface/bridge/port` |
+| `Bridge Interface Setup` (140) | 10 | **49** | `/interface/bridge`, `/interface/bridge/host`, **`/ip/settings`**, ~~`/firewall-and-quality-of-service/packet-flow-in-routeros`~~ |
+| `Properties` (666) | 38 Apps | — | ~~`/authentication-authorization-accounting/certificates`~~ (no menu path) |
 
-That discriminates exactly where corroboration could not: for `pvid @ /interface/bridge/port/add`,
-sections 147 and 168 align on `/interface/bridge/port`, section 140 aligns only on the parent
-`/interface/bridge`, and the Apps section does not align at all.
+(~~struck~~ = rejected by `isRouterOsPath()`, whose first segment must be a known top-level menu.)
 
-- **Pros:** it is a *row-level* key, which is what the join actually lacks; built from data that
-  already ships; reuses `link-commands.ts`'s existing path-extraction and its `isRouterOsPath()`
-  filter, which already rejects the relative doc-slug false positives visible in the section text
-  (`/firewall-and-quality-of-service/packet-flow-in-routeros`); degrades to today's behaviour when a
-  section mentions no path; naturally multi-valued, so the scalar limitation disappears.
-- **Cons:** unproven beyond this one hand-checked family — needs a corpus-wide precision/recall pass
-  before it can be called a lean rather than a hypothesis; sections that document a property without
-  naming its menu path get no signal (likely common in prose-only pages, which is #61's territory);
-  no decision yet on how section alignment, page alignment, and property count combine into a rank.
+It discriminates on this family — the Apps section carries no `/interface/bridge` signal at all, so
+the row that pollutes today's lookup drops out. **But the same artifact shows the granularity is too
+coarse to call this a row-level key:**
+
+- **`/ip/settings` survives the filter.** `ip` is in the top-level allowlist (`src/link-commands.ts:82`),
+  so it is accepted as a real menu path even though it has nothing to do with `pvid`. The doc-slug
+  filter catches relative links; it does not catch a genuine but unrelated menu mention.
+- **A section is shared by every property in it.** All **49** rows under `Bridge Interface Setup`
+  inherit that section's entire path set, `/ip/settings` included. Section-grained alignment is a
+  *fragment*-level signal being used as a *row*-level one.
+
+- **Pros:** built from data that already ships; reuses `link-commands.ts`'s existing extraction and
+  `isRouterOsPath()`; degrades to today's behaviour when a fragment mentions no path; naturally
+  multi-valued, so the scalar limitation disappears.
+- **Cons:** the coarseness above — one hand-checked family is not evidence of precision; sections
+  that document a property without naming its menu path give no signal (likely common on prose-only
+  pages, #61's territory); no decision yet on how fragment alignment, page alignment, and property
+  count combine into a rank.
+- **A nearer key may exist and should be measured alongside it.** `properties.source_table_row_id`
+  → `page_table_rows` → `page_tables` gives each property its own **table**, which carries its own
+  `source_heading` and is strictly finer than the section (`Bridge Interface Setup`'s 49 rows span
+  more than one table). Whether table-grained alignment beats section-grained is an open measurement,
+  not an assumption.
 - **CLI-Reference's role here is secondary but real:** it validates `(requested path, name)` — that
   the field exists at all — which is what distinguishes "no prose found for a real field" (#61's
   honest "known, undocumented") from "no such field". It does **not** rank candidates.
@@ -256,11 +269,20 @@ was never in question.
    fabricated rows removed). It also removed the Apps row that polluted every global `pvid` lookup.
 2. **Narrow #131 to Option C** (ranker fix only), stating in the issue that it does not fix property
    lookup.
-3. **Validate Option A corpus-wide.** The one-family check above is a hypothesis, not a result. Needed
-   before Option A can be called a lean: how many property rows sit in a section that names a menu
-   path at all; how often the aligned section's path matches the command the property really
-   documents; false-positive rate from doc-slug lookalikes after `isRouterOsPath()` filtering; and
-   what happens on prose-only pages. Re-run against `v0.11.2-alpha.109` or newer.
+3. **Validate Option A corpus-wide — and measure its granularity, not just its accuracy.** The
+   one-family check above is a hypothesis, not a result. Needed before Option A can be called a lean:
+   - **Fragment coarseness.** Distribution of properties-per-section and paths-per-section, and how
+     often a section's path set contains a path unrelated to the properties in it (the `/ip/settings`
+     case). A key that is right on average but shared by 49 rows is not a row-level key.
+   - **Table-grained comparison.** The same measurements via `source_table_row_id` → `page_tables`,
+     to see whether the finer fragment discriminates better than the section.
+   - **Coverage.** How many property rows sit in a fragment naming any menu path at all; what happens
+     on prose-only pages.
+   - **Precision.** How often the aligned path matches the command the property actually documents,
+     and the false-positive rate after `isRouterOsPath()` filtering.
+
+   Re-run against `v0.11.2-alpha.109` or newer. If coarseness dominates, Option A is a ranking signal
+   rather than a key, and the key question reopens.
 4. **Then** design the rank/confidence contract — how section alignment, page alignment, property
    count, and CLI-Reference validation combine, and what `high` is allowed to mean.
 5. **Re-anchor #58 and #61 here** rather than carrying them as independent linkage bugs.
@@ -304,9 +326,11 @@ Two findings that were not in #132 as filed:
 
 # Open questions
 
-- **Is section-grained path extraction precise enough to be the key?** Step 3 above. If a large share
-  of property-bearing sections name no menu path, Option A is a partial answer and the residual needs
-  its own mechanism.
+- **Is fragment-grained path extraction precise *and fine* enough to be the key?** Step 3 above. Two
+  distinct failure modes: too little coverage (fragments naming no menu path) and too little
+  resolution (one section's path set shared by 49 rows, including unrelated menus like `/ip/settings`).
+  The second is the one the hand-check already exposes, and it may mean the answer is a table-grained
+  key, or a ranking signal rather than a key at all.
 - **What is `high` allowed to mean?** Explicitly *not* "the field exists" — that is a query-level
   fact. Does it require the candidate's own section to align, and what is the tier when only the page
   aligns?

@@ -1,11 +1,16 @@
 ---
 id: B-0023-page-section-normalization
 topic: Normalize a page as a complete set of sections (make section coverage total) so page prose is sliceable, not just whole-page
-status: open
-related_tasks: ["#27", "#93", "#95", "#131", "B-0012", "B-0022", "B-0024"]
+status: resolved
+related_tasks: ["#27", "#93", "#95", "#105", "#131", "B-0012", "B-0022", "B-0024"]
 created: 2026-07-16
 last_revisited: 2026-07-31
 ---
+
+> **2026-07-31 — resolved.** The Option A decision below was implemented in [PR #105](https://github.com/tikoci/rosetta/pull/105)
+> (`940458c`): `parseSections()` emits the synthetic `_lead` fragment, so section coverage is total and
+> `LEAD_ANCHOR` ships. Nothing here is outstanding. The follow-on work — a section→command join that
+> *consumes* total coverage — lives in `briefings/B-0024-command-prose-join.md`, not here.
 
 # Question
 
@@ -195,12 +200,15 @@ This is deliberately **schema/ETL only**. It ships the *data* that a future #27 
 
   This briefing's own work **already landed in PR #105** (`940458c`), so B-0024 *consumes* total
   section coverage rather than adding urgency to it — the remaining work is a new section→command
-  join, which lives in B-0024, not here. B-0024's current lean (extract menu paths per **section**
-  and use the candidate row's own section alignment as the discriminating key) is only possible
-  because coverage is total: measured on `v0.11.2-alpha.109`, the four `pvid` property rows resolve
-  to sections `Port Settings` / `Bridge Port Settings` / `Bridge Interface Setup` (page 10) and
-  `Properties` (page 38 Apps), and only the first three name a `/interface/bridge` path in their own
-  text. That is the discrimination a page-grained key cannot express.
+  join, which lives in B-0024, not here. B-0024's leading **hypothesis** — not a settled lean —
+  extracts menu paths per **fragment** and uses the candidate row's own fragment alignment as the
+  discriminating key. It is only possible because coverage is total: measured on `v0.11.2-alpha.109`,
+  the four `pvid` property rows resolve to sections `Port Settings` / `Bridge Port Settings` /
+  `Bridge Interface Setup` (page 10) and `Properties` (page 38 Apps), and only the first three name a
+  `/interface/bridge` path in their own text. That is discrimination a page-grained key cannot
+  express — but the same check shows a section can be shared by 49 property rows and can carry an
+  unrelated menu path (`/ip/settings`), so section granularity may still be too coarse to be the key.
+  B-0024 owns that measurement; do not treat the direction as settled.
 - **#95 (schema/ETL umbrella)** — this is a schema/ETL finding of exactly the kind #95 tracks; recorded
   there as a not-yet-filed child (promotion to an agent-ready issue is earned once the lead-anchor
   convention and the reconciliation allowance are pinned — see #95's own E2–E4 discipline).
