@@ -352,8 +352,8 @@ source semantics and overlay multiplicity.
    get the identical answer, and there is no relational edge to break the tie — `properties` has no
    `entry_id`/`field_id`/`schema_node_id`, and `cliref_entries.page_id` references `cliref_pages`, a
    different page store from `properties.page_id -> pages`. So the overlay validates the query and must
-   **not** be used to rank or reject prose candidates; B-0024's discriminating key is section-grained path
-   extraction instead.
+   **not** be used to rank or reject prose candidates. What *does* discriminate between candidate prose rows
+   is still open — B-0024 is evaluating fragment/proximity signals and has not established a key.
 
    This is still a **correctness input to an existing tool** rather than a note on a result — a stronger
    justification for #25's query-behavior half than the arch-as-advisory framing alone — and it is

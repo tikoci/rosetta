@@ -169,7 +169,7 @@ contains, with the `isRouterOsPath()` verdict, not just the convenient ones:
 | `Port Settings` (147) | 10 | 26 | `/interface/bridge/port/set`, `/interface/bridge/port`, ~~`/virtual-private-networks/eoip`~~ |
 | `Bridge Port Settings` (168) | 10 | 4 | `/interface/bridge/port` |
 | `Bridge Interface Setup` (140) | 10 | **49** | `/interface/bridge`, `/interface/bridge/host`, **`/ip/settings`**, ~~`/firewall-and-quality-of-service/packet-flow-in-routeros`~~ |
-| `Properties` (666) | 38 Apps | — | ~~`/authentication-authorization-accounting/certificates`~~ (no menu path) |
+| `Properties` (666) | 38 Apps | 14 | ~~`/authentication-authorization-accounting/certificates`~~ (no menu path) |
 
 (~~struck~~ = rejected by `isRouterOsPath()`, whose first segment must be a known top-level menu.)
 
@@ -191,11 +191,21 @@ coarse to call this a row-level key:**
   that document a property without naming its menu path give no signal (likely common on prose-only
   pages, #61's territory); no decision yet on how fragment alignment, page alignment, and property
   count combine into a rank.
-- **A nearer key may exist and should be measured alongside it.** `properties.source_table_row_id`
-  → `page_table_rows` → `page_tables` gives each property its own **table**, which carries its own
-  `source_heading` and is strictly finer than the section (`Bridge Interface Setup`'s 49 rows span
-  more than one table). Whether table-grained alignment beats section-grained is an open measurement,
-  not an assumption.
+- **A table-grained key is *not* the nearer key — checked, and it is the same key.** An earlier draft
+  suggested `properties.source_table_row_id` → `page_table_rows` → `page_tables` as a strictly finer
+  fragment. On `v0.11.2-alpha.109` it is not: section 140's 49 properties all point into **one**
+  table (id 70, 49 data rows, zero properties without a `source_table_row_id`), its `source_heading`
+  is the bare text `Bridge Interface Setup` with no path in it, and the paths inside its own
+  `raw_markdown` are the *same set* the section yields — `/interface/bridge` ×2,
+  `/interface/bridge/host`, and `/ip/settings`. Table granularity collapses onto section granularity
+  here and cannot improve this example.
+
+  What would actually help is **positional**, not structural: the `/interface/bridge` submenu context
+  precedes the table in the source, and the discriminating signal is proximity to the property's own
+  row — a *nearest-preceding-menu-path* join. That needs source-position/proximity provenance the
+  schema does not carry today (`page_tables` and `page_table_rows` retain line spans, but nothing
+  associates a row with the nearest menu path before it). Treat it as a candidate requiring new
+  provenance, not an existing key to switch to.
 - **CLI-Reference's role here is secondary but real:** it validates `(requested path, name)` — that
   the field exists at all — which is what distinguishes "no prose found for a real field" (#61's
   honest "known, undocumented") from "no such field". It does **not** rank candidates.
@@ -238,7 +248,8 @@ B-0023 named #27 (MCP/TUI surface alignment) as the consumer of total coverage. 
 **second consumer, and a correctness one**: "which page owns `/interface/bridge`?" has no good
 answer (page 10 holds 226 property rows but is a section index; page 27 has the right name and zero
 properties), while "which *section* documents `pvid` for bridge ports?" does. The remaining work is
-a new section→command join, not more section-coverage work.
+the command↔prose join itself — which fragment/proximity signal identifies the right row is B-0024's
+open question, not more section-coverage work.
 
 ## B-0016 (CLI-Reference overlay) — Q5 gets a bounded answer
 
@@ -274,8 +285,12 @@ was never in question.
    - **Fragment coarseness.** Distribution of properties-per-section and paths-per-section, and how
      often a section's path set contains a path unrelated to the properties in it (the `/ip/settings`
      case). A key that is right on average but shared by 49 rows is not a row-level key.
-   - **Table-grained comparison.** The same measurements via `source_table_row_id` → `page_tables`,
-     to see whether the finer fragment discriminates better than the section.
+   - **How often table granularity differs from section granularity at all.** Section 140 collapses
+     1:1 onto one table, so it buys nothing there; measure the corpus-wide distribution of
+     tables-per-section before assuming a finer *structural* fragment exists.
+   - **Whether a nearest-preceding-menu-path (proximity) join is feasible**, and what provenance it
+     would require — this is the candidate that could actually beat fragment alignment, and it is a
+     schema question, not a query one.
    - **Coverage.** How many property rows sit in a fragment naming any menu path at all; what happens
      on prose-only pages.
    - **Precision.** How often the aligned path matches the command the property actually documents,

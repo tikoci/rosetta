@@ -9,8 +9,9 @@ last_revisited: 2026-07-31
 
 > **2026-07-31 — resolved.** The Option A decision below was implemented in [PR #105](https://github.com/tikoci/rosetta/pull/105)
 > (`940458c`): `parseSections()` emits the synthetic `_lead` fragment, so section coverage is total and
-> `LEAD_ANCHOR` ships. Nothing here is outstanding. The follow-on work — a section→command join that
-> *consumes* total coverage — lives in `briefings/B-0024-command-prose-join.md`, not here.
+> `LEAD_ANCHOR` ships. Nothing here is outstanding. The follow-on work — the command↔prose join, which
+> *consumes* total coverage while evaluating fragment/proximity signals — lives in
+> `briefings/B-0024-command-prose-join.md`, not here. Section granularity is not established as its key.
 
 # Question
 
