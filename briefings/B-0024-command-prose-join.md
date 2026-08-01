@@ -103,6 +103,10 @@ Three consequences, none visible from the issue text alone:
 | `cliref_*` (version-less overlay, landed #124/#126/#128) | CLI shape, `Package`/`Conditions`/`Syscap`, read-only args | sparse — B-0016 measured 1,657 of 10,118 field rows |
 | `pages` / `sections` / `properties` | — | **the only narrative source** (B-0001's own finding) |
 
+> **Superseded in detail by step 6** below, which measures what each store is *blind* to rather than
+> what it is authoritative for — the sharper and more consequential half. Durable form: `DESIGN.md` →
+> "What each store is authoritative for — the layering model".
+
 Four limitations of the stand-in key, mapping onto the open issues:
 
 | Limitation | Symptom | Issue |
@@ -564,6 +568,26 @@ the defect is that one prose row silently stands in for several distinct attribu
 overlay is a third vocabulary that settles it cleanly for neither: 218 of its field names are dotted, of
 which 103 match a dotted argument name.
 
+## The layering model this implies (maintainer reading, 2026-08-01, checked)
+
+The step-6 numbers only make sense under a structural reading the maintainer proposed and this pass
+verified against the artifact. The durable form now lives in `DESIGN.md` → "What each store is
+authoritative for"; the evidence is here.
+
+| Claim | Verdict |
+|---|---|
+| The overlay has **no CRUD verbs** | **Confirmed.** Of 441 `Command` entries exactly **2** end in a CRUD verb (`app/remove`, `task/add`); the rest are named operations (`system/reboot`, `ip/dhcp-client/renew`, `interface/wifi/monitor`) |
+| The overlay expresses non-standard verbs *as paths* | **Confirmed** — that is what those 439 entries are |
+| The overlay carries platform/capacity metadata | **Confirmed.** 417/1,051 entries carry `package`, 186 `conditions`, 46 `syscap`; 364 of 10,118 fields carry `syscap` |
+| inspect knows the verbs | **Confirmed.** `print` 540, `get` 539, `export` 442, `reset`/`edit` 433, `set` 428, `remove` 326, `add` 301 |
+| `add`/`set` args are the non-read-only ones | **Confirmed** — `/interface/bridge/add` has 51 args, the settable properties |
+| `print`/`get` expose read-only **plus** writable | **Corrected — they expose neither.** `/interface/bridge/print` yields `detail`, `count-only`, `where`, `without-paging`…; `/interface/bridge/get` yields `as-string`, `number`, `value-name`. Those are **CLI options**, not fields. `running`, `rx-packet`, `tx-byte`, `last-seen`, `actual-mtu` each appear **0** times as an `arg` anywhere |
+| The overlay is the lower-level model, inspect the UI/expression layer above it | **Consistent with everything measured**, and it explains the 52.7% read-only bucket exactly. That the shape derives from WinBox/C-structs is a hypothesis about the *upstream source* — plausible, unverified here |
+
+The correction strengthens rather than weakens the reading: because inspect models verb **inputs** and
+never read-only state, read-only fields are exclusively an overlay concern. There is no inspect query
+that would recover them.
+
 ## What this changes
 
 1. **The CLI-Reference overlay is the vocabulary bridge, and inspect is not.** Not because it is bigger
@@ -663,10 +687,37 @@ question is no longer "is the confidence meaningful" but "does either fold targe
      rows sit at `medium` via the support gate; the wireless `distance` rows stay `low`).
    - Neither is *fixed* at the source: `commands.page_id` still points `/interface/bridge/vlan` at page
      344 and leaves `/routing/bgp/connection` NULL. Grading stops that from mattering for retrieval.
-6. Revisit B-0001/B-0011 — now unblocked, see above.
+6. Revisit B-0001/B-0011 — unblocked by step 4, but **re-sequenced by step 6**: see step 8 below. The
+   surface question should not be settled ahead of the store question.
 7. **Fix the two extractor defects** (bare top-level menus; document `resolveToDir` as the required walk
    for new consumers) — independent of the join, and they improve today's linker. Landing the top-level
    fix changes `commands.page_id` output, so it needs a before/after link diff, not just unit tests.
+   **Low priority after step 6:** the top-level fix deepens reliance on `commands.page_id`, the join this
+   briefing is trying to stop depending on.
+
+## Step 8 — the agenda after step 6 (2026-08-01)
+
+Steps 3–5 exhausted the query side: the menu signal is calibrated, and its residual error is 24 rows.
+Step 6 moved the open question from *"what is the missing key"* to *"what is the missing row"*, which
+is store-side work. The list below is ordered by that, not by issue number.
+
+1. **Decide whether the schema store should model read-only fields and per-architecture presence.**
+   This is the live question, and it is a `DESIGN.md`-level call rather than a task — it changes what an
+   aligned MCP surface can offer at all. The layering model is recorded in `DESIGN.md`; what is not
+   decided is whether rosetta *stores* the overlay's read-only fields as first-class rows or keeps
+   consulting them through the overlay. Note the honest cost asymmetry: read-only-ness is already
+   shipped in `cliref_fields.field_kind`, so the question is modelling, not acquisition.
+2. **Overlay-as-base, verbs from inspect.** The direction this points (see `DESIGN.md`) — gated on
+   whether the overlay's path vocabulary can host inspect's verbs without a new alias layer. That is a
+   canonicalization question and it is **not rosetta-local**: `centrs`' `explain` work owns it. Do not
+   preempt it here; record the dependency and wait.
+3. **Proximity provenance** — still the only live candidate for a real command↔prose key, still costed
+   at new extraction-time source positions, and now demonstrably *not* sufficient on its own: it answers
+   "which menu" and does nothing for the ~53% of the prose→schema gap that is read-only state, nor for a
+   menu the dump never contained.
+4. **Then** B-0001/B-0011 and the MCP tool-surface refactor, which want the answers above.
+
+The cosmetic items (#131 Option C, step 7) are decoupled from all of this and can land whenever.
 
 # A sequencing constraint discovered alongside this (#132 → #100)
 

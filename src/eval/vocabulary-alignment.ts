@@ -50,6 +50,21 @@ const PROP_NAMES = "SELECT DISTINCT lower(name) n FROM properties";
 /** Every distinct field name the overlay knows, with the kinds it appears as. */
 const CLIREF_KINDS = "SELECT lower(name) n, group_concat(DISTINCT field_kind) k FROM cliref_fields GROUP BY lower(name)";
 
+// The overlay arrived in schema 11 and is this census's referee, not a decoration: without it a
+// row absent from inspect cannot be classified as read-only, missing-on-this-arch, or unknown.
+// Sections 2 and 3 stand on their own, so run them and say plainly what is missing.
+const hasOverlay =
+  one<{ n: number }>(
+    "SELECT count(*) n FROM sqlite_master WHERE type = 'table' AND name IN ('cliref_fields', 'cliref_entries')",
+  ).n === 2;
+if (!hasOverlay) {
+  say(
+    "\n> **The CLI-Reference overlay is absent from this DB (schema 11+ only).** Section 1 needs it as its" +
+      " referee and is skipped; sections 2 and 3 do not and still run. Fetch a current artifact with" +
+      " `make db-sync`.",
+  );
+}
+
 // ── 1. prose → schema ───────────────────────────────────────────────────────
 say("\n## 1. Prose rows the inspect command tree has never heard of\n");
 
@@ -70,8 +85,9 @@ say(
 
 // The referee: a row absent from inspect but present in the overlay is a real field inspect
 // cannot see, and the overlay says *why* — read-only, or simply not on the device that was dumped.
-const buckets = rows<{ bucket: string; rows: number }>(
-  `WITH unk AS (SELECT lower(name) n FROM properties WHERE lower(name) NOT IN (${ARG_NAMES})),
+if (hasOverlay) {
+  const buckets = rows<{ bucket: string; rows: number }>(
+  `WITH unmatched AS (SELECT lower(name) n FROM properties WHERE lower(name) NOT IN (${ARG_NAMES})),
         kinds AS (${CLIREF_KINDS})
    SELECT CASE
             WHEN k IS NULL THEN 'unknown to the overlay too'
@@ -79,34 +95,35 @@ const buckets = rows<{ bucket: string; rows: number }>(
             WHEN k = 'Argument' THEN 'overlay: settable only'
             ELSE 'overlay: both kinds'
           END bucket, count(*) rows
-   FROM unk LEFT JOIN kinds ON kinds.n = unk.n GROUP BY bucket ORDER BY rows DESC`,
-);
-say("\n| Why the tree cannot see it | Rows | Share of the gap |");
-say("|---|---:|---:|");
-for (const b of buckets) say(`| ${b.bucket} | ${b.rows} | ${pct(b.rows, unknown.unknown_rows)} |`);
-say(
-  "\n`read-only only` is a **kind** mismatch, not a naming one: inspect `arg` rows are settable " +
-    "arguments, so a documented output column can never appear there. `settable only` is a " +
-    "**coverage** mismatch: the field is settable somewhere, just not on the device this tree was " +
-    "dumped from.",
-);
+   FROM unmatched LEFT JOIN kinds ON kinds.n = unmatched.n GROUP BY bucket ORDER BY rows DESC`,
+  );
+  say("\n| Why the tree cannot see it | Rows | Share of the gap |");
+  say("|---|---:|---:|");
+  for (const b of buckets) say(`| ${b.bucket} | ${b.rows} | ${pct(b.rows, unknown.unknown_rows)} |`);
+  say(
+    "\n`read-only only` is a **kind** mismatch, not a naming one: inspect `arg` rows are settable " +
+      "arguments, so a documented output column can never appear there. `settable only` is a " +
+      "**coverage** mismatch: the field is settable somewhere, just not on the device this tree was " +
+      "dumped from.",
+  );
 
-// Page attribution, because the two mismatches cluster on visibly different pages.
-say("\n### Where the gap lives\n");
-const byPage = rows<{ title: string; absent: number; read_only: number; settable: number; total: number }>(
-  `WITH unk AS (SELECT page_id, lower(name) n FROM properties WHERE lower(name) NOT IN (${ARG_NAMES})),
+  // Page attribution, because the two mismatches cluster on visibly different pages.
+  say("\n### Where the gap lives\n");
+  const byPage = rows<{ title: string; absent: number; read_only: number; settable: number; total: number }>(
+  `WITH unmatched AS (SELECT page_id, lower(name) n FROM properties WHERE lower(name) NOT IN (${ARG_NAMES})),
         kinds AS (${CLIREF_KINDS})
    SELECT pg.title,
      sum(CASE WHEN k IS NULL THEN 1 ELSE 0 END) absent,
      sum(CASE WHEN k = 'Read-only Argument' THEN 1 ELSE 0 END) read_only,
      sum(CASE WHEN k LIKE '%Argument%' AND k <> 'Read-only Argument' THEN 1 ELSE 0 END) settable,
      count(*) total
-   FROM unk JOIN pages pg ON pg.id = unk.page_id LEFT JOIN kinds ON kinds.n = unk.n
+   FROM unmatched JOIN pages pg ON pg.id = unmatched.page_id LEFT JOIN kinds ON kinds.n = unmatched.n
    GROUP BY pg.id ORDER BY total DESC LIMIT 12`,
-);
-say("| Page | Unknown to overlay | Read-only | Settable | Total |");
-say("|---|---:|---:|---:|---:|");
-for (const p of byPage) say(`| ${p.title} | ${p.absent} | ${p.read_only} | ${p.settable} | ${p.total} |`);
+  );
+  say("| Page | Unknown to overlay | Read-only | Settable | Total |");
+  say("|---|---:|---:|---:|---:|");
+  for (const p of byPage) say(`| ${p.title} | ${p.absent} | ${p.read_only} | ${p.settable} | ${p.total} |`);
+}
 
 // The starkest single case: a whole menu the tree does not contain.
 const poe = one<{ c: number }>("SELECT count(*) c FROM commands WHERE path LIKE '/interface/ethernet/poe%'");
@@ -149,11 +166,13 @@ const leafExplains = one<{ rows: number }>(
    SELECT count(*) rows FROM properties
    WHERE lower(name) NOT IN (${ARG_NAMES}) AND lower(name) IN (SELECT n FROM leaves)`,
 );
-const clirefDotted = one<{ cliref: number; shared: number }>(
-  `WITH cd AS (SELECT DISTINCT lower(name) n FROM cliref_fields WHERE name LIKE '%.%'),
-        id AS (SELECT DISTINCT lower(name) n FROM commands WHERE type = 'arg' AND name LIKE '%.%')
-   SELECT (SELECT count(*) FROM cd) cliref, (SELECT count(*) FROM cd WHERE n IN (SELECT n FROM id)) shared`,
-);
+const clirefDotted = hasOverlay
+  ? one<{ cliref: number; shared: number }>(
+      `WITH cd AS (SELECT DISTINCT lower(name) n FROM cliref_fields WHERE name LIKE '%.%'),
+            id AS (SELECT DISTINCT lower(name) n FROM commands WHERE type = 'arg' AND name LIKE '%.%')
+       SELECT (SELECT count(*) FROM cd) cliref, (SELECT count(*) FROM cd WHERE n IN (SELECT n FROM id)) shared`,
+    )
+  : null;
 say(
   `${dotted.dotted} argument names are dotted. **${dotted.full_name}** are documented under the full dotted name; ` +
     `**${dotted.leaf_name}** are documented under the bare leaf (\`channel.frequency\` → \`frequency\`).`,
@@ -164,7 +183,9 @@ say(
     "The dotted mismatch therefore produces **ambiguity** — one prose row standing in for several distinct " +
     "attributes — rather than absence. It is a real defect (#61 BL-3) and a small one by row count.",
 );
-say(
-  `\nThe overlay is a third vocabulary and agrees with neither cleanly: ${clirefDotted.cliref} of its field names are ` +
-    `dotted, of which ${clirefDotted.shared} match a dotted argument name.`,
-);
+if (clirefDotted) {
+  say(
+    `\nThe overlay is a third vocabulary and agrees with neither cleanly: ${clirefDotted.cliref} of its field names are ` +
+      `dotted, of which ${clirefDotted.shared} match a dotted argument name.`,
+  );
+}

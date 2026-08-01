@@ -428,13 +428,22 @@ for (const s of sections) {
 
 // The CLI-Reference overlay is the only source that distinguishes a settable `Argument` from a
 // `Read-only Argument`, and it does so per command — exactly the distinction the collapse loses.
-const clirefFieldKind = db.prepare(
-  `SELECT 1 FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
-   WHERE e.source_path = ? AND f.name = ? COLLATE NOCASE AND f.field_kind = ? LIMIT 1`,
-);
+// Optional on purpose: the overlay arrived in schema 11, and every figure above it is derived from
+// `properties`/`commands` alone, so an older or overlay-less DB degrades to "no cross-check"
+// rather than crashing a census that is otherwise still valid.
+const hasOverlay =
+  rows<{ n: number }>(
+    "SELECT count(*) n FROM sqlite_master WHERE type = 'table' AND name IN ('cliref_fields', 'cliref_entries')",
+  )[0].n === 2;
+const clirefFieldKind = hasOverlay
+  ? db.prepare(
+      `SELECT 1 FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
+       WHERE e.source_path = ? AND f.name = ? COLLATE NOCASE AND f.field_kind = ? LIMIT 1`,
+    )
+  : null;
 /** `source_path` in the overlay has no leading slash. */
 const clirefSays = (path: string, name: string, kind: string): boolean =>
-  clirefFieldKind.get(path.slice(1), name, kind) != null;
+  clirefFieldKind?.get(path.slice(1), name, kind) != null;
 
 const READ_ONLY_VERBS = new Set(["print", "monitor", "export", "scan", "find", "get", "check"]);
 let highNamed = 0;
@@ -544,6 +553,12 @@ say(`| the section names the menu itself | ${highNamed} | ${pct(highNamed, highT
 say(
   `| only a deeper path collapsed onto it (\`resolveToDir\`) | ${highCollapsed} | ${pct(highCollapsed, highTotal)} |`,
 );
+if (!hasOverlay) {
+  say(
+    "\n_The CLI-Reference overlay is absent from this DB, so the settable-vs-read-only cross-check below" +
+      " is reported as zero rather than measured. Sync a schema-11+ artifact to get it._",
+  );
+}
 say(
   `\nOf the ${highCollapsed} collapsed-evidence rows, the CLI-Reference overlay calls the name a settable` +
     ` \`Argument\` at the menu itself for ${collapsedSettableAtMenu} (${pct(collapsedSettableAtMenu, highCollapsed)})` +
