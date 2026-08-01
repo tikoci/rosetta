@@ -507,7 +507,79 @@ if a future pass records read-only-ness on `properties` rows — which the overl
 command — the demotion becomes a local check with no new join. Revisit if a rebuild moves the 24
 materially, or if the reference-owner-vs-guide design touches `menu-paths.ts` anyway.
 
-# Relationship to the other briefings
+# Step 6 — the other half of the join: do the two stores share a *vocabulary*? (2026-08-01)
+
+Steps 3–5 all asked which **menu** a property row belongs to. This asks whether `properties` and the
+inspect command tree agree on what an attribute is **called** — because a perfect menu join still
+cannot align prose with schema if the name join fails underneath it. Measured by
+`src/eval/vocabulary-alignment.ts` on the same artifact.
+
+The result reorders the agenda: **the name gap is mostly not a naming problem.**
+
+## Prose → schema: why the tree cannot see 1,271 rows
+
+The CLI-Reference overlay is the referee, because it is the only store that distinguishes a settable
+`Argument` from a `Read-only Argument` and is version-less rather than one device's dump.
+
+| Why the tree cannot see it | Rows | Share of the gap |
+|---|---:|---:|
+| overlay: **read-only only** | 670 | **52.7%** |
+| unknown to the overlay too | 309 | 24.3% |
+| overlay: **settable only** | 280 | **22.0%** |
+| overlay: both kinds | 12 | 0.9% |
+
+Two distinct mismatches, neither of which is about spelling:
+
+- **Kind (52.7%).** inspect `arg` rows are *settable arguments*. A documented output column —
+  `rx-packets`, `last-seen`, `signal-strength-ch1` — can never appear there no matter how good the
+  join is. The corpus documents read-only state extensively; the schema store models only settable input.
+- **Coverage (22.0%).** The field is settable *somewhere*, just not on the device this tree was dumped
+  from. It clusters exactly where you would predict: **CRS1xx/2xx switches 191 settable rows**,
+  L3 Hardware Offloading 14, QoS 25. And `/interface/ethernet/poe` has **0** rows in `commands` at
+  all — the PoE-Out property rows have no menu to join to at any granularity, so no amount of ranking
+  or proximity work reaches them.
+
+That second row is **#25's "arch as advisory" half, finally with a number attached**, arriving from a
+direction nobody was looking: not "CHR has no Wi-Fi so tool output is empty", but "one architecture's
+dump silently defines the vocabulary the whole join is scored against."
+
+## Schema → prose: the "known, undocumented" population, counted
+
+Of **2,720** distinct argument names, 1,616 (59.4%) have a property row somewhere with that name and
+**1,104 (40.6%) have none anywhere in the corpus**. This is the number #61 has wanted since its
+2026-07-12 reframe. It is deliberately generous — a name counts as documented if *any* page uses it,
+regardless of menu — so it is an upper bound on how much prose could ever be attached. Menu-aligned,
+it can only be worse (step 3).
+
+## Dotted names: ambiguity, not absence
+
+244 argument names are dotted (`channel.frequency`, `security.authentication-types`). **Zero** are
+documented under the full dotted name; **150** are documented under the bare leaf. But the dotted model
+explains only **4** of the 1,271 unmatched rows, because those leaves are usually *also* plain arguments
+at some other menu — so they already read as `known`.
+
+So #61's BL-3 is real but its shape is the opposite of how it was filed: the descriptions **exist**, and
+the defect is that one prose row silently stands in for several distinct attributes. That is an
+*ambiguity* bug in the same family as everything else in this briefing, not a missing-content bug. The
+overlay is a third vocabulary that settles it cleanly for neither: 218 of its field names are dotted, of
+which 103 match a dotted argument name.
+
+## What this changes
+
+1. **The CLI-Reference overlay is the vocabulary bridge, and inspect is not.** Not because it is bigger
+   — inspect has 36,099 `arg` rows to the overlay's 10,118 fields — but because it is complementary
+   *precisely where inspect is blind*: it carries `field_kind` (the 52.7%) and is version-less and
+   hardware-independent (the 22.0%). B-0016's Q5 asked what the overlay is *for*; this is a second,
+   sharper answer than "advisory metadata", and a stronger one than step 4's bounded `(path, name)`
+   validation.
+2. **Proximity is no longer the only thing gating alignment, and may not be the first thing.** It
+   answers *which menu*; it does nothing for a read-only field the schema store has no row for, or for a
+   switch-chip menu the dump never contained. Roughly half the prose→schema gap is untouched by any
+   menu-join improvement.
+3. **`arg`-only is the modelling decision to revisit.** The recurring question in this briefing has been
+   "what is the missing key". Step 6 suggests the prior question is *what is the missing **row***: the
+   schema store models settable input for one architecture, and the corpus documents settable input,
+   read-only state, and hardware variants for all of them. A key cannot join to a row that does not exist.
 
 ## B-0023 (page/section normalization) — implemented; now the substrate
 
@@ -650,7 +722,13 @@ Two findings that were not in #132 as filed:
 - **#61's prose-only properties remain out of reach.** Section alignment needs a section; corroboration
   needs a field name. Neither extracts a description from a prose bullet list on
   `common-firewall-matchers-and-actions`. The census puts a number on the adjacent gap: **1,271 rows
-  (27.7% of 4,587)** carry names inspect has never heard of and cannot be validated at all.
+  (27.7% of 4,587)** carry names inspect has never heard of — **decomposed in step 6**: 52.7% are
+  read-only fields the `arg`-only model cannot represent, 22.0% are settable fields absent from this
+  architecture's dump, 24.3% are unknown to the overlay too.
+- **Should the schema store model read-only state and multiple architectures?** Step 6's finding
+  reframes the whole briefing: half the prose→schema gap is a *missing row*, not a missing key. This is
+  the question B-0001/B-0011 and the MCP-surface refactor should be sequenced behind, ahead of
+  proximity.
 - **Should a `high` label distinguish "this section documents the menu" from "this section documents a
   command *of* the menu"?** Measured in step 5: 19.7% of `high` rests on collapsed evidence, of which a
   confirmable 24 rows are the section-documents-output failure. The signal exists (`cliref_fields.field_kind`)
