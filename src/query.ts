@@ -9,6 +9,11 @@ import { type CanonicalCommand, canonicalize } from "./canonicalize.ts";
 import { makeDbVerbResolver } from "./canonicalize-resolver.ts";
 import { classifyQuery, type QueryClassification } from "./classify.ts";
 import { db } from "./db.ts";
+import {
+  gradeRows,
+  type PropertyLookupConfidence,
+  tierRank,
+} from "./property-confidence.ts";
 import { compareVersions } from "./version-compare.ts";
 
 /**
@@ -1051,7 +1056,7 @@ function getPageToc(pageId: number, pageUrl: string): SectionTocEntry[] {
   }));
 }
 
-export type PropertyLookupConfidence = "high" | "medium" | "low";
+export type { PropertyLookupConfidence };
 
 export type PropertyLookupRow = {
   name: string;
@@ -1074,53 +1079,85 @@ export type PropertyLookupRow = {
   confidence: PropertyLookupConfidence;
 };
 
-type PropertyLookupRowWithoutConfidence = Omit<PropertyLookupRow, "confidence">;
+/** As returned, plus the `section_id` used to grade the row and then dropped. */
+type PropertyLookupRowUngraded = Omit<PropertyLookupRow, "confidence"> & { section_id: number | null };
 
-/** Lookup property by name, optionally filtered by command path. */
+const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p.section, p.section_id,
+          s.anchor_id as section_anchor,
+          pg.title as page_title, pg.url as page_url, pg.id as page_id`;
+
+/**
+ * Lookup property by name, optionally filtered by command path.
+ *
+ * Every row with the name is graded against `commandPath` by `property-confidence.ts`, and
+ * results come back best tier first (B-0024 step 4).
+ *
+ * The candidate set deliberately is **not** limited to the page `commands.page_id` links to.
+ * That link is the fuzzy, page-grained one this whole briefing exists because of, and scoping
+ * to it hides the very rows the grading is meant to surface: `/interface/bridge/host` + `vid`
+ * links to the IGMP snooping page, so the `high` "Static Entries" section — which names
+ * `/interface/bridge/host` outright — would never be returned. What the link still buys is the
+ * `medium` page tier for rows carrying no path evidence of their own.
+ *
+ * Rows off the linked page must therefore earn their place: once the linked page contributes
+ * anything, an off-page row is kept only if its tier is at least as good as the best the linked
+ * page offers. A correct link keeps the tight result it always had, and only rows that match or
+ * beat it widen the answer. With no linked page at all, the global name match is the whole
+ * answer, exactly as before.
+ *
+ * Within a tier, linked-page rows sort first. Grading is menu-level, so a ubiquitous name can
+ * legitimately be `high` on several pages at once — `name` is `high` for `/interface/ethernet`
+ * on both the Ethernet and Bonding pages — and without this tie-break the winner was decided by
+ * page title, which is how `explainCommand` came to describe `name=ether2` as "Name of the
+ * bonding interface".
+ */
 export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
-  if (commandPath) {
-    // Find the page linked to this command path, then search properties there
-    const linked = db
-      .prepare(
-        `SELECT DISTINCT c.page_id FROM commands c
-         WHERE c.path = ? AND c.page_id IS NOT NULL`,
-      )
-      .get(commandPath) as { page_id: number } | null;
-
-    if (linked) {
-      const scopedRows = db
-        .prepare(
-          `SELECT p.name, p.type, p.default_val, p.description, p.section,
-                  s.anchor_id as section_anchor,
-                  pg.title as page_title, pg.url as page_url, pg.id as page_id
-           FROM properties p
-           JOIN pages pg ON pg.id = p.page_id
-           LEFT JOIN sections s ON s.id = p.section_id
-           WHERE p.page_id = ? AND p.name = ? COLLATE NOCASE
-           ORDER BY p.sort_order`,
-        )
-        .all(linked.page_id, name) as PropertyLookupRowWithoutConfidence[];
-      if (scopedRows.length > 0) {
-        return scopedRows.map((row) => ({ ...row, confidence: "high" }));
-      }
-    }
-  }
-
-  // Fallback: search by property name across all pages
-  const globalRows = db
+  const rows = db
     .prepare(
-      `SELECT p.name, p.type, p.default_val, p.description, p.section,
-              s.anchor_id as section_anchor,
-              pg.title as page_title, pg.url as page_url, pg.id as page_id
+      `SELECT ${PROPERTY_LOOKUP_COLUMNS}
        FROM properties p
        JOIN pages pg ON pg.id = p.page_id
        LEFT JOIN sections s ON s.id = p.section_id
        WHERE p.name = ? COLLATE NOCASE
        ORDER BY pg.title, p.sort_order`,
     )
-    .all(name) as PropertyLookupRowWithoutConfidence[];
-  const confidence: PropertyLookupConfidence = commandPath ? "low" : "medium";
-  return globalRows.map((row) => ({ ...row, confidence }));
+    .all(name) as PropertyLookupRowUngraded[];
+
+  // Without a requested menu there is nothing to align to, so the tier answers a different
+  // question and stays at the unscoped `medium` it has always reported.
+  if (!commandPath) {
+    return rows.map(({ section_id: _section_id, ...row }) => ({ ...row, confidence: "medium" }));
+  }
+
+  const linked = db
+    .prepare(
+      `SELECT DISTINCT c.page_id FROM commands c
+       WHERE c.path = ? AND c.page_id IS NOT NULL`,
+    )
+    .get(commandPath) as { page_id: number } | null;
+  const linkedPageId = linked?.page_id ?? null;
+  const onLinkedPage = (row: PropertyLookupRowUngraded) => row.page_id === linkedPageId;
+
+  const tiers = gradeRows(rows, commandPath, onLinkedPage);
+  // Best tier the linked page itself offers, or null when it contributes nothing. A linked row is
+  // always at least `medium` (page alignment guarantees it), so this also drops off-page `low`.
+  let bestLinkedRank: number | null = null;
+  for (const [i, row] of rows.entries()) {
+    if (!onLinkedPage(row)) continue;
+    const rank = tierRank(tiers[i]);
+    if (bestLinkedRank === null || rank < bestLinkedRank) bestLinkedRank = rank;
+  }
+  return rows
+    .map(({ section_id: _section_id, ...row }, i) => ({ ...row, confidence: tiers[i] }))
+    .filter(
+      (row, i) =>
+        bestLinkedRank === null || onLinkedPage(rows[i]) || tierRank(row.confidence) <= bestLinkedRank,
+    )
+    .sort(
+      (a, b) =>
+        tierRank(a.confidence) - tierRank(b.confidence) ||
+        Number(b.page_id === linkedPageId) - Number(a.page_id === linkedPageId),
+    );
 }
 
 /** Parse _attrs JSON and extract completion, stripping _attrs from output. */

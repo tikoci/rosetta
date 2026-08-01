@@ -19,6 +19,11 @@ import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
 import { db, initDb } from "./db.ts";
 import { type PageCandidate, pageIdentitySegs, pickBestPageId } from "./link-ranking.ts";
+import {
+  extractMenuPaths,
+  isRouterOsPath as isRouterOsMenuPath,
+  normalizeMenuPath,
+} from "./menu-paths.ts";
 
 const HTML_DIR =
   process.argv[2] || resolve(import.meta.dirname, "../box/latest/ROS");
@@ -62,28 +67,9 @@ for (const c of dirCommands) {
 // Strategy 1: Extract menu paths from first code block and page text
 // RouterOS paths in code: /ip/firewall/filter, /system/clock, etc.
 // Also handle old syntax: /ip firewall filter -> /ip/firewall/filter
-const menuPathRe = /\/[a-z][a-z0-9-]+(?:[/ ][a-z][a-z0-9-]+)+/g;
-
-function normalizeMenuPath(p: string): string {
-  return p.replace(/ /g, "/").toLowerCase();
-}
-
-// Set of known non-RouterOS paths to ignore
-const ignorePaths = new Set([
-  "/bin/bash", "/bin/sh", "/dev/null", "/usr/bin", "/usr/local",
-  "/etc/config", "/tmp/backup", "/var/log", "/proc/sys",
-]);
-
-function isRouterOsPath(p: string): boolean {
-  if (ignorePaths.has(p)) return false;
-  // Must start with a known top-level RouterOS dir
-  const firstSegment = p.split("/")[1];
-  return cmdPathToId.has(`/${firstSegment}`) || [
-    "ip", "ipv6", "interface", "system", "routing", "tool", "queue",
-    "ppp", "mpls", "certificate", "user", "snmp", "radius", "log",
-    "file", "disk", "container", "iot", "caps-man",
-  ].includes(firstSegment);
-}
+// Extraction lives in menu-paths.ts so the B-0024 join census measures the same rules.
+const dirPathSet = new Set(cmdPathToId.keys());
+const isRouterOsPath = (p: string) => isRouterOsMenuPath(p, dirPathSet);
 
 // Map: page_id -> set of command paths found in that page
 const pageToCommandPaths = new Map<number, Set<string>>();
@@ -92,12 +78,8 @@ for (const page of pages) {
   const paths = new Set<string>();
 
   // Extract from code blocks
-  const codeMatches = page.code.matchAll(menuPathRe);
-  for (const m of codeMatches) {
-    const normalized = normalizeMenuPath(m[0]);
-    if (isRouterOsPath(normalized)) {
-      paths.add(normalized);
-    }
+  for (const p of extractMenuPaths([page.code], dirPathSet)) {
+    paths.add(p);
   }
 
   // Also look in the HTML for <strong>/path/syntax</strong> and code elements

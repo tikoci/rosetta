@@ -786,8 +786,20 @@ server.registerTool(
 
 Returns type, default value, description, documentation page, section_anchor, and confidence.
 Optionally filter by command path to disambiguate (e.g., "disabled" appears everywhere).
-Confidence is high for exact matches on the page linked from command_path, medium for
-global exact matches without command_path, and low for global fallback with command_path.
+
+With command_path, rows come back best-first and confidence says how strongly THAT row is
+tied to THAT menu:
+- high — the section documenting the row is about that menu (it names the menu, and of the
+  menus it names that one owns most of its properties), and the command tree does not
+  contradict the menu taking this property
+- medium — the section names a neighbouring menu (parent or child); or names the requested
+  menu only in passing while documenting a different one; or only the page matches
+- low — nothing links the row to the menu beyond the property name; treat as a candidate,
+  not an answer
+Without command_path every row is medium: there is no menu to align to, so the tier is not
+answering the same question. A "low" row is not necessarily wrong — 200 of the 468 documentation
+sections that carry properties (42.7%) never name the menu they describe — but it is unverified:
+→ routeros_command_tree: confirm the property exists at that command path before relying on it
 
 A single page may document the same property name several times, each meaning something
 different in its own section — "name" on the PPP AAA page is the profile name, the login

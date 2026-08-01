@@ -341,15 +341,21 @@ function evalSurfaceQuery(q: GoldenQuery, commandsCount: number, k = 5): QueryRe
     if (!ep) return misconfigured("surface=property but no expected_property");
     const rows = lookupProperty(ep.name, ep.path);
     if (ep.path) {
-      // path given → require a high-confidence (path→page-linked) row, else the link/property is broken
-      const highRows = rows.filter((r) => r.confidence === "high");
-      hit = ep.page
-        ? highRows.some((r) => deriveRosettaId(r.page_url) === ep.page)
-        : highRows.length > 0;
+      // Path given → the best-ranked row must be the right one AND carry path evidence.
+      // `high` alone is no longer the check: since B-0024 step 4 the tier grades the row's own
+      // section against the menu, so a correct row whose section names no menu is honestly
+      // `medium` (WireGuard's property table does exactly that). What must never pass is a `low`
+      // top row — that is the lookup admitting it has nothing tying the row to the menu. With no
+      // expected page there is nothing else to check, so `high` remains the bar.
+      const best = rows[0];
+      hit =
+        best !== undefined &&
+        best.confidence !== "low" &&
+        (ep.page ? deriveRosettaId(best.page_url) === ep.page : best.confidence === "high");
       if (!hit) {
         notes.push(
-          `property ${ep.path} → ${ep.name}: ${rows.length} row(s), ${highRows.length} high-confidence` +
-            (ep.page ? `; want page=${ep.page}, got=${highRows.map((r) => deriveRosettaId(r.page_url)).join("|") || "none"}` : ""),
+          `property ${ep.path} → ${ep.name}: ${rows.length} row(s), best=${best?.confidence ?? "none"}` +
+            (ep.page ? `; want page=${ep.page}, got=${best ? deriveRosettaId(best.page_url) : "none"}` : ""),
         );
       }
     } else {

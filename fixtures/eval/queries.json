@@ -253,7 +253,7 @@
       "shape": "property",
       "surface": "property",
       "expected_property": { "path": "/interface/wireguard", "name": "listen-port", "page": "docs/virtual-private-networks/wireguard" },
-      "notes": "#53: +property (exact path+name direct lookup via routeros_lookup_property). WireGuard has a clean command-path→page→property link, so this resolves HIGH confidence to the WireGuard page — anchors that the direct property surface works at all."
+      "notes": "#53: +property (exact path+name direct lookup via routeros_lookup_property). WireGuard has a clean command-path→page→property link, so this resolves to the WireGuard page as the top row — anchors that the direct property surface works at all. Its tier is `medium`, not `high`: the section is a bare property table that never names /interface/wireguard (B-0024 step 4)."
     },
     {
       "id": "prop-vxlan-vni",
@@ -261,7 +261,7 @@
       "shape": "property",
       "surface": "property",
       "expected_property": { "path": "/interface/vxlan", "name": "vni", "page": "docs/bridging-and-switching/vxlan" },
-      "notes": "#53: +property (exact path+name direct lookup). VXLAN vni resolves HIGH to the VXLAN page. Second clean anchor for the direct property surface."
+      "notes": "#53: +property (exact path+name direct lookup). VXLAN vni resolves HIGH to the VXLAN page — its section names /interface/vxlan outright. Second clean anchor for the direct property surface."
     },
     {
       "id": "prop-firewall-filter-action",
@@ -269,7 +269,7 @@
       "shape": "property",
       "surface": "property",
       "expected_property": { "path": "/ip/firewall/filter", "name": "action" },
-      "notes": "#53: +property. KNOWN-FAILING, intentionally not loosened (Bug Ledger BL-1). `action` exists as a property on the Filter page and `/ip/firewall/filter` exists as a command path, but they are NOT linked, so lookupProperty returns only low-confidence rows — no HIGH resolution. Documents the command-path→page linkage gap on a core menu (same footprint as #26's firewall-filter ranking miss). Fixing the link belongs to a follow-up, not #53; this anchor keeps the gap visible and will flip green when it's fixed."
+      "notes": "#53: +property. KNOWN-FAILING, intentionally not loosened (Bug Ledger BL-1). `action` exists as a property on the Filter page and `/ip/firewall/filter` exists as a command path, but they are NOT linked, so lookupProperty returns no high-confidence row — nothing ties any candidate section to the menu. Documents the command-path→page linkage gap on a core menu (same footprint as #26's firewall-filter ranking miss). Fixing the link belongs to a follow-up, not #53; this anchor keeps the gap visible and will flip green when it's fixed."
     },
     {
       "id": "changelog-cve",

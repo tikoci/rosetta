@@ -8,6 +8,7 @@
 # covers all casings. Keep sorted; add a word rather than tolerate noise. British
 # locale variants (normalise, behavioural, …) are also kept here; reserve
 # cspell.json `ignoreWords` for true throwaways (see `behaviour` there).
+aboutness
 acd
 acrpsma
 acsmaufl
@@ -15,6 +16,8 @@ adlist
 affordances
 ahx
 alphanum
+analyse
+analysed
 apa
 apn
 apos
@@ -34,6 +37,7 @@ baselined
 bdi
 bdo
 behavioural
+behaviours
 bfd
 blackhole
 bridgingand
@@ -136,6 +140,7 @@ flinks
 fmt
 footguns
 freeradius
+frob
 frobnicate
 frontmatter
 fts
@@ -227,6 +232,7 @@ mirrorable
 mis
 misattributed
 miscalibrated
+miscalibration
 misdetects
 mislink
 mislinked
@@ -255,6 +261,7 @@ mvrp
 navbox
 ndltm
 neighbourhood
+neighbouring
 netid
 netinstall
 netlink
@@ -362,6 +369,8 @@ rtrace
 rulebooks
 samp
 scep
+scorable
+scorables
 seafile
 seccfg
 sed
@@ -435,6 +444,7 @@ unprobeable
 unprobed
 unpushed
 unqueryable
+unscorable
 unsettable
 unthrottled
 upnp
