@@ -1100,9 +1100,16 @@ const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p
  * `medium` page tier for rows carrying no path evidence of their own.
  *
  * Rows off the linked page must therefore earn their place: once the linked page contributes
- * anything, unaligned (`low`) rows from elsewhere are dropped, so a correct link keeps the tight
- * result it always had and only evidence-bearing rows widen it. With no linked page at all, the
- * global name match is the whole answer, exactly as before.
+ * anything, an off-page row is kept only if its tier is at least as good as the best the linked
+ * page offers. A correct link keeps the tight result it always had, and only rows that match or
+ * beat it widen the answer. With no linked page at all, the global name match is the whole
+ * answer, exactly as before.
+ *
+ * Within a tier, linked-page rows sort first. Grading is menu-level, so a ubiquitous name can
+ * legitimately be `high` on several pages at once — `name` is `high` for `/interface/ethernet`
+ * on both the Ethernet and Bonding pages — and without this tie-break the winner was decided by
+ * page title, which is how `explainCommand` came to describe `name=ether2` as "Name of the
+ * bonding interface".
  */
 export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
   const rows = db
@@ -1130,13 +1137,27 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
     .get(commandPath) as { page_id: number } | null;
   const linkedPageId = linked?.page_id ?? null;
   const onLinkedPage = (row: PropertyLookupRowUngraded) => row.page_id === linkedPageId;
-  const linkContributes = linkedPageId !== null && rows.some(onLinkedPage);
 
   const tiers = gradeRows(rows, commandPath, onLinkedPage);
+  // Best tier the linked page itself offers, or null when it contributes nothing. A linked row is
+  // always at least `medium` (page alignment guarantees it), so this also drops off-page `low`.
+  let bestLinkedRank: number | null = null;
+  for (const [i, row] of rows.entries()) {
+    if (!onLinkedPage(row)) continue;
+    const rank = tierRank(tiers[i]);
+    if (bestLinkedRank === null || rank < bestLinkedRank) bestLinkedRank = rank;
+  }
   return rows
     .map(({ section_id: _section_id, ...row }, i) => ({ ...row, confidence: tiers[i] }))
-    .filter((row, i) => !linkContributes || row.confidence !== "low" || onLinkedPage(rows[i]))
-    .sort((a, b) => tierRank(a.confidence) - tierRank(b.confidence));
+    .filter(
+      (row, i) =>
+        bestLinkedRank === null || onLinkedPage(rows[i]) || tierRank(row.confidence) <= bestLinkedRank,
+    )
+    .sort(
+      (a, b) =>
+        tierRank(a.confidence) - tierRank(b.confidence) ||
+        Number(b.page_id === linkedPageId) - Number(a.page_id === linkedPageId),
+    );
 }
 
 /** Parse _attrs JSON and extract completion, stripping _attrs from output. */

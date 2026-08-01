@@ -8,7 +8,7 @@
  * was labelled `low`, so the label described **which query branch ran**, not what the row knows.
  *
  * B-0024 step 3 measured the alternative corpus-wide: menu paths named in the property's own
- * *section*. That signal is 76.1% precise when present but silent for 42.7% of property-owning
+ * *section*. That signal is 75.6% precise when present but silent for 42.7% of property-owning
  * sections — a ranking signal, not a key. So it is used to grade and to rank; the page link
  * survives only as the `medium` tier for rows with no path evidence of their own.
  *
@@ -28,8 +28,9 @@
  * `/ip/firewall/filter` in passing while documenting `/interface/bridge/filter`, and citation
  * alone was enough to mislabel it `high`. {@link supportedPaths} resolves that by asking which
  * of the named menus accepts the most of the section's *own* property names. Requiring the
- * winner keeps 84.6% of `high` labels; the blunter alternative (reject any section naming more
- * than one menu) keeps 41.9% and throws away correct alignments over incidental cross-references.
+ * winner keeps 87.2% of the alignments naming alone would accept; the blunter alternative (reject any
+ * section naming more than one menu) keeps 42.4% and throws away correct alignments over incidental
+ * cross-references. Both figures regenerate from `eval/command-prose-join.ts`.
  */
 
 import { db } from "./db.ts";

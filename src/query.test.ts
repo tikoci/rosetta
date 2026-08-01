@@ -251,6 +251,13 @@ beforeAll(() => {
     (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
     VALUES (98, 92, 'Static Entries', 2, 'static-entries',
      'Static host entries are added under /interface/bridge/host.', '', 8, 3)`);
+  // Page 93 also documents /interface/bridge properly, so `pvid` grades `high` on two pages at
+  // once. Page titles sort "Apps" before "Bridging and Switching", which is how a same-tier
+  // off-page row used to take first place away from the linked one.
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (99, 93, 'App Bridge Settings', 2, 'app-bridge-settings',
+     'The app exposes the same /interface/bridge settings.', '', 8, 2)`);
 
   db.run(`INSERT INTO properties
     (id, page_id, name, type, default_val, description, section, section_id, sort_order)
@@ -280,6 +287,9 @@ beforeAll(() => {
   db.run(`INSERT INTO properties
     (id, page_id, name, type, default_val, description, section, section_id, sort_order)
     VALUES (100, 93, 'vid', 'integer', '', 'VLAN ID shown in the app.', 'Properties', 97, 1)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (101, 93, 'pvid', 'integer', '1', 'PVID as the app labels it.', 'App Bridge Settings', 99, 2)`);
 
   db.run(`INSERT INTO commands
     (id, path, name, type, parent_path, page_id, description, ros_version)
@@ -1120,16 +1130,19 @@ describe("lookupProperty confidence", () => {
     // row first. The tier now comes from what each section says.
     expect(tiers("pvid", "/interface/bridge/port")).toEqual([
       ["high", "Bridge Port Settings"], // section names the menu exactly
+      ["medium", "App Bridge Settings"], // names the parent menu
       ["medium", "Bridge Interface Setup"], // names the parent menu
       ["low", "Properties"], // names no menu at all
     ]);
   });
 
   test("a linked page is graded per-section, not wholesale", () => {
-    // `/interface/bridge` links to page 92, so the scoped branch runs and both of that page's
-    // rows were `high` pre-B-0024. Only the section naming that exact menu still is.
+    // `/interface/bridge` links to page 92, and both of that page's rows were `high` pre-B-0024.
+    // Only the section naming that exact menu still is — and the linked page takes the tie
+    // against page 93's equally-`high` section despite sorting later by title.
     expect(tiers("pvid", "/interface/bridge")).toEqual([
-      ["high", "Bridge Interface Setup"],
+      ["high", "Bridge Interface Setup"], // page 92 — linked
+      ["high", "App Bridge Settings"], // page 93 — same tier, off-page
       ["medium", "Bridge Port Settings"], // names a descendant menu
     ]);
   });
@@ -1164,6 +1177,16 @@ describe("lookupProperty confidence", () => {
     expect(tiers("pvid", "/interface/bridge/port").map(([c]) => c)).toContain("low");
     // With a contributing link, unaligned off-page rows are dropped rather than padding the tail.
     expect(tiers("pvid", "/interface/bridge").map(([, s]) => s)).not.toContain("Properties");
+  });
+
+  test("explainCommand picks the linked page's row when two pages tie on tier", () => {
+    // The regression this guards: grading is menu-level, so a name can be `high` on several
+    // pages. explainCommand takes row [0], so a title-ordered tie made it describe
+    // `/interface/ethernet name=ether2` as "Name of the bonding interface" on the release DB.
+    const result = explainCommand("/interface/bridge set pvid=10", "7.22");
+    expect(result.args[0].property?.confidence).toBe("high");
+    expect(result.args[0].property?.description).toBe("Bridge-level PVID.");
+    expect(result.args[0].property?.page_title).toBe("Bridging and Switching");
   });
 
   test("an unscoped lookup stays medium — there is no menu to align to", () => {

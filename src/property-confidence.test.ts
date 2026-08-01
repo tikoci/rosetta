@@ -101,6 +101,24 @@ describe("supportedPaths", () => {
     expect(supportedPaths(paths, ["undocumented-thing"], accepts({}))).toEqual(paths);
   });
 
+  test("keeps nothing when the names are known and no named menu takes any of them", () => {
+    // The other zero: not silence but a verdict. `pvid` is a real field somewhere else, so the
+    // tree does know it — it just does not put it at either named menu, which is evidence
+    // against both rather than an absence of evidence.
+    const found = supportedPaths(
+      new Set(["/ip/dhcp-server", "/ip/settings"]),
+      ["pvid"],
+      accepts({ pvid: [PORT] }),
+    );
+    expect([...found]).toEqual([]);
+  });
+
+  test("a lone named menu is scored, not exempted", () => {
+    // The single-path case is where a passing mention has no competitor to be measured against.
+    expect([...supportedPaths(new Set(["/ip/settings"]), ["pvid"], accepts({ pvid: [PORT] }))]).toEqual([]);
+    expect([...supportedPaths(new Set([PORT]), ["pvid"], accepts({ pvid: [PORT] }))]).toEqual([PORT]);
+  });
+
   test("ties keep both — a menu and its submenu can be equally supported", () => {
     const found = supportedPaths(
       new Set(["/interface/bridge", PORT]),

@@ -186,7 +186,7 @@ coarse to call this a row-level key:**
 
 - **Pros:** built from data that already ships; reuses `link-commands.ts`'s existing extraction and
   `isRouterOsPath()`; degrades to today's behaviour when a fragment mentions no path; naturally
-  multi-valued, so the scalar limitation disappears. **Measured:** 76.1% conditional precision and a
+  multi-valued, so the scalar limitation disappears. **Measured:** 75.6% conditional precision and a
   6.5× narrower candidate set than page granularity.
 - **Cons:** the coarseness above, now quantified — **42.7%** of property-owning sections name no menu
   path (the guess that this is common on prose-only pages was right, and it is the dominant failure
@@ -248,7 +248,7 @@ re-checkable rather than trusted: `DB_PATH=… bun run src/eval/command-prose-jo
 
 **The oracle.** An inspect `arg` row `/interface/bridge/port/add/pvid` means the menu
 `/interface/bridge/port` accepts `pvid`. That is what "the aligned path is right" is scored against.
-It covers **3,223 of 4,587** property rows (70.3%); the other 1,364 carry names inspect has never
+It covers **3,316 of 4,587** property rows (72.3%); the other 1,271 carry names inspect has never
 heard of and are unscorable by construction — largely #61's territory.
 
 ## The verdict
@@ -261,12 +261,12 @@ motivated #131 and #58 — but it is silent on about half the corpus, and silenc
 | Property rows whose own section names any menu path | 3,122 / 4,587 (**68.1%**) |
 | ... same, page-grained (what the linker uses today) | 4,440 / 4,587 (96.8%) |
 | Property-owning sections naming no menu path at all | 200 / 468 (**42.7%**) |
-| Scorable rows whose section names an **accepting** path | 1,660 / 3,223 (**51.5%**) |
+| Scorable rows whose section names an **accepting** path | 1,661 / 3,316 (**50.1%**) |
 | ... exactly one such path (unambiguous) | 1,446 (44.9%) |
-| **Conditional** precision — of rows whose section names *any* path | 1,660 / 2,181 (**76.1%**) |
+| **Conditional** precision — of rows whose section names *any* path | 1,661 / 2,197 (**75.6%**) |
 | Mean candidate paths per fragment — section vs page | **1.0 vs 6.4** (6.5× narrower) |
 
-The two numbers that matter together: **76.1% conditional precision but only 68.1% coverage.** When a
+The two numbers that matter together: **75.6% conditional precision but only 68.1% coverage.** When a
 section names a path, that path is usually the right one — the dominant failure mode is *silence*,
 not misalignment. That is the opposite of the failure mode the fuzzy page ranker has, and it is why
 this composes as a tier rather than replacing anything.
@@ -275,9 +275,9 @@ this composes as a tier rather than replacing anything.
 
 | Tier that resolved the row | Rows |
 |---|---|
-| section names an accepting path | 1,660 (51.5%) |
-| fell back to the page | 1,221 (37.9%) |
-| unresolved by either | 342 (**10.6%**) |
+| section names an accepting path | 1,661 (50.1%) |
+| fell back to the page | 1,234 (37.2%) |
+| unresolved by either | 421 (**12.7%**) |
 
 ## Where it is still too coarse
 
@@ -285,12 +285,12 @@ this composes as a tier rather than replacing anything.
   sections hold 353 rows between them. Section alignment can never distinguish two properties in the
   same section — it is a *fragment* verdict applied to every row inside.
 - **The `/ip/settings` class is real and quantified.** Of 433 (section, path) pairs where the section
-  owns scorable properties, **115 (26.6%)** are paths that accept *none* of them — a genuine menu,
+  owns scorable properties, **128 (28.7%)** are paths that accept *none* of them — a genuine menu,
   mentioned in passing, unrelated to the properties beside it. Against that, 184 pairs (42.5%) accept
   90–100%. So the signal is bimodal: mostly excellent or entirely spurious, which is exactly the
   shape a support-ratio filter can exploit.
 - **"The menu accepts this name" is weak evidence on its own.** Only 36.9% of scorable rows have a
-  name accepted at exactly one menu corpus-wide; **21.0% have names accepted at 26+ menus**
+  name accepted at exactly one menu corpus-wide; **20.8% have names accepted at 26+ menus**
   (`comment`, `disabled`, `name`). For those rows acceptance is nearly free and must not be read as
   belonging. This is the measured form of the rule already recorded above: *do not label a result
   `high` merely because the requested field exists.*
@@ -303,7 +303,7 @@ census and the linker cannot drift apart, with the current behaviour anchored in
 1. **Bare top-level menus are invisible.** `MENU_PATH_RE` requires a *second* segment, so `/certificate`,
    `/queue`, `/user` are never extracted — a page whose only mention is the bare menu is never a
    candidate for it. Cost, measured (`TOP_LEVEL=1`): coverage 68.1% → **70.5%**, section-tier precision
-   51.5% → **53.2%**, unresolved 10.6% → 9.6%. Real but modest; it is a linker bug independent of this
+   50.1% → **51.8%**, unresolved 12.7% → 11.7%. Real but modest; it is a linker bug independent of this
    briefing.
 2. **`normalizeMenuPath` fabricates pseudo-paths.** Mapping spaces to slashes turns
    `/certificate/import file-name=x` into `/certificate/import/file-name`, which is not a menu and can
@@ -359,9 +359,19 @@ for.
 
 So the candidate set is now every row with the name, graded with page alignment determined **per
 row**. The link keeps exactly one job — conferring the `medium` page tier on rows with no path
-evidence of their own. To stop that widening results in the common case, off-page rows must earn their
-place: once the linked page contributes anything, unaligned (`low`) rows from elsewhere are dropped.
-A correct link therefore returns what it always did, and only evidence-bearing rows widen it.
+evidence of their own. To stop that widening results in the common case, off-page rows must earn
+their place: once the linked page contributes anything, an off-page row survives only if its tier is
+at least as good as the best the linked page offers. A correct link therefore returns what it always
+did, and only rows that match or beat it widen the answer.
+
+Widening the set exposed a second problem that grading does not solve either, caught in review. Tiers
+are menu-level, so a ubiquitous name is legitimately `high` on several pages at once: `name` at
+`/interface/ethernet` grades `high` on the Ethernet, Bonding and PoE-Out pages, because each of those
+sections is genuinely about a menu that takes it. With ties broken by page title, `Bonding` won, and
+`explainCommand` reported `/interface/ethernet set name=ether2` as "Name of the bonding interface" —
+a *worse* answer than before the change, on a query the old scoped branch handled correctly. So
+within a tier, linked-page rows sort first. The page link is weak evidence, but it is still evidence,
+and it is exactly the right thing to break a tie the section evidence cannot.
 
 ## Tiers as implemented
 
@@ -382,16 +392,16 @@ tree says are real, 115,926 row labels compared (`absent` = the row was not retu
 | Transition | Rows | Share |
 |---|---:|---:|
 | `low` → `low` | 76,963 | 66.4% |
-| `absent` → `absent` | 33,438 | 28.8% |
+| `absent` → `absent` | 33,526 | 28.9% |
 | `high` → `medium` | 2,230 | 1.9% |
 | `high` → `high` | 1,119 | 1.0% |
 | `low` → `medium` | 1,105 | 1.0% |
 | `low` → `high` | 835 | 0.7% |
-| `absent` → `medium` | 156 | 0.1% |
 | `absent` → `high` | 80 | 0.1% |
+| `absent` → `medium` | 68 | 0.1% |
 
 **33.4% of the labels that shipped as `high` survive.** 1,940 rows escape a wrongly-`low` label, and
-**236 rows the old candidate set suppressed outright are now returned with evidence** — 80 of them
+**148 rows the old candidate set suppressed outright are now returned with evidence** — 80 of them
 `high`. The `low` population dominates because most (menu, name) pairs have no prose section naming
 the menu at all: the 42.7% barren-section result, seen from the query side.
 
@@ -421,7 +431,8 @@ one menu is scored like any other, since that is precisely where a lone passing 
 competitor to be measured against and is most likely to be mistaken for authority.
 
 The blunter alternative was measured and rejected: rejecting any section that names more than one
-unrelated menu retains **41.9%** of `high` labels versus **84.6%** for the support gate, and its losses
+unrelated menu retains **42.4%** of the alignments naming alone would accept, versus **87.2%** for the
+support gate, and its losses
 are overwhelmingly correct alignments killed by a single incidental cross-reference
 (`/interface/macvlan` losing to a mention of `/ip/settings`).
 
@@ -480,14 +491,14 @@ question is no longer "is the confidence meaningful" but "does either fold targe
    ranking signal, rejected as a key. Census committed at `src/eval/command-prose-join.ts`. The
    sub-questions as originally posed, and what they returned:
    - **Fragment coarseness** → confirmed as the limiting factor. 63.6% of rows sit in sections of 11+
-     properties; 26.6% of (section, path) pairs are spurious.
+     properties; 28.7% of (section, path) pairs are spurious.
    - **Table granularity** → **dead end, closed.** No table names a path its section lacks; 495 of 562
      name none. The finer structural fragment does not exist.
    - **Proximity feasibility** → needs new extraction-time provenance. No line/offset column exists on
      `sections`, `page_tables`, `page_table_rows`, or `properties` — only `sort_order`.
    - **Coverage** → 68.1% of rows (70.5% if bare top-level menus are matched); the prose-only guess was
      right.
-   - **Precision** → 76.1% conditional. Two extraction defects found in the process, both recorded above.
+   - **Precision** → 75.6% conditional. Two extraction defects found in the process, both recorded above.
 
    The predicted branch is the one that happened: coarseness dominates, so **Option A is a ranking
    signal rather than a key, and the key question reopens** — now with proximity as the only live
@@ -543,7 +554,7 @@ Two findings that were not in #132 as filed:
 # Open questions
 
 - ~~**Is fragment-grained path extraction precise *and fine* enough to be the key?**~~ **Answered: no —
-  precise enough (76.1% conditional), not fine enough (42.7% barren sections, 63.6% of rows sharing a
+  precise enough (75.6% conditional), not fine enough (42.7% barren sections, 63.6% of rows sharing a
   section with 10+ others).** Both predicted failure modes are real; coverage is the larger one. It is
   a ranking signal. Table granularity, floated as the alternative, is closed.
 - ~~**What is `high` allowed to mean?**~~ **Answered and implemented in step 4 above** — exact
@@ -557,7 +568,7 @@ Two findings that were not in #132 as filed:
   preceding it. Unmeasured — it cannot be measured from a shipped DB, only from the vendored source.
 - **#61's prose-only properties remain out of reach.** Section alignment needs a section; corroboration
   needs a field name. Neither extracts a description from a prose bullet list on
-  `common-firewall-matchers-and-actions`. The census puts a number on the adjacent gap: **1,364 rows
+  `common-firewall-matchers-and-actions`. The census puts a number on the adjacent gap: **1,271 rows
   (29.7%)** carry names inspect has never heard of and cannot be validated at all.
 - Next revisit trigger: the step-4 design pass landing, a decision on proximity provenance, or any
   rebuild that changes the cliref counts away from 228/1,051/10,118.

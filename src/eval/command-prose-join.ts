@@ -35,6 +35,7 @@ import {
   gradeRow,
   type PropertyLookupConfidence,
   supportedPaths,
+  tierRank,
 } from "../property-confidence.ts";
 
 // Bare top-level menus (`/certificate`) are invisible to the linker's regex. Measuring
@@ -226,7 +227,8 @@ const commonBuckets = ["1 menu", "2-5", "6-25", "26-100", "100+"];
 const commonality = new Map<string, number>();
 for (const p of props) {
   if (!isKnownName(p.name)) continue;
-  const menus = [...(acceptsByName.get(p.name) ?? [])].filter((m) => dirPaths.has(m)).length;
+  const menus = [...(acceptsByName.get(p.name.toLowerCase()) ?? [])].filter((m) => dirPaths.has(m))
+    .length;
   const b =
     menus <= 1 ? "1 menu" : menus <= 5 ? "2-5" : menus <= 25 ? "6-25" : menus <= 100 ? "26-100" : "100+";
   commonality.set(b, (commonality.get(b) ?? 0) + 1);
@@ -393,31 +395,53 @@ const transitions = new Map<string, number>();
 const bump = (k: string) => transitions.set(k, (transitions.get(k) ?? 0) + 1);
 let oldHigh = 0;
 let oldLow = 0;
+// Gate comparison: of the alignments that could reach `high` on naming alone, how many each
+// candidate rule keeps. This is the evidence for choosing the support gate over exclusivity.
+let gateNone = 0;
+let gateSupport = 0;
+let gateExclusive = 0;
+const related = (a: string, b: string) => a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
 for (const [menu, name] of queryPairs) {
   const candidates = candidatesByName.get(name) ?? [];
   const linkedPage = linkedPageOf.get(menu) ?? null;
   const linkContributes = linkedPage !== null && candidates.some((c) => c.page_id === linkedPage);
 
-  for (const c of candidates) {
+  const menusForName = acceptsByName.get(name);
+  const graded = candidates.map((c) => {
     const onLinkedPage = c.page_id === linkedPage;
-    // Pre-B-0024: the scoped branch returned only linked-page rows and called them all `high`;
-    // otherwise the global fallback returned everything as `low`.
-    const before: string = linkContributes ? (onLinkedPage ? "high" : "absent") : "low";
-    if (before === "high") oldHigh++;
-    else if (before === "low") oldLow++;
-
     const paths = c.section_id === null ? new Set<string>() : (graderPaths.get(c.section_id) ?? new Set());
     const supported = c.section_id === null ? new Set<string>() : supportedOf(c.section_id);
-    const menusForName = acceptsByName.get(name);
     const after: PropertyLookupConfidence = gradeRow(menu, {
       sectionPaths: paths,
       supportedPaths: supported,
       pageAligned: onLinkedPage,
       acceptsName: paths.has(menu) ? (menusForName ? menusForName.has(menu) : null) : null,
     });
-    // `lookupProperty` drops unaligned off-page rows once the link contributes anything.
-    const kept = !linkContributes || after !== "low" || onLinkedPage;
-    bump(`${before} → ${kept ? after : "absent"}`);
+    if (paths.has(menu) && (menusForName ? menusForName.has(menu) : true)) {
+      gateNone++;
+      if (supported.has(menu)) gateSupport++;
+      if ([...paths].every((q) => related(q, menu))) gateExclusive++;
+    }
+    return { onLinkedPage, after };
+  });
+
+  // `lookupProperty` keeps an off-page row only if it is at least as good as the best tier the
+  // linked page itself offers.
+  let bestLinkedRank: number | null = null;
+  for (const g of graded) {
+    if (!g.onLinkedPage) continue;
+    const rank = tierRank(g.after);
+    if (bestLinkedRank === null || rank < bestLinkedRank) bestLinkedRank = rank;
+  }
+
+  for (const g of graded) {
+    // Pre-B-0024: the scoped branch returned only linked-page rows and called them all `high`;
+    // otherwise the global fallback returned everything as `low`.
+    const before: string = linkContributes ? (g.onLinkedPage ? "high" : "absent") : "low";
+    if (before === "high") oldHigh++;
+    else if (before === "low") oldLow++;
+    const kept = bestLinkedRank === null || g.onLinkedPage || tierRank(g.after) <= bestLinkedRank;
+    bump(`${before} → ${kept ? g.after : "absent"}`);
   }
 }
 
@@ -434,4 +458,10 @@ say(
   `\nOf the ${oldHigh} labels that shipped as \`high\`, ${survived} survive (${pct(survived, oldHigh)}).` +
     ` ${rescued} rows the old candidate set suppressed entirely are now returned with evidence.` +
     ` The \`low\` population (${oldLow}) is dominated by lookups where no page is linked at all.`,
+);
+
+say(
+  `\nSupport gate vs the blunter alternative — of ${gateNone} alignments that naming alone would call` +
+    ` \`high\`, the shipped support gate keeps ${gateSupport} (${pct(gateSupport, gateNone)}) and rejecting` +
+    ` any section that names an unrelated menu keeps ${gateExclusive} (${pct(gateExclusive, gateNone)}).`,
 );
