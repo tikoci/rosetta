@@ -4,7 +4,7 @@ topic: The command↔prose join — `commands.page_id` is a page-level proxy for
 status: open
 related_tasks: ["#58", "#61", "#131", "#132", "#100", "#25", "B-0001", "B-0011", "B-0016", "B-0023"]
 created: 2026-07-31
-last_revisited: 2026-07-31
+last_revisited: 2026-08-01
 ---
 
 # Question
@@ -439,6 +439,74 @@ are overwhelmingly correct alignments killed by a single incidental cross-refere
 Still open: how "reference owner vs related guide" is expressed once a row legitimately aligns to more
 than one menu. The tie-keeping above is a placeholder, not an answer.
 
+# Step 5 — how thin is the evidence under the labels that survived? (2026-08-01)
+
+Step 4 measured how many labels *changed*. This asks a different question about the same population:
+of the 1,969 rows the shipped grader calls `high`, what is the exact match actually made of? Measured
+by the same census on the same artifact (`v0.11.2-alpha.109`), so the two sections are directly
+comparable.
+
+The question exists because `resolveToDir` — added so `/certificate/import file-name=x` counts as
+evidence for `/certificate` — walks *any* deeper mention back to its nearest real menu. A section that
+never names a menu can therefore supply **exact-match** evidence for it, which is the strongest tier.
+
+| Evidence for the exact match | Rows | Share of `high` |
+|---|---:|---:|
+| the section names the menu itself | 1,581 | **80.3%** |
+| only a deeper path collapsed onto it (`resolveToDir`) | 388 | **19.7%** |
+
+## The failure mode this exposes, and how small it is
+
+The collapse is usually doing exactly what it was built for: the overlay calls the name a settable
+`Argument` at the menu itself for **196 of the 388** (50.5%) — a section showing `/interface/veth/add`
+or `/iot/wiliot/set` genuinely is about that menu.
+
+The failure mode is narrower: a section documenting a **command's output** claims to be about the
+command's **menu**. `/interface/wifi` + `ssid` is the clean instance, and it is a *marquee* query:
+
+```text
+high    Wi-Fi 6/7 :: Scan command             :: The extended service set identifier of the AP.
+medium  Wi-Fi 6/7 :: Network                  :: The wireless network name (ESSID).
+medium  Wi-Fi 6/7 :: Configuration properties :: The name of the wireless network, aka the (E)SSID.
+```
+
+- §"Scan command" names only `/interface/wifi/scan`, which collapses to `/interface/wifi` → exact → `high`.
+- §"Network" names `/interface/wifi/network` → descendant → `medium`.
+- §"Configuration properties" — the actual settable table, 18 properties — names only
+  `/interface/wifi/cap`, which accepts none of them → zero support → page tier → `medium`.
+
+So the read-only scan output outranks the configuration prose. The overlay confirms the diagnosis
+independently: `interface/wifi/scan · ssid` is a **`Read-only Argument`**, `interface/wifi · ssid` is a
+settable **`Argument`**.
+
+**Corpus-wide, the confirmable class is 24 rows (6.2% of the collapsed set, 1.2% of all `high`)** — 16
+of them with settable-at-menu corroboration as well. That is the honest size: visible and legitimate,
+but not a crisis.
+
+## The cheap fix is measurably the wrong one
+
+The obvious cheap rule — don't let a read-only verb (`print`/`monitor`/`export`/`scan`/`find`/`get`/
+`check`) collapse — was measured rather than assumed:
+
+| Rows it would demote | Overlay says settable at the menu anyway (wrong) | Overlay says read-only there (right) |
+|---:|---:|---:|
+| 147 | **54** | **0** |
+
+Verb shape and read-only-ness do not coincide *anywhere* in this corpus. Plenty of sections name only
+`M/print` while documenting M's own settable properties (`Rule Table` via
+`/interface/ethernet/switch/rule/print`), and every row the blunt rule would demote for the right
+reason is already caught by the precise signal. **`field_kind` is the signal; the verb is not** — the
+same shape as step 4's support-gate-vs-exclusivity comparison, and the same verdict.
+
+## Disposition
+
+**Recorded, not built.** A `field_kind`-aware demotion is rule-1-shaped (acceptance may demote, never
+promote) and would be correct, but it costs `menu-paths.ts` returning collapse provenance plus a new
+`cliref` dependency inside `property-confidence.ts`, for 24 rows. The better trigger is extraction:
+if a future pass records read-only-ness on `properties` rows — which the overlay already knows per
+command — the demotion becomes a local check with no new join. Revisit if a rebuild moves the 24
+materially, or if the reference-owner-vs-guide design touches `menu-paths.ts` anyway.
+
 # Relationship to the other briefings
 
 ## B-0023 (page/section normalization) — implemented; now the substrate
@@ -485,8 +553,10 @@ question is no longer "is the confidence meaningful" but "does either fold targe
 
 1. ~~**Land #132.**~~ **Done — PR #133** (header-name column resolution; 52 rows corrected, 14
    fabricated rows removed). It also removed the Apps row that polluted every global `pvid` lookup.
-2. **Narrow #131 to Option C** (ranker fix only), stating in the issue that it does not fix property
-   lookup.
+2. ~~**Narrow #131 to Option C**~~ **Done 2026-08-01.** #131's body now scopes it to the hyphen-component
+   ranker fix, states explicitly that it does not fix property lookup (page 27 has zero property rows;
+   page 10 scores 0 at any tweak), requires a corpus-wide before/after link diff, and routes the
+   reachability half here. Retitled to match.
 3. ~~**Validate Option A corpus-wide.**~~ **Done — see "Step 3 result" above.** Verdict: adopted as a
    ranking signal, rejected as a key. Census committed at `src/eval/command-prose-join.ts`. The
    sub-questions as originally posed, and what they returned:
@@ -507,9 +577,20 @@ question is no longer "is the confidence meaningful" but "does either fold targe
    `src/property-confidence.ts` grades each row against the requested menu; `lookupProperty` orders
    best tier first. The support-ratio gate is **in** (the eval caught the false `high` it prevents).
    Reference-owner-vs-guide remains open, with tie-keeping as the placeholder.
-5. **Re-anchor #58 and #61 here** rather than carrying them as independent linkage bugs. Both now
-   *rank* correctly; neither is *fixed* at the source — `commands.page_id` still points
-   `/interface/bridge/vlan` at the wrong page, the grading just stops that from mattering.
+5. ~~**Re-anchor #58 and #61 here**~~ **Done 2026-08-01.** Both carry a post-step-4 comment re-running
+   their original symptoms on `v0.11.2-alpha.109`. What that re-run established, beyond the
+   re-anchoring:
+   - `/ip/dhcp-server lease-time` and `address-pool` now resolve `high` to the right DHCP sections, with
+     the DHCPv6 siblings demoted to `medium` and the HotSpot/IPsec `address-pool` rows filtered out —
+     #58's "HIGH to the wrong page" symptom is gone at both the link and the rank.
+   - `/ip/ipsec/peer exchange-mode` returns the right prose at `medium` and **cannot** reach `high`: its
+     section names no menu path at all. That is the 42.7% barren-section result showing up as a
+     user-visible ceiling, not a bug.
+   - `/ip/firewall/filter action`/`chain` and `/routing/bgp/connection distance` are unchanged and
+     unchangeable by ranking — #61's territory. Grading did improve their *labels* (the bridge-firewall
+     rows sit at `medium` via the support gate; the wireless `distance` rows stay `low`).
+   - Neither is *fixed* at the source: `commands.page_id` still points `/interface/bridge/vlan` at page
+     344 and leaves `/routing/bgp/connection` NULL. Grading stops that from mattering for retrieval.
 6. Revisit B-0001/B-0011 — now unblocked, see above.
 7. **Fix the two extractor defects** (bare top-level menus; document `resolveToDir` as the required walk
    for new consumers) — independent of the join, and they improve today's linker. Landing the top-level
@@ -570,5 +651,10 @@ Two findings that were not in #132 as filed:
   needs a field name. Neither extracts a description from a prose bullet list on
   `common-firewall-matchers-and-actions`. The census puts a number on the adjacent gap: **1,271 rows
   (27.7% of 4,587)** carry names inspect has never heard of and cannot be validated at all.
-- Next revisit trigger: the step-4 design pass landing, a decision on proximity provenance, or any
-  rebuild that changes the cliref counts away from 228/1,051/10,118.
+- **Should a `high` label distinguish "this section documents the menu" from "this section documents a
+  command *of* the menu"?** Measured in step 5: 19.7% of `high` rests on collapsed evidence, of which a
+  confirmable 24 rows are the section-documents-output failure. The signal exists (`cliref_fields.field_kind`)
+  and the cheap proxy (verb shape) is measurably wrong. Open as a *cost* question, not a *feasibility* one.
+- Next revisit trigger: a decision on proximity provenance, an extraction pass that could carry
+  read-only-ness onto `properties` rows, or any rebuild that changes the cliref counts away from
+  228/1,051/10,118.

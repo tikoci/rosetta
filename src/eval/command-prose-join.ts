@@ -28,7 +28,7 @@
  */
 
 import { db } from "../db.ts";
-import { extractMenuPaths } from "../menu-paths.ts";
+import { extractMenuPaths, resolveToDir } from "../menu-paths.ts";
 import {
   type ArgRow,
   acceptanceMap,
@@ -398,6 +398,53 @@ for (const [name, menus] of acceptsByName) {
   for (const m of menus) if (dirPaths.has(m)) queryPairs.push([m, name]);
 }
 
+// ── Step 5 evidence: where does a `high` label's exact match actually come from? ──────────
+//
+// `resolveToDir` walks a mention like `/certificate/import file-name=x` back to `/certificate`,
+// so a section that never names a menu can still supply exact-match evidence for it. That is
+// deliberate and usually right, but it also lets a section documenting a *command* (its output
+// columns) claim to be about the command's *menu*. These maps separate the two so the shipped
+// `high` population can be split by which kind of evidence produced it.
+const namedPaths = new Map<number, ReadonlySet<string>>();
+/** Section → menu → the deeper path(s) that collapsed onto it. Only menus the section never names. */
+const collapsedFrom = new Map<number, Map<string, Set<string>>>();
+for (const s of sections) {
+  const named = extractMenuPaths([s.text, s.code], dirPaths, { allowTopLevel: true });
+  namedPaths.set(s.id, named);
+  const from = new Map<string, Set<string>>();
+  for (const p of named) {
+    if (dirPaths.has(p)) continue;
+    const dir = resolveToDir(p, dirPaths);
+    if (dir === null || named.has(dir)) continue;
+    let sources = from.get(dir);
+    if (!sources) {
+      sources = new Set();
+      from.set(dir, sources);
+    }
+    sources.add(p);
+  }
+  collapsedFrom.set(s.id, from);
+}
+
+// The CLI-Reference overlay is the only source that distinguishes a settable `Argument` from a
+// `Read-only Argument`, and it does so per command — exactly the distinction the collapse loses.
+const clirefFieldKind = db.prepare(
+  `SELECT 1 FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
+   WHERE e.source_path = ? AND f.name = ? COLLATE NOCASE AND f.field_kind = ? LIMIT 1`,
+);
+/** `source_path` in the overlay has no leading slash. */
+const clirefSays = (path: string, name: string, kind: string): boolean =>
+  clirefFieldKind.get(path.slice(1), name, kind) != null;
+
+const READ_ONLY_VERBS = new Set(["print", "monitor", "export", "scan", "find", "get", "check"]);
+let highNamed = 0;
+let highCollapsed = 0;
+let collapsedReadOnlyVerb = 0;
+let collapsedRoConfirmed = 0;
+let collapsedSettableAtMenu = 0;
+let roVerbButSettable = 0;
+let roVerbAndReadOnly = 0;
+
 const transitions = new Map<string, number>();
 const bump = (k: string) => transitions.set(k, (transitions.get(k) ?? 0) + 1);
 let oldHigh = 0;
@@ -429,7 +476,7 @@ for (const [menu, name] of queryPairs) {
       if (supported.has(menu)) gateSupport++;
       if ([...paths].every((q) => related(q, menu))) gateExclusive++;
     }
-    return { onLinkedPage, after };
+    return { onLinkedPage, after, row: c };
   });
 
   // `lookupProperty` keeps an off-page row only if it is at least as good as the best tier the
@@ -449,6 +496,27 @@ for (const [menu, name] of queryPairs) {
     else if (before === "low") oldLow++;
     const kept = bestLinkedRank === null || g.onLinkedPage || tierRank(g.after) <= bestLinkedRank;
     bump(`${before} → ${kept ? g.after : "absent"}`);
+
+    // Step 5: split the surviving `high` labels by the provenance of their exact match.
+    if (!kept || g.after !== "high" || g.row.section_id === null) continue;
+    if (namedPaths.get(g.row.section_id)?.has(menu)) {
+      highNamed++;
+      continue;
+    }
+    highCollapsed++;
+    const sources = collapsedFrom.get(g.row.section_id)?.get(menu) ?? new Set<string>();
+    const verbs = [...sources].map((p) => p.slice(menu.length + 1).split("/")[0]);
+    // The command each mention collapsed from, e.g. `/interface/wifi/scan`.
+    const commands = verbs.map((v) => `${menu}/${v}`);
+    const readOnlyThere = commands.some((c) => clirefSays(c, name, "Read-only Argument"));
+    const settableHere = clirefSays(menu, name, "Argument");
+    if (readOnlyThere) collapsedRoConfirmed++;
+    if (settableHere) collapsedSettableAtMenu++;
+    if (verbs.length > 0 && verbs.every((v) => READ_ONLY_VERBS.has(v))) {
+      collapsedReadOnlyVerb++;
+      if (settableHere) roVerbButSettable++;
+      else if (readOnlyThere) roVerbAndReadOnly++;
+    }
   }
 }
 
@@ -465,6 +533,29 @@ say(
   `\nOf the ${oldHigh} labels that shipped as \`high\`, ${survived} survive (${pct(survived, oldHigh)}).` +
     ` ${rescued} rows the old candidate set suppressed entirely are now returned with evidence.` +
     ` The \`low\` population (${oldLow}) is dominated by lookups where no page is linked at all.`,
+);
+
+// ── Step 5: how thin is the evidence under the labels that survived? ────────
+say("\n## Step 5 — provenance of the shipped `high` labels\n");
+const highTotal = highNamed + highCollapsed;
+say("| Evidence for the exact match | Rows | Share of `high` |");
+say("|---|---:|---:|");
+say(`| the section names the menu itself | ${highNamed} | ${pct(highNamed, highTotal)} |`);
+say(
+  `| only a deeper path collapsed onto it (\`resolveToDir\`) | ${highCollapsed} | ${pct(highCollapsed, highTotal)} |`,
+);
+say(
+  `\nOf the ${highCollapsed} collapsed-evidence rows, the CLI-Reference overlay calls the name a settable` +
+    ` \`Argument\` at the menu itself for ${collapsedSettableAtMenu} (${pct(collapsedSettableAtMenu, highCollapsed)})` +
+    ` — the collapse doing its job — and a \`Read-only Argument\` at the command it collapsed from for` +
+    ` ${collapsedRoConfirmed} (${pct(collapsedRoConfirmed, highCollapsed)}), which is the section-documents-output` +
+    ` failure mode.`,
+);
+say(
+  `\nRefusing to collapse read-only verbs (${[...READ_ONLY_VERBS].join("/")}) would demote` +
+    ` ${collapsedReadOnlyVerb} rows, of which the overlay says ${roVerbButSettable} are settable at the menu` +
+    ` anyway (wrong demotions) and ${roVerbAndReadOnly} are genuinely read-only there. Verb shape is a` +
+    ` proxy for the wrong thing; \`field_kind\` is the signal.`,
 );
 
 say(
