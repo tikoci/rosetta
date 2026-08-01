@@ -336,30 +336,72 @@ Both reported defects are discriminated correctly, including the negative cases.
 Option A from hypothesis to *adopted signal* — while the 42.7% of barren sections is what keeps it from
 being the key.
 
-# Step 4 — the rank/confidence contract this supports
+# Step 4 — the rank/confidence contract — implemented 2026-07-31
 
-Stated now because step 3 bounds it. Tiers for a command-scoped property lookup, in order:
+Shipped in `src/property-confidence.ts`, consumed by `lookupProperty` (`src/query.ts`). The **row set
+is unchanged** — the two-branch scoped/global search is untouched. Only the label and the order move,
+which is the whole point: Option A is a ranking signal, so it ranks.
 
-| Tier | Requires | Reachable share of scorable rows |
-|---|---|---|
-| `high` | the candidate row's **own section** names the requested menu exactly, and inspect confirms that menu accepts the name | ≤ 51.5% (upper bound; exact-menu alignment is a subset) |
-| `medium` | the section names an **ancestor** of the requested menu, or only the **page** aligns | ~37.9% via the page tier |
-| `low` | name-only global fallback — no path evidence anywhere | ~10.6% + all 1,364 unscorable rows |
+## What the label used to mean
 
-Three rules the measurement forces:
+`high` = "the scoped branch ran"; `low` = "it didn't". The label described **which SQL executed**, not
+what the row knows. Every property on a linked page was equally `high`; a correct row reached by the
+global fallback was always `low`.
 
-1. **Field existence never sets the tier.** CLI-Reference / inspect validation answers "is this a real
-   field", a fact about the *query*. It may only *confirm* a tier reached by path alignment, and may
-   demote (a section-aligned path that does not accept the name is suspect), never promote.
-2. **Ubiquitous names cannot reach `high` on acceptance.** For the 21.0% of rows whose name is accepted
-   at 26+ menus, acceptance carries no information; the tier must rest on alignment alone.
-3. **Silence is `low`, not `medium`.** 42.7% of property-owning sections name no path. Treating absent
-   evidence as partial evidence is precisely the miscalibration that made the pre-#132 `high` labels
-   misleading.
+## Tiers as implemented
 
-Open for the design pass: whether a per-(section, path) **support ratio** filter (drop paths accepting
-none of their section's properties — 26.6% of pairs) should gate the `high` tier, and how "reference
-owner vs related guide" is expressed once a row can align to more than one menu.
+| Tier | Requires |
+|---|---|
+| `high` | the row's **own section** names the requested menu, that menu is the one the section is *about* (see support gate), and the command tree does not contradict it |
+| `medium` | the section names a **neighbouring** menu (ancestor at depth ≥ 2, or any descendant); or names the menu only as a cross-reference; or only the **page** aligns |
+| `low` | nothing but the property name ties the row to the menu |
+
+Unscoped lookups (no `commandPath`) stay `medium` throughout: there is no menu to align to, so the
+tier would be answering a different question.
+
+Measured over the 14,832 (menu, property-name) pairs the command tree says are real — 82,252 row
+labels:
+
+| Transition | Rows | Share |
+|---|---:|---:|
+| `low` → `low` | 76,963 | 93.6% |
+| `high` → `medium` | 2,295 | 2.8% |
+| `low` → `medium` | 1,105 | 1.3% |
+| `high` → `high` | 1,054 | 1.3% |
+| `low` → `high` | 835 | 1.0% |
+
+**31.5% of today's `high` labels survive.** 1,940 rows escape a wrongly-`low` label. The population is
+dominated by `low` → `low` because most (menu, name) pairs have no prose section that names the menu at
+all — the 42.7% barren-section result seen from the query side.
+
+## The three rules, and how they landed
+
+1. **Field existence never sets the tier.** Confirmed as designed. It may demote an aligned row whose
+   menu rejects the name; it can never promote.
+2. **Ubiquitous names cannot reach `high` on acceptance.** No separate check was needed — rule 1 makes
+   it structural, since *nothing* reaches `high` on acceptance. Recorded here so it is not re-added as
+   a redundant guard.
+3. **Silence is `low`, not `medium`.** Implemented literally.
+
+## The support gate — the open question, answered
+
+Step 3 left open whether a per-(section, path) support ratio should gate `high`. **It must.** The
+retrieval eval caught it immediately: without a gate, `/ip/firewall/filter` + `action` returned
+`high` on the *bridge*-firewall section, which cites `/ip/firewall/filter` in one sentence while
+documenting `/interface/bridge/filter`. Naming is not aboutness.
+
+The gate: of the menus a section names, `high` requires the requested one to be among those accepting
+the **most of that section's own property names**. Ties keep both (a menu and its submenu are often
+equally supported); when the command tree knows none of the section's names, support cannot be judged
+and every named menu stays eligible — silence must not demote.
+
+The blunter alternative was measured and rejected: rejecting any section that names more than one
+unrelated menu retains **41.9%** of `high` labels versus **84.6%** for the support gate, and its losses
+are overwhelmingly correct alignments killed by a single incidental cross-reference
+(`/interface/macvlan` losing to a mention of `/ip/settings`).
+
+Still open: how "reference owner vs related guide" is expressed once a row legitimately aligns to more
+than one menu. The tie-keeping above is a placeholder, not an answer.
 
 # Relationship to the other briefings
 
@@ -391,12 +433,17 @@ B-0001 resolved (2026-07-14) that `lookup_property` should be retired, folding e
    assumes the page is right. `command_tree` surfaces `page_title`/`page_url` through the same fuzzy
    `commands.page_id`. Folding does not remove the bad join; it hides it.
 2. **`lookupProperty` is the only surface carrying the `high | medium | low` signal**
-   (`src/query.ts:1054`), and pre-fix it was miscalibrated in both directions. Neither fold target
-   can express that uncertainty.
+   (`src/property-confidence.ts`), and pre-fix it was miscalibrated in both directions. Neither
+   fold target can express that uncertainty.
 
 **Sequencing agreed with the maintainer 2026-07-31: fix the join, recalibrate confidence, then
 decide the surface.** The lean is *conditioned*, not overturned; the extraction ETL behind the tool
 was never in question.
+
+Step 4 sharpens reason 2 rather than removing it. The signal is now real — it grades the row instead
+of the branch — which makes it *more* costly to drop, not less. Folding into `get_page` /
+`command_tree` still has nowhere to put a per-row tier. The decision is now genuinely available: the
+question is no longer "is the confidence meaningful" but "does either fold target want to carry it".
 
 # Recommended next steps
 
@@ -420,11 +467,14 @@ was never in question.
    The predicted branch is the one that happened: coarseness dominates, so **Option A is a ranking
    signal rather than a key, and the key question reopens** — now with proximity as the only live
    candidate, and its cost known (new provenance, not a new query).
-4. **Design the rank/confidence contract** — drafted above from the step-3 bounds. Remaining: decide the
-   support-ratio gate and the reference-owner-vs-guide representation, then implement against
-   `lookupProperty`'s `high | medium | low`.
-5. **Re-anchor #58 and #61 here** rather than carrying them as independent linkage bugs.
-6. Revisit B-0001/B-0011 only after 4.
+4. ~~**Design the rank/confidence contract.**~~ **Done and implemented — see "Step 4" above.**
+   `src/property-confidence.ts` grades each row against the requested menu; `lookupProperty` orders
+   best tier first. The support-ratio gate is **in** (the eval caught the false `high` it prevents).
+   Reference-owner-vs-guide remains open, with tie-keeping as the placeholder.
+5. **Re-anchor #58 and #61 here** rather than carrying them as independent linkage bugs. Both now
+   *rank* correctly; neither is *fixed* at the source — `commands.page_id` still points
+   `/interface/bridge/vlan` at the wrong page, the grading just stops that from mattering.
+6. Revisit B-0001/B-0011 — now unblocked, see above.
 7. **Fix the two extractor defects** (bare top-level menus; document `resolveToDir` as the required walk
    for new consumers) — independent of the join, and they improve today's linker. Landing the top-level
    fix changes `commands.page_id` output, so it needs a before/after link diff, not just unit tests.

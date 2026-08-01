@@ -9,6 +9,11 @@ import { type CanonicalCommand, canonicalize } from "./canonicalize.ts";
 import { makeDbVerbResolver } from "./canonicalize-resolver.ts";
 import { classifyQuery, type QueryClassification } from "./classify.ts";
 import { db } from "./db.ts";
+import {
+  gradeRows,
+  type PropertyLookupConfidence,
+  tierRank,
+} from "./property-confidence.ts";
 import { compareVersions } from "./version-compare.ts";
 
 /**
@@ -1051,7 +1056,7 @@ function getPageToc(pageId: number, pageUrl: string): SectionTocEntry[] {
   }));
 }
 
-export type PropertyLookupConfidence = "high" | "medium" | "low";
+export type { PropertyLookupConfidence };
 
 export type PropertyLookupRow = {
   name: string;
@@ -1074,10 +1079,34 @@ export type PropertyLookupRow = {
   confidence: PropertyLookupConfidence;
 };
 
-type PropertyLookupRowWithoutConfidence = Omit<PropertyLookupRow, "confidence">;
+/** As returned, plus the `section_id` used to grade the row and then dropped. */
+type PropertyLookupRowUngraded = Omit<PropertyLookupRow, "confidence"> & { section_id: number | null };
 
-/** Lookup property by name, optionally filtered by command path. */
+const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p.section, p.section_id,
+          s.anchor_id as section_anchor,
+          pg.title as page_title, pg.url as page_url, pg.id as page_id`;
+
+/**
+ * Lookup property by name, optionally filtered by command path.
+ *
+ * The row set is the same two-branch search it has always been — the page linked to
+ * `commandPath`, else a global name match. What `commandPath` changes is the **grading**: each
+ * row is scored against the requested menu by `property-confidence.ts` and the results are
+ * ordered best tier first, so a row that merely sits on the linked page no longer outranks the
+ * section that actually documents the property for that menu (B-0024 step 4).
+ */
 export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
+  const grade = (rows: PropertyLookupRowUngraded[], pageAligned: boolean): PropertyLookupRow[] => {
+    // Without a requested menu there is nothing to align to, so the tier answers a different
+    // question and stays at the unscoped `medium` it has always reported.
+    const tiers: PropertyLookupConfidence[] = commandPath
+      ? gradeRows(rows, commandPath, pageAligned)
+      : rows.map(() => "medium");
+    return rows
+      .map(({ section_id: _section_id, ...row }, i) => ({ ...row, confidence: tiers[i] }))
+      .sort((a, b) => tierRank(a.confidence) - tierRank(b.confidence));
+  };
+
   if (commandPath) {
     // Find the page linked to this command path, then search properties there
     const linked = db
@@ -1090,37 +1119,30 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
     if (linked) {
       const scopedRows = db
         .prepare(
-          `SELECT p.name, p.type, p.default_val, p.description, p.section,
-                  s.anchor_id as section_anchor,
-                  pg.title as page_title, pg.url as page_url, pg.id as page_id
+          `SELECT ${PROPERTY_LOOKUP_COLUMNS}
            FROM properties p
            JOIN pages pg ON pg.id = p.page_id
            LEFT JOIN sections s ON s.id = p.section_id
            WHERE p.page_id = ? AND p.name = ? COLLATE NOCASE
            ORDER BY p.sort_order`,
         )
-        .all(linked.page_id, name) as PropertyLookupRowWithoutConfidence[];
-      if (scopedRows.length > 0) {
-        return scopedRows.map((row) => ({ ...row, confidence: "high" }));
-      }
+        .all(linked.page_id, name) as PropertyLookupRowUngraded[];
+      if (scopedRows.length > 0) return grade(scopedRows, true);
     }
   }
 
   // Fallback: search by property name across all pages
   const globalRows = db
     .prepare(
-      `SELECT p.name, p.type, p.default_val, p.description, p.section,
-              s.anchor_id as section_anchor,
-              pg.title as page_title, pg.url as page_url, pg.id as page_id
+      `SELECT ${PROPERTY_LOOKUP_COLUMNS}
        FROM properties p
        JOIN pages pg ON pg.id = p.page_id
        LEFT JOIN sections s ON s.id = p.section_id
        WHERE p.name = ? COLLATE NOCASE
        ORDER BY pg.title, p.sort_order`,
     )
-    .all(name) as PropertyLookupRowWithoutConfidence[];
-  const confidence: PropertyLookupConfidence = commandPath ? "low" : "medium";
-  return globalRows.map((row) => ({ ...row, confidence }));
+    .all(name) as PropertyLookupRowUngraded[];
+  return grade(globalRows, false);
 }
 
 /** Parse _attrs JSON and extract completion, stripping _attrs from output. */

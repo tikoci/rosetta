@@ -208,6 +208,92 @@ beforeAll(() => {
     (id, path, name, type, parent_path, page_id, description, ros_version)
     VALUES (99, '/ip/x86-feature', 'x86-feature', 'cmd', '/ip', NULL, 'x86-only', '7.22')`);
 
+  // --- B-0024 step 4: property-confidence fixture -------------------------------------------
+  // Mirrors the real #131 shape. Page 92 documents `pvid` in three sections that name three
+  // different menus; page 93 documents it in a section that names none (the "Apps" row that
+  // polluted every global pvid lookup). `/interface/bridge/port` deliberately has NO page link,
+  // so a lookup scoped to it falls through to the global branch — exactly as it does in the
+  // shipped corpus — and the tier has to come from the section, not the branch.
+  db.run(`INSERT INTO pages
+    (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+     author, last_updated, word_count, code_lines, html_file)
+    VALUES
+    (92, 'bridging', 'Bridging and Switching', 'Docs > Bridging', 2, NULL,
+     'https://manual.mikrotik.com/docs/bridging-and-switching',
+     'Bridge configuration.', '', NULL, NULL, NULL, 2, 0, 'bridging.html')`);
+  db.run(`INSERT INTO pages
+    (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+     author, last_updated, word_count, code_lines, html_file)
+    VALUES
+    (93, 'apps', 'Apps', 'Docs > Apps', 2, NULL,
+     'https://manual.mikrotik.com/docs/apps',
+     'Mobile app reference.', '', NULL, NULL, NULL, 3, 0, 'apps.html')`);
+
+  // Section 94 names the port menu exactly; 95 a sibling menu; 96 the parent menu.
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (94, 92, 'Bridge Port Settings', 2, 'bridge-port-settings',
+     'Port membership is configured under /interface/bridge/port.',
+     '/interface/bridge/port add bridge=br1 pvid=10', 7, 0)`);
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (95, 92, 'Bridge VLAN Table', 2, 'bridge-vlan-table',
+     'The VLAN table lives at /interface/bridge/vlan; tag membership is set on /interface/bridge/port too.', '', 14, 1)`);
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (96, 92, 'Bridge Interface Setup', 2, 'bridge-interface-setup',
+     'Create a bridge with /interface/bridge before adding ports.', '', 9, 2)`);
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (97, 93, 'Properties', 2, 'properties',
+     'Settings shown in the mobile app.', '', 6, 0)`);
+
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (94, 92, 'pvid', 'integer', '1', 'Port VLAN ID.', 'Bridge Port Settings', 94, 0)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (95, 92, 'pvid', 'integer', '1', 'Bridge-level PVID.', 'Bridge Interface Setup', 96, 1)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (96, 93, 'pvid', 'integer', '1', 'PVID shown in the app.', 'Properties', 97, 0)`);
+  // `frob` sits in a section that names the port menu exactly, but the command tree says the
+  // port menu does not accept it — the one case where field existence changes a tier.
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (97, 92, 'frob', 'string', '', 'Not a bridge port field.', 'Bridge Port Settings', 94, 2)`);
+  // Section 95 names the port menu as a cross-reference while documenting the VLAN table — the
+  // shape that made the bridge-firewall section claim /ip/firewall/filter in the real corpus.
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (98, 92, 'vlan-ids', 'string', '', 'VLAN IDs in this entry.', 'Bridge VLAN Table', 95, 3)`);
+
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (100, '/interface', 'interface', 'dir', NULL, NULL, 'Interfaces', '7.22')`);
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (101, '/interface/bridge', 'bridge', 'dir', '/interface', 92, 'Bridge', '7.22')`);
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (102, '/interface/bridge/port', 'port', 'dir', '/interface/bridge', NULL, 'Bridge ports', '7.22')`);
+  // The inspect oracle: an arg under a verb proves the *menu* accepts the name.
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (103, '/interface/bridge/port/add/pvid', 'pvid', 'arg', '/interface/bridge/port/add', NULL, NULL, '7.22')`);
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (104, '/interface/bridge/add/pvid', 'pvid', 'arg', '/interface/bridge/add', NULL, NULL, '7.22')`);
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (105, '/ip/dhcp-server/add/frob', 'frob', 'arg', '/ip/dhcp-server/add', NULL, NULL, '7.22')`);
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (106, '/interface/bridge/vlan', 'vlan', 'dir', '/interface/bridge', NULL, 'Bridge VLANs', '7.22')`);
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (107, '/interface/bridge/vlan/add/vlan-ids', 'vlan-ids', 'arg', '/interface/bridge/vlan/add', NULL, NULL, '7.22')`);
+
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.22')`);
   db.run(`INSERT INTO command_versions (command_path, ros_version)
@@ -988,7 +1074,10 @@ describe("lookupProperty", () => {
     const rows = lookupProperty("lease-time", "/ip/dhcp-server");
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0].name).toBe("lease-time");
-    expect(rows[0].confidence).toBe("high");
+    // Page-aligned only: page 1 is the page `/ip/dhcp-server` links to, but this row sits above
+    // any heading (section_id NULL) so nothing ties it to that menu specifically. Pre-B-0024
+    // this shipped as `high` purely because the scoped branch ran.
+    expect(rows[0].confidence).toBe("medium");
   });
 
   test("marks global fallback low when command path has no linked page", () => {
@@ -997,6 +1086,52 @@ describe("lookupProperty", () => {
     expect(Array.isArray(rows)).toBe(true);
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((row) => row.confidence === "low")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DB integration: lookupProperty confidence tiers (B-0024 step 4)
+// ---------------------------------------------------------------------------
+
+describe("lookupProperty confidence", () => {
+  const tiers = (name: string, path?: string) =>
+    lookupProperty(name, path).map((r) => [r.confidence, r.section] as const);
+
+  test("grades an unlinked menu from the section, and orders best tier first (#131)", () => {
+    // `/interface/bridge/port` has no linked page, so every row here comes from the global
+    // fallback — which used to label all of them `low` in page-title order, putting the Apps
+    // row first. The tier now comes from what each section says.
+    expect(tiers("pvid", "/interface/bridge/port")).toEqual([
+      ["high", "Bridge Port Settings"], // section names the menu exactly
+      ["medium", "Bridge Interface Setup"], // names the parent menu
+      ["low", "Properties"], // names no menu at all
+    ]);
+  });
+
+  test("a linked page is graded per-section, not wholesale", () => {
+    // `/interface/bridge` links to page 92, so the scoped branch runs and both of that page's
+    // rows were `high` pre-B-0024. Only the section naming that exact menu still is.
+    expect(tiers("pvid", "/interface/bridge")).toEqual([
+      ["high", "Bridge Interface Setup"],
+      ["medium", "Bridge Port Settings"], // names a descendant menu
+    ]);
+  });
+
+  test("a menu that rejects the name demotes an otherwise exact section", () => {
+    // `frob`'s section names /interface/bridge/port exactly, but the command tree only has it
+    // under /ip/dhcp-server. Field existence may demote; it never promotes.
+    expect(tiers("frob", "/interface/bridge/port")).toEqual([["medium", "Bridge Port Settings"]]);
+  });
+
+  test("a cited menu loses to the one the section actually documents", () => {
+    // Section 95 names both menus; only /interface/bridge/vlan accepts its properties, so a
+    // lookup scoped to the port menu gets `medium`, not the `high` a bare name-match would give.
+    expect(tiers("vlan-ids", "/interface/bridge/port")).toEqual([["medium", "Bridge VLAN Table"]]);
+    expect(tiers("vlan-ids", "/interface/bridge/vlan")).toEqual([["high", "Bridge VLAN Table"]]);
+  });
+
+  test("an unscoped lookup stays medium — there is no menu to align to", () => {
+    expect(lookupProperty("pvid").every((r) => r.confidence === "medium")).toBe(true);
   });
 });
 
@@ -1018,7 +1153,10 @@ describe("explainCommand", () => {
     expect(result.confidence).toBe("high");
     expect(result.args.map((arg) => arg.name)).toEqual(["chain", "action"]);
     expect(result.args[0].property?.name).toBe("chain");
-    expect(result.args[0].property?.confidence).toBe("high");
+    // The canonicalizer is `high` on the command, but the *property* row is page-aligned only:
+    // it sits above any heading, so nothing ties it to /ip/firewall/filter specifically. These
+    // two confidences answer different questions and are allowed to disagree (B-0024 step 4).
+    expect(result.args[0].property?.confidence).toBe("medium");
     expect(result.warnings).toEqual([]);
     expect(result.pages.some((page) => page.title === "Firewall Filter")).toBe(true);
     expect(result.changelog_hits.some((hit) => hit.category === "firewall")).toBe(true);
