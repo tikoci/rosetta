@@ -262,7 +262,7 @@ motivated #131 and #58 — but it is silent on about half the corpus, and silenc
 | ... same, page-grained (what the linker uses today) | 4,440 / 4,587 (96.8%) |
 | Property-owning sections naming no menu path at all | 200 / 468 (**42.7%**) |
 | Scorable rows whose section names an **accepting** path | 1,661 / 3,316 (**50.1%**) |
-| ... exactly one such path (unambiguous) | 1,446 (44.9%) |
+| ... exactly one such path (unambiguous) | 1,446 / 3,316 (**43.6%**) |
 | **Conditional** precision — of rows whose section names *any* path | 1,661 / 2,197 (**75.6%**) |
 | Mean candidate paths per fragment — section vs page | **1.0 vs 6.4** (6.5× narrower) |
 
@@ -284,12 +284,12 @@ this composes as a tier rather than replacing anything.
 - **A section is shared.** 63.6% of property rows sit in a section holding 11+ properties; five
   sections hold 353 rows between them. Section alignment can never distinguish two properties in the
   same section — it is a *fragment* verdict applied to every row inside.
-- **The `/ip/settings` class is real and quantified.** Of 433 (section, path) pairs where the section
+- **The `/ip/settings` class is real and quantified.** Of 446 (section, path) pairs where the section
   owns scorable properties, **128 (28.7%)** are paths that accept *none* of them — a genuine menu,
-  mentioned in passing, unrelated to the properties beside it. Against that, 184 pairs (42.5%) accept
+  mentioned in passing, unrelated to the properties beside it. Against that, 184 pairs (41.3%) accept
   90–100%. So the signal is bimodal: mostly excellent or entirely spurious, which is exactly the
   shape a support-ratio filter can exploit.
-- **"The menu accepts this name" is weak evidence on its own.** Only 36.9% of scorable rows have a
+- **"The menu accepts this name" is weak evidence on its own.** Only 37.0% of scorable rows have a
   name accepted at exactly one menu corpus-wide; **20.8% have names accepted at 26+ menus**
   (`comment`, `disabled`, `name`). For those rows acceptance is nearly free and must not be read as
   belonging. This is the measured form of the rule already recorded above: *do not label a result
@@ -392,16 +392,16 @@ tree says are real, 115,926 row labels compared (`absent` = the row was not retu
 | Transition | Rows | Share |
 |---|---:|---:|
 | `low` → `low` | 76,963 | 66.4% |
-| `absent` → `absent` | 33,526 | 28.9% |
-| `high` → `medium` | 2,230 | 1.9% |
-| `high` → `high` | 1,119 | 1.0% |
+| `absent` → `absent` | 33,521 | 28.9% |
+| `high` → `medium` | 2,295 | 2.0% |
+| `high` → `high` | 1,054 | 0.9% |
 | `low` → `medium` | 1,105 | 1.0% |
 | `low` → `high` | 835 | 0.7% |
 | `absent` → `high` | 80 | 0.1% |
-| `absent` → `medium` | 68 | 0.1% |
+| `absent` → `medium` | 73 | 0.1% |
 
-**33.4% of the labels that shipped as `high` survive.** 1,940 rows escape a wrongly-`low` label, and
-**148 rows the old candidate set suppressed outright are now returned with evidence** — 80 of them
+**31.5% of the labels that shipped as `high` survive.** 1,940 rows escape a wrongly-`low` label, and
+**153 rows the old candidate set suppressed outright are now returned with evidence** — 80 of them
 `high`. The `low` population dominates because most (menu, name) pairs have no prose section naming
 the menu at all: the 42.7% barren-section result, seen from the query side.
 
@@ -431,7 +431,7 @@ one menu is scored like any other, since that is precisely where a lone passing 
 competitor to be measured against and is most likely to be mistaken for authority.
 
 The blunter alternative was measured and rejected: rejecting any section that names more than one
-unrelated menu retains **42.4%** of the alignments naming alone would accept, versus **87.2%** for the
+unrelated menu retains **42.4%** of the alignments naming alone would accept, versus **84.4%** for the
 support gate, and its losses
 are overwhelmingly correct alignments killed by a single incidental cross-reference
 (`/interface/macvlan` losing to a mention of `/ip/settings`).
@@ -569,6 +569,6 @@ Two findings that were not in #132 as filed:
 - **#61's prose-only properties remain out of reach.** Section alignment needs a section; corroboration
   needs a field name. Neither extracts a description from a prose bullet list on
   `common-firewall-matchers-and-actions`. The census puts a number on the adjacent gap: **1,271 rows
-  (29.7%)** carry names inspect has never heard of and cannot be validated at all.
+  (27.7% of 4,587)** carry names inspect has never heard of and cannot be validated at all.
 - Next revisit trigger: the step-4 design pass landing, a decision on proximity provenance, or any
   rebuild that changes the cliref counts away from 228/1,051/10,118.

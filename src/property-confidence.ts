@@ -28,7 +28,7 @@
  * `/ip/firewall/filter` in passing while documenting `/interface/bridge/filter`, and citation
  * alone was enough to mislabel it `high`. {@link supportedPaths} resolves that by asking which
  * of the named menus accepts the most of the section's *own* property names. Requiring the
- * winner keeps 87.2% of the alignments naming alone would accept; the blunter alternative (reject any
+ * winner keeps 84.4% of the alignments naming alone would accept; the blunter alternative (reject any
  * section naming more than one menu) keeps 42.4% and throws away correct alignments over incidental
  * cross-references. Both figures regenerate from `eval/command-prose-join.ts`.
  */

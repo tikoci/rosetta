@@ -797,8 +797,8 @@ tied to THAT menu:
 - low — nothing links the row to the menu beyond the property name; treat as a candidate,
   not an answer
 Without command_path every row is medium: there is no menu to align to, so the tier is not
-answering the same question. A "low" row is not necessarily wrong — 42.7% of documentation
-sections never name the menu they describe — but it is unverified:
+answering the same question. A "low" row is not necessarily wrong — 200 of the 468 documentation
+sections that carry properties (42.7%) never name the menu they describe — but it is unverified:
 → routeros_command_tree: confirm the property exists at that command path before relying on it
 
 A single page may document the same property name several times, each meaning something

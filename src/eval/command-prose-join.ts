@@ -205,10 +205,10 @@ say(`Oracle: ${acceptsByName.size} distinct inspect \`arg\` names. Scorable rows
 say("| Outcome | Rows |");
 say("|---|---|");
 say(`| section names >=1 accepting path | ${sectionHit} (${pct(sectionHit, scorable)}) |`);
-say(`| ... exactly one (unambiguous) | ${sectionOne} (${pct(sectionOne, scorable)}) |`);
+say(`| ... exactly one (unambiguous) | ${sectionOne} / ${scorable} (${pct(sectionOne, scorable)}) |`);
 say(`| section names no accepting path | ${scorable - sectionHit} (${pct(scorable - sectionHit, scorable)}) |`);
 say(`| page-grained names >=1 accepting path | ${pageHit} (${pct(pageHit, scorable)}) |`);
-say(`| ... exactly one | ${pageOne} (${pct(pageOne, scorable)}) |`);
+say(`| ... exactly one | ${pageOne} / ${scorable} (${pct(pageOne, scorable)}) |`);
 say(
   `\nConditional precision — of the ${condTotal} scorable rows whose section names any path, ` +
     `${condHit} (${pct(condHit, condTotal)}) have an accepting one. ` +
@@ -261,11 +261,16 @@ for (const [sectionId, list] of bySection) {
     }
   }
 }
+say(`Population: ${pairs} (section, path) pairs across sections owning >=1 scorable property.\n`);
 say("| Support ratio | (section, path) pairs |");
 say("|---|---|");
 for (const b of supportOrder) {
   if (support.has(b)) say(`| ${b} | ${support.get(b)} (${pct(support.get(b) ?? 0, pairs)}) |`);
 }
+say(
+  `\nUnscorable rows — names the command tree has never heard of, so no alignment here can be ` +
+    `checked either way: ${props.length - scorable} / ${props.length} (${pct(props.length - scorable, props.length)}).`,
+);
 say(`\nSample zero-support paths (the \`/ip/settings\` class — a real menu, unrelated to the properties beside it): ${zeroSupport.join(" · ")}`);
 
 // ── M5 table granularity ────────────────────────────────────────────────────
@@ -359,7 +364,9 @@ const supportedOf = (sectionId: number): ReadonlySet<string> => {
   let cached = graderSupported.get(sectionId);
   if (!cached) {
     const paths = graderPaths.get(sectionId) ?? new Set<string>();
-    const names = (bySection.get(sectionId) ?? []).map((p) => p.name);
+    // `gradeRows` scores `SELECT DISTINCT name`; duplicates would weight one name twice and can
+    // flip which menu wins support, so dedupe to keep the census on the grader's contract.
+    const names = [...new Set((bySection.get(sectionId) ?? []).map((p) => p.name))];
     cached = supportedPaths(paths, names, acceptsByName);
     graderSupported.set(sectionId, cached);
   }
