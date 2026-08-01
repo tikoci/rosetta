@@ -214,6 +214,53 @@ The CLI-Reference overlay (`cliref_*` tables, issue #124) ingests `manual.mikrot
 
 - **`raw_type` stays unparsed.** Enums (`enum (a | b)`), ranges (`num { 0..7 }`), and composites are kept verbatim; retaining each page's exact source Markdown (hashed) makes that deferral lossless rather than destructive.
 
+### What each store is authoritative for — the layering model
+
+B-0024 step 6 measured the vocabularies of the three stores against each other and found they are not
+three views of one model; they are **three different layers**. Recorded here because it governs which
+store should be the base for any future alignment work, and because two of the three facts are easy to
+assume wrongly. Regenerate with `bun run src/eval/vocabulary-alignment.ts`.
+
+| Store | Layer it models | Authoritative for | Blind to |
+|---|---|---|---|
+| `cliref_*` (version-less overlay) | the **element** layer — paths, named fields, platform/capacity | settable-vs-read-only (`field_kind`), `package` / `conditions` / `syscap`, hardware-gated menus | verbs, per-version presence |
+| `schema_nodes` / `commands` (inspect) | the **CLI/expression** layer on top | verbs, per-version and per-architecture presence, settable inputs | read-only state, anything absent from the dumped architecture |
+| `pages` / `sections` / `properties` (prose) | the **human** layer | descriptions — the only source of them | structure; it has no command coordinate at all (B-0024) |
+
+Three measurements behind that table, each of which contradicts a plausible assumption:
+
+- **The overlay has commands but not the CRUD verb layer.** Of its 441 `Command` entries, exactly **two**
+  end in a standard CRUD verb (`app/remove`, `task/add`). The rest are *named operations* —
+  `system/reboot`, `ip/dhcp-client/renew`, `interface/wifi/monitor`,
+  `ipv6/firewall/filter/reset-counters-all`. So the overlay enumerates elements and the operations that
+  are not derivable from them; it does not enumerate `add`/`set`/`print` per menu.
+
+- **inspect is where the verbs live**, and it has them in bulk: `print` 540, `get` 539, `export` 442,
+  `reset`/`edit` 433, `set` 428, `remove` 326, `add` 301, `enable`/`disable` 248 each, `unset` 145.
+
+- **inspect's `arg` rows are a verb's *inputs*, which is not the same as a menu's fields.** Under
+  `add`/`set` they are the settable properties (`/interface/bridge/add` → 51 args). Under `print`/`get`
+  they are **CLI options**, not read-only state: `/interface/bridge/print` yields `detail`, `count-only`,
+  `where`, `without-paging`, …, and `/interface/bridge/get` yields `as-string`, `number`, `value-name`.
+  Read-only state fields are therefore absent from inspect **entirely** — `running`, `rx-packet`,
+  `tx-byte`, `last-seen` and `actual-mtu` each appear **0** times as an `arg` anywhere in the tree.
+
+The consequence is the B-0024 step 6 result: of the 1,271 property rows inspect has never heard of,
+**52.7% are read-only fields it cannot represent** and **22.0% are settable fields absent from the
+architecture that was dumped** (CRS1xx/2xx switch pages alone contribute 191; `/interface/ethernet/poe`
+has 0 rows in `commands`). Only 24.3% are unknown to the overlay as well.
+
+**Design direction, not yet a commitment.** This points at using the overlay as the **base** for paths
+and attributes, with verbs filled in from inspect where they exist, and prose supplying descriptions —
+rather than treating the inspect tree as the spine and everything else as enrichment. Two things gate
+it, and neither is settled here: whether the overlay's path vocabulary can host inspect's verbs without
+a new alias layer (a canonicalization question, tracked against `centrs`' `explain` work — see
+`canonicalize.ts` below and the cross-references section), and whether `properties` can be given a
+command coordinate at all (B-0024's open question). The reading that the overlay's verb-less,
+field-typed shape reflects a WinBox/C-struct-style internal model is plausible and consistent with
+everything above, but it is a **hypothesis about the upstream source**, not something this repo has
+verified.
+
 ### CSV requires manual download
 
 The old `curl -X POST -d "ax=matrix"` API is dead (late 2025). MikroTik's product matrix is now a Laravel Livewire/PowerGrid table. Export via browser: visit `mikrotik.com/products/matrix`, click export, choose "All". See `matrix/CLAUDE.md` for column schema.

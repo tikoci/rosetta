@@ -126,6 +126,7 @@ eoipv
 eperm
 esac
 esim
+essid
 etherboot
 etl
 euo
@@ -479,6 +480,7 @@ wds
 webfig
 webvtt
 wifiwave
+wiliot
 winbox
 winrun
 wip
