@@ -247,6 +247,10 @@ beforeAll(() => {
     (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
     VALUES (97, 93, 'Properties', 2, 'properties',
      'Settings shown in the mobile app.', '', 6, 0)`);
+  db.run(`INSERT INTO sections
+    (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+    VALUES (98, 92, 'Static Entries', 2, 'static-entries',
+     'Static host entries are added under /interface/bridge/host.', '', 8, 3)`);
 
   db.run(`INSERT INTO properties
     (id, page_id, name, type, default_val, description, section, section_id, sort_order)
@@ -267,6 +271,15 @@ beforeAll(() => {
   db.run(`INSERT INTO properties
     (id, page_id, name, type, default_val, description, section, section_id, sort_order)
     VALUES (98, 92, 'vlan-ids', 'string', '', 'VLAN IDs in this entry.', 'Bridge VLAN Table', 95, 3)`);
+  // `vid` on two pages: the section that names /interface/bridge/host, and the wrong page that
+  // /interface/bridge/host is actually linked to. Scoping the candidate set to the link would
+  // return only the second — the suppression this fixture exists to catch.
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (99, 92, 'vid', 'integer', '', 'VLAN ID of the host entry.', 'Static Entries', 98, 4)`);
+  db.run(`INSERT INTO properties
+    (id, page_id, name, type, default_val, description, section, section_id, sort_order)
+    VALUES (100, 93, 'vid', 'integer', '', 'VLAN ID shown in the app.', 'Properties', 97, 1)`);
 
   db.run(`INSERT INTO commands
     (id, path, name, type, parent_path, page_id, description, ros_version)
@@ -293,6 +306,10 @@ beforeAll(() => {
   db.run(`INSERT INTO commands
     (id, path, name, type, parent_path, page_id, description, ros_version)
     VALUES (107, '/interface/bridge/vlan/add/vlan-ids', 'vlan-ids', 'arg', '/interface/bridge/vlan/add', NULL, NULL, '7.22')`);
+  // Mislinked on purpose: the host menu points at page 93 (Apps), not the page documenting it.
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (108, '/interface/bridge/host', 'host', 'dir', '/interface/bridge', 93, 'Bridge hosts', '7.22')`);
 
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.22')`);
@@ -1128,6 +1145,25 @@ describe("lookupProperty confidence", () => {
     // lookup scoped to the port menu gets `medium`, not the `high` a bare name-match would give.
     expect(tiers("vlan-ids", "/interface/bridge/port")).toEqual([["medium", "Bridge VLAN Table"]]);
     expect(tiers("vlan-ids", "/interface/bridge/vlan")).toEqual([["high", "Bridge VLAN Table"]]);
+  });
+
+  test("a mislinked page cannot suppress the section that names the menu", () => {
+    // /interface/bridge/host is linked to page 93, which documents its own `vid`. Scoping the
+    // candidate set to the link would return only that row — the correct "Static Entries"
+    // section, which names the menu outright, would never be graded. This is the #131 mislink
+    // failure mode the tier exists to survive, so the candidate set must span pages.
+    expect(tiers("vid", "/interface/bridge/host")).toEqual([
+      ["high", "Static Entries"], // page 92 — not the linked page
+      ["medium", "Properties"], // page 93 — linked, but says nothing about the menu
+    ]);
+  });
+
+  test("off-page rows must earn their place once the link contributes", () => {
+    // `pvid`'s Apps row carries no path evidence. It survives here only because
+    // /interface/bridge/port has no linked page at all, so the global match is the whole answer.
+    expect(tiers("pvid", "/interface/bridge/port").map(([c]) => c)).toContain("low");
+    // With a contributing link, unaligned off-page rows are dropped rather than padding the tail.
+    expect(tiers("pvid", "/interface/bridge").map(([, s]) => s)).not.toContain("Properties");
   });
 
   test("an unscoped lookup stays medium — there is no menu to align to", () => {

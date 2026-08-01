@@ -1089,50 +1089,23 @@ const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p
 /**
  * Lookup property by name, optionally filtered by command path.
  *
- * The row set is the same two-branch search it has always been — the page linked to
- * `commandPath`, else a global name match. What `commandPath` changes is the **grading**: each
- * row is scored against the requested menu by `property-confidence.ts` and the results are
- * ordered best tier first, so a row that merely sits on the linked page no longer outranks the
- * section that actually documents the property for that menu (B-0024 step 4).
+ * Every row with the name is graded against `commandPath` by `property-confidence.ts`, and
+ * results come back best tier first (B-0024 step 4).
+ *
+ * The candidate set deliberately is **not** limited to the page `commands.page_id` links to.
+ * That link is the fuzzy, page-grained one this whole briefing exists because of, and scoping
+ * to it hides the very rows the grading is meant to surface: `/interface/bridge/host` + `vid`
+ * links to the IGMP snooping page, so the `high` "Static Entries" section — which names
+ * `/interface/bridge/host` outright — would never be returned. What the link still buys is the
+ * `medium` page tier for rows carrying no path evidence of their own.
+ *
+ * Rows off the linked page must therefore earn their place: once the linked page contributes
+ * anything, unaligned (`low`) rows from elsewhere are dropped, so a correct link keeps the tight
+ * result it always had and only evidence-bearing rows widen it. With no linked page at all, the
+ * global name match is the whole answer, exactly as before.
  */
 export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
-  const grade = (rows: PropertyLookupRowUngraded[], pageAligned: boolean): PropertyLookupRow[] => {
-    // Without a requested menu there is nothing to align to, so the tier answers a different
-    // question and stays at the unscoped `medium` it has always reported.
-    const tiers: PropertyLookupConfidence[] = commandPath
-      ? gradeRows(rows, commandPath, pageAligned)
-      : rows.map(() => "medium");
-    return rows
-      .map(({ section_id: _section_id, ...row }, i) => ({ ...row, confidence: tiers[i] }))
-      .sort((a, b) => tierRank(a.confidence) - tierRank(b.confidence));
-  };
-
-  if (commandPath) {
-    // Find the page linked to this command path, then search properties there
-    const linked = db
-      .prepare(
-        `SELECT DISTINCT c.page_id FROM commands c
-         WHERE c.path = ? AND c.page_id IS NOT NULL`,
-      )
-      .get(commandPath) as { page_id: number } | null;
-
-    if (linked) {
-      const scopedRows = db
-        .prepare(
-          `SELECT ${PROPERTY_LOOKUP_COLUMNS}
-           FROM properties p
-           JOIN pages pg ON pg.id = p.page_id
-           LEFT JOIN sections s ON s.id = p.section_id
-           WHERE p.page_id = ? AND p.name = ? COLLATE NOCASE
-           ORDER BY p.sort_order`,
-        )
-        .all(linked.page_id, name) as PropertyLookupRowUngraded[];
-      if (scopedRows.length > 0) return grade(scopedRows, true);
-    }
-  }
-
-  // Fallback: search by property name across all pages
-  const globalRows = db
+  const rows = db
     .prepare(
       `SELECT ${PROPERTY_LOOKUP_COLUMNS}
        FROM properties p
@@ -1142,7 +1115,28 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
        ORDER BY pg.title, p.sort_order`,
     )
     .all(name) as PropertyLookupRowUngraded[];
-  return grade(globalRows, false);
+
+  // Without a requested menu there is nothing to align to, so the tier answers a different
+  // question and stays at the unscoped `medium` it has always reported.
+  if (!commandPath) {
+    return rows.map(({ section_id: _section_id, ...row }) => ({ ...row, confidence: "medium" }));
+  }
+
+  const linked = db
+    .prepare(
+      `SELECT DISTINCT c.page_id FROM commands c
+       WHERE c.path = ? AND c.page_id IS NOT NULL`,
+    )
+    .get(commandPath) as { page_id: number } | null;
+  const linkedPageId = linked?.page_id ?? null;
+  const onLinkedPage = (row: PropertyLookupRowUngraded) => row.page_id === linkedPageId;
+  const linkContributes = linkedPageId !== null && rows.some(onLinkedPage);
+
+  const tiers = gradeRows(rows, commandPath, onLinkedPage);
+  return rows
+    .map(({ section_id: _section_id, ...row }, i) => ({ ...row, confidence: tiers[i] }))
+    .filter((row, i) => !linkContributes || row.confidence !== "low" || onLinkedPage(rows[i]))
+    .sort((a, b) => tierRank(a.confidence) - tierRank(b.confidence));
 }
 
 /** Parse _attrs JSON and extract completion, stripping _attrs from output. */

@@ -29,6 +29,13 @@
 
 import { db } from "../db.ts";
 import { extractMenuPaths } from "../menu-paths.ts";
+import {
+  type ArgRow,
+  acceptanceMap,
+  gradeRow,
+  type PropertyLookupConfidence,
+  supportedPaths,
+} from "../property-confidence.ts";
 
 // Bare top-level menus (`/certificate`) are invisible to the linker's regex. Measuring
 // with and without them is how the cost of that gap gets a number.
@@ -57,24 +64,14 @@ const dirPaths = new Set(
 );
 
 /**
- * Which menus accept a given property name. An `arg` row's `parent_path` is a command
- * (`/interface/bridge/port/add`); the menu that documents the property is its parent.
+ * Which menus accept a given property name, keyed by lowercased name. Built by the grader's own
+ * {@link acceptanceMap} so the census cannot describe rules the shipped code does not follow.
  */
-const acceptsByName = new Map<string, Set<string>>();
-for (const r of rows<{ name: string; parent_path: string }>(
-  "SELECT name, parent_path FROM commands WHERE type = 'arg' AND parent_path IS NOT NULL",
-)) {
-  let menus = acceptsByName.get(r.name);
-  if (!menus) {
-    menus = new Set();
-    acceptsByName.set(r.name, menus);
-  }
-  menus.add(r.parent_path);
-  const menu = r.parent_path.slice(0, r.parent_path.lastIndexOf("/"));
-  if (menu.includes("/")) menus.add(menu);
-}
-const isKnownName = (n: string) => acceptsByName.has(n);
-const accepts = (name: string, menu: string) => acceptsByName.get(name)?.has(menu) ?? false;
+const acceptsByName = acceptanceMap(
+  rows<ArgRow>("SELECT name, parent_path FROM commands WHERE type = 'arg' AND parent_path IS NOT NULL"),
+);
+const isKnownName = (n: string) => acceptsByName.has(n.toLowerCase());
+const accepts = (name: string, menu: string) => acceptsByName.get(name.toLowerCase())?.has(menu) ?? false;
 
 type Section = { id: number; page_id: number; heading: string; text: string; code: string };
 const sections = rows<Section>("SELECT id, page_id, heading, text, code FROM sections");
@@ -335,4 +332,106 @@ for (const table of ["sections", "page_tables", "page_table_rows", "properties"]
 say(
   "\nNo source line/offset column exists on any of them — only `sort_order`. A proximity join would " +
     "need new provenance captured at extraction time, not a different query over what ships today.",
+);
+
+// ── Step 4: what the shipped grader does to the labels ──────────────────────
+//
+// Everything above measures the *signal*. This measures the *tool*: it replays
+// `lookupProperty`'s candidate set and filter, grades every candidate with the production
+// `gradeRow`/`supportedPaths`, and diffs the result against the labels the pre-B-0024 code
+// would have produced (scoped branch ⇒ `high`, global fallback ⇒ `low`). The briefing and
+// CHANGELOG figures come from here, so they can be regenerated after any rule change.
+//
+// Takes a couple of minutes — it is a census, not a gate.
+say("\n## Step 4 — label transitions under the shipped grader\n");
+
+// The grader always matches bare top-level menus, regardless of this run's TOP_LEVEL setting:
+// that is a read-side choice it makes independently of the linker. Re-extract accordingly so
+// these numbers describe the shipped code and not this script's flag.
+const graderPaths = new Map<number, ReadonlySet<string>>();
+for (const s of sections) {
+  graderPaths.set(s.id, extractMenuPaths([s.text, s.code], dirPaths, { allowTopLevel: true, resolve: true }));
+}
+const graderSupported = new Map<number, ReadonlySet<string>>();
+const supportedOf = (sectionId: number): ReadonlySet<string> => {
+  let cached = graderSupported.get(sectionId);
+  if (!cached) {
+    const paths = graderPaths.get(sectionId) ?? new Set<string>();
+    const names = (bySection.get(sectionId) ?? []).map((p) => p.name);
+    cached = supportedPaths(paths, names, acceptsByName);
+    graderSupported.set(sectionId, cached);
+  }
+  return cached;
+};
+
+type Candidate = { page_id: number; section_id: number | null; name: string };
+const candidatesByName = new Map<string, Candidate[]>();
+for (const c of rows<Candidate>("SELECT page_id, section_id, name FROM properties")) {
+  const key = c.name.toLowerCase();
+  let list = candidatesByName.get(key);
+  if (!list) {
+    list = [];
+    candidatesByName.set(key, list);
+  }
+  list.push(c);
+}
+const linkedPageOf = new Map<string, number>();
+for (const c of rows<{ path: string; page_id: number }>(
+  "SELECT path, page_id FROM commands WHERE page_id IS NOT NULL",
+)) {
+  if (!linkedPageOf.has(c.path)) linkedPageOf.set(c.path, c.page_id);
+}
+
+/** The realistic query population: (menu, name) pairs the command tree says are real. */
+const queryPairs: Array<[string, string]> = [];
+for (const [name, menus] of acceptsByName) {
+  if (!candidatesByName.has(name)) continue;
+  for (const m of menus) if (dirPaths.has(m)) queryPairs.push([m, name]);
+}
+
+const transitions = new Map<string, number>();
+const bump = (k: string) => transitions.set(k, (transitions.get(k) ?? 0) + 1);
+let oldHigh = 0;
+let oldLow = 0;
+for (const [menu, name] of queryPairs) {
+  const candidates = candidatesByName.get(name) ?? [];
+  const linkedPage = linkedPageOf.get(menu) ?? null;
+  const linkContributes = linkedPage !== null && candidates.some((c) => c.page_id === linkedPage);
+
+  for (const c of candidates) {
+    const onLinkedPage = c.page_id === linkedPage;
+    // Pre-B-0024: the scoped branch returned only linked-page rows and called them all `high`;
+    // otherwise the global fallback returned everything as `low`.
+    const before: string = linkContributes ? (onLinkedPage ? "high" : "absent") : "low";
+    if (before === "high") oldHigh++;
+    else if (before === "low") oldLow++;
+
+    const paths = c.section_id === null ? new Set<string>() : (graderPaths.get(c.section_id) ?? new Set());
+    const supported = c.section_id === null ? new Set<string>() : supportedOf(c.section_id);
+    const menusForName = acceptsByName.get(name);
+    const after: PropertyLookupConfidence = gradeRow(menu, {
+      sectionPaths: paths,
+      supportedPaths: supported,
+      pageAligned: onLinkedPage,
+      acceptsName: paths.has(menu) ? (menusForName ? menusForName.has(menu) : null) : null,
+    });
+    // `lookupProperty` drops unaligned off-page rows once the link contributes anything.
+    const kept = !linkContributes || after !== "low" || onLinkedPage;
+    bump(`${before} → ${kept ? after : "absent"}`);
+  }
+}
+
+const total = [...transitions.values()].reduce((a, b) => a + b, 0);
+say(`Realistic (menu, name) pairs: ${queryPairs.length} · row labels compared: ${total}\n`);
+say("| Transition | Rows | Share |");
+say("|---|---:|---:|");
+for (const [k, v] of [...transitions].sort((a, b) => b[1] - a[1])) {
+  say(`| \`${k.replace(" → ", "` → `")}\` | ${v} | ${pct(v, total)} |`);
+}
+const survived = transitions.get("high → high") ?? 0;
+const rescued = (transitions.get("absent → high") ?? 0) + (transitions.get("absent → medium") ?? 0);
+say(
+  `\nOf the ${oldHigh} labels that shipped as \`high\`, ${survived} survive (${pct(survived, oldHigh)}).` +
+    ` ${rescued} rows the old candidate set suppressed entirely are now returned with evidence.` +
+    ` The \`low\` population (${oldLow}) is dominated by lookups where no page is linked at all.`,
 );

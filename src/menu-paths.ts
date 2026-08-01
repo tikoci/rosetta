@@ -30,8 +30,12 @@ export const IGNORE_PATHS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Top-level menus accepted even when the DB has no `dir` row for them — the extractor
- * runs before/independently of a complete command tree.
+ * Top-level menus {@link isRouterOsPath} accepts even when the DB has no `dir` row for them — the
+ * extractor runs before/independently of a complete command tree.
+ *
+ * This only gets a path past the "is this even RouterOS-shaped" filter. {@link resolveToDir} still
+ * requires a real `dir` ancestor, so under `{ resolve: true }` a path rooted here with no `dir` row
+ * behind it is dropped rather than kept (`/queue/simple` in the tests).
  */
 export const TOP_LEVEL_MENUS: readonly string[] = [
   "ip", "ipv6", "interface", "system", "routing", "tool", "queue",

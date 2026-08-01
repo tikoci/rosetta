@@ -315,7 +315,8 @@ census and the linker cannot drift apart, with the current behaviour anchored in
 ## Table granularity — closed
 
 The one-family check above generalizes. Across all **562** property-bearing tables, a table's own path
-set is **never** wider than (33) or disjoint from (0) its section's; **495 name no path at all**. A
+set is identical to its section's in 33 cases and narrower in 34, and **never** wider (0) or disjoint
+(0); **495 name no path at all**. A
 table-grained key can therefore only ever *lose* information relative to the section. **Option A at
 table granularity is dead**, and the finer structural fragment this briefing went looking for does not
 exist in the shipped schema. The remaining candidate is positional (proximity), which needs new
@@ -338,15 +339,29 @@ being the key.
 
 # Step 4 — the rank/confidence contract — implemented 2026-07-31
 
-Shipped in `src/property-confidence.ts`, consumed by `lookupProperty` (`src/query.ts`). The **row set
-is unchanged** — the two-branch scoped/global search is untouched. Only the label and the order move,
-which is the whole point: Option A is a ranking signal, so it ranks.
+Shipped in `src/property-confidence.ts`, consumed by `lookupProperty` (`src/query.ts`).
 
 ## What the label used to mean
 
 `high` = "the scoped branch ran"; `low` = "it didn't". The label described **which SQL executed**, not
 what the row knows. Every property on a linked page was equally `high`; a correct row reached by the
 global fallback was always `low`.
+
+## The candidate set had to move too
+
+Grading alone is not enough, and the first cut of this work got that wrong. While the scoped branch
+still *selected* the rows, the fuzzy link kept its veto: `/interface/bridge/host` links to the IGMP
+snooping page, which happens to document its own `vid`, so the lookup returned two `medium` rows from
+that page and never even graded the `high` **Static Entries** section that names
+`/interface/bridge/host` outright. Same for `/interface/wifi/provisioning` + `radio-mac`. A tier
+system that only ranks what a bad link already admitted cannot survive the mislink case it was built
+for.
+
+So the candidate set is now every row with the name, graded with page alignment determined **per
+row**. The link keeps exactly one job — conferring the `medium` page tier on rows with no path
+evidence of their own. To stop that widening results in the common case, off-page rows must earn their
+place: once the linked page contributes anything, unaligned (`low`) rows from elsewhere are dropped.
+A correct link therefore returns what it always did, and only evidence-bearing rows widen it.
 
 ## Tiers as implemented
 
@@ -359,20 +374,26 @@ global fallback was always `low`.
 Unscoped lookups (no `commandPath`) stay `medium` throughout: there is no menu to align to, so the
 tier would be answering a different question.
 
-Measured over the 14,832 (menu, property-name) pairs the command tree says are real — 82,252 row
-labels:
+Measured by the census itself — `src/eval/command-prose-join.ts` replays `lookupProperty`'s candidate
+set and filter and grades every candidate with the shipped `gradeRow`/`supportedPaths`, so these
+figures are regenerable rather than asserted. Over the 14,832 (menu, property-name) pairs the command
+tree says are real, 115,926 row labels compared (`absent` = the row was not returned at all):
 
 | Transition | Rows | Share |
 |---|---:|---:|
-| `low` → `low` | 76,963 | 93.6% |
-| `high` → `medium` | 2,295 | 2.8% |
-| `low` → `medium` | 1,105 | 1.3% |
-| `high` → `high` | 1,054 | 1.3% |
-| `low` → `high` | 835 | 1.0% |
+| `low` → `low` | 76,963 | 66.4% |
+| `absent` → `absent` | 33,438 | 28.8% |
+| `high` → `medium` | 2,230 | 1.9% |
+| `high` → `high` | 1,119 | 1.0% |
+| `low` → `medium` | 1,105 | 1.0% |
+| `low` → `high` | 835 | 0.7% |
+| `absent` → `medium` | 156 | 0.1% |
+| `absent` → `high` | 80 | 0.1% |
 
-**31.5% of today's `high` labels survive.** 1,940 rows escape a wrongly-`low` label. The population is
-dominated by `low` → `low` because most (menu, name) pairs have no prose section that names the menu at
-all — the 42.7% barren-section result seen from the query side.
+**33.4% of the labels that shipped as `high` survive.** 1,940 rows escape a wrongly-`low` label, and
+**236 rows the old candidate set suppressed outright are now returned with evidence** — 80 of them
+`high`. The `low` population dominates because most (menu, name) pairs have no prose section naming
+the menu at all: the 42.7% barren-section result, seen from the query side.
 
 ## The three rules, and how they landed
 
@@ -392,8 +413,12 @@ documenting `/interface/bridge/filter`. Naming is not aboutness.
 
 The gate: of the menus a section names, `high` requires the requested one to be among those accepting
 the **most of that section's own property names**. Ties keep both (a menu and its submenu are often
-equally supported); when the command tree knows none of the section's names, support cannot be judged
-and every named menu stays eligible — silence must not demote.
+equally supported). Two zeroes are distinguished, and the distinction is the gate's whole content:
+when the command tree has never heard of any of the section's property names it cannot judge, so every
+named menu stays eligible — silence must not demote; when it knows those names and no named menu takes
+any of them, that is evidence *against* every candidate and none is eligible. A section naming exactly
+one menu is scored like any other, since that is precisely where a lone passing mention has no
+competitor to be measured against and is most likely to be mistaken for authority.
 
 The blunter alternative was measured and rejected: rejecting any section that names more than one
 unrelated menu retains **41.9%** of `high` labels versus **84.6%** for the support gate, and its losses
@@ -521,9 +546,9 @@ Two findings that were not in #132 as filed:
   precise enough (76.1% conditional), not fine enough (42.7% barren sections, 63.6% of rows sharing a
   section with 10+ others).** Both predicted failure modes are real; coverage is the larger one. It is
   a ranking signal. Table granularity, floated as the alternative, is closed.
-- ~~**What is `high` allowed to mean?**~~ **Drafted in step 4 above** — exact section↔menu alignment plus
-  inspect confirmation, never field existence alone, never for a name accepted at 26+ menus. What
-  remains is whether the support-ratio filter gates it.
+- ~~**What is `high` allowed to mean?**~~ **Answered and implemented in step 4 above** — exact
+  section↔menu alignment, the menu the section is *about* rather than one it cites, never field
+  existence alone, never for a name accepted at 26+ menus. The support-ratio gate is in.
 - **Where does "reference owner vs related guide" live** once the scalar limitation is acknowledged?
   A second column, a link table, or a section-level link that makes the question moot? Still open, and
   now the main design question, since section alignment is naturally multi-valued.

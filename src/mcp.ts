@@ -789,9 +789,11 @@ Optionally filter by command path to disambiguate (e.g., "disabled" appears ever
 
 With command_path, rows come back best-first and confidence says how strongly THAT row is
 tied to THAT menu:
-- high — the section documenting the row names the menu, and the command tree agrees the
-  menu takes this property
-- medium — the section names a neighbouring menu (parent or child), or only the page matches
+- high — the section documenting the row is about that menu (it names the menu, and of the
+  menus it names that one owns most of its properties), and the command tree does not
+  contradict the menu taking this property
+- medium — the section names a neighbouring menu (parent or child); or names the requested
+  menu only in passing while documenting a different one; or only the page matches
 - low — nothing links the row to the menu beyond the property name; treat as a candidate,
   not an answer
 Without command_path every row is medium: there is no menu to align to, so the tier is not
