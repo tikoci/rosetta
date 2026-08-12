@@ -21,6 +21,9 @@
  * Usage:
  *   bun run src/extract-cliref.ts                 # live fetch, caches .md to CACHE_DIR
  *   bun run src/extract-cliref.ts --from-cache    # re-extract from CACHE_DIR, no network
+ *                                                 # (needs _sitemap.txt AND _llms.txt: since
+ *                                                 #  #137 both are discovery inputs, not just
+ *                                                 #  the sitemap — see loadCliRefSlugs)
  *   bun run src/extract-cliref.ts --limit=25       # cap page count (smoke-testing)
  *   bun run src/extract-cliref.ts --check-counts   # assert parsed == source markers
  */
@@ -166,8 +169,8 @@ export function reconcileTrailingDirs(locs: string[], discovered: ReadonlySet<st
   if (orphans.length > 0) {
     throw new Error(
       `Discovery shape drift: ${orphans.length} sitemap category dir(s) have no <dir>/<basename> leaf ` +
-        `in llms.txt — their Directory entry would be dropped silently (#137). ` +
-        `Re-verify the inventory before extracting: ${orphans.slice(0, 10).join(", ")}` +
+        `in the discovered inventory (sitemap ∪ llms.txt) — their Directory entry would be dropped ` +
+        `silently (#137). Re-verify the inventory before extracting: ${orphans.slice(0, 10).join(", ")}` +
         (orphans.length > 10 ? `, … (+${orphans.length - 10} more)` : ""),
     );
   }
