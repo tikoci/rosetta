@@ -13,7 +13,8 @@
  *   2. alias  — dropping exactly one internal source segment yields exactly one
  *               dir/cmd node (the manual leaks internal module names into headings,
  *               e.g. caps-man/acl/access-list → /caps-man/access-list). Ambiguous
- *               (≥2 candidates) stays manual-only — never guess.
+ *               (≥2 candidates) stays manual-only — never guess. A segment whose own
+ *               prefix is a published entry is a real menu and is never dropped (#136).
  *   3. manual-only — no link row; a first-class entry inspect cannot self-report.
  *
  * Usage:
@@ -108,6 +109,7 @@ export function resolveEntry(
   sourcePath: string,
   sourceType: string,
   index: Map<string, SchemaNode[]>,
+  publishedPaths: ReadonlySet<string> = new Set(),
 ): EntryLink | null {
   const exact = index.get(`/${sourcePath}`);
   if (exact) {
@@ -127,6 +129,12 @@ export function resolveEntry(
   for (let i = 1; i < segments.length - 1; i++) {
     const dropped = segments[i];
     if (!KNOWN_ALIAS_SEGMENTS.has(dropped)) continue;
+    // Prefix-scoping (#136): the allowlist encodes "this word is a doc-internal module
+    // name" as a global property, but it is positional. When the prefix ending at this
+    // segment is itself a published entry, the segment is a REAL menu at this point in the
+    // path (`interface/ethernet/poe`, `interface/ethernet/switch/qos`) — dropping it links
+    // a different command. Derivable from the publication alone; no device needed.
+    if (publishedPaths.has(segments.slice(0, i + 1).join("/"))) continue;
     const candidatePath = `/${segments.slice(0, i).concat(segments.slice(i + 1)).join("/")}`;
     const nodes = index.get(candidatePath);
     if (nodes) {
@@ -156,6 +164,8 @@ export function linkEntries(): { exact: number; alias: number; manual: number } 
   const entries = db
     .query("SELECT id, source_path, source_type FROM cliref_entries")
     .all() as Array<{ id: number; source_path: string; source_type: string }>;
+  // Published menu paths, for the alias branch's prefix-scoping guard (#136).
+  const publishedPaths = new Set(entries.map((e) => e.source_path));
 
   const insLink = db.prepare(
     "INSERT INTO cliref_entry_schema_links (entry_id, schema_node_id, match_kind, match_detail) VALUES (?, ?, ?, ?)",
@@ -166,7 +176,7 @@ export function linkEntries(): { exact: number; alias: number; manual: number } 
   db.transaction(() => {
     db.run("DELETE FROM cliref_entry_schema_links;");
     for (const e of entries) {
-      const link = resolveEntry(e.source_path, e.source_type, index);
+      const link = resolveEntry(e.source_path, e.source_type, index, publishedPaths);
       if (link === null) {
         manual++;
         continue;

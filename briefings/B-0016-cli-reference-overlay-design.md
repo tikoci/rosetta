@@ -78,6 +78,14 @@ The 236 sitemap URLs resolve to 228 real pages: 7 are Docusaurus **generated cat
 `/tool/graphing/`) with no Markdown source — `.md`, `/index.md`, and `/.md` all 404 (verified
 2026-07-20) — plus the section landing page. Their absence is navigation structure, not a fetch failure.
 
+> **Superseded 2026-08-12 — this paragraph's conclusion was wrong, and cost 256 pages (#137).**
+> The three probed URL shapes do 404, but they were the wrong candidates: a category dir's Markdown
+> lives at **`<dir>/<basename(dir)>.md`** (`/interface/` → `interface/interface.md`), which returns 200
+> with a valid `**Type:** Directory` and full `ArgTable`. These are not navigation stubs — each is the
+> menu's own Directory entry. Reading a 404 on a probe as a fact about the page, rather than about the
+> probe, is what made the later corpus reshape silently drop ~24% of the leaves. See "Corpus reshaped"
+> below and `DESIGN.md` → "CLI-Reference source reshaped".
+
 Per-page counts independently reproduce B-0012 H3's census (41 pages with `Conditions`, 18 with
 `Syscap`, 19 distinct `Package` values; 67 vs H3's 69 pages with `Package`, the delta explained by H3
 counting over the 236-URL denominator). Per-**node** the same fields are much denser: 417 `Package`,
@@ -403,6 +411,48 @@ maintainer accepted this shape 2026-07-20 and chose to build the full schema + e
 view, gated by `V-cliref-link-drift` and `V-cliref-db-integrity`. The schema question (Q1), the
 join-key question (Q2), parsing (Q4), coverage/storage (Q6), flags (Q9), and page title (Q10) are all
 settled and shipped.
+
+### Corpus reshaped — 2026-08-12 (#137)
+
+MikroTik decomposed the module pages into per-command leaf pages whose slug equals the CLI path.
+Re-extracted against the live source with discovery corrected (issue
+[#137](https://github.com/tikoci/rosetta/issues/137)), the corpus is:
+
+| Measure | Shipped (`v0.11.2-alpha.109`) | Live 2026-08-12 |
+| --- | ---: | ---: |
+| `cliref_pages` | 228 | 1,070 |
+| `cliref_entries` | 1,051 | 1,077 |
+| `cliref_fields` | 10,118 | 10,938 |
+| `cliref_flags` | 948 | 976 |
+| `cliref_entry_schema_links` | 931 (907 exact / 24 alias) | 967 (967 exact / 0 alias) |
+| manual-only | 120 | 110 |
+| `cliref_field_inspect_links` (view) | 13,036 | 13,417 |
+| entries per page | `{1:95, 2:29, 3:33, …, 62:2}` | `{1:1,063, 2:7}` |
+| entries with a `source_parent_id` | 814 | 0 |
+
+Four findings worth carrying forward:
+
+1. **Discovery, not parsing, was the defect.** `parsePage` needed no change (0 parse failures across
+   all 1,070). The sitemap serves a branching menu as a trailing-slash category URL; the menu's own
+   Directory entry is published at `<dir>/<basename(dir)>.md` and listed only in `llms.txt`. Discovery
+   is now the union of both, gated by `V-cliref-discovery`.
+2. **The recovered pages are the field-heavy ones.** Sitemap-only discovery on the new source yields
+   814 pages / 5,944 fields — which looks like a 4,174-row *loss* against the shipped corpus and
+   invites a "the source got thinner" story. It did not: the missing rows were the 256 dropped
+   Directory menus. With discovery fixed, fields land at 10,938, *above* the shipped 10,118.
+3. **The alias problem dissolved, and the fix still matters.** All 24 alias-shaped headings are gone
+   from the source. The three wrong links from
+   [#136](https://github.com/tikoci/rosetta/issues/136) would still fire on this corpus, because
+   `poe`/`qos` remain in the allowlist — the prefix-scoping guard is what turns them manual-only.
+   Recovering the 256 Directory leaves is what lets the guard see `interface/ethernet/switch/qos` as
+   published and catch the third one; the two fixes need each other.
+4. **A page can still carry two entries.** Seven derived leaves publish one path twice under different
+   `syscap` gates (`interface/ethernet/switch/port` as `musicswitch` with 175 fields and `rbswitch`
+   with 139; `system/health` as `Settings Directory` and `Directory`). Occurrence identity (Q6) is
+   still the right model — "one entry per page" would be the wrong invariant to add.
+
+The `fixtures/cli-reference/sample.md` fixture deliberately keeps the historical multi-entry shape: it
+is what proves intra-page heading ancestry still parses, which no live page currently exercises.
 
 The briefing therefore stays `open` **only** for the genuinely unresolved work: **Q3** (quasi-provenance
 format — now owned by [#25](https://github.com/tikoci/rosetta/issues/25) rather than being a precursor),

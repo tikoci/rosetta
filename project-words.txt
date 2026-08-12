@@ -258,6 +258,7 @@ mtu
 multigig
 multimodal
 multiswitch
+musicswitch
 mvrp
 navbox
 ndltm
@@ -343,6 +344,7 @@ rbcapgi
 rbd
 rbdisc
 rbftc
+rbswitch
 rbsxtg
 rbtoc
 rbwapr
