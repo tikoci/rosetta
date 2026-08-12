@@ -288,9 +288,10 @@ jobs:
           fi
           # CLI-Reference overlay floors (#124/#127): the cliref_* tables exist at db.ts
           # init, so a pipeline that skipped extract-cliref / link-cliref would ship them
-          # empty. Floors sit well below the observed size (~1,051 entries / 10,118 fields
-          # / 931 links) so they assert "the overlay + crosswalk ran," not an exact count
-          # (the exact/alias/manual-only split is pinned separately by link-cliref --check).
+          # empty. Floors sit well below the observed size (~1,077 entries / 10,938 fields
+          # / 976 flags / 967 links, #137) so they assert "the overlay + crosswalk ran," not
+          # an exact count (the exact/alias/manual-only split is pinned separately by
+          # link-cliref --check, and discovery completeness by V-cliref-discovery).
           if [ "${CLIREF_ENTRIES:-0}" -lt 900 ]; then
             echo "::error::DB has only ${CLIREF_ENTRIES} cliref_entries — expected ≥900. Did extract-cliref run?"
             fail=1
@@ -300,7 +301,7 @@ jobs:
             fail=1
           fi
           if [ "${CLIREF_FLAGS:-0}" -lt 800 ]; then
-            echo "::error::DB has only ${CLIREF_FLAGS} cliref_flags — expected ≥800 (observed ~948). Did extract-cliref run?"
+            echo "::error::DB has only ${CLIREF_FLAGS} cliref_flags — expected ≥800 (observed ~976). Did extract-cliref run?"
             fail=1
           fi
           if [ "${SCHEMA_CMD_NODES:-0}" -gt 0 ] && [ "${CLIREF_LINKS:-0}" -lt 800 ]; then

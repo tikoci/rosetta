@@ -7,7 +7,7 @@ import { join } from "node:path";
 // Bun's static-import hoisting — otherwise this file opening db.ts against the real
 // on-disk path would trip query.test.ts's singleton guard (order-dependent flake).
 process.env.DB_PATH = ":memory:";
-const { cliRefSlug, countStructuralMarkers, parsePage } = await import("./extract-cliref.ts");
+const { cliRefSlug, countStructuralMarkers, parsePage, reconcileTrailingDirs } = await import("./extract-cliref.ts");
 
 const FIXTURE = readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", "sample.md"), "utf8");
 const page = parsePage("sample", FIXTURE, "Sample");
@@ -24,10 +24,46 @@ describe("cliRefSlug", () => {
     expect(cliRefSlug("https://manual.mikrotik.com/docs/routing/bgp")).toBeNull();
   });
 
+  test("excludes the section landing page's own .md (#137)", () => {
+    // /docs/cli-reference/index.md is listed in llms.txt but is the argument-type glossary
+    // prose — it has no **Type:** entry, so parsePage would (correctly) reject it.
+    expect(cliRefSlug("https://manual.mikrotik.com/docs/cli-reference/index")).toBeNull();
+    // …but only at the section root: a real menu may legitimately be named "index" deeper in.
+    expect(cliRefSlug("/docs/cli-reference/system/index")).toBe("system/index");
+  });
+
+  test("keeps a branching menu's own Directory leaf (#137)", () => {
+    // The sitemap serves these menus as trailing-slash category URLs (excluded above), but
+    // the menu's Directory entry is published at <dir>/<basename>.md and reaches discovery
+    // through llms.txt. The slug itself is ordinary.
+    expect(cliRefSlug("https://manual.mikrotik.com/docs/cli-reference/app/app")).toBe("app/app");
+    expect(cliRefSlug("/docs/cli-reference/caps-man/interface/interface")).toBe("caps-man/interface/interface");
+  });
+
   test("rejects a cached-sitemap value outside the strict slug grammar", () => {
     expect(cliRefSlug("/docs/cli-reference/ip/address?x=1")).toBeNull();
     expect(cliRefSlug("/docs/cli-reference/ip/%2e%2e/secret")).toBeNull();
     expect(cliRefSlug("/docs/cli-reference/IP/address")).toBeNull();
+  });
+});
+
+describe("reconcileTrailingDirs (#137 discovery gate)", () => {
+  const B = "https://manual.mikrotik.com/docs/cli-reference";
+  const locs = [`${B}/`, `${B}/app/`, `${B}/caps-man/interface/`, `${B}/ip/address`];
+
+  test("passes when every category dir contributes its <dir>/<basename> leaf", () => {
+    const discovered = new Set(["app/app", "caps-man/interface/interface", "ip/address"]);
+    expect(() => reconcileTrailingDirs(locs, discovered)).not.toThrow();
+  });
+
+  test("throws when a category dir's Directory leaf is missing — the #137 defect", () => {
+    // Exactly what sitemap-only discovery did: the menu's own entry vanishes silently.
+    const sitemapOnly = new Set(["ip/address"]);
+    expect(() => reconcileTrailingDirs(locs, sitemapOnly)).toThrow(/2 sitemap category dir\(s\)/);
+  });
+
+  test("ignores the section root and out-of-section locs", () => {
+    expect(() => reconcileTrailingDirs([`${B}/`, "https://manual.mikrotik.com/docs/routing/"], new Set())).not.toThrow();
   });
 });
 

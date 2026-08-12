@@ -21,6 +21,9 @@
  * Usage:
  *   bun run src/extract-cliref.ts                 # live fetch, caches .md to CACHE_DIR
  *   bun run src/extract-cliref.ts --from-cache    # re-extract from CACHE_DIR, no network
+ *                                                 # (needs _sitemap.txt AND _llms.txt: since
+ *                                                 #  #137 both are discovery inputs, not just
+ *                                                 #  the sitemap — see loadCliRefSlugs)
  *   bun run src/extract-cliref.ts --limit=25       # cap page count (smoke-testing)
  *   bun run src/extract-cliref.ts --check-counts   # assert parsed == source markers
  */
@@ -35,6 +38,7 @@ const LLMS_TXT_URL = `${BASE}/llms.txt`;
 const SITEMAP_URL = `${BASE}/sitemap.xml`;
 const CLI_PREFIX = "/docs/cli-reference/";
 const CLI_SLUG = /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
+const SECTION_INDEX_SLUG = "index";
 const PROJECT_ROOT = join(import.meta.dirname, "..");
 const DEFAULT_CACHE_DIR = join(PROJECT_ROOT, "manual", "cli-reference");
 const FETCH_DELAY_MS = 100;
@@ -51,7 +55,7 @@ const CACHE_DIR = cacheDirArg ? cacheDirArg.slice("--cache-dir=".length) : DEFAU
 
 // ── Discovery ──
 
-/** CLI-Reference slug for a URL, or null when the URL is out of scope / a category stub. */
+/** CLI-Reference slug for a URL, or null when the URL is out of scope / not a CLI page. */
 export function cliRefSlug(urlOrPath: string): string | null {
   let path: string;
   try {
@@ -61,9 +65,14 @@ export function cliRefSlug(urlOrPath: string): string | null {
   }
   if (!path.startsWith(CLI_PREFIX)) return null;
   const slug = path.slice(CLI_PREFIX.length).replace(/\/$/, "");
-  // The section root ("") and trailing-slash URLs are Docusaurus generated category
-  // pages — navigation only, no .md source (every variant 404s, verified 2026-07-20).
+  // A trailing-slash URL is the Docusaurus generated category page for a branching menu.
+  // It has no .md of its own — but the menu's own Directory entry IS published, at
+  // `<dir>/<basename(dir)>.md` (`app/` -> `app/app.md`). That leaf arrives through
+  // llms.txt (see loadCliRefSlugs), so the category URL itself stays excluded here.
   if (slug === "" || path.endsWith("/") || !CLI_SLUG.test(slug)) return null;
+  // `index` is the section landing page's .md — the argument-type glossary prose, with no
+  // **Type:** entry of its own. It is listed in llms.txt but is not a CLI path.
+  if (slug === SECTION_INDEX_SLUG) return null;
   return slug;
 }
 
@@ -93,9 +102,20 @@ function tocGroup(slug: string): string {
   return slug.includes("/") ? slug.slice(0, slug.lastIndexOf("/")) : "";
 }
 
-/** Page inventory from an exact cached/live sitemap snapshot. llms.txt is metadata,
- * not discovery: it also names the section landing and generated category pages. */
-async function loadCliRefSlugs(): Promise<string[]> {
+/**
+ * Page inventory: the union of the sitemap's directly-addressable pages and llms.txt's
+ * published-.md list (#137).
+ *
+ * The sitemap serves a branching menu as a trailing-slash category URL (`…/app/`), which
+ * has no .md of its own — so sitemap-only discovery silently drops the Directory entry for
+ * every branching menu (256 of 1,070 leaves, ~24%, when this was found). Those menus ARE
+ * published, as `<dir>/<basename(dir)>.md`, and llms.txt lists them alongside every other
+ * .md. Taking the union restores them without guessing at URLs.
+ *
+ * reconcileTrailingDirs() then asserts the two sources still agree on that shape, so the
+ * next inventory change fails the build instead of quietly shrinking the corpus.
+ */
+async function loadCliRefSlugs(tocNames: Map<string, string>): Promise<string[]> {
   const cached = safeCachePath("_sitemap.txt");
   let xml: string;
   if (FROM_CACHE) {
@@ -111,13 +131,55 @@ async function loadCliRefSlugs(): Promise<string[]> {
     mkdirSync(CACHE_DIR, { recursive: true });
     writeFileSync(cached, xml);
   }
-  return parseSitemapLocs(xml)
-    .map(cliRefSlug)
-    .filter((s): s is string => s !== null)
-    .sort();
+  const locs = parseSitemapLocs(xml);
+  const sitemap = new Set(locs.map(cliRefSlug).filter((s): s is string => s !== null));
+  const discovered = new Set([...sitemap, ...tocNames.keys()]);
+  const llmsOnly = [...tocNames.keys()].filter((s) => !sitemap.has(s));
+  const sitemapOnly = [...sitemap].filter((s) => !tocNames.has(s));
+  console.log(
+    `Discovery: ${discovered.size} pages = ${sitemap.size} sitemap + ${llmsOnly.length} llms.txt-only` +
+      (sitemapOnly.length > 0 ? ` (${sitemapOnly.length} sitemap-only, absent from llms.txt)` : ""),
+  );
+  reconcileTrailingDirs(locs, discovered);
+  return [...discovered].sort();
 }
 
-/** Sidebar labels from llms.txt link text — not derivable from the slug ("caps-man" -> "Caps Man"). */
+/**
+ * Every trailing-slash category URL must contribute its menu's own Directory leaf
+ * (`app/` -> `app/app`), or that menu's entry is being dropped — the #137 defect, which
+ * was invisible precisely because it looked like a category page with no source.
+ *
+ * Fails loud on a shape change in either direction: MikroTik publishing a category with no
+ * Directory leaf is a real inventory change that must be re-verified by hand, not absorbed.
+ */
+export function reconcileTrailingDirs(locs: string[], discovered: ReadonlySet<string>): void {
+  const orphans: string[] = [];
+  for (const loc of locs) {
+    let path: string;
+    try {
+      path = new URL(loc).pathname;
+    } catch {
+      continue;
+    }
+    if (!path.startsWith(CLI_PREFIX) || !path.endsWith("/")) continue;
+    const dir = path.slice(CLI_PREFIX.length).replace(/\/$/, "");
+    if (dir === "" || !CLI_SLUG.test(dir)) continue; // the section root itself
+    if (!discovered.has(`${dir}/${dir.split("/").pop()}`)) orphans.push(dir);
+  }
+  if (orphans.length > 0) {
+    throw new Error(
+      `Discovery shape drift: ${orphans.length} sitemap category dir(s) have no <dir>/<basename> leaf ` +
+        `in the discovered inventory (sitemap ∪ llms.txt) — their Directory entry would be dropped ` +
+        `silently (#137). Re-verify the inventory before extracting: ${orphans.slice(0, 10).join(", ")}` +
+        (orphans.length > 10 ? `, … (+${orphans.length - 10} more)` : ""),
+    );
+  }
+}
+
+/**
+ * llms.txt's published-.md list: slug -> sidebar label. The label is not derivable from the
+ * slug ("caps-man" -> "Caps Man"); the key set is also half of discovery (loadCliRefSlugs).
+ */
 async function loadTocNames(): Promise<Map<string, string>> {
   const cached = safeCachePath("_llms.txt");
   let txt: string;
@@ -528,11 +590,11 @@ function store(pages: CliRefPage[]): void {
 
 async function main(): Promise<void> {
   const tocNames = await loadTocNames();
-  let slugs = await loadCliRefSlugs();
+  let slugs = await loadCliRefSlugs(tocNames);
   if (FROM_CACHE) console.log(`Discovering pages from cache: ${CACHE_DIR}`);
   if (LIMIT !== undefined) slugs = slugs.slice(0, LIMIT);
 
-  console.log(`Discovered ${slugs.length} CLI-Reference pages (excluding generated category stubs)`);
+  console.log(`Discovered ${slugs.length} CLI-Reference pages (category URLs excluded; their Directory leaves kept)`);
 
   const pages: CliRefPage[] = [];
   const missing: string[] = [];

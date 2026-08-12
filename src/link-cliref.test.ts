@@ -75,6 +75,38 @@ describe("resolveEntry", () => {
   test("no match at all is manual-only", () => {
     expect(resolveEntry("nonexistent/menu", "Directory", index)).toBeNull();
   });
+
+  // #136: KNOWN_ALIAS_SEGMENTS is a global word list, but "internal module name" is a
+  // positional property. A segment whose own prefix is a published entry is a REAL menu
+  // at that point in the path, so dropping it links a different command.
+  describe("prefix-scoping guard (#136)", () => {
+    const poe = new Map([["/interface/ethernet/monitor", [{ id: 50, type: "cmd" }]]]);
+
+    test("drops the segment when its prefix is NOT published", () => {
+      const r = resolveEntry("interface/ethernet/poe/monitor", "Command", poe, new Set());
+      expect(r).toEqual({ schemaNodeId: 50, matchKind: "alias", matchDetail: 'dropped segment "poe"' });
+    });
+
+    test("refuses the drop when the prefix IS published as an entry", () => {
+      // interface/ethernet/poe is itself a published Directory — a real, hardware-gated
+      // menu. /interface/ethernet/poe/monitor must stay manual-only, never link to
+      // /interface/ethernet/monitor (a disjoint field set: SFP/link vs PoE-out).
+      const published = new Set(["interface/ethernet", "interface/ethernet/poe"]);
+      expect(resolveEntry("interface/ethernet/poe/monitor", "Command", poe, published)).toBeNull();
+    });
+
+    test("scoping is positional, not global — the same word still drops elsewhere", () => {
+      // "route" is a real menu at /ip/route, but the segment being dropped here sits at
+      // routing/route/rule, where no `routing/route` entry is published.
+      const idx = new Map([["/routing/rule", [{ id: 60, type: "dir" }]]]);
+      const published = new Set(["ip/route"]);
+      expect(resolveEntry("routing/route/rule", "Directory", idx, published)?.matchKind).toBe("alias");
+    });
+
+    test("defaults to unscoped when no published set is supplied", () => {
+      expect(resolveEntry("caps-man/acl/access-list", "Directory", index)?.matchKind).toBe("alias");
+    });
+  });
 });
 
 // End-to-end: the db.ts view derives the right zero-to-many field links against a small
