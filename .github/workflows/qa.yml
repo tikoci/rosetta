@@ -259,19 +259,22 @@ jobs:
             echo "::error::DB has only ${PROPERTIES} properties — expected ≥1000 (Docusaurus export is ~4,509)."
             fail=1
           fi
-          # Generic table floors (#92): these sit below the rc.98 corpus's corrected
-          # 855 tables / 8,287 data rows / 4,519 linked property rows. They prove the
-          # parser, normalized storage, and property provenance all reached the artifact.
-          if [ "${PAGE_TABLES:-0}" -lt 800 ]; then
-            echo "::error::DB has only ${PAGE_TABLES} page_tables rows — expected ≥800."
+          # Generic table floors (#92/#139): MikroTik moved large inline property-reference
+          # sections into /docs/cli-reference/ in September 2026, reducing the live prose
+          # corpus to 718 tables / 7,109 data rows / 3,357 linked property rows. These
+          # floors retain roughly 9-11% headroom while proving the prose parser, normalized
+          # storage, and property provenance all reached the artifact. CLI-Reference has
+          # separate floors and exact discovery/link integrity gates below.
+          if [ "${PAGE_TABLES:-0}" -lt 650 ]; then
+            echo "::error::DB has only ${PAGE_TABLES} page_tables rows — expected ≥650."
             fail=1
           fi
-          if [ "${PAGE_TABLE_DATA_ROWS:-0}" -lt 8000 ]; then
-            echo "::error::DB has only ${PAGE_TABLE_DATA_ROWS} generic table data rows — expected ≥8000."
+          if [ "${PAGE_TABLE_DATA_ROWS:-0}" -lt 6500 ]; then
+            echo "::error::DB has only ${PAGE_TABLE_DATA_ROWS} generic table data rows — expected ≥6500."
             fail=1
           fi
-          if [ "${TABLE_PROPERTIES:-0}" -lt 4000 ]; then
-            echo "::error::DB has only ${TABLE_PROPERTIES} properties linked to source table rows — expected ≥4000."
+          if [ "${TABLE_PROPERTIES:-0}" -lt 3000 ]; then
+            echo "::error::DB has only ${TABLE_PROPERTIES} properties linked to source table rows — expected ≥3000."
             fail=1
           fi
           # Hardware overlay floors (B-0017/B-0018, PR #41 / issue #38): the tables

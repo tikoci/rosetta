@@ -22,6 +22,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.2] — 2026-09-06
+
 ### Added
 
 - **CLI-Reference overlay (`cliref_*` tables + `rosetta export` datasets, issue #124).** A source-faithful, version-less overlay of `manual.mikrotik.com/docs/cli-reference/*`: `cliref_pages` / `cliref_entries` / `cliref_fields` / `cliref_flags` retain each page's byte-exact Markdown (+ SHA-256), verbatim entry/field/flag descriptions, occurrence order, and line spans. Entries carry the manual-only facts a CHR `/console/inspect` cannot self-report (`package` / `conditions` / `syscap`). A stored `cliref_entry_schema_links` crosswalk resolves each entry to its `schema_nodes` command node (exact / single-internal-segment alias / manual-only), and the `cliref_field_inspect_links` **view** derives the zero-to-many field→argument mapping. `rosetta export` gains seven `cli-reference/*` outputs (six TSVs + byte-exact `source/<slug>.md`). Build via `make extract-cliref` + `make link-cliref`.
@@ -37,6 +39,7 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Release content floors now match MikroTik's CLI-Reference migration.** The live manual moved large inline property-reference sections (including OpenVPN, IPsec, and switch QoS) out of prose pages and into `/docs/cli-reference/`, reducing the generic prose-table corpus while the separate CLI-Reference overlay remains populated. `V-db-min-content` keeps blocking degenerate builds with recalibrated generic-table floors; the CLI-Reference discovery, field-count, link-drift, and integrity gates remain unchanged.
 - **Schema version 10 → 11** for the CLI-Reference overlay tables/view and `schema_nodes.inspect_type`.
 - **`routeros_lookup_property` confidence now grades the row, not the query branch (B-0024 step 4).** Previously `high` meant only "this row is on the page `commands.page_id` links to" and `low` meant "the scoped branch found nothing" — the label described which SQL ran, so every property on a linked page was equally `high` and a correct row found by the global fallback was always `low`. Each row is now scored against the requested menu using the menu paths named in its own documentation section, and results come back best tier first: `high` = the section is about that menu (it names the menu, and of the menus it names that one owns most of its properties) and the command tree does not contradict it; `medium` = the section names a neighbouring menu, names the requested one only in passing while documenting another, or only the page matches; `low` = nothing but the property name links the row to the menu. Without `command_path` every row stays `medium` — there is no menu to align to.
 - **`routeros_lookup_property` no longer lets a mislinked page hide the right answer.** Candidates are drawn from every page documenting the property rather than only the page `commands.page_id` links to, with page alignment applied per row. Off-page rows are kept only when their tier is at least as good as the best the linked page offers, and linked-page rows win ties within a tier, so a correct link returns the same tight, same-ordered result as before. Previously `/interface/bridge/host` + `vid` returned two rows from the IGMP-snooping page it is mislinked to and never surfaced the "Static Entries" section that names `/interface/bridge/host` outright; the same suppression hit `/interface/wifi/provisioning` + `radio-mac`. Measured over the 14,832 (menu, property) pairs the command tree says are real: **31.5% of the labels that shipped as `high` survive**, 2,295 demote to `medium`, **1,940 rows escape a wrongly-`low` label** (835 to `high`), and **153 rows that were suppressed entirely are now returned** (80 `high`). Regenerate with `bun run src/eval/command-prose-join.ts`. This is what makes `/interface/bridge/port` + `pvid` rank the two bridge-port sections above the unrelated Apps row (#131) and `/ip/dhcp-server` + `address-pool` rank the DHCP server table above the DHCPv6 one (#58).
@@ -718,7 +721,8 @@ Initial public release.
   dev / package at `~/.rosetta/`).
 - Bun tests for the query planner + schema health.
 
-[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.11.1...HEAD
+[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.11.2...HEAD
+[0.11.2]: https://github.com/tikoci/rosetta/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/tikoci/rosetta/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/tikoci/rosetta/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/tikoci/rosetta/compare/v0.9.3...v0.10.0
