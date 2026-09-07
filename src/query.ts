@@ -214,13 +214,26 @@ export function searchPages(question: string, limit = DEFAULT_LIMIT): SearchResp
   let ftsQuery = buildFtsQuery(terms, "AND");
   let fallbackMode: "or" | null = null;
 
-  let results = runFtsQuery(ftsQuery, limit);
+  const results = runFtsQuery(ftsQuery, limit);
 
-  // Fallback to OR if AND returns nothing and we have multiple terms
-  if (results.length === 0 && terms.length > 1) {
-    ftsQuery = buildFtsQuery(terms, "OR");
-    results = runFtsQuery(ftsQuery, limit);
-    fallbackMode = "or";
+  // Preserve precise AND matches, then fill unused result slots from OR
+  // matches so short topic pages are not hidden by a small incidental set.
+  if (results.length < limit && terms.length > 1) {
+    const orQuery = buildFtsQuery(terms, "OR");
+    const seen = new Set(results.map((result) => result.id));
+    const originalLength = results.length;
+
+    for (const result of runFtsQuery(orQuery, limit)) {
+      if (results.length >= limit) break;
+      if (seen.has(result.id)) continue;
+      seen.add(result.id);
+      results.push(result);
+    }
+
+    if (results.length > originalLength) {
+      ftsQuery = orQuery;
+      fallbackMode = "or";
+    }
   }
 
   attachBestSections(results, terms);
@@ -568,7 +581,7 @@ function buildSearchAllNote(
   const notes: string[] = [];
   if (pagesResp.note) notes.push(pagesResp.note);
   if (pagesResp.fallbackMode === "or") {
-    notes.push("No pages matched all terms — used OR fallback.");
+    notes.push("Broadened page matches with OR fallback.");
   }
   if (pagesResp.results.length === 0 && Object.keys(related).length === 0) {
     const hints: string[] = [];
