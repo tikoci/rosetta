@@ -3,7 +3,7 @@
 # the database (ros-help.db must exist in the build context).
 # Used by release.yml CI. Not for local dev (DB is 200MB+).
 
-FROM --platform=$BUILDPLATFORM oven/bun:1 AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS builder
 WORKDIR /build
 COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile
@@ -18,9 +18,9 @@ RUN case "$TARGETARCH" in \
       *) echo "Unsupported TARGETARCH: $TARGETARCH" && exit 1 ;; \
     esac && \
     bun build --compile --minify --bytecode --target="$bun_target" \
-      --define VERSION="'\"${VERSION}\"'" \
-      --define REPO_URL="'\"${REPO_URL}\"'" \
-      --define IS_COMPILED='true' \
+      --define VERSION="\"${VERSION}\"" \
+      --define REPO_URL="\"${REPO_URL}\"" \
+      --define IS_COMPILED=true \
       src/mcp.ts --outfile /out/rosetta
 
 FROM debian:bookworm-slim
