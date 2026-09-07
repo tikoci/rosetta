@@ -28,10 +28,11 @@ const DIST = path.join(ROOT, "dist");
 const ENTRY = path.join(ROOT, "src/mcp.ts");
 const REPO_URL = "tikoci/rosetta";
 
-// Release tags carry a leading v; the runtime version does not.
+// Release tags carry exactly one leading v; the runtime version does not.
 const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf-8"));
-const releaseTag = process.argv[2] || `v${pkg.version}`;
-const runtimeVersion = releaseTag.replace(/^v/, "");
+const requestedVersion = process.argv[2] || pkg.version;
+const runtimeVersion = requestedVersion.replace(/^v+/, "");
+const releaseTag = `v${runtimeVersion}`;
 
 interface Target {
   name: string;

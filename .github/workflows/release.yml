@@ -227,7 +227,11 @@ jobs:
           PKG_NAME=$(node -p "require('./package.json').name")
           PKG_VERSION=$(node -p "require('./package.json').version")
           RELEASE_VERSION="${INPUT_VERSION:-v${PKG_VERSION}}"
-          NPM_VERSION="${RELEASE_VERSION#v}"
+          NPM_VERSION="$RELEASE_VERSION"
+          while [[ "$NPM_VERSION" == v* ]]; do
+            NPM_VERSION="${NPM_VERSION#v}"
+          done
+          RELEASE_VERSION="v${NPM_VERSION}"
 
           if [ "$NPM_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Release version $RELEASE_VERSION does not match package.json version $PKG_VERSION; npm publish uses package.json."
@@ -305,7 +309,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$INPUT_VERSION" ]; then
-            VERSION="$INPUT_VERSION"
+            RUNTIME_VERSION="$INPUT_VERSION"
+            while [[ "$RUNTIME_VERSION" == v* ]]; do
+              RUNTIME_VERSION="${RUNTIME_VERSION#v}"
+            done
+            VERSION="v${RUNTIME_VERSION}"
             SOURCE="workflow input"
           else
             PKG_VERSION=$(node -p "require('./package.json').version")
@@ -554,7 +562,11 @@ jobs:
           set -euo pipefail
           SHORT_SHA="${{ needs.build.outputs.short_sha }}"
           VERSION="${{ needs.build.outputs.version }}"
-          RUNTIME_VERSION="${VERSION#v}"
+          RUNTIME_VERSION="$VERSION"
+          while [[ "$RUNTIME_VERSION" == v* ]]; do
+            RUNTIME_VERSION="${RUNTIME_VERSION#v}"
+          done
+          VERSION="v${RUNTIME_VERSION}"
           CHANNEL="${{ needs.build.outputs.channel }}"
           STAGE="${{ needs.build.outputs.stage }}"
 
