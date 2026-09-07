@@ -76,7 +76,9 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Keep the release build aligned with its compiled artifacts. Upgrade
+          # only after the compiled HTTP-server smoke passes on Linux.
+          bun-version: 1.3.14
 
       - uses: actions/setup-node@v6
         with:
@@ -225,7 +227,11 @@ jobs:
           PKG_NAME=$(node -p "require('./package.json').name")
           PKG_VERSION=$(node -p "require('./package.json').version")
           RELEASE_VERSION="${INPUT_VERSION:-v${PKG_VERSION}}"
-          NPM_VERSION="${RELEASE_VERSION#v}"
+          NPM_VERSION="$RELEASE_VERSION"
+          while [[ "$NPM_VERSION" == v* ]]; do
+            NPM_VERSION="${NPM_VERSION#v}"
+          done
+          RELEASE_VERSION="v${NPM_VERSION}"
 
           if [ "$NPM_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Release version $RELEASE_VERSION does not match package.json version $PKG_VERSION; npm publish uses package.json."
@@ -303,7 +309,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$INPUT_VERSION" ]; then
-            VERSION="$INPUT_VERSION"
+            RUNTIME_VERSION="$INPUT_VERSION"
+            while [[ "$RUNTIME_VERSION" == v* ]]; do
+              RUNTIME_VERSION="${RUNTIME_VERSION#v}"
+            done
+            VERSION="v${RUNTIME_VERSION}"
             SOURCE="workflow input"
           else
             PKG_VERSION=$(node -p "require('./package.json').version")
@@ -489,7 +499,9 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Keep release compilation aligned with Dockerfile.release. Upgrade
+          # only after the compiled HTTP-server smoke passes on Linux.
+          bun-version: 1.3.14
 
       - uses: actions/setup-node@v6
         with:
@@ -550,6 +562,11 @@ jobs:
           set -euo pipefail
           SHORT_SHA="${{ needs.build.outputs.short_sha }}"
           VERSION="${{ needs.build.outputs.version }}"
+          RUNTIME_VERSION="$VERSION"
+          while [[ "$RUNTIME_VERSION" == v* ]]; do
+            RUNTIME_VERSION="${RUNTIME_VERSION#v}"
+          done
+          VERSION="v${RUNTIME_VERSION}"
           CHANNEL="${{ needs.build.outputs.channel }}"
           STAGE="${{ needs.build.outputs.stage }}"
 
@@ -568,7 +585,7 @@ jobs:
           # Inject DB into the build context so it gets baked into the image
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
-            --build-arg VERSION="$VERSION" \
+            --build-arg VERSION="$RUNTIME_VERSION" \
             --build-arg REPO_URL=tikoci/rosetta \
             "${tags[@]}" \
             --push \

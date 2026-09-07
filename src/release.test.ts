@@ -200,9 +200,35 @@ describe("build-release.ts", () => {
     expect(src).toContain("--compile");
   });
 
+  test("passes JavaScript literals to Bun defines without embedding shell quotes", () => {
+    const src = readText("scripts/build-release.ts");
+    expect(src).toContain('const runtimeVersion = requestedVersion.replace(/^v+/, "")');
+    expect(src).toMatch(/const releaseTag = `v\$\{runtimeVersion\}`/);
+    expect(src).toMatch(/`VERSION=\$\{JSON\.stringify\(runtimeVersion\)\}`/);
+    expect(src).toMatch(/`REPO_URL=\$\{JSON\.stringify\(REPO_URL\)\}`/);
+    expect(src).not.toMatch(/VERSION='\$\{JSON\.stringify\(runtimeVersion\)\}'/);
+    expect(src).not.toMatch(/REPO_URL='\$\{JSON\.stringify\(REPO_URL\)\}'/);
+  });
+
   test("compresses database", () => {
     const src = readText("scripts/build-release.ts");
     expect(src).toContain("ros-help.db.gz");
+  });
+
+  test("release build and publish jobs pin the compiled-binary toolchain", () => {
+    const src = readText(".github/workflows/release.yml");
+    const buildJob = src.slice(mustIndex(src, "\n  build:"), mustIndex(src, "\n  qa:"));
+    const publishJob = src.slice(mustIndex(src, "\n  publish:"), mustIndex(src, "\n  bunx-smoke:"));
+    expect(buildJob).toContain("bun-version: 1.3.14");
+    expect(publishJob).toContain("bun-version: 1.3.14");
+  });
+
+  test("OCI tags keep v prefix while the compiled runtime receives bare semver", () => {
+    const src = readText(".github/workflows/release.yml");
+    expect(src).toMatch(/VERSION="v\$\{RUNTIME_VERSION\}"/);
+    expect(src).toMatch(/tags\+=\(--tag "\$\{registry\}:\$\{VERSION\}"/);
+    expect(src).not.toMatch(/tags\+=\(--tag "\$\{registry\}:\$\{RUNTIME_VERSION\}"/);
+    expect(src).toContain('--build-arg VERSION="$RUNTIME_VERSION"');
   });
 });
 
@@ -1331,8 +1357,16 @@ describe("Dockerfile.release", () => {
 
   test("injects build constants", () => {
     const src = readText("Dockerfile.release");
-    expect(src).toContain("IS_COMPILED");
-    expect(src).toContain("VERSION");
-    expect(src).toContain("REPO_URL");
+    expect(src).toMatch(/--define VERSION="\\"\$\{VERSION\}\\""/);
+    expect(src).toMatch(/--define REPO_URL="\\"\$\{REPO_URL\}\\""/);
+    expect(src).toContain("--define IS_COMPILED=true");
+    expect(src).not.toMatch(/'\\"\$\{VERSION\}\\"'/);
+    expect(src).not.toMatch(/'\\"\$\{REPO_URL\}\\"'/);
+  });
+
+  test("pins the Bun compiler used by the last successful OCI smoke", () => {
+    const src = readText("Dockerfile.release");
+    expect(src).toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1\.3\.14 AS builder$/m);
+    expect(src).not.toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1 AS builder$/m);
   });
 });

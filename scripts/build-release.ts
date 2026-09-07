@@ -28,9 +28,11 @@ const DIST = path.join(ROOT, "dist");
 const ENTRY = path.join(ROOT, "src/mcp.ts");
 const REPO_URL = "tikoci/rosetta";
 
-// Version from CLI arg or package.json
+// Release tags carry exactly one leading v; the runtime version does not.
 const pkg = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf-8"));
-const version = process.argv[2] || `v${pkg.version}`;
+const requestedVersion = process.argv[2] || pkg.version;
+const runtimeVersion = requestedVersion.replace(/^v+/, "");
+const releaseTag = `v${runtimeVersion}`;
 
 interface Target {
   name: string;
@@ -46,20 +48,20 @@ const targets: Target[] = [
 ];
 
 const defines = [
-  `--define`, `VERSION='${JSON.stringify(version)}'`,
-  `--define`, `REPO_URL='${JSON.stringify(REPO_URL)}'`,
-  `--define`, `IS_COMPILED='true'`,
+  "--define", `VERSION=${JSON.stringify(runtimeVersion)}`,
+  "--define", `REPO_URL=${JSON.stringify(REPO_URL)}`,
+  "--define", "IS_COMPILED=true",
 ];
 
 // Clean dist/
 if (existsSync(DIST)) rmSync(DIST, { recursive: true });
 mkdirSync(DIST, { recursive: true });
 
-console.log(`Building rosetta ${version}`);
+console.log(`Building rosetta ${releaseTag}`);
 console.log();
 
 // Build README for inclusion in ZIP
-const readmeTxt = `rosetta ${version}
+const readmeTxt = `rosetta ${releaseTag}
 RouterOS documentation MCP server
 
 Quick Start:
@@ -150,5 +152,5 @@ if (existsSync(path.join(DIST, "ros-help.db.gz"))) {
 
 console.log();
 console.log("To publish:");
-console.log(`  gh release create ${version} ${artifacts.join(" ")} --title "${version}" --generate-notes`);
+console.log(`  gh release create ${releaseTag} ${artifacts.join(" ")} --title "${releaseTag}" --generate-notes`);
 console.log();
