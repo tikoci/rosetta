@@ -1,14 +1,6 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
-# counts	exact=967	alias=0	manual-only=110	entries=1077
+# counts	exact=962	alias=0	manual-only=98	entries=1060
 source_path	source_type	match_kind	match_detail
-certificate/acme-renew	Command	manual-only	
-container/save	Command	manual-only	
-disk/raid-scrub-cancel	Command	manual-only	
-interface/bridge/msrp	Directory	manual-only	
-interface/bridge/msrp/attributes	Directory	manual-only	
-interface/bridge/msrp/domain	Directory	manual-only	
-interface/bridge/msrp/domain/attributes	Directory	manual-only	
-interface/bridge/msrp/domain/monitor	Command	manual-only	
 interface/ethernet/poe	Directory	manual-only	
 interface/ethernet/poe/monitor	Command	manual-only	
 interface/ethernet/poe/power-cycle	Command	manual-only	
@@ -45,6 +37,7 @@ interface/ethernet/switch/qos/settings	Settings Directory	manual-only
 interface/ethernet/switch/qos/tx-manager	Directory	manual-only	
 interface/ethernet/switch/qos/tx-manager/queue	Directory	manual-only	
 interface/ethernet/switch/reserved-fdb	Directory	manual-only	
+interface/ethernet/switch/rule/reset-counters	Command	manual-only	
 interface/ethernet/switch/shaper	Directory	manual-only	
 interface/ethernet/switch/stats	Settings Directory	manual-only	
 interface/ethernet/switch/trunk	Directory	manual-only	
@@ -90,14 +83,9 @@ partitions/copy-to	Command	manual-only
 partitions/repartition	Command	manual-only	
 partitions/restore-config-from	Command	manual-only	
 partitions/save-config-to	Command	manual-only	
-root	Directory	manual-only	
 root/terminal	Directory	manual-only	
 routing/bfd/authentication	Directory	manual-only	
 system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
-system/keymat-provider	Directory	manual-only	
-system/keymat-provider/qkd-get-key	Command	manual-only	
-system/keymat-provider/qkd-get-key-with-ids	Command	manual-only	
-system/keymat-provider/qkd-get-status	Command	manual-only	
 system/license/output	Command	manual-only	
 system/ptp	Directory	manual-only	
 system/ptp/monitor	Command	manual-only	
