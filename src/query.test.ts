@@ -558,6 +558,24 @@ beforeAll(() => {
      'The **hAP** series is a popular home access point lineup with wireless and Ethernet ports.',
      '', NULL, NULL, NULL, 16, 0, 'test4.html')`);
 
+  db.run(`INSERT INTO pages
+    (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+     author, last_updated, word_count, code_lines, html_file)
+    VALUES
+    (5, 'Sensitive-Parameters', 'Sensitive Parameters', 'RouterOS > Security', 1, NULL,
+     'https://manual.mikrotik.com/docs/security/sensitive-parameters',
+     'A WireGuard peer secret key is treated as a sensitive parameter.',
+     '', NULL, NULL, NULL, 10, 0, 'test5.html')`);
+
+  db.run(`INSERT INTO pages
+    (id, slug, title, path, depth, parent_id, url, text, code, code_lang,
+     author, last_updated, word_count, code_lines, html_file)
+    VALUES
+    (6, 'WireGuard', 'WireGuard', 'RouterOS > VPN > WireGuard', 2, NULL,
+     'https://manual.mikrotik.com/docs/vpn/wireguard',
+     'WireGuard interfaces provide a modern VPN tunnel.',
+     '/interface wireguard add name=wg0', NULL, NULL, NULL, 8, 1, 'test6.html')`);
+
   db.run(`INSERT INTO sections
     (id, page_id, heading, level, anchor_id, text, code, word_count, sort_order)
     VALUES
@@ -800,9 +818,21 @@ describe("searchPages", () => {
   test("fallback OR mode when AND returns no results", () => {
     // "dhcp" is in page 1, "firewall" in page 2 — AND should fail, OR should return both
     const res = searchPages("dhcp firewall");
-    // Depending on FTS index there may or may not be an AND match; the important
-    // thing is that we get at least one result (OR fallback kicks in if needed)
-    expect(res.results.length).toBeGreaterThan(0);
+    expect(res.fallbackMode).toBe("or");
+    expect(res.results.map((result) => result.title)).toEqual(
+      expect.arrayContaining(["DHCP Server", "Firewall Filter"]),
+    );
+  });
+
+  test("backfills a partially filled AND result from OR matches without duplicates", () => {
+    const res = searchPages("wireguard peer secret key", 5);
+    const ids = res.results.map((result) => result.id);
+
+    expect(res.fallbackMode).toBe("or");
+    expect(res.results[0].title).toBe("Sensitive Parameters");
+    expect(res.results.some((result) => result.title === "WireGuard")).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(res.results.length).toBeLessThanOrEqual(5);
   });
 
   test("respects limit parameter", () => {
