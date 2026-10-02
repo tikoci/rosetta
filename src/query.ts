@@ -709,7 +709,7 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
         name: parsedArg.name,
         value: parsedArg.value,
       };
-      if (match) {
+      if (match && match.confidence !== "low") {
         explainedArg.property = {
           name: match.name,
           type: match.type,
@@ -724,7 +724,7 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
         warnings.push({
           kind: "unknown-arg",
           arg: parsedArg.name,
-          message: `No documented property named "${parsedArg.name}" was found for ${canonical.path}.`,
+          message: `No menu-aligned documentation for property "${parsedArg.name}" was found for ${canonical.path}. This does not establish whether the RouterOS argument is valid.`,
           suggestion: `Use routeros_command_tree path="${canonical.path}" or routeros_get_page for the linked documentation to confirm available arguments.`,
         });
       }
@@ -913,7 +913,9 @@ export function getPage(idOrTitle: string | number, maxLength?: number, section?
         .get(page.id, sec.sort_order, sec.level) as { next_order: number | null };
       const upperBound = nextSibling?.next_order ?? 999999;
 
-      const descendants = db
+      // The synthetic lead stores introductory prose; level 0 does not make it
+      // a parent of every normal heading on the page.
+      const descendants = sec.anchor_id === "_lead" ? [] : db
         .prepare(
           `SELECT heading, level, anchor_id, text, code, word_count
            FROM sections WHERE page_id = ? AND sort_order > ? AND level > ? AND sort_order < ?

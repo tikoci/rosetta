@@ -321,6 +321,12 @@ beforeAll(() => {
     (id, path, name, type, parent_path, page_id, description, ros_version)
     VALUES (108, '/interface/bridge/host', 'host', 'dir', '/interface/bridge', 93, 'Bridge hosts', '7.22')`);
 
+  // Known NAT argument with prose only in an unrelated menu (#147).
+  db.run(`INSERT INTO commands
+    (id, path, name, type, parent_path, page_id, description, ros_version)
+    VALUES (109, '/ip/firewall/nat', 'nat', 'dir', '/ip/firewall', NULL, 'NAT rules', '7.22'),
+    (110, '/ip/firewall/nat/add/action', 'action', 'arg', '/ip/firewall/nat/add', NULL, NULL, '7.22')`);
+
   db.run(`INSERT INTO command_versions (command_path, ros_version)
     VALUES ('/ip/dhcp-server', '7.22')`);
   db.run(`INSERT INTO command_versions (command_path, ros_version)
@@ -605,6 +611,17 @@ beforeAll(() => {
     VALUES
     (3, 3, 'Spanning Tree Protocol', 1, 'BridgingandSwitching-SpanningTreeProtocol',
      'STP protocol configuration and monitoring.', '', 5, 4)`);
+
+  // Synthetic level-0 introductions precede headings without parenting them (#144).
+  for (const [id, lead] of [[7, 'Intro.'], [8, 'Long introduction. '.repeat(80)]] as const) {
+    db.run(`INSERT INTO pages (id, slug, title, path, depth, url, text, code, word_count, code_lines, html_file)
+      VALUES (?, ?, ?, 'Docs > Lead fixture', 1, 'https://manual.mikrotik.com/docs/lead-fixture', ?, '', 200, 0, 'lead-fixture.md')`,
+      [id, `lead-fixture-${id}`, `Lead fixture ${id}`, `${lead}\n${'Body. '.repeat(240)}`]);
+    db.run(`INSERT INTO sections (page_id, heading, level, anchor_id, text, code, word_count, sort_order)
+      VALUES (?, ?, 0, '_lead', ?, ':put "intro"', ?, 0),
+             (?, 'Body', 1, 'body', ?, ':put "body"', 240, 1)`,
+      [id, `Lead fixture ${id}`, lead, id === 7 ? 1 : 160, id, 'Body. '.repeat(240)]);
+  }
 
   // Changelog fixtures
   db.run(`INSERT INTO changelogs (version, released, category, is_breaking, description, sort_order)
@@ -1010,6 +1027,41 @@ describe("getPage", () => {
     expect(result.word_count).toBe(6 + 7 + 5);
   });
 
+  test("synthetic lead returns only its own text/code by anchor or heading (#144)", () => {
+    const toc = getPage(7, 100);
+    expect(toc?.sections?.[0]).toMatchObject({ anchor_id: "_lead", level: 0, char_count: 18 });
+    for (const section of ["_lead", "lead fixture 7"]) {
+      const result = getPage(7, 100, section);
+      expect(result).toMatchObject({ text: "Intro.", code: ':put "intro"', word_count: 1, code_lines: 1 });
+      expect(result?.section).toEqual({ heading: "Lead fixture 7", level: 0, anchor_id: "_lead" });
+      expect(result?.sections).toBeUndefined();
+      expect((result?.text.length ?? 0) + (result?.code.length ?? 0)).toBe(toc?.sections?.[0].char_count ?? 0);
+    }
+    expect(getPage(7, undefined, "_lead")?.text).toBe("Intro.");
+  });
+
+  test("oversized synthetic lead truncates its own content instead of returning a sub-TOC", () => {
+    const result = getPage(8, 100, "_lead");
+    expect(result?.section?.anchor_id).toBe("_lead");
+    expect(result?.text).toContain("Long introduction.");
+    expect(result?.text).toContain("truncated");
+    expect(result?.text).not.toContain("Body.");
+    expect(result?.code).toBe(':put "intro"');
+    expect(result?.word_count).toBe(160);
+    expect(result?.sections).toBeUndefined();
+  });
+
+  test("ordinary parent exceeding the budget still returns descendants in a sub-TOC", () => {
+    const result = getPage(3, 100, "Bridge Interface Setup");
+    expect(result?.text).toBe("");
+    expect(result?.code).toBe("");
+    expect(result?.sections?.map((entry) => entry.heading)).toEqual([
+      "Bridge Interface Setup", "Port Configuration", "VLAN Setup",
+    ]);
+    expect(result?.word_count).toBe(6 + 7 + 5);
+    expect(result?.note).toContain("sub-sections");
+  });
+
   test("leaf section does not include sibling content", () => {
     // "Port Configuration" (level 2) should NOT include VLAN Setup content
     const result = getPage(3, undefined, "Port Configuration");
@@ -1229,6 +1281,31 @@ describe("lookupProperty confidence", () => {
 // ---------------------------------------------------------------------------
 
 describe("explainCommand", () => {
+  test("omits unrelated low-confidence prose for a known argument without changing lookup (#147)", () => {
+    const candidates = lookupProperty("action", "/ip/firewall/nat");
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({ confidence: "low", page_title: "Firewall Filter" });
+    expect(browseCommands("/ip/firewall/nat/add").map((arg) => arg.name)).toContain("action");
+
+    const result = explainCommand("/ip/firewall/nat add action=masquerade");
+    expect(result.canonical).toMatchObject({ path: "/ip/firewall/nat", verb: "add", confidence: "high" });
+    expect(result.args).toEqual([{ raw: "action=masquerade", name: "action", value: "masquerade" }]);
+    expect(result.warnings).toEqual([{
+      kind: "unknown-arg", arg: "action",
+      message: 'No menu-aligned documentation for property "action" was found for /ip/firewall/nat. This does not establish whether the RouterOS argument is valid.',
+      suggestion: 'Use routeros_command_tree path="/ip/firewall/nat" or routeros_get_page for the linked documentation to confirm available arguments.',
+    }]);
+    expect(lookupProperty("action", "/ip/firewall/nat")).toEqual(candidates);
+  });
+
+  test("preserves high-confidence property annotations and excludes lower-ranked candidates", () => {
+    const result = explainCommand("/interface/bridge/port add pvid=10");
+    expect(result.args[0].property).toMatchObject({
+      name: "pvid", description: "Port VLAN ID.", page_title: "Bridging and Switching", confidence: "high",
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
   test("returns canonical command, known arg property, pages, changelog hits, and version check", () => {
     const result = explainCommand("/ip firewall filter add chain=forward action=drop", "7.22");
 
