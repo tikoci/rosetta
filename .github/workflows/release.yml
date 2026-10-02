@@ -897,8 +897,6 @@ jobs:
   bunx-upgrade-smoke:
     needs: [build, publish]
     if: inputs.republish_assets != true && needs.build.outputs.previous_version != ''
-    env:
-      DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
     defaults:
       run:
         shell: bash
@@ -937,6 +935,7 @@ jobs:
 
       - name: Bare bunx of the new version auto-refreshes a DB seeded by the previous version (no --refresh)
         env:
+          DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
           VERSION: ${{ needs.publish.outputs.version }}
           PREV_VERSION: ${{ needs.build.outputs.previous_version }}
           CHANNEL: ${{ needs.build.outputs.channel }}
@@ -996,6 +995,7 @@ jobs:
 
       - name: ROSETTA_OFFLINE=1 degrades gracefully on a stale DB instead of crashing
         env:
+          DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
           PREV_VERSION: ${{ needs.build.outputs.previous_version }}
           CHANNEL: ${{ needs.build.outputs.channel }}
           STAGE: ${{ needs.build.outputs.stage }}

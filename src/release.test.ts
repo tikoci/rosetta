@@ -1021,7 +1021,7 @@ exit $?`,
     expect(upgradeBlock).toContain('CURRENT_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
     expect(upgradeBlock).toContain('SEEDED_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
     expect(upgradeBlock).toContain("Skipping ROSETTA_OFFLINE smoke");
-    expect(upgradeBlock).toContain("DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db");
+    expect(upgradeBlock).toContain(`DB_PATH: \${{ runner.temp }}/rosetta-upgrade.db`);
   });
 });
 

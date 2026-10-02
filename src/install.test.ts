@@ -160,3 +160,19 @@ test("first-launch failure identifies the selected version/path without blaming 
   expect(diagnostic).not.toContain("@latest");
   expect(existsSync(`${destination}.lock`)).toBe(false);
 });
+
+
+test("Windows compiled recovery is callable in PowerShell and escapes apostrophes", () => {
+  const code = `
+    globalThis.IS_COMPILED=true;
+    Object.defineProperty(process,"platform",{value:"win32"});
+    const {dbRefreshCommand}=await import(${JSON.stringify(path.join(root, "src/setup.ts"))});
+    console.log(dbRefreshCommand(${JSON.stringify(path.join(temp, "user's", "help.db"))}));
+  `;
+  const result = Bun.spawnSync([process.execPath, "--eval", code]);
+  expect(result.exitCode, result.stderr.toString()).toBe(0);
+  const command = result.stdout.toString().trim();
+  expect(command).toStartWith(`& '${process.execPath.replaceAll("'", "''")}' --db '`);
+  expect(command).toContain("user''s");
+  expect(command).toEndWith("' --refresh");
+});

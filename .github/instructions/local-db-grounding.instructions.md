@@ -16,9 +16,8 @@ default.** Before grounding any claim about shipped data on it, verify it.
   that path first: atomic replacement of a live WAL database can cause SQLite
   I/O errors.
   - It does **not** use `--refresh`: that pins the URL to `package.json`'s
-    version, which in a checkout is a CI-rewritten placeholder (`v0.11.0-rc.0`)
-    with no release, and falls back to `/releases/latest` — the newest *stable*,
-    which lags the prerelease schema. `db-sync` instead uses `gh` to find the
+    version first. An unpublished checkout version falls back to
+    `/releases/latest` — the newest *stable*, whose schema may lag the checkout. `db-sync` instead uses `gh` to find the
     newest release (prereleases **included**) that actually ships
     `ros-help.db.gz`, then reuses the hardened `downloadDb()` (schema/content
     validation + stale-sidecar cleanup + atomic swap) via its `urlsOverride`

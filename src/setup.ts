@@ -618,9 +618,10 @@ function tryUnlink(p: string): void {
 
 /** Recovery command preserves the running build and the resolved destination. */
 export function dbRefreshCommand(dbPath: string, srcDir = import.meta.dirname): string {
-  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+  const windows = process.platform === "win32";
+  const quote = (value: string) => `'${value.replaceAll("'", windows ? "''" : "'\\''")}'`;
   const mode = detectMode(srcDir);
-  const command = mode === "compiled" ? quote(process.execPath)
+  const command = mode === "compiled" ? `${windows ? "& " : ""}${quote(process.execPath)}`
     : mode === "package" ? `bunx @tikoci/rosetta@${resolveVersion(srcDir)}`
     : `bun run ${quote(path.join(srcDir, "mcp.ts"))}`;
   return `${command} --db ${quote(path.resolve(dbPath))} --refresh`;
