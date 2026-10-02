@@ -11,7 +11,8 @@
  * instead asks GitHub for the newest release (prereleases included) that actually
  * ships ros-help.db.gz, and installs that via the hardened downloadDb() path
  * (lock + schema/content validation + stale-sidecar cleanup + atomic swap), so it
- * is safe to run while an MCP server holds the old file open.
+ * requires stopping clients owning the destination first; replacing a live WAL
+ * database can cause SQLite I/O errors.
  *
  * Requires `gh` (already used across this repo). Public repo — no auth needed to
  * read releases, but `gh` handles auth transparently if present.

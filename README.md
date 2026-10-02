@@ -117,11 +117,15 @@ bunx @tikoci/rosetta --setup
 
 This downloads the database and prints config snippets for all supported MCP clients. Copy-paste the config for your client and you're done.
 
-Need to force a database reload later? Use:
+To force a database reload, stop clients using that DB first. For the stable default install, use:
 
 ```sh
 bunx @tikoci/rosetta@latest --refresh
 ```
+
+For a pinned or prerelease install, use your original package version and
+`--db` / `DB_PATH` destination with `--refresh`. Refreshing an existing DB requires
+stopping its owners, including other clients on the same exact version.
 
 ### Prerelease channels (optional)
 
@@ -244,7 +248,7 @@ curl -fsSL https://bun.sh/install | bash
 powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
-> **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. The database in `~/.rosetta/ros-help.db` persists across updates.
+> **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. Each exact package version uses `~/.rosetta/ros-help-<version>.db` (including the full prerelease counter). Different versions can run together; clients on the same version share that file. Updates download an additional DB copy (hundreds of MB, depending on the release). Older files, including the legacy `ros-help.db`, are retained; remove them manually after their clients stop. `DB_PATH` and `--db` remain explicit overrides; use absolute paths in MCP environment settings because `~` is not shell-expanded.
 
 ---
 

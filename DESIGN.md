@@ -423,7 +423,7 @@ Bun bakes `import.meta.dirname` at compile time — a compiled binary looks for 
 
 ### Database via GitHub Releases
 
-The SQLite DB is ~230 MB on disk, ~50 MB gzipped. GitHub Releases has no bandwidth cap for public repos and allows 2 GB per asset. The `--setup` flag downloads from the "latest" release URL (`/releases/latest/download/ros-help.db.gz`), which means we can push new DB versions without changing the binary.
+The SQLite DB occupies hundreds of MB on disk; compressed asset size varies by release. GitHub Releases has no bandwidth cap for public repos and allows 2 GB per asset. Setup tries the running version's release asset first, then `/releases/latest/download/ros-help.db.gz` as a fallback. Same-tag asset recovery is not automatically detected: users must stop owners and refresh that version/path, while normal corrected content should ship as a new patch.
 
 Alternatives considered:
 
@@ -476,9 +476,11 @@ Three invocation modes with different DB default locations:
 |------|-----------|-------------|---------------|
 | **Compiled** | `IS_COMPILED` build-time constant | Next to executable | Full path to binary |
 | **Dev** | `.git` exists in project root | Project root | `bun run src/mcp.ts` with `cwd` |
-| **Package** | Neither compiled nor dev | `~/.rosetta/ros-help.db` | `bunx @tikoci/rosetta` |
+| **Package** | Neither compiled nor dev | `~/.rosetta/ros-help-<fullVersion>.db` | `bunx @tikoci/rosetta` |
 
 `DB_PATH` env var overrides all modes. Package mode creates `~/.rosetta/` on first run. The `~/.rosetta/` path was chosen over platform-native data dirs (XDG, `~/Library/Application Support`, `%APPDATA%`) for simplicity — same path on all OSes, visible and predictable.
+
+Package defaults are scoped by the full resolved package version, including prerelease counters. This prevents one version from replacing another live client's WAL database (#145). Same-version clients share the download lock. The legacy shared DB is never moved or deleted; each release costs another DB copy, which users can remove after its owners stop. Explicit shared overrides, compiled/dev defaults, same-version `--refresh`, and `db-sync` remain caller-managed: stop clients owning the path before replacement. Atomic rename plus sidecar cleanup is not safe for a live WAL connection. Recursive parent creation before the download lock also covers `DB_PATH` / `--db` overrides (#146); real filesystem errors remain visible.
 
 This logic is shared via `src/paths.ts` (used by `db.ts`, `mcp.ts`, `setup.ts`) to avoid divergence between the three path resolution copies. `paths.ts` also exports `resolveVersion()` — reads `package.json` at runtime when the compile-time `VERSION` constant isn't defined, so `bunx @tikoci/rosetta --version` shows a real version number instead of "dev".
 

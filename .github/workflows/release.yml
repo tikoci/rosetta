@@ -787,7 +787,7 @@ jobs:
   # version in-workspace (with a run-number suffix) before npm publish, so
   # this job output is the only reliable source for "what actually published."
   bunx-smoke:
-    needs: publish
+    needs: [build, publish]
     if: inputs.republish_assets != true  # republish_assets skips npm publish, so nothing to smoke
     defaults:
       run:
@@ -798,9 +798,12 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+
+      - run: bun install --frozen-lockfile
 
       - name: Wait for npm registry to propagate @tikoci/rosetta@${{ needs.publish.outputs.version }}
         env:
@@ -877,6 +880,12 @@ jobs:
           echo "── server log (first 40 lines) ──"
           head -40 "$LOG"
 
+      - name: Installed clients coexist on default paths and start with a missing DB_PATH parent
+        env:
+          CURRENT_VERSION: ${{ needs.publish.outputs.version }}
+          PREVIOUS_VERSION: ${{ needs.build.outputs.previous_version }}
+        run: bun scripts/smoke-install.ts "$CURRENT_VERSION" "$PREVIOUS_VERSION"
+
   # End-to-end DB-freshness upgrade smoke — the actual bug #76/#23 traced and
   # #78 fixed: a bunx cache + DB seeded by the PREVIOUS published version on
   # this same dist-tag, then a bare (no --refresh) invocation of the version
@@ -888,6 +897,8 @@ jobs:
   bunx-upgrade-smoke:
     needs: [build, publish]
     if: inputs.republish_assets != true && needs.build.outputs.previous_version != ''
+    env:
+      DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
     defaults:
       run:
         shell: bash
@@ -1000,7 +1011,6 @@ jobs:
           # release. Record its schema before replacing it with the old DB
           # below: offline fallback is only valid for a release-tag mismatch,
           # never for a genuinely incompatible schema.
-          DB_PATH="$HOME/.rosetta/ros-help.db"
           CURRENT_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval 'import sqlite from "bun:sqlite"; const db = new sqlite(process.env.DB_PATH); console.log(db.query("PRAGMA user_version").get().user_version); db.close();')
 
           # Re-seed the stale (previous-version) DB — the prior step already

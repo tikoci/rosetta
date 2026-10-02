@@ -22,6 +22,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Package database coexistence (#145).** Each exact package version now uses its own default `~/.rosetta/ros-help-<version>.db`; older DBs are retained, and intentional replacements require stopping clients owning that path. Same-tag asset recovery remains a manual refresh; normal corrected content should ship as a new patch (#80).
+- **First launch with an overridden DB path (#146).** Missing parent directories are created before acquiring the download lock. Recovery diagnostics preserve the running build and destination and no longer blame unrelated first-run failures on other clients.
+
 ## [0.11.2] — 2026-09-06
 
 ### Added

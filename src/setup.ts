@@ -12,6 +12,7 @@ import {
   closeSync,
   existsSync,
   fstatSync,
+  mkdirSync,
   openSync,
   readdirSync,
   readSync,
@@ -237,6 +238,7 @@ function formatProbeSummary(probe: DbProbe): string {
 }
 
 export function tryAcquireDownloadLock(dbPath: string): DownloadLockHandle | null {
+  mkdirSync(path.dirname(dbPath), { recursive: true });
   const lockPath = lockPathFor(dbPath);
 
   while (true) {
@@ -413,7 +415,8 @@ export function dbDownloadUrls(version: string): string[] {
  *   2. Decompress in memory, verify SQLite magic bytes + minimum size.
  *   3. Write to <dbPath>.tmp.<pid>, probe it with SQLite, verify schema_version
  *      matches the running code and pages/commands counts look healthy.
- *   4. Atomically rename .tmp → dbPath, then delete stale .db-wal / .db-shm.
+ *   4. Delete stale sidecars and atomically rename .tmp → dbPath.
+ *      Callers must stop clients owning this path before replacing an existing DB.
  *
  * On any validation failure the existing DB is left untouched and we throw —
  * the caller decides whether to fail hard or fall back. Never produces a
@@ -556,9 +559,8 @@ export async function downloadDb(
       if (probe.schemaVersion !== SCHEMA_VERSION) {
         cleanupDbArtifacts(tmpPath);
         lastError = new Error(
-            `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
-            `This usually means your MCP client is still using a cached older package version. ` +
-          `Restart the MCP client to let bunx re-resolve the latest package, or run: bunx @tikoci/rosetta@latest --refresh`,
+          `Downloaded DB schema=${probe.schemaVersion} does not match this rosetta build (expected ${SCHEMA_VERSION}). ` +
+          `Database path: ${dbPath}. Retry the selected build with: ${dbRefreshCommand(dbPath)}`,
         );
         if (isLast) throw lastError;
         log(`  ${lastError.message}`);
@@ -614,6 +616,16 @@ function tryUnlink(p: string): void {
   }
 }
 
+/** Recovery command preserves the running build and the resolved destination. */
+export function dbRefreshCommand(dbPath: string, srcDir = import.meta.dirname): string {
+  const quote = (value: string) => `'${value.replaceAll("'", "'\\''")}'`;
+  const mode = detectMode(srcDir);
+  const command = mode === "compiled" ? quote(process.execPath)
+    : mode === "package" ? `bunx @tikoci/rosetta@${resolveVersion(srcDir)}`
+    : `bun run ${quote(path.join(srcDir, "mcp.ts"))}`;
+  return `${command} --db ${quote(path.resolve(dbPath))} --refresh`;
+}
+
 /**
  * Quiet refresh — download + validate + report stats. No MCP-config printing.
  * Used by `--refresh` (and indirectly by mcp.ts when auto-recovering from a
@@ -661,8 +673,7 @@ export async function runSetup(force = false) {
   const probe = downloadedProbe ?? probeDb(dbPath);
   if (!probe) {
     console.error(`✗ Database validation failed: cannot open ${dbPath}`);
-    const retryCmd = mode === "compiled" ? "rosetta" : mode === "package" ? "bunx @tikoci/rosetta" : "bun run src/setup.ts";
-    console.error(`  Try re-downloading with: ${retryCmd} --refresh`);
+    console.error(`  Try re-downloading with: ${dbRefreshCommand(dbPath)}`);
     process.exit(1);
   }
   if (probe.schemaVersion !== SCHEMA_VERSION) {
@@ -670,7 +681,7 @@ export async function runSetup(force = false) {
       `✗ DB schema version is ${probe.schemaVersion}, expected ${SCHEMA_VERSION}.`,
     );
     console.error(
-      `  Package may be out of date. Run: bunx @tikoci/rosetta@latest --refresh`,
+      `  Retry the selected build with: ${dbRefreshCommand(dbPath)}`,
     );
     process.exit(1);
   }

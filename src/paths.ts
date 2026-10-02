@@ -55,7 +55,8 @@ export function resolveBaseDir(srcDir: string): string {
 }
 
 /**
- * Resolve the full path to ros-help.db.
+ * Resolve the full DB path. Package defaults are scoped by the exact version;
+ * dev and compiled invocations retain ros-help.db.
  * Priority: DB_PATH env var → --db CLI flag → auto-detect.
  */
 export function resolveDbPath(srcDir: string): string {
@@ -68,7 +69,10 @@ export function resolveDbPath(srcDir: string): string {
     return process.argv[dbArgIdx + 1];
   }
 
-  return path.join(resolveBaseDir(srcDir), "ros-help.db");
+  const filename = detectMode(srcDir) === "package"
+    ? `ros-help-${resolveVersion(srcDir)}.db`
+    : "ros-help.db";
+  return path.join(resolveBaseDir(srcDir), filename);
 }
 
 /** Detect invocation mode: "compiled" | "dev" | "package" */

@@ -965,7 +965,8 @@ exit $?`,
     const bunxIdx = mustIndex(src, "\n  bunx-smoke:");
     const upgradeIdx = mustIndex(src, "\n  bunx-upgrade-smoke:");
     const bunxBlock = src.slice(bunxIdx, upgradeIdx);
-    expect(bunxBlock).toMatch(/needs:\s*publish/);
+    expect(bunxBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
+    expect(bunxBlock).toContain('bun scripts/smoke-install.ts "$CURRENT_VERSION" "$PREVIOUS_VERSION"');
     expect(bunxBlock).toContain("needs.publish.outputs.version");
     // The old monolithic job name is gone entirely.
     expect(src).not.toContain("build-and-release");
@@ -1020,6 +1021,7 @@ exit $?`,
     expect(upgradeBlock).toContain('CURRENT_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
     expect(upgradeBlock).toContain('SEEDED_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval');
     expect(upgradeBlock).toContain("Skipping ROSETTA_OFFLINE smoke");
+    expect(upgradeBlock).toContain("DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db");
   });
 });
 
