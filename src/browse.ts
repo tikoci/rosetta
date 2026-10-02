@@ -57,6 +57,7 @@ import {
   searchVideos,
   truncateDeviceTestResultsPrefer512,
 } from "./query.ts";
+import { dbRefreshCommand } from "./setup.ts";
 
 // ── ANSI utilities (zero deps) ──
 
@@ -391,7 +392,7 @@ function renderWelcome(): string {
   const stats = getDbStats();
   const version = resolveVersion(import.meta.dirname);
   const dbWarning = stats.commands < 1000
-    ? yellow(`⚠ DB has only ${fmt(stats.commands)} commands — use real DB:  --db ~/.rosetta/ros-help.db`)
+    ? yellow(`⚠ DB at ${stats.db_path} has only ${fmt(stats.commands)} commands — stop clients owning this path, then run: ${dbRefreshCommand(stats.db_path)}`)
     : null;
   const lines = [
     `RouterOS Documentation Browser  ${dim(`v${version}`)}`,

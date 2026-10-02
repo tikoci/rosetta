@@ -23,7 +23,7 @@
  * `.github/instructions/local-db-grounding.instructions.md`.
  *
  * Usage:
- *   DB_PATH=~/.rosetta/ros-help.db bun run src/eval/command-prose-join.ts
+ *   DB_PATH=/path/to/verified-release.db bun run src/eval/command-prose-join.ts
  *   TOP_LEVEL=1 bun run src/eval/command-prose-join.ts   # allow bare top-level menus
  */
 

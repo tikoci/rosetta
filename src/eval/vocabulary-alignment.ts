@@ -25,7 +25,7 @@
  * `.github/instructions/local-db-grounding.instructions.md`.
  *
  * Usage:
- *   DB_PATH=~/.rosetta/ros-help.db bun run src/eval/vocabulary-alignment.ts
+ *   DB_PATH=/path/to/verified-release.db bun run src/eval/vocabulary-alignment.ts
  */
 
 import { db } from "../db.ts";

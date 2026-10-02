@@ -14,7 +14,7 @@
  * printed first so the corpus under test is never ambiguous.
  *
  * Usage:
- *   DB_PATH=~/.rosetta/ros-help.db bun run src/eval/db-census.ts
+ *   DB_PATH=/path/to/verified-release.db bun run src/eval/db-census.ts
  *   DB_PATH=<scratch>/ros-current.db bun run src/eval/db-census.ts
  */
 
