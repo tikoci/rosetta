@@ -5,13 +5,13 @@
  * into the resolved DB path (#94).
  *
  * Why not `--refresh`? refreshDb() pins its download URL to package.json's
- * version, which in a checkout is a CI-rewritten placeholder (e.g. v0.11.0-rc.0)
- * with no matching release, then falls back to /releases/latest — the newest
- * *stable*, which lags the prerelease line and ships an older schema. This script
+ * version first. An unpublished checkout version then falls back to
+ * /releases/latest — the newest *stable*, whose schema may lag the checkout. This script
  * instead asks GitHub for the newest release (prereleases included) that actually
  * ships ros-help.db.gz, and installs that via the hardened downloadDb() path
  * (lock + schema/content validation + stale-sidecar cleanup + atomic swap), so it
- * is safe to run while an MCP server holds the old file open.
+ * requires stopping clients owning the destination first; replacing a live WAL
+ * database can cause SQLite I/O errors.
  *
  * Requires `gh` (already used across this repo). Public repo — no auth needed to
  * read releases, but `gh` handles auth transparently if present.

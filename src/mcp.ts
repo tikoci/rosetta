@@ -72,7 +72,7 @@ function link(url: string, display?: string): string {
  */
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
   const { resolveDbPath, SCHEMA_VERSION, resolveVersion, detectMode, classifyDbGrounding, isDevInvocation } = await import("./paths.ts");
-  const { checkDbFreshness, cleanupAbandonedTempArtifacts, downloadDb, hasMinimumDbContent, probeDb } = await import(
+  const { checkDbFreshness, cleanupAbandonedTempArtifacts, dbRefreshCommand, downloadDb, hasMinimumDbContent, probeDb } = await import(
     "./setup.ts"
   );
 
@@ -102,7 +102,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       log("Database downloaded successfully.");
     } catch (e) {
       log(`Auto-download failed: ${e instanceof Error ? e.message : e}`);
-      log(`Close other rosetta clients and run: bunx @tikoci/rosetta@latest --refresh`);
+      log(`Retry the selected build and database path with: ${dbRefreshCommand(dbPath)}`);
       throw new Error(`Unable to start rosetta without a usable database at ${dbPath}.`);
     }
   }
@@ -145,7 +145,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
         log(`✗ Auto-recovery download failed: ${e instanceof Error ? e.message : e}`);
         log(
           `  This rosetta build (v${runningVersion}) cannot use the existing DB. ` +
-            `Close other rosetta clients and run: bunx @tikoci/rosetta@latest --refresh`,
+            `Stop clients owning ${dbPath}, then run: ${dbRefreshCommand(dbPath)}`,
         );
         throw new Error(`Unable to recover an incompatible database at ${dbPath}.`);
       }
@@ -156,7 +156,7 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       );
       log(
         `  The published database does not match this rosetta build (v${runningVersion}). ` +
-          `Run: bunx @tikoci/rosetta@latest --refresh`,
+          `Stop clients owning ${dbPath}, then run: ${dbRefreshCommand(dbPath)}`,
       );
       throw new Error(`Database remained incompatible after recovery: ${dbPath}`);
     }

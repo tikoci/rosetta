@@ -34,9 +34,9 @@ db-doctor:
 # Fetch the newest CI-built release DB that matches this checkout's schema into
 # the resolved DB path (dev: repo root), so the MCP server / db-doctor ground on
 # what npm consumers actually get. Discovers the newest release shipping the DB
-# asset via `gh` (prereleases included — `--refresh`/`/releases/latest` would
-# grab the newest *stable*, an older schema). Atomic replace — safe to run while
-# an MCP server holds the old file open. Requires the `gh` CLI.
+# asset via `gh` (prereleases included; `--refresh` follows the running version
+# first and falls back to latest stable). Atomic replace; stop clients
+# owning this path first (live WAL replacement can cause SQLite I/O errors). Requires the `gh` CLI.
 db-sync:
 	bun run scripts/db-sync.ts
 

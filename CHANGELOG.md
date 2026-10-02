@@ -24,6 +24,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Package database coexistence (#145).** Each exact package version now uses its own default `~/.rosetta/ros-help-<version>.db`; older DBs are retained, and intentional replacements require stopping clients owning that path. Same-tag asset recovery remains a manual refresh; normal corrected content should ship as a new patch (#80).
+- **First launch with an overridden DB path (#146).** Missing parent directories are created before acquiring the download lock. Startup and browser recovery diagnostics preserve the running build and destination and no longer blame unrelated first-run failures on other clients.
 - **Synthetic `_lead` sections return only the introduction**, including their own code and word count, when selected by anchor or heading. Large pages such as WiFi CAPsMAN no longer expand a short lead into a whole-page table of contents (#144).
 - **Command explanations omit unrelated, low-confidence property annotations** and warn per argument when no menu-aligned documentation is available. High/medium annotations and property lookup candidates remain available (#147, part of #58).
 

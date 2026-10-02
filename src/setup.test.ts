@@ -381,3 +381,28 @@ describe("cleanupAbandonedTempArtifacts", () => {
     }
   });
 });
+
+describe("missing download parent (#146)", () => {
+  test("creates nested parents before locking, including relative paths", () => {
+    const dbFile = path.relative(process.cwd(), path.join(tmp, "nested", "relative", "help.db"));
+    const lock = tryAcquireDownloadLock(dbFile);
+    expect(lock).not.toBeNull();
+    expect(existsSync(`${dbFile}.lock`)).toBe(true);
+    releaseDownloadLock(lock);
+  });
+
+  test("preserves a filesystem error when a parent component is a file", () => {
+    const parent = path.join(tmp, "parent-is-file");
+    writeFileSync(parent, "file");
+    expect(() => tryAcquireDownloadLock(path.join(parent, "help.db"))).toThrow();
+  });
+
+  test("a failed download releases the lock without creating a canonical DB", async () => {
+    const { downloadDb } = await import("./setup.ts");
+    const dbFile = path.join(tmp, "failed", "nested", "help.db");
+    await expect(downloadDb(dbFile, () => {}, ["data:application/octet-stream,invalid-gzip"])).rejects.toThrow("Gunzip failed");
+    expect(existsSync(dbFile)).toBe(false);
+    expect(existsSync(`${dbFile}.lock`)).toBe(false);
+    expect(cleanupAbandonedTempArtifacts(dbFile)).toBe(0);
+  });
+});

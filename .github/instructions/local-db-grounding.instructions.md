@@ -12,12 +12,12 @@ default.** Before grounding any claim about shipped data on it, verify it.
 
 - **The latest CI-built release DB is the source of truth for grounding claims.**
   It is what `bunx @tikoci/rosetta` consumers actually get. `make db-sync`
-  (`scripts/db-sync.ts`) fetches it into the resolved path (atomic replace — safe
-  while an MCP server holds the old file open).
+  (`scripts/db-sync.ts`) fetches it into the resolved path. Stop clients owning
+  that path first: atomic replacement of a live WAL database can cause SQLite
+  I/O errors.
   - It does **not** use `--refresh`: that pins the URL to `package.json`'s
-    version, which in a checkout is a CI-rewritten placeholder (`v0.11.0-rc.0`)
-    with no release, and falls back to `/releases/latest` — the newest *stable*,
-    which lags the prerelease schema. `db-sync` instead uses `gh` to find the
+    version first. An unpublished checkout version falls back to
+    `/releases/latest` — the newest *stable*, whose schema may lag the checkout. `db-sync` instead uses `gh` to find the
     newest release (prereleases **included**) that actually ships
     `ros-help.db.gz`, then reuses the hardened `downloadDb()` (schema/content
     validation + stale-sidecar cleanup + atomic swap) via its `urlsOverride`
