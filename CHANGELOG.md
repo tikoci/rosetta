@@ -22,6 +22,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Synthetic `_lead` sections return only the introduction**, including their own code and word count, when selected by anchor or heading. Large pages such as WiFi CAPsMAN no longer expand a short lead into a whole-page table of contents (#144).
+- **Command explanations omit unrelated, low-confidence property annotations** and warn per argument when no menu-aligned documentation is available. High/medium annotations and property lookup candidates remain available (#147, part of #58).
+
 ## [0.11.2] — 2026-09-06
 
 ### Added
