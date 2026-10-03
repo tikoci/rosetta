@@ -30,6 +30,11 @@ uses [Semantic Versioning](https://semver.org/).
 - **Synthetic `_lead` sections return only the introduction**, including their own code and word count, when selected by anchor or heading. Large pages such as WiFi CAPsMAN no longer expand a short lead into a whole-page table of contents (#144).
 - **Command explanations omit unrelated, low-confidence property annotations** and warn per argument when no menu-aligned documentation is available. High/medium annotations and property lookup candidates remain available (#147, part of #58).
 
+### Changed
+
+- **Product matrix refreshed to the 2026-10-03 snapshot (#121).** `devices` and the hardware overlay now read `matrix/2026-10-03/matrix.csv` (155 products). It adds KNOT Gateway HL9 / LR8 and drops Groove 52, LHG XL 5 ac, and SXTsq 5 ac, which MikroTik no longer lists. MikroTik has since published /hardware pages for LAMP 5G R16, LHGG LTE7 kit, SXTsq Embedded LTE4 Global, and SXTsq 5 ax, so these now resolve without curated exceptions. The KNOT and wAP LoRa kits now link their own /hardware and product pages instead of a shared base-board page.
+- **Release content floors follow MikroTik's continued CLI-Reference migration.** Since 0.11.2, 26 more manual pages (DNS, NTP, user, services, packet sniffer, Back To Home/cloud, scheduler, …) have replaced their inline property tables with links to `/docs/cli-reference/`. Today's corpus has 2,745 table-linked properties, compared with 3,357 in 0.11.2. The `V-db-min-content` floors are now ≥600 tables, ≥6,100 data rows, and ≥2,450 linked properties, which keeps the same roughly 10% headroom. The moved fields remain in the CLI-Reference overlay.
+
 ## [0.11.2] — 2026-09-06
 
 ### Added

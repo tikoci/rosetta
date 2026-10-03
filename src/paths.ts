@@ -180,7 +180,7 @@ export function isDevInvocation(mode: InvocationMode): boolean {
  * different product sets. Bump this one constant when committing a new
  * `matrix/YYYY-MM-DD/` directory; committing the directory alone is a no-op.
  */
-export const MATRIX_CSV_RELATIVE_PATH = "matrix/2026-07-20/matrix.csv";
+export const MATRIX_CSV_RELATIVE_PATH = "matrix/2026-10-03/matrix.csv";
 
 /**
  * Schema version for ros-help.db.
