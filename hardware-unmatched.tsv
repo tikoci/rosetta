@@ -47,26 +47,28 @@ wap-ac	device	Indoor wireless	wap_ac	41		unmatched	https://manual.mikrotik.com/h
 wap-series	series-or-doc	Indoor wireless		0	yes	no-product-link	https://manual.mikrotik.com/hardware/wap-series	RBcAPL-2nD
 wsap-ac-lite	device	Indoor wireless	wsap_ac_lite	47		unmatched	https://manual.mikrotik.com/hardware/wsap-ac-lite	RB962UiGS-5HacT2HnT
 s-3553lc20d	accessory	Interfaces	S-3553LC20D	9		unmatched	https://manual.mikrotik.com/hardware/s-3553lc20d	
-knot-embedded-lte4-ec25-eu-and-kne	device	IoT products		0		unmatched	https://manual.mikrotik.com/hardware/knot-embedded-lte4-ec25-eu-and-kne	EC25-EU
+iaqm-thc2pv-w-and-iaqm-thc2pv-g	device	IoT products		0		unmatched	https://manual.mikrotik.com/hardware/iaqm-thc2pv-w-and-iaqm-thc2pv-g	
 knot-embedded-lte4-global-eg25-g-and-kne	device	IoT products	knot_emb_lte4_global	39		unmatched	https://manual.mikrotik.com/hardware/knot-embedded-lte4-global-eg25-g-and-kne	EG25-G
-ltap-lr8-lte-kit	device	IoT products	ltap_lr8_lte_kit	47		no-product-link	https://manual.mikrotik.com/hardware/ltap-lr8-lte-kit	
-ltap-lr8-lte6-kit	device	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/ltap-lr8-lte6-kit	LtAP-2HnD
+knot-lr8-kit	device	IoT products	knot_lr8	45		unmatched	https://manual.mikrotik.com/hardware/knot-lr8-kit	RB924i-2nD-BT5 RB924iR-2nD-BT5
+knot-lr9-kit	device	IoT products	knot_lr9	43		unmatched	https://manual.mikrotik.com/hardware/knot-lr9-kit	RB924i-2nD-BT5 RB924iR-2nD-BT5
+ltap-lr8-lte-kit	device	IoT products	ltap_lr8_lte_kit	47		unmatched	https://manual.mikrotik.com/hardware/ltap-lr8-lte-kit	
+ltap-lr8-lte6-kit	device	IoT products		0		unmatched	https://manual.mikrotik.com/hardware/ltap-lr8-lte6-kit	LtAP-2HnD
 ltap-lr8g-lte6-kit	device	IoT products	ltap_lr8g_lte6_kit	49		unmatched	https://manual.mikrotik.com/hardware/ltap-lr8g-lte6-kit	R11e-LR8G LtAP-2HnD
 r11e-lr8	module	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr8	
 r11e-lr8g	module	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr8g	R11e-LR8G
-r11e-lr9	module	IoT products	r11e_lr9	6		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr9	
+r11e-lr9	module	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr9	
 r11e-lr9g	module	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr9g	R11e-LR9G
 tg-bt5-in	module	IoT products	tg_bt5_in	8		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-in	
 tg-bt5-out	module	IoT products	tg_bt5_out	8		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-out	
 tg-lr82	module	IoT products	tg_lr82	6		unmatched	https://manual.mikrotik.com/hardware/tg-lr82	
 tg-lr92	module	IoT products	tg_lr92	6		unmatched	https://manual.mikrotik.com/hardware/tg-lr92	
-wap-lr9-kit	device	IoT products	wap_lr9_kit	33		unmatched	https://manual.mikrotik.com/hardware/wap-lr9-kit	RB912R-2nD-LTm
+wap-lr9-kit	device	IoT products	wap_lr9_kit	33		unmatched	https://manual.mikrotik.com/hardware/wap-lr9-kit	RB912R-2nD-LTm RBwAPR-2nD
 audience-lte6-kit	device	LTE products	audience_lte6_kit	48		unmatched	https://manual.mikrotik.com/hardware/audience-lte6-kit	
 chateau-5g	device	LTE products	chateau_5g	52		unmatched	https://manual.mikrotik.com/hardware/chateau-5g	D53G-5HacD2HnD-TC
 chateau-5g-ax	device	LTE products	chateau_5g_ax	58		unmatched	https://manual.mikrotik.com/hardware/chateau-5g-ax	
 chateau-5g-r16	device	LTE products	chateau5gr16	53		unmatched	https://manual.mikrotik.com/hardware/chateau-5g-r16	RG520F-EU D53G-5HacD2HnD-TC
-chateau-lte12	device	LTE products	chateau_lte12	48		no-product-link	https://manual.mikrotik.com/hardware/chateau-lte12	EG12-EA
-chateau-lte6	device	LTE products	chateau_lte6	49		no-product-link	https://manual.mikrotik.com/hardware/chateau-lte6	D53G-5HacD2HnD-TC
+chateau-lte12	device	LTE products	chateau_lte12	48		unmatched	https://manual.mikrotik.com/hardware/chateau-lte12	EG12-EA
+chateau-lte6	device	LTE products	chateau_lte6	49		unmatched	https://manual.mikrotik.com/hardware/chateau-lte6	D53G-5HacD2HnD-TC
 chateau-lte6-ax	device	LTE products	chateau_lte6_ax	52		unmatched	https://manual.mikrotik.com/hardware/chateau-lte6-ax	S53UG+5HaxD2HaxD-TC
 hap-ac3-lte6-kit	device	LTE products	hap_ac3_lte6_kit	51		unmatched	https://manual.mikrotik.com/hardware/hap-ac3-lte6-kit	
 intercell	device	LTE products	intercell_10_b38_b39	4		unmatched	https://manual.mikrotik.com/hardware/intercell	
@@ -86,18 +88,19 @@ crs-series	series-or-doc	Switches		0	yes	no-product-link	https://manual.mikrotik
 crs112-8g-4s-in	device	Switches	CRS112-8G-4S-IN	28		unmatched	https://manual.mikrotik.com/hardware/crs112-8g-4s-in	
 crs125-24g-1s-series	series-or-doc	Switches		0	yes	no-product-link	https://manual.mikrotik.com/hardware/crs125-24g-1s-series	
 fiberbox	device	Switches	fiberbox	22		unmatched	https://manual.mikrotik.com/hardware/fiberbox	
-compliance	series-or-doc	Wireless systems		0		no-product-link	https://manual.mikrotik.com/hardware/compliance	
 disc-lite5	device	Wireless systems	rbdisc_5nd	28		unmatched	https://manual.mikrotik.com/hardware/disc-lite5	
 disc-lite5-ac	device	Wireless systems	disc_lite5_ac	29		unmatched	https://manual.mikrotik.com/hardware/disc-lite5-ac	
 dynadish-5	device	Wireless systems	RBDynaDishG-5HacDr3	31		unmatched	https://manual.mikrotik.com/hardware/dynadish-5	
-dynadish-6	device	Wireless systems	dynadish_6	31		no-product-link	https://manual.mikrotik.com/hardware/dynadish-6	
+dynadish-6	device	Wireless systems	dynadish_6	31		unmatched	https://manual.mikrotik.com/hardware/dynadish-6	
 ldf-2	device	Wireless systems	ldf_2	27		unmatched	https://manual.mikrotik.com/hardware/ldf-2	
 lhg-xl-2	device	Wireless systems	lhg_xl_2	27		unmatched	https://manual.mikrotik.com/hardware/lhg-xl-2	
+lhg-xl-5-ac	device	Wireless systems	lhg_xl_5_ac	29		unmatched	https://manual.mikrotik.com/hardware/lhg-xl-5-ac	
 lhg-xl-52-ac	device	Wireless systems	lhg_xl_52_ac	41		unmatched	https://manual.mikrotik.com/hardware/lhg-xl-52-ac	
 mantbox-52-15s	device	Wireless systems	mantbox_52_15s	43		unmatched	https://manual.mikrotik.com/hardware/mantbox-52-15s	
 netbox-5	device	Wireless systems	RB911G-5HPacD-NB	29		unmatched	https://manual.mikrotik.com/hardware/netbox-5	
+netmetal-ac	device	Wireless systems	netmetal_ax	44		unmatched	https://manual.mikrotik.com/hardware/netmetal-ac	
 qrt-2	device	Wireless systems	RBQRTG-2SHPnDr2	30		unmatched	https://manual.mikrotik.com/hardware/qrt-2	
 qrt-5-ac	device	Wireless systems	RB911G-5HPacD-QRT	30		unmatched	https://manual.mikrotik.com/hardware/qrt-5-ac	
 sextant-g	device	Wireless systems	RBSEXTANTG-5HPnD	28		unmatched	https://manual.mikrotik.com/hardware/sextant-g	
-sxt-2	device	Wireless systems	RBSXTG-2HnDr2-168	31		no-product-link	https://manual.mikrotik.com/hardware/sxt-2	
+sxt-2	device	Wireless systems	RBSXTG-2HnDr2-168	31		unmatched	https://manual.mikrotik.com/hardware/sxt-2	
 sxt-6	device	Wireless systems	rbsxtg_6hpnd	34		unmatched	https://manual.mikrotik.com/hardware/sxt-6	

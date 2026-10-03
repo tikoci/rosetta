@@ -66,6 +66,8 @@ note = "LR8 (non-G) shares the LR8G product page: sitemap lists only r11e_lr8g (
 
 ["r11e-lr9"]
 www_code = "r11e_lr9"
+seed_only = true
+note = "seed_only: R11e-LR9 is a subcode of the KNOT LR9 kit (RB924iR-2nD-BT5&BG77&R11e-LR9), which became its own off-matrix row once its /hardware page stopped resolving to base KNOT (PR #154). Same shape as r11e-lr9g / r11e-lr8g."
 
 ["r11e-lr9g"]
 www_code = "r11e_lr9g"

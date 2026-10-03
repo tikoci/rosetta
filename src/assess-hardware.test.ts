@@ -17,6 +17,7 @@ import {
   isBogusProductToken,
   type MatrixRow,
   type PageInfo,
+  suppressLinkOnlyClaims,
 } from "./assess-hardware.ts";
 
 // ── Test builders ──
@@ -126,6 +127,39 @@ describe("slug outranks table (P3)", () => {
     const c = classifyIn(page("sxtsa-series", { tableModelCodes: ["RBSXTG-5HPacD-SAr2"] }), rows);
     expect(c.cause).toBe("matched-by-table");
     expect(c.tableOnlyNames).toEqual(["SXT SA5 ac"]);
+  });
+});
+
+// ── Cross-link guard: a kit page's link to its base board does not claim the base ──
+
+describe("link-only claims (KNOT kits, PR #154)", () => {
+  const rows = [row("KNOT", "RB924i-2nD-BT5&BG77r2")];
+
+  test("a claim made only through a link token is tracked separately from own-slug claims", () => {
+    const kit = classifyIn(page("knot-lr8-kit", { title: "KNOT LR8 kit", productLinks: ["knot_lr8", "knot"] }), rows);
+    expect(kit.matchedMatrixNames).toEqual(["KNOT"]);
+    expect(kit.linkOnlyNames).toEqual(["KNOT"]);
+    expect(kit.ownNames).toEqual([]);
+
+    const base = classifyIn(page("knot", { title: "KNOT", productLinks: ["knot"] }), rows);
+    expect(base.ownNames).toEqual(["KNOT"]);
+    expect(base.linkOnlyNames).toEqual([]);
+  });
+
+  test("a link-only claim is dropped when another page owns the row", () => {
+    const kit = classifyIn(page("knot-lr8-kit", { title: "KNOT LR8 kit", productLinks: ["knot_lr8", "knot"] }), rows);
+    const base = classifyIn(page("knot", { title: "KNOT", productLinks: ["knot"] }), rows);
+    suppressLinkOnlyClaims([kit, base]);
+    expect(kit.matchedMatrixNames).toEqual([]);
+    expect(kit.cause).toBe("unmatched");
+    expect(base.matchedMatrixNames).toEqual(["KNOT"]);
+  });
+
+  test("a link-only claim survives when no page owns the row", () => {
+    // Many device pages carry only a product link; without an owning page the link is the identity.
+    const kit = classifyIn(page("knot-lr8-kit", { title: "KNOT LR8 kit", productLinks: ["knot_lr8", "knot"] }), rows);
+    suppressLinkOnlyClaims([kit]);
+    expect(kit.matchedMatrixNames).toEqual(["KNOT"]);
   });
 });
 
