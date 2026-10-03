@@ -2,7 +2,7 @@
 // cspell:words zeroblob
 import sqlite from "bun:sqlite";
 import { afterAll, expect, test } from "bun:test";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -268,3 +268,29 @@ test("a forced refresh that waited on the download lock downloads instead of reu
     await expect(downloadDb(destination, () => {}, undefined, { force: true })).resolves.toMatchObject({ releaseTag: `v${newVersion}` });
   } finally { globalThis.fetch = realFetch; }
 }, 60000);
+
+test("file aliases of a managed generation are rejected and the generation stays rollback-mode and unchanged (#151)", () => {
+  const dir = packageRoot(`0.0.6-rc.${process.pid * 10}`);
+  const managed = placeGeneration(`9.9.${process.pid}`, 0);
+  const before = { bytes: readFileSync(managed), mtimeMs: statSync(managed).mtimeMs };
+  // File symlink (hard link where Windows withholds symlink privilege) and a case variant.
+  const linked = path.join(temp, "aliases", "caller-managed.db");
+  mkdirSync(path.dirname(linked), { recursive: true });
+  try { symlinkSync(managed, linked, "file"); } catch { linkSync(managed, linked); }
+  const upper = path.join(path.dirname(managed), path.basename(managed).toUpperCase());
+  const entry = path.join(dir, "open-and-init.ts");
+  writeFileSync(entry, `const {initDb,db}=await import("./src/db.ts"); initDb(); console.log(db.query("PRAGMA journal_mode").get());`);
+  for (const alias of [linked, upper]) {
+    for (const [args, env] of [[[], alias], [["--db", alias], ""]] as const) {
+      const result = Bun.spawnSync([process.execPath, "--preload", preloadHome, entry, ...args], { env: { ...process.env, DB_PATH: env } });
+      expect(result.exitCode, `${alias} ${args.join(" ")}`).not.toBe(0);
+      expect(result.stderr.toString()).toContain("is reserved");
+    }
+  }
+  expect(journalModeFromHeader(managed)).toBe("rollback");
+  expect(readFileSync(managed).equals(before.bytes)).toBe(true);
+  expect(statSync(managed).mtimeMs).toBe(before.mtimeMs);
+  expect(existsSync(`${managed}-wal`)).toBe(false);
+  rmSync(path.dirname(linked), { recursive: true, force: true });
+  rmSync(managed, { force: true });
+});

@@ -11,7 +11,7 @@
  * This module must NOT import db.ts or bun:sqlite — it's used before the DB is opened.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -98,9 +98,39 @@ export function isManagedDbPath(dbPath: string): boolean {
   return MANAGED_DB_PATTERN.test(path.basename(dbPath)) && canonicalDir(path.dirname(dbPath)) === canonicalDir(managedDbDir());
 }
 
-/** Overrides are caller-managed, so they must never share a name the collector owns. */
+/**
+ * True when an override path is, or could become, a managed generation: the
+ * reserved name in the managed directory (case-insensitively, since macOS and
+ * Windows filesystems usually are), or any alias of an existing generation —
+ * file symlink, hard link, or case variant — matched by device + inode.
+ */
+function overlapsManagedStorage(dbPath: string): boolean {
+  const managedDir = canonicalDir(managedDbDir());
+  const reservedName = new RegExp(MANAGED_DB_PATTERN.source, "i").test(path.basename(dbPath));
+  if (reservedName && canonicalDir(path.dirname(dbPath)).toLowerCase() === managedDir.toLowerCase()) return true;
+
+  let target: { dev: bigint; ino: bigint };
+  let entries: string[];
+  try {
+    target = statSync(dbPath, { bigint: true });
+    entries = readdirSync(managedDir);
+  } catch {
+    return false; // override does not exist yet, or no managed generations exist
+  }
+  return entries.some((name) => {
+    if (!MANAGED_DB_PATTERN.test(name)) return false;
+    try {
+      const managed = statSync(path.join(managedDir, name), { bigint: true });
+      return managed.dev === target.dev && managed.ino === target.ino;
+    } catch {
+      return false;
+    }
+  });
+}
+
+/** Overrides are caller-managed, so they must never share storage the collector owns. */
 function rejectReservedOverride(dbPath: string): string {
-  if (isManagedDbPath(dbPath)) {
+  if (overlapsManagedStorage(dbPath)) {
     throw new Error(
       `${dbPath} is reserved for rosetta's package-managed databases. Choose a different DB_PATH / --db file name.`,
     );
