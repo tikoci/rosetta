@@ -366,20 +366,20 @@ describe("setup.ts", () => {
     expect(src).toContain("sqliteGet");
   });
 
-  test("no DB open uses { readonly: true } (WAL-shm init trap on macOS)", () => {
+  test("readonly opens are limited to rollback-mode managed DBs (WAL-shm init trap on macOS)", () => {
     // Freshly-renamed WAL-mode DBs fail to open readonly on macOS until a
-    // read-write connection initialises the .shm file. downloadDb explicitly
-    // deletes .wal/.shm before the rename, so every subsequent open must be
-    // read-write. Regressing this ships a bunx path that can't open its own
-    // validated download (see v0.8.0 "DB=unreadable" bug).
-    for (const file of ["src/mcp.ts", "src/setup.ts", "src/db.ts"]) {
-      // Strip line + block comments before scanning, so the "do NOT pass
-      // { readonly: true }" warnings themselves don't trip the check.
-      const src = readText(file)
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .replace(/\/\/.*$/gm, "");
-      expect(src).not.toMatch(/readonly\s*:\s*true/);
+    // read-write connection initialises the .shm file (v0.8.0 "DB=unreadable").
+    // Managed package generations open readonly (#151), so every download is
+    // converted to rollback-journal mode before it is probed or published, and
+    // db.ts gates readonly on the managed-path check.
+    const strip = (file: string) => readText(file).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    for (const file of ["src/mcp.ts", "src/setup.ts"]) {
+      expect(strip(file)).not.toMatch(/readonly\s*:\s*true/);
     }
+    expect(strip("src/db.ts")).toContain("DB_READONLY ? new sqlite(DB_PATH, { readonly: true }) : new sqlite(DB_PATH)");
+    const setup = strip("src/setup.ts");
+    expect(setup.indexOf("convertToRollbackJournal(tmpPath)")).toBeGreaterThan(-1);
+    expect(setup.indexOf("convertToRollbackJournal(tmpPath)")).toBeLessThan(setup.indexOf("probeDb(tmpPath)"));
   });
 });
 

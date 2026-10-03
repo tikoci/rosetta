@@ -23,7 +23,8 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { gunzipSync } from "bun";
-import { detectMode, type InvocationMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
+import { collectGenerations, convertToRollbackJournal, formatCollectResult, isDbLive, journalModeFromHeader, moveUnderExclusiveLock } from "./db-lifecycle.ts";
+import { detectMode, type InvocationMode, isManagedDbPath, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 declare const REPO_URL: string;
 const REPLACE_DB_TIMEOUT_MS = 30_000;
@@ -314,6 +315,8 @@ export async function waitForUsableDb(
 function tryUnlinkDbSidecars(dbPath: string): void {
   tryUnlink(`${dbPath}-wal`);
   tryUnlink(`${dbPath}-shm`);
+  // A stale rollback journal beside a replaced file would look hot to the next open.
+  tryUnlink(`${dbPath}-journal`);
 }
 
 function cleanupDbArtifacts(dbPath: string): void {
@@ -426,6 +429,7 @@ export async function downloadDb(
   dbPath: string,
   log: (msg: string) => void = console.log,
   urlsOverride?: string[],
+  opts: { force?: boolean } = {},
 ): Promise<DbProbe> {
   // An explicit URL override (db-sync) is a request to install a *specific*
   // release, so the lock-contention shortcut must NOT silently reuse whatever
@@ -434,7 +438,9 @@ export async function downloadDb(
   // other process to release the lock (via waitForUsableDb, which returns once
   // the lock file disappears), but then re-acquire the lock and download the
   // requested release below rather than returning the reused DB.
-  const forceDownload = !!(urlsOverride && urlsOverride.length > 0);
+  // An explicit refresh (--refresh / --setup --force) likewise must not report
+  // success by reusing the file it was asked to replace.
+  const forceDownload = !!(urlsOverride && urlsOverride.length > 0) || !!opts.force;
 
   let lock = tryAcquireDownloadLock(dbPath);
   if (!lock) {
@@ -548,6 +554,13 @@ export async function downloadDb(
         throw lastError;
       }
 
+      // Published files are rollback mode so read-only owners can prove liveness (#151).
+      try {
+        convertToRollbackJournal(tmpPath);
+      } catch (e) {
+        cleanupDbArtifacts(tmpPath);
+        throw new Error(`Could not convert downloaded DB to rollback journal mode: ${e}`);
+      }
       const probe = probeDb(tmpPath);
       if (!probe) {
         cleanupDbArtifacts(tmpPath);
@@ -579,9 +592,28 @@ export async function downloadDb(
       // Validation passed — drop stale WAL/SHM and atomically swap.
       try {
         tryUnlinkDbSidecars(tmpPath);
-        tryUnlinkDbSidecars(dbPath);
-        await replaceDbFile(tmpPath, dbPath);
+        // Replacement obeys ownership: never swap a rollback-mode DB a client holds
+        // open (#151). POSIX swaps under EXCLUSIVE; on Windows the rename itself fails
+        // while any handle is open. WAL-mode files cannot be probed and stay caller-managed.
+        const lockable = existsSync(dbPath) && journalModeFromHeader(dbPath) === "rollback";
+        const inUse = lockable && (process.platform === "win32"
+          ? isDbLive(dbPath)
+          : moveUnderExclusiveLock(dbPath, () => {
+            tryUnlinkDbSidecars(dbPath);
+            renameSync(tmpPath, dbPath);
+          }) === "live");
+        if (inUse) {
+          cleanupDbArtifacts(tmpPath);
+          throw new DbInUseError(
+            `${dbPath} is in use by another rosetta client. Stop clients using it, then run: ${dbRefreshCommand(dbPath)}`,
+          );
+        }
+        if (!lockable || process.platform === "win32") {
+          tryUnlinkDbSidecars(dbPath);
+          await replaceDbFile(tmpPath, dbPath);
+        }
       } catch (e) {
+        if (e instanceof DbInUseError) throw e;
         const existingProbe = probeDb(dbPath);
         if (hasMinimumDbContent(existingProbe) && existingProbe.schemaVersion === probe.schemaVersion && existingProbe.releaseTag === probe.releaseTag) {
           cleanupDbArtifacts(tmpPath);
@@ -607,6 +639,9 @@ export async function downloadDb(
   }
 }
 
+/** A replacement was refused because a live client owns the destination. */
+export class DbInUseError extends Error {}
+
 /** Remove a file if it exists, swallowing all errors. */
 function tryUnlink(p: string): void {
   try {
@@ -624,7 +659,20 @@ export function dbRefreshCommand(dbPath: string, srcDir = import.meta.dirname): 
   const command = mode === "compiled" ? `${windows ? "& " : ""}${quote(process.execPath)}`
     : mode === "package" ? `bunx @tikoci/rosetta@${resolveVersion(srcDir)}`
     : `bun run ${quote(path.join(srcDir, "mcp.ts"))}`;
-  return `${command} --db ${quote(path.resolve(dbPath))} --refresh`;
+  // A managed default is reserved and implied by the version; an explicit --db for it is rejected.
+  const dbArg = isManagedDbPath(dbPath) ? "" : ` --db ${quote(path.resolve(dbPath))}`;
+  return `${command}${dbArg} --refresh`;
+}
+
+/** After a successful managed download, retire idle generations (#151). Never fails the caller. */
+function collectAfterDownload(dbPath: string, log: (msg: string) => void): void {
+  if (!isManagedDbPath(dbPath)) return;
+  try {
+    const summary = formatCollectResult(collectGenerations(path.dirname(dbPath), RELEASE_VERSION));
+    if (summary) log(summary);
+  } catch (e) {
+    log(`⚠ DB cleanup skipped: ${e instanceof Error ? e.message : e}`);
+  }
 }
 
 /**
@@ -636,13 +684,14 @@ export async function refreshDb(log: (msg: string) => void = console.log): Promi
   const dbPath = resolveDbPath(import.meta.dirname);
   let probe: DbProbe;
   try {
-    probe = await downloadDb(dbPath, log);
+    probe = await downloadDb(dbPath, log, undefined, { force: true });
   } catch (e) {
     log(`✗ Refresh failed: ${e instanceof Error ? e.message : e}`);
     return false;
   }
   const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
   log(`✓ Database ready${tagInfo}: ${probe.pages} pages, ${probe.commands} commands, schema v${probe.schemaVersion}`);
+  collectAfterDownload(dbPath, log);
   return true;
 }
 
@@ -662,7 +711,8 @@ export async function runSetup(force = false) {
     console.log(`  (use --refresh or --setup --force to re-download)`);
   } else {
     try {
-      downloadedProbe = await downloadDb(dbPath);
+      downloadedProbe = await downloadDb(dbPath, console.log, undefined, { force });
+      collectAfterDownload(dbPath, console.log);
     } catch (e) {
       console.error(`✗ Database download failed: ${e instanceof Error ? e.message : e}`);
       process.exit(1);
