@@ -5,8 +5,8 @@
   "matrixRowCount": 155,
   "matchedByCode": 55,
   "matchedByTable": 1,
-  "matchedBySlug": 88,
-  "unmatched": 88,
+  "matchedBySlug": 85,
+  "unmatched": 91,
   "noProductLink": 14,
   "seriesWithMultipleMatches": 5,
   "matrixRowsWithNoHardwarePage": [
@@ -4188,10 +4188,8 @@
       "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "matched-by-slug",
-      "matchedMatrixNames": [
-        "KNOT"
-      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": [],
       "mentionedCodes": [
         "RB924i-2nD-BT5",
         "RB924iR-2nD-BT5"
@@ -4219,7 +4217,6 @@
       "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
-        "KNOT",
         "KNOT LR8G kit"
       ],
       "mentionedCodes": [
@@ -4250,10 +4247,8 @@
       "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "IoT products",
-      "cause": "matched-by-slug",
-      "matchedMatrixNames": [
-        "KNOT"
-      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": [],
       "mentionedCodes": [
         "RB924i-2nD-BT5",
         "RB924iR-2nD-BT5"
@@ -4281,7 +4276,6 @@
       "category": "IoT products",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
-        "KNOT",
         "KNOT LR9G kit"
       ],
       "mentionedCodes": [
@@ -5529,10 +5523,8 @@
       "regulatoryIds": [],
       "nonDefaultIps": [],
       "category": "Wireless systems",
-      "cause": "matched-by-slug",
-      "matchedMatrixNames": [
-        "NetMetal ax"
-      ],
+      "cause": "unmatched",
+      "matchedMatrixNames": [],
       "mentionedCodes": [],
       "inferredMatrixNames": [],
       "mentionsLifecycleKeyword": false

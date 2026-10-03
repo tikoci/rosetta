@@ -482,13 +482,19 @@ export function computeSharedSubCodes(matrixRows: MatrixRow[]): Set<string> {
 
 type MatchCause = "matched-by-code" | "matched-by-table" | "matched-by-slug" | "no-product-link" | "unmatched";
 
-interface Classification {
+export interface Classification {
   slug: string;
   cause: MatchCause;
   matchedMatrixNames: string[];
   /** Rows this page claims *only* via its regulatory-table Model column (weak). main()
    *  suppresses these when another page claims the same row by code/slug. */
   tableOnlyNames: string[];
+  /** Rows this page claims *only* via a www-style link token (a cross-link such as a kit
+   *  page linking its base board). main() suppresses these when another page owns the row
+   *  by its own slug or title. */
+  linkOnlyNames: string[];
+  /** Rows this page's own slug or title identifies — the page IS that device. */
+  ownNames: string[];
 }
 
 /**
@@ -581,13 +587,42 @@ export function classify(page: PageInfo, matrixRows: MatrixRow[], sharedSubCodes
     const tableOnly = byTable
       .filter((r) => !byCode.includes(r) && !bySlug.includes(r))
       .map((r) => r.name);
-    return { slug: page.slug, cause, matchedMatrixNames: [...matched.values()].map((r) => r.name), tableOnlyNames: tableOnly };
+    const own = [...matched.values()].filter((r) => byOwnSlug.includes(r) || titleAgrees(r));
+    const linkOnly = byLinkSlug
+      .filter((r) => !byCode.includes(r) && !byTable.includes(r) && !own.includes(r))
+      .map((r) => r.name);
+    return {
+      slug: page.slug,
+      cause,
+      matchedMatrixNames: [...matched.values()].map((r) => r.name),
+      tableOnlyNames: tableOnly,
+      linkOnlyNames: linkOnly,
+      ownNames: own.map((r) => r.name),
+    };
   }
 
   if (usableLinks.length === 0 && page.tableModelCodes.length === 0) {
-    return { slug: page.slug, cause: "no-product-link", matchedMatrixNames: [], tableOnlyNames: [] };
+    return { slug: page.slug, cause: "no-product-link", matchedMatrixNames: [], tableOnlyNames: [], linkOnlyNames: [], ownNames: [] };
   }
-  return { slug: page.slug, cause: "unmatched", matchedMatrixNames: [], tableOnlyNames: [] };
+  return { slug: page.slug, cause: "unmatched", matchedMatrixNames: [], tableOnlyNames: [], linkOnlyNames: [], ownNames: [] };
+}
+
+/**
+ * Cross-page link-suppression: a kit or variant page often links its base board's product
+ * page as well as its own (/hardware/knot-lr8-kit links both knot_lr8 and knot), and the
+ * base-board token alone canon-equals the matrix row. Drop such a link-only claim when some
+ * *other* page owns that row by its own slug or title (/hardware/knot), so the kit page
+ * resolves as its own off-matrix device instead of an alias of the base board (PR #154).
+ */
+export function suppressLinkOnlyClaims(classifications: Classification[]): void {
+  const ownClaimed = new Set(classifications.flatMap((c) => c.ownNames));
+  for (const c of classifications) {
+    if (c.linkOnlyNames.length === 0) continue;
+    c.matchedMatrixNames = c.matchedMatrixNames.filter(
+      (name) => !(c.linkOnlyNames.includes(name) && ownClaimed.has(name)),
+    );
+    if (c.matchedMatrixNames.length === 0) c.cause = "unmatched";
+  }
 }
 
 // ── Main ──
@@ -678,6 +713,8 @@ async function main() {
       c.cause = "unmatched";
     }
   }
+
+  suppressLinkOnlyClaims(classifications);
 
   const byCause: Record<MatchCause, Classification[]> = {
     "matched-by-code": [],

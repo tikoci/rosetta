@@ -45,8 +45,10 @@ describe("hardware-www-map loader", () => {
     expect(curatedWwwCodeForSlug("r11e-lr8")).toBe(undefined);
     expect(curatedWwwCodeForSlug("ltap-lr8-lte6-kit")).toBe(undefined);
     expect(curatedWwwCodes()).toContain("r11e_lr8g"); // still seeded for the fetch
-    // r11e-lr9 (non-G) has no kit collision, so it DOES force-attach (a real gap closure).
-    expect(curatedWwwCodeForSlug("r11e-lr9")).toBe("r11e_lr9");
+    // r11e-lr9 (non-G) joined them once /hardware/knot-lr9-kit became its own row: that kit
+    // declares RB924iR-2nD-BT5&BG77&R11e-LR9, so the module code is a kit subcode too (PR #154).
+    expect(curatedWwwCodeForSlug("r11e-lr9")).toBe(undefined);
+    expect(curatedWwwCodes()).toContain("r11e_lr9");
   });
 
   test("no two force-attachable entries share a www_code (one-product-one-row)", () => {

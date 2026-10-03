@@ -3,13 +3,13 @@
   "uncategorizedPages": 0,
   "coreFieldFrequencyPct": {
     "Product code": 100,
-    "CPU": 82,
+    "CPU": 83,
     "Architecture": 82
   },
-  "matrixCoveragePct": 93,
-  "www404RatePct": 35,
-  "aliasCollisions": 85,
-  "droppedWwwProducts": 82,
+  "matrixCoveragePct": 92,
+  "www404RatePct": 36,
+  "aliasCollisions": 99,
+  "droppedWwwProducts": 81,
   "resolvedDeviceIds": [
     "atl-5g-r16",
     "atl-lte18-kit",

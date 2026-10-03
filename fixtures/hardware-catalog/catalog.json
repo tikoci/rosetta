@@ -1226,6 +1226,26 @@
       "sourceWwwCode": "intercell_10_b38_b39"
     },
     {
+      "rosettaDeviceId": "hw-knot-lr8-kit",
+      "deviceProductName": null,
+      "name": "KNOT LR8 kit",
+      "category": "IoT products",
+      "discontinued": 1,
+      "specsJson": "{\"Product code\":\"RB924iR-2nD-BT5&BG77&R11e-LR8\",\"Suggested price\":\"$199.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"QCA9531\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"MicroUSB input Voltage\":\"5 V\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, MicroUSB)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"23 W\",\"Max power consumption without attachments\":\"5 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"PoE-out ports\":\"Ether2\",\"PoE out\":\"802.3af/at\",\"Low voltage PoE-Out current limit\":\"650 mA\",\"High voltage PoE-Out current limit\":\"450 mA\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"1.5\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"2\",\"Number of SIM slots\":\"1 Modem (Nano SIM)\",\"MiniPCI-e slots\":\"1\",\"Serial console port\":\"RS485\",\"Number of USB ports\":\"1\",\"USB slot type\":\"microUSB type AB\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Bluetooth version\":\"5.2\",\"Bluetooth RF connector type\":\"uUFL\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"KNOT LR8 kit\",\"_www_tagline\":\"An out-of-the-box 863-870 MHz IoT Gateway solution for LoRa® technology. For ultimate versatility and cost-effectiveness. The first gateway with a CAT-M interface for LoRa®!\",\"_hardware_title\":\"KNOT LR8 kit\"}",
+      "sourceHardwareSlug": "knot-lr8-kit",
+      "sourceWwwCode": "knot_lr8"
+    },
+    {
+      "rosettaDeviceId": "hw-knot-lr9-kit",
+      "deviceProductName": null,
+      "name": "KNOT LR9 kit",
+      "category": "IoT products",
+      "discontinued": 1,
+      "specsJson": "{\"Product code\":\"RB924iR-2nD-BT5&BG77&R11e-LR9\",\"Suggested price\":\"$199.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"QCA9531\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"MicroUSB input Voltage\":\"5 V\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, MicroUSB)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"23 W\",\"Max power consumption without attachments\":\"5 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"PoE-out ports\":\"Ether2\",\"PoE out\":\"Passive PoE up to 57V\",\"Total output power\":\"12\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"1.5\",\"Wireless 2.4 GHz chip model\":\"QCA9531\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"2\",\"Number of SIM slots\":\"1 Modem (Nano SIM)\",\"MiniPCI-e slots\":\"1\",\"Serial console port\":\"RS485\",\"Number of USB ports\":\"1\",\"USB slot type\":\"microUSB type AB\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Bluetooth version\":\"5.2\",\"Bluetooth RF connector type\":\"uUFL\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"_www_title\":\"KNOT LR9 kit\",\"_www_tagline\":\"An out-of-the-box 902-928 MHz IoT Gateway solution for LoRa® technology. For ultimate versatility and cost-effectiveness. The first gateway with a CAT-M interface for LoRa®!\",\"_hardware_title\":\"KNOT LR9 kit\"}",
+      "sourceHardwareSlug": "knot-lr9-kit",
+      "sourceWwwCode": "knot_lr9"
+    },
+    {
       "rosettaDeviceId": "hw-ldf-2",
       "deviceProductName": null,
       "name": "LDF 2",
@@ -1520,10 +1540,10 @@
       "deviceProductName": null,
       "name": "R11e-LR9",
       "category": "IoT products",
-      "discontinued": 1,
-      "specsJson": "{\"Product code\":\"R11e-LR9\",\"Suggested price\":\"$89.00\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 60°C\",\"Max power consumption\":\"2 W\",\"Certification\":\"FCC, IC\",\"_www_title\":\"R11e-LR9\",\"_www_tagline\":\"Concentrator gateway card for LoRa® technology  in mini PCIe form factor for 902-928 MHz\",\"_hardware_title\":\"R11e-LR9\"}",
+      "discontinued": null,
+      "specsJson": "{\"_hardware_title\":\"R11e-LR9\"}",
       "sourceHardwareSlug": "r11e-lr9",
-      "sourceWwwCode": "r11e_lr9"
+      "sourceWwwCode": null
     },
     {
       "rosettaDeviceId": "hw-r11e-lr9g",
@@ -5193,8 +5213,18 @@
       "source": "hardware-link"
     },
     {
+      "alias": "knot_lr8",
+      "rosettaDeviceId": "hw-knot-lr8-kit",
+      "source": "hardware-link"
+    },
+    {
       "alias": "knot_lr8g_kit",
       "rosettaDeviceId": "knot-lr8g-kit",
+      "source": "hardware-link"
+    },
+    {
+      "alias": "knot_lr9",
+      "rosettaDeviceId": "hw-knot-lr9-kit",
       "source": "hardware-link"
     },
     {
@@ -5214,7 +5244,7 @@
     },
     {
       "alias": "knot-lr8-kit",
-      "rosettaDeviceId": "knot",
+      "rosettaDeviceId": "hw-knot-lr8-kit",
       "source": "hardware-slug"
     },
     {
@@ -5224,7 +5254,7 @@
     },
     {
       "alias": "knot-lr9-kit",
-      "rosettaDeviceId": "knot",
+      "rosettaDeviceId": "hw-knot-lr9-kit",
       "source": "hardware-slug"
     },
     {
@@ -5258,13 +5288,33 @@
       "source": "collapsed"
     },
     {
+      "alias": "knotlr8",
+      "rosettaDeviceId": "hw-knot-lr8-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "knotlr8gkit",
       "rosettaDeviceId": "knot-lr8g-kit",
       "source": "collapsed"
     },
     {
+      "alias": "knotlr8kit",
+      "rosettaDeviceId": "hw-knot-lr8-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "knotlr9",
+      "rosettaDeviceId": "hw-knot-lr9-kit",
+      "source": "collapsed"
+    },
+    {
       "alias": "knotlr9gkit",
       "rosettaDeviceId": "knot-lr9g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "knotlr9kit",
+      "rosettaDeviceId": "hw-knot-lr9-kit",
       "source": "collapsed"
     },
     {
@@ -6408,11 +6458,6 @@
       "source": "collapsed"
     },
     {
-      "alias": "r11e_lr9",
-      "rosettaDeviceId": "hw-r11e-lr9",
-      "source": "www-code"
-    },
-    {
       "alias": "r11e-4g",
       "rosettaDeviceId": "hw-r11e-series",
       "source": "hardware-table"
@@ -6424,8 +6469,8 @@
     },
     {
       "alias": "r11e-lr8",
-      "rosettaDeviceId": "hw-r11e-lr8",
-      "source": "hardware-slug"
+      "rosettaDeviceId": "hw-knot-lr8-kit",
+      "source": "www-declared-code"
     },
     {
       "alias": "r11e-lr8g",
@@ -6434,8 +6479,8 @@
     },
     {
       "alias": "r11e-lr9",
-      "rosettaDeviceId": "hw-r11e-lr9",
-      "source": "hardware-slug"
+      "rosettaDeviceId": "hw-knot-lr9-kit",
+      "source": "www-declared-code"
     },
     {
       "alias": "r11e-lr9g",
@@ -6484,7 +6529,7 @@
     },
     {
       "alias": "r11elr8",
-      "rosettaDeviceId": "hw-r11e-lr8",
+      "rosettaDeviceId": "hw-knot-lr8-kit",
       "source": "collapsed"
     },
     {
@@ -6494,7 +6539,7 @@
     },
     {
       "alias": "r11elr9",
-      "rosettaDeviceId": "hw-r11e-lr9",
+      "rosettaDeviceId": "hw-knot-lr9-kit",
       "source": "collapsed"
     },
     {
@@ -7053,6 +7098,16 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rb924ir-2nd-bt5&bg77&r11e-lr8",
+      "rosettaDeviceId": "hw-knot-lr8-kit",
+      "source": "www-declared-code"
+    },
+    {
+      "alias": "rb924ir-2nd-bt5&bg77&r11e-lr9",
+      "rosettaDeviceId": "hw-knot-lr9-kit",
+      "source": "www-declared-code"
+    },
+    {
       "alias": "rb924ir-2nd-bt5&bg770a&r11e-lr8g",
       "rosettaDeviceId": "knot-lr8g-kit",
       "source": "www-declared-code"
@@ -7075,6 +7130,16 @@
     {
       "alias": "rb924ir2ndbt5andbg770aandr11elr9g",
       "rosettaDeviceId": "knot-lr9g-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb924ir2ndbt5andbg77andr11elr8",
+      "rosettaDeviceId": "hw-knot-lr8-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rb924ir2ndbt5andbg77andr11elr9",
+      "rosettaDeviceId": "hw-knot-lr9-kit",
       "source": "collapsed"
     },
     {
@@ -8896,16 +8961,6 @@
     },
     {
       "kind": "www-product",
-      "id": "knot_lr8",
-      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
-    },
-    {
-      "kind": "www-product",
-      "id": "knot_lr9",
-      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
-    },
-    {
-      "kind": "www-product",
       "id": "ldf_5_ac",
       "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
@@ -9013,6 +9068,11 @@
       "kind": "www-product",
       "id": "r11e_lr8g",
       "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
+    },
+    {
+      "kind": "www-product",
+      "id": "r11e_lr9",
+      "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
     },
     {
       "kind": "www-product",
@@ -9221,6 +9281,20 @@
       "droppedSource": "www-declared-code"
     },
     {
+      "alias": "bg77",
+      "kept": "knot",
+      "keptSource": "www-declared-code",
+      "dropped": "hw-knot-lr8-kit",
+      "droppedSource": "www-declared-code"
+    },
+    {
+      "alias": "bg77",
+      "kept": "knot",
+      "keptSource": "www-declared-code",
+      "dropped": "hw-knot-lr9-kit",
+      "droppedSource": "www-declared-code"
+    },
+    {
       "alias": "bg770a",
       "kept": "knot-lr8g-kit",
       "keptSource": "matrix.csv",
@@ -9417,6 +9491,34 @@
       "droppedSource": "www-declared-code"
     },
     {
+      "alias": "knot",
+      "kept": "knot",
+      "keptSource": "matrix.csv",
+      "dropped": "knot-lr8g-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
+      "alias": "knot",
+      "kept": "knot",
+      "keptSource": "matrix.csv",
+      "dropped": "knot-lr9g-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
+      "alias": "knot",
+      "kept": "knot",
+      "keptSource": "matrix.csv",
+      "dropped": "hw-knot-lr8-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
+      "alias": "knot",
+      "kept": "knot",
+      "keptSource": "matrix.csv",
+      "dropped": "hw-knot-lr9-kit",
+      "droppedSource": "hardware-link"
+    },
+    {
       "alias": "l41g-2axd",
       "kept": "hap-ax-lite",
       "keptSource": "matrix.csv",
@@ -9445,6 +9547,13 @@
       "droppedSource": "www-declared-code"
     },
     {
+      "alias": "r11e-lr8",
+      "kept": "hw-knot-lr8-kit",
+      "keptSource": "www-declared-code",
+      "dropped": "hw-r11e-lr8",
+      "droppedSource": "hardware-slug"
+    },
+    {
       "alias": "r11e-lr8g",
       "kept": "knot-lr8g-kit",
       "keptSource": "matrix.csv",
@@ -9467,8 +9576,15 @@
     },
     {
       "alias": "r11e-lr9",
-      "kept": "hw-r11e-lr9",
-      "keptSource": "hardware-slug",
+      "kept": "hw-knot-lr9-kit",
+      "keptSource": "www-declared-code",
+      "dropped": "hw-r11e-lr9",
+      "droppedSource": "hardware-slug"
+    },
+    {
+      "alias": "r11e-lr9",
+      "kept": "hw-knot-lr9-kit",
+      "keptSource": "www-declared-code",
       "dropped": "hw-wap-lr9-kit",
       "droppedSource": "www-declared-code"
     },
@@ -9631,6 +9747,20 @@
       "kept": "knot-lr8g-kit",
       "keptSource": "matrix.csv",
       "dropped": "knot-lr9g-kit",
+      "droppedSource": "www-declared-code"
+    },
+    {
+      "alias": "rb924ir-2nd-bt5",
+      "kept": "knot-lr8g-kit",
+      "keptSource": "matrix.csv",
+      "dropped": "hw-knot-lr8-kit",
+      "droppedSource": "www-declared-code"
+    },
+    {
+      "alias": "rb924ir-2nd-bt5",
+      "kept": "knot-lr8g-kit",
+      "keptSource": "matrix.csv",
+      "dropped": "hw-knot-lr9-kit",
       "droppedSource": "www-declared-code"
     },
     {
