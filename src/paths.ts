@@ -11,7 +11,7 @@
  * This module must NOT import db.ts or bun:sqlite — it's used before the DB is opened.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -82,9 +82,20 @@ export function managedDbDir(): string {
   return path.join(homedir(), ".rosetta");
 }
 
+/** Symlinks resolved and, on Windows, case folded, so an aliased directory compares equal. */
+function canonicalDir(dir: string): string {
+  let resolved = path.resolve(dir);
+  try {
+    resolved = realpathSync(resolved);
+  } catch {
+    // not created yet: nothing can alias it
+  }
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
 /** True for a package-managed generation: opened read-only, owner-locked, and collectable. */
 export function isManagedDbPath(dbPath: string): boolean {
-  return path.resolve(path.dirname(dbPath)) === path.resolve(managedDbDir()) && MANAGED_DB_PATTERN.test(path.basename(dbPath));
+  return MANAGED_DB_PATTERN.test(path.basename(dbPath)) && canonicalDir(path.dirname(dbPath)) === canonicalDir(managedDbDir());
 }
 
 /** Overrides are caller-managed, so they must never share a name the collector owns. */

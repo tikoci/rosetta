@@ -197,7 +197,7 @@ export function retireGeneration(dbPath: string): "retired" | "live" {
     if (windows && ["EBUSY", "EPERM", "EACCES"].includes(errorCode(e))) return "live";
     throw e;
   }
-  unlinkIfPresent(`${dbPath}-journal`);
+  for (const sidecar of ["-journal", "-wal", "-shm"]) unlinkIfPresent(`${dbPath}${sidecar}`);
   return "retired";
 }
 
@@ -273,15 +273,15 @@ export function collectGenerations(dir: string, runningVersion: string, now = Da
 
   const legacy = path.join(dir, LEGACY_DB_NAME);
   const legacyFiles = [legacy, `${legacy}-wal`, `${legacy}-shm`].filter((f) => existsSync(f));
-  if (legacyFiles.includes(legacy) && legacyFiles.every((f) => now - statSync(f).mtimeMs > LEGACY_IDLE_MS)) {
-    try {
+  try {
+    if (legacyFiles.includes(legacy) && legacyFiles.every((f) => now - statSync(f).mtimeMs > LEGACY_IDLE_MS)) {
       const size = statSync(legacy).size;
-      for (const f of legacyFiles) unlinkSync(f);
+      for (const f of legacyFiles) unlinkIfPresent(f);
       result.legacyRemoved = true;
       result.bytesFreed += size;
-    } catch {
-      // retried next startup
     }
+  } catch {
+    // retried next startup
   }
 
   return result;

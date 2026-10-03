@@ -125,7 +125,7 @@ test("legacy ros-help.db is removed only when the DB and its sidecars are all 14
   expect(readdirSync(dir)).toEqual([]);
 });
 
-test("open-time race: a file retired before the first read makes acquisition re-resolve (POSIX)", () => {
+test("open-time race: a file retired before the first read makes acquisition re-resolve (POSIX); Windows refuses the delete", () => {
   const file = generation(freshDir(), "ros-help-1.0.0.db");
   const acquired = acquireOwnership(file, { afterOpen: () => expect(retireGeneration(file)).toBe(windows ? "live" : "retired") });
   // POSIX: the collector won (no lock yet) → retirement-shaped failure → false.
@@ -151,4 +151,12 @@ test("lock probes never create a missing file (a probe racing a deletion leaves 
   expect(() => isDbLive(file)).toThrow();
   expect(() => retireGeneration(file)).toThrow();
   expect(existsSync(file)).toBe(false);
+});
+
+test("retirement removes every sidecar, including a stale -shm beside a rollback-mode file", () => {
+  const file = generation(freshDir(), "ros-help-1.0.0.db");
+  writeFileSync(`${file}-shm`, "");
+  writeFileSync(`${file}-journal`, "");
+  expect(retireGeneration(file)).toBe("retired");
+  expect(readdirSync(path.dirname(file))).toEqual([]);
 });

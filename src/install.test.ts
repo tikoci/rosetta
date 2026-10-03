@@ -9,7 +9,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { gzipSync } from "bun";
 import { isDbLive, journalModeFromHeader } from "./db-lifecycle.ts";
-import { dbRefreshCommand, downloadDb } from "./setup.ts";
+import { dbRefreshCommand, downloadDb, releaseDownloadLock, tryAcquireDownloadLock } from "./setup.ts";
 
 const root = path.resolve(import.meta.dirname, "..");
 const temp = mkdtempSync(path.join(tmpdir(), "rosetta-install-"));
@@ -246,4 +246,25 @@ test("a DB_PATH or --db naming a reserved managed generation is rejected (#151)"
     expect(result.stderr.toString()).toContain("is reserved for rosetta's package-managed databases");
   }
   expect(resolvedPath(dir, [], path.join(userDir, ".rosetta", "ros-help-custom.db"))).toEndWith("ros-help-custom.db");
+  // A directory aliasing ~/.rosetta must not smuggle a reserved name past the check.
+  const alias = path.join(temp, "rosetta-alias");
+  symlinkSync(path.join(userDir, ".rosetta"), alias, "junction");
+  const viaAlias = Bun.spawnSync([process.execPath, "--preload", preloadHome, entry], { env: { ...process.env, DB_PATH: path.join(alias, "ros-help-9.9.9.db") } });
+  expect(viaAlias.exitCode).not.toBe(0);
+  expect(viaAlias.stderr.toString()).toContain("is reserved");
 });
+
+test("a forced refresh that waited on the download lock downloads instead of reusing the old file", async () => {
+  const [oldVersion, newVersion] = [1, 2].map(i => `0.0.5-rc.${process.pid * 10 + i}`);
+  const destination = path.join(temp, "forced", "help.db");
+  const oldUrl = `data:application/octet-stream;base64,${Buffer.from(readFileSync(await fixture(oldVersion))).toString("base64")}`;
+  await downloadDb(destination, () => {}, [oldUrl]);
+  const newArtifact = await fixture(newVersion);
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => new Response(await Bun.file(newArtifact).arrayBuffer())) as unknown as typeof fetch;
+  const lock = tryAcquireDownloadLock(destination);
+  setTimeout(() => releaseDownloadLock(lock), 500);
+  try {
+    await expect(downloadDb(destination, () => {}, undefined, { force: true })).resolves.toMatchObject({ releaseTag: `v${newVersion}` });
+  } finally { globalThis.fetch = realFetch; }
+}, 60000);

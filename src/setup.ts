@@ -427,6 +427,7 @@ export async function downloadDb(
   dbPath: string,
   log: (msg: string) => void = console.log,
   urlsOverride?: string[],
+  opts: { force?: boolean } = {},
 ): Promise<DbProbe> {
   // An explicit URL override (db-sync) is a request to install a *specific*
   // release, so the lock-contention shortcut must NOT silently reuse whatever
@@ -435,7 +436,9 @@ export async function downloadDb(
   // other process to release the lock (via waitForUsableDb, which returns once
   // the lock file disappears), but then re-acquire the lock and download the
   // requested release below rather than returning the reused DB.
-  const forceDownload = !!(urlsOverride && urlsOverride.length > 0);
+  // An explicit refresh (--refresh / --setup --force) likewise must not report
+  // success by reusing the file it was asked to replace.
+  const forceDownload = !!(urlsOverride && urlsOverride.length > 0) || !!opts.force;
 
   let lock = tryAcquireDownloadLock(dbPath);
   if (!lock) {
@@ -656,6 +659,17 @@ export function dbRefreshCommand(dbPath: string, srcDir = import.meta.dirname): 
   return `${command}${dbArg} --refresh`;
 }
 
+/** After a successful managed download, retire idle generations (#151). Never fails the caller. */
+function collectAfterDownload(dbPath: string, log: (msg: string) => void): void {
+  if (!isManagedDbPath(dbPath)) return;
+  try {
+    const summary = formatCollectResult(collectGenerations(path.dirname(dbPath), RELEASE_VERSION));
+    if (summary) log(summary);
+  } catch (e) {
+    log(`⚠ DB cleanup skipped: ${e instanceof Error ? e.message : e}`);
+  }
+}
+
 /**
  * Quiet refresh — download + validate + report stats. No MCP-config printing.
  * Used by `--refresh` (and indirectly by mcp.ts when auto-recovering from a
@@ -665,21 +679,14 @@ export async function refreshDb(log: (msg: string) => void = console.log): Promi
   const dbPath = resolveDbPath(import.meta.dirname);
   let probe: DbProbe;
   try {
-    probe = await downloadDb(dbPath, log);
+    probe = await downloadDb(dbPath, log, undefined, { force: true });
   } catch (e) {
     log(`✗ Refresh failed: ${e instanceof Error ? e.message : e}`);
     return false;
   }
   const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
   log(`✓ Database ready${tagInfo}: ${probe.pages} pages, ${probe.commands} commands, schema v${probe.schemaVersion}`);
-  if (isManagedDbPath(dbPath)) {
-    try {
-      const summary = formatCollectResult(collectGenerations(path.dirname(dbPath), RELEASE_VERSION));
-      if (summary) log(summary);
-    } catch (e) {
-      log(`⚠ DB cleanup skipped: ${e instanceof Error ? e.message : e}`);
-    }
-  }
+  collectAfterDownload(dbPath, log);
   return true;
 }
 
@@ -699,7 +706,8 @@ export async function runSetup(force = false) {
     console.log(`  (use --refresh or --setup --force to re-download)`);
   } else {
     try {
-      downloadedProbe = await downloadDb(dbPath);
+      downloadedProbe = await downloadDb(dbPath, console.log, undefined, { force });
+      collectAfterDownload(dbPath, console.log);
     } catch (e) {
       console.error(`✗ Database download failed: ${e instanceof Error ? e.message : e}`);
       process.exit(1);
