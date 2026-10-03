@@ -108,3 +108,21 @@ jobs:
           fi
           echo "::warning title=AI findings API now available::Endpoint ${found} responded — promote this step from probe to gate."
           gh api "${found%% *}" || true
+
+  # DB ownership + collection depends on OS file-locking and delete semantics
+  # (#151): macOS rejects reads after unlink; Windows delete-while-open
+  # semantics must be proven here before any release can publish the protocol.
+  db-lifecycle:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Run DB lifecycle and install tests
+        run: bun test src/db-lifecycle.test.ts src/install.test.ts

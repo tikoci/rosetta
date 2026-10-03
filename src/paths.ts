@@ -11,7 +11,7 @@
  * This module must NOT import db.ts or bun:sqlite — it's used before the DB is opened.
  */
 
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
@@ -61,18 +61,56 @@ export function resolveBaseDir(srcDir: string): string {
  */
 export function resolveDbPath(srcDir: string): string {
   const envPath = process.env.DB_PATH?.trim();
-  if (envPath) return envPath;
+  if (envPath) return rejectReservedOverride(envPath);
 
   // --db flag parsed at init time so ESM static imports don't race it
   const dbArgIdx = process.argv.indexOf("--db");
   if (dbArgIdx !== -1 && process.argv[dbArgIdx + 1]) {
-    return process.argv[dbArgIdx + 1];
+    return rejectReservedOverride(process.argv[dbArgIdx + 1]);
   }
 
   const filename = detectMode(srcDir) === "package"
     ? `ros-help-${resolveVersion(srcDir)}.db`
     : "ros-help.db";
   return path.join(resolveBaseDir(srcDir), filename);
+}
+
+/** Package-mode DB generations: `~/.rosetta/ros-help-<semver>.db` (#151). */
+export const MANAGED_DB_PATTERN = /^ros-help-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)\.db$/;
+
+export function managedDbDir(): string {
+  return path.join(homedir(), ".rosetta");
+}
+
+/** True for a package-managed generation: opened read-only, owner-locked, and collectable. */
+export function isManagedDbPath(dbPath: string): boolean {
+  return path.resolve(path.dirname(dbPath)) === path.resolve(managedDbDir()) && MANAGED_DB_PATTERN.test(path.basename(dbPath));
+}
+
+/** Overrides are caller-managed, so they must never share a name the collector owns. */
+function rejectReservedOverride(dbPath: string): string {
+  if (isManagedDbPath(dbPath)) {
+    throw new Error(
+      `${dbPath} is reserved for rosetta's package-managed databases. Choose a different DB_PATH / --db file name.`,
+    );
+  }
+  return dbPath;
+}
+
+/** Managed generations newer than the running version: evidence this client's config is stale. */
+export function newerLocalVersions(srcDir: string): string[] {
+  if (detectMode(srcDir) !== "package") return [];
+  const running = resolveVersion(srcDir);
+  let entries: string[];
+  try {
+    entries = readdirSync(managedDbDir());
+  } catch {
+    return [];
+  }
+  return entries
+    .map((name) => MANAGED_DB_PATTERN.exec(name)?.[1])
+    .filter((version): version is string => !!version && Bun.semver.order(version, running) > 0)
+    .sort((a, b) => Bun.semver.order(b, a));
 }
 
 /** Detect invocation mode: "compiled" | "dev" | "package" */

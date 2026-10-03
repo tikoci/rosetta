@@ -30,8 +30,9 @@
  *   TLS_KEY_PATH  — TLS private key path (lower precedence than --tls-key)
  */
 
+import path from "node:path";
 import { MCP_INSTRUCTIONS } from "./mcp-meta.ts";
-import { resolveVersion } from "./paths.ts";
+import { newerLocalVersions, resolveVersion } from "./paths.ts";
 
 const RESOLVED_VERSION = resolveVersion(import.meta.dirname);
 
@@ -70,8 +71,14 @@ function link(url: string, display?: string): string {
  *     (e.g. offline, or ROSETTA_OFFLINE=1 set deliberately) instead of
  *     crashing startup over it.
  */
+/** Shown to agents (server instructions), in routeros_stats, and on stderr when a newer version has run here. */
+function staleClientNotice(runningVersion: string, newer: string[]): string {
+  return `rosetta v${newer[0]} has run on this machine; this client is v${runningVersion}. ` +
+    "If unintended, check this MCP config's package spec (e.g. @next vs @latest).";
+}
+
 async function ensureDbReady(log: (msg: string) => void): Promise<void> {
-  const { resolveDbPath, SCHEMA_VERSION, resolveVersion, detectMode, classifyDbGrounding, isDevInvocation } = await import("./paths.ts");
+  const { resolveDbPath, SCHEMA_VERSION, resolveVersion, detectMode, classifyDbGrounding, isDevInvocation, isManagedDbPath, newerLocalVersions } = await import("./paths.ts");
   const { checkDbFreshness, cleanupAbandonedTempArtifacts, dbRefreshCommand, downloadDb, hasMinimumDbContent, probeDb } = await import(
     "./setup.ts"
   );
@@ -160,6 +167,28 @@ async function ensureDbReady(log: (msg: string) => void): Promise<void> {
       );
       throw new Error(`Database remained incompatible after recovery: ${dbPath}`);
     }
+  }
+
+  // Package-managed generation (#151): hold a lifetime owner lock, then collect
+  // idle generations. A file retired by another version's collector while we were
+  // opening it is re-downloaded (bounded).
+  if (isManagedDbPath(dbPath)) {
+    const { acquireOwnership, collectGenerations, formatCollectResult } = await import("./db-lifecycle.ts");
+    for (let attempt = 1; !acquireOwnership(dbPath); attempt++) {
+      if (attempt >= 3 || offline) {
+        throw new Error(`Database at ${dbPath} was removed by another rosetta process while opening; retry startup.`);
+      }
+      log(`Database at ${dbPath} was retired by another rosetta process while opening — re-downloading...`);
+      p = await downloadDb(dbPath, log);
+    }
+    try {
+      const summary = formatCollectResult(collectGenerations(path.dirname(dbPath), runningVersion));
+      if (summary) log(summary);
+    } catch (e) {
+      log(`⚠ DB cleanup skipped: ${e instanceof Error ? e.message : e}`);
+    }
+    const newer = newerLocalVersions(import.meta.dirname);
+    if (newer.length > 0) log(`⚠ ${staleClientNotice(runningVersion, newer)}`);
   }
 
   // Quietly emit a one-line provenance banner so MCP-client logs show what's loaded.
@@ -326,6 +355,11 @@ const {
 
 initDb();
 
+const newerVersions = newerLocalVersions(import.meta.dirname);
+const SERVER_INSTRUCTIONS = newerVersions.length > 0
+  ? `${MCP_INSTRUCTIONS}\n\nNote: ${staleClientNotice(RESOLVED_VERSION, newerVersions)}`
+  : MCP_INSTRUCTIONS;
+
 /** MCP `instructions` string sent to clients on init. Exported so the TUI's
  *  `.instructions` dot-command can show the same text an agent sees. */
 // MCP_INSTRUCTIONS now lives in mcp-meta.ts (importing it from browse.ts
@@ -339,7 +373,7 @@ const server = new McpServer({
   name: "rosetta",
   version: RESOLVED_VERSION,
 }, {
-  instructions: MCP_INSTRUCTIONS,
+  instructions: SERVER_INSTRUCTIONS,
 });
 
 server.registerResource(

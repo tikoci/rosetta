@@ -38,7 +38,7 @@
  */
 
 import sqlite from "bun:sqlite";
-import { classifyDbGrounding, detectMode, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
+import { classifyDbGrounding, detectMode, isManagedDbPath, newerLocalVersions, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 export { SCHEMA_VERSION };
 
@@ -72,9 +72,16 @@ export const CLIREF_FIELD_VIEW_SQL = `CREATE VIEW cliref_field_inspect_links AS
 
 export const DB_PATH = resolveDbPath(import.meta.dirname);
 
-export const db = new sqlite(DB_PATH);
+/** Package-managed generations are immutable at runtime: read-only, rollback mode, owner-locked (#151). */
+export const DB_READONLY = isManagedDbPath(DB_PATH);
+
+export const db = DB_READONLY ? new sqlite(DB_PATH, { readonly: true }) : new sqlite(DB_PATH);
 
 export function initDb() {
+  if (DB_READONLY) {
+    db.run("PRAGMA foreign_keys=ON;");
+    return;
+  }
   db.run("PRAGMA journal_mode=WAL;");
   db.run("PRAGMA foreign_keys=ON;");
   // Stamp schema version unconditionally — initDb() is only called by extractors
@@ -1205,6 +1212,7 @@ export function getDbStats() {
     db_size_bytes: dbSizeBytes,
     schema_version: schemaVersion,
     provenance,
+    newer_local_versions: newerLocalVersions(import.meta.dirname),
     pages: count("SELECT COUNT(*) AS c FROM pages"),
     sections: count("SELECT COUNT(*) AS c FROM sections"),
     properties: count("SELECT COUNT(*) AS c FROM properties"),

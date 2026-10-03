@@ -23,7 +23,8 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { gunzipSync } from "bun";
-import { detectMode, type InvocationMode, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
+import { collectGenerations, convertToRollbackJournal, formatCollectResult, isDbLive, journalModeFromHeader, moveUnderExclusiveLock } from "./db-lifecycle.ts";
+import { detectMode, type InvocationMode, isManagedDbPath, resolveBaseDir, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 
 declare const REPO_URL: string;
 const REPLACE_DB_TIMEOUT_MS = 30_000;
@@ -548,6 +549,13 @@ export async function downloadDb(
         throw lastError;
       }
 
+      // Published files are rollback mode so read-only owners can prove liveness (#151).
+      try {
+        convertToRollbackJournal(tmpPath);
+      } catch (e) {
+        cleanupDbArtifacts(tmpPath);
+        throw new Error(`Could not convert downloaded DB to rollback journal mode: ${e}`);
+      }
       const probe = probeDb(tmpPath);
       if (!probe) {
         cleanupDbArtifacts(tmpPath);
@@ -579,9 +587,25 @@ export async function downloadDb(
       // Validation passed — drop stale WAL/SHM and atomically swap.
       try {
         tryUnlinkDbSidecars(tmpPath);
-        tryUnlinkDbSidecars(dbPath);
-        await replaceDbFile(tmpPath, dbPath);
+        // Replacement obeys ownership: never swap a rollback-mode DB a client holds
+        // open (#151). POSIX swaps under EXCLUSIVE; on Windows the rename itself fails
+        // while any handle is open. WAL-mode files cannot be probed and stay caller-managed.
+        const lockable = existsSync(dbPath) && journalModeFromHeader(dbPath) === "rollback";
+        const inUse = lockable && (process.platform === "win32"
+          ? isDbLive(dbPath)
+          : moveUnderExclusiveLock(dbPath, () => renameSync(tmpPath, dbPath)) === "live");
+        if (inUse) {
+          cleanupDbArtifacts(tmpPath);
+          throw new DbInUseError(
+            `${dbPath} is in use by another rosetta client. Stop clients using it, then run: ${dbRefreshCommand(dbPath)}`,
+          );
+        }
+        if (!lockable || process.platform === "win32") {
+          tryUnlinkDbSidecars(dbPath);
+          await replaceDbFile(tmpPath, dbPath);
+        }
       } catch (e) {
+        if (e instanceof DbInUseError) throw e;
         const existingProbe = probeDb(dbPath);
         if (hasMinimumDbContent(existingProbe) && existingProbe.schemaVersion === probe.schemaVersion && existingProbe.releaseTag === probe.releaseTag) {
           cleanupDbArtifacts(tmpPath);
@@ -607,6 +631,9 @@ export async function downloadDb(
   }
 }
 
+/** A replacement was refused because a live client owns the destination. */
+export class DbInUseError extends Error {}
+
 /** Remove a file if it exists, swallowing all errors. */
 function tryUnlink(p: string): void {
   try {
@@ -624,7 +651,9 @@ export function dbRefreshCommand(dbPath: string, srcDir = import.meta.dirname): 
   const command = mode === "compiled" ? `${windows ? "& " : ""}${quote(process.execPath)}`
     : mode === "package" ? `bunx @tikoci/rosetta@${resolveVersion(srcDir)}`
     : `bun run ${quote(path.join(srcDir, "mcp.ts"))}`;
-  return `${command} --db ${quote(path.resolve(dbPath))} --refresh`;
+  // A managed default is reserved and implied by the version; an explicit --db for it is rejected.
+  const dbArg = isManagedDbPath(dbPath) ? "" : ` --db ${quote(path.resolve(dbPath))}`;
+  return `${command}${dbArg} --refresh`;
 }
 
 /**
@@ -643,6 +672,14 @@ export async function refreshDb(log: (msg: string) => void = console.log): Promi
   }
   const tagInfo = probe.releaseTag ? ` (release ${probe.releaseTag})` : "";
   log(`✓ Database ready${tagInfo}: ${probe.pages} pages, ${probe.commands} commands, schema v${probe.schemaVersion}`);
+  if (isManagedDbPath(dbPath)) {
+    try {
+      const summary = formatCollectResult(collectGenerations(path.dirname(dbPath), RELEASE_VERSION));
+      if (summary) log(summary);
+    } catch (e) {
+      log(`⚠ DB cleanup skipped: ${e instanceof Error ? e.message : e}`);
+    }
+  }
   return true;
 }
 
