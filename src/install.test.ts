@@ -294,3 +294,15 @@ test("file aliases of a managed generation are rejected and the generation stays
   rmSync(path.dirname(linked), { recursive: true, force: true });
   rmSync(managed, { force: true });
 });
+
+test("replacing an idle rollback-mode DB removes its stale sidecars (#153)", async () => {
+  const version = `0.0.7-rc.${process.pid * 10}`;
+  const destination = path.join(temp, "sidecars", "help.db");
+  const url = `data:application/octet-stream;base64,${Buffer.from(readFileSync(await fixture(version))).toString("base64")}`;
+  await downloadDb(destination, () => {}, [url]);
+  for (const sidecar of ["-journal", "-wal", "-shm"]) writeFileSync(`${destination}${sidecar}`, "stale");
+  await downloadDb(destination, () => {}, [url]);
+  expect(readdirSync(path.dirname(destination)).sort()).toEqual(["help.db"]);
+  const reopened = new sqlite(destination, { readonly: true });
+  try { expect(reopened.query("SELECT value FROM db_meta WHERE key='release_tag'").get()).toEqual({ value: `v${version}` }); } finally { reopened.close(); }
+}, 60000);

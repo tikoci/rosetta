@@ -315,6 +315,8 @@ export async function waitForUsableDb(
 function tryUnlinkDbSidecars(dbPath: string): void {
   tryUnlink(`${dbPath}-wal`);
   tryUnlink(`${dbPath}-shm`);
+  // A stale rollback journal beside a replaced file would look hot to the next open.
+  tryUnlink(`${dbPath}-journal`);
 }
 
 function cleanupDbArtifacts(dbPath: string): void {
@@ -596,7 +598,10 @@ export async function downloadDb(
         const lockable = existsSync(dbPath) && journalModeFromHeader(dbPath) === "rollback";
         const inUse = lockable && (process.platform === "win32"
           ? isDbLive(dbPath)
-          : moveUnderExclusiveLock(dbPath, () => renameSync(tmpPath, dbPath)) === "live");
+          : moveUnderExclusiveLock(dbPath, () => {
+            tryUnlinkDbSidecars(dbPath);
+            renameSync(tmpPath, dbPath);
+          }) === "live");
         if (inUse) {
           cleanupDbArtifacts(tmpPath);
           throw new DbInUseError(
