@@ -245,7 +245,7 @@ curl -fsSL https://bun.sh/install | bash
 powershell -c "irm bun.sh/install.ps1 | iex"
 ```
 
-> **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. Each exact package version uses its own `~/.rosetta/ros-help-<version>.db`, so different versions can run side by side. Rosetta cleans up after itself: on startup it keeps the versions currently in use plus the most recently used idle one, and deletes older copies. The pre-0.11.3 shared `ros-help.db` is removed once no old client has started for 14 days. `DB_PATH` and `--db` remain explicit, caller-managed overrides; use absolute paths in MCP environment settings because `~` is not shell-expanded.
+> **Auto-update:** `bunx` checks the npm registry each session and uses the latest published version automatically. Each exact package version uses its own `~/.rosetta/ros-help-<version>.db`, so different versions can run side by side. Rosetta cleans up after itself: on startup it keeps the versions currently in use plus the most recently used idle one, and deletes older copies. The pre-0.11.3 shared `ros-help.db` is never deleted automatically, because a long-running older client may still be using it. Once it looks unused, rosetta logs a hint to delete `~/.rosetta/ros-help.db*` by hand. `DB_PATH` and `--db` remain explicit, caller-managed overrides; use absolute paths in MCP environment settings because `~` is not shell-expanded.
 
 ---
 

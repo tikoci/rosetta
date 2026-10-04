@@ -7,6 +7,7 @@ import path from "node:path";
 import {
   acquireOwnership,
   collectGenerations,
+  formatCollectResult,
   isDbLive,
   journalModeFromHeader,
   LEGACY_IDLE_MS,
@@ -111,18 +112,24 @@ test("concurrent collectors converge without errors", async () => {
   expect(readdirSync(dir).sort()).toEqual(["ros-help-1.0.7.db"]);
 }, 20000);
 
-test("legacy ros-help.db is removed only when the DB and its sidecars are all 14+ days quiet", () => {
+test("legacy ros-help.db is never deleted; once it and its sidecars look 14+ days idle it is reported (#165)", () => {
   const dir = freshDir();
   const legacy = generation(dir, "ros-help.db", "WAL", 20);
   const old = new Date(Date.now() - LEGACY_IDLE_MS - 86_400_000);
   writeFileSync(`${legacy}-wal`, "");
   writeFileSync(`${legacy}-shm`, ""); // fresh: an old client started recently
   utimesSync(`${legacy}-wal`, old, old);
-  expect(collectGenerations(dir, "2.0.0").legacyRemoved).toBe(false);
-  expect(existsSync(legacy)).toBe(true);
+  expect(collectGenerations(dir, "2.0.0").legacyIdle).toBeNull();
+  // All three idle: mtimes don't move on ≤0.11.2 queries, so a long-running
+  // client may still own it. Report it, keep every file.
   utimesSync(`${legacy}-shm`, old, old);
-  expect(collectGenerations(dir, "2.0.0").legacyRemoved).toBe(true);
-  expect(readdirSync(dir)).toEqual([]);
+  const result = collectGenerations(dir, "2.0.0");
+  expect(result.legacyIdle?.path).toBe(legacy);
+  expect(result.bytesFreed).toBe(0);
+  expect(readdirSync(dir).sort()).toEqual(["ros-help.db", "ros-help.db-shm", "ros-help.db-wal"]);
+  const summary = formatCollectResult(result);
+  expect(summary).toContain("not removed automatically");
+  expect(summary).not.toContain("removed 1");
 });
 
 test("open-time race: a file retired before the first read makes acquisition re-resolve (POSIX); Windows refuses the delete", () => {

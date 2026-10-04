@@ -842,7 +842,8 @@ jobs:
 
       # Read back what the registry actually serves: this run's dist-tag must
       # resolve to the version just published, and next must be ≥ latest.
-      # Retries cover registry propagation; a persistent mismatch fails the job.
+      # Retries cover registry propagation (0.11.3-next.112 needed ~135s, so the
+      # budget is 300s); a persistent mismatch fails the job.
       - name: Read back npm dist-tags (next ≥ latest)
         if: inputs.republish_assets != true
         env:
@@ -851,7 +852,7 @@ jobs:
         run: |
           set -euo pipefail
           NPM_VERSION="${VERSION#v}"
-          for i in {1..30}; do
+          for i in {1..60}; do
             TAGS=$(npm view @tikoci/rosetta dist-tags --json --registry https://registry.npmjs.org/ 2>/dev/null || echo '{}')
             if TAGS="$TAGS" NPM_TAG="$NPM_TAG" NPM_VERSION="$NPM_VERSION" bun --eval '
               const tags = JSON.parse(process.env.TAGS);
@@ -865,7 +866,7 @@ jobs:
             fi
             sleep 5
           done
-          echo "::error::npm dist-tags did not settle to ${NPM_TAG}=${NPM_VERSION} with next ≥ latest within 150s"
+          echo "::error::npm dist-tags did not settle to ${NPM_TAG}=${NPM_VERSION} with next ≥ latest within 300s"
           exit 1
 
       - name: Skip npm publish (republish_assets mode)
