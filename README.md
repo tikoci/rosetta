@@ -12,17 +12,19 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 
 | Data Source | Coverage |
 |-------------|----------|
-| Documentation pages | 363 pages (~653K words) from MikroTik's live Docusaurus manual |
-| Property definitions | 4,587 with types, defaults, descriptions |
-| Command tree | 5,114 commands, 551 dirs, 34K arguments |
-| Version history | 46 RouterOS versions tracked (7.9–7.23beta2) |
-| Hardware products | 156 current matrix devices — specs, pricing, block diagrams |
-| Hardware overlay | 255 devices (matrix + legacy/EOL + accessories), resolved via ~750 curated alias mappings for cross-source device lookup |
-| Performance benchmarks | 2,874 tests across 125 devices (ethernet + IPSec) |
-| YouTube transcripts | 746 videos, ~2,374 transcript segments |
-| Callout blocks | 943 warnings, notes, and tips |
+| Documentation pages | 369 pages (~641K words) from MikroTik's live Docusaurus manual |
+| Property definitions | 2,799 from manual tables, plus 10,833 fields from the CLI Reference (1,062 menus and commands) |
+| Command tree | 5,333 commands, 576 dirs, 37K arguments |
+| Version history | 67 RouterOS versions with command data (7.9–7.25rc1) |
+| Hardware products | 155 current matrix devices — specs, pricing, block diagrams |
+| Hardware overlay | 258 devices (matrix + legacy/EOL + accessories), resolved via ~1,280 curated alias mappings for cross-source device lookup |
+| Performance benchmarks | 3,162 tests across 143 devices (ethernet + IPSec) |
+| YouTube transcripts | 746 videos, ~2,479 transcript segments |
+| Callout blocks | 880 warnings, notes, and tips |
 
-Documentation covers RouterOS **v7 only**, tracking the current long-term release (~7.22). Prose is extracted live from <https://manual.mikrotik.com> on each release build — no more stale export to keep in sync. The site's Docusaurus CLI Reference (`/console/inspect`-derived command menus) isn't ingested yet; the command tree instead comes directly from inspect.json (see `DESIGN.md`).
+Counts are from the 0.11.3-next.114 release DB; `routeros_stats` reports the live numbers for the DB you're running.
+
+Documentation covers RouterOS **v7 only**. Prose is extracted live from <https://manual.mikrotik.com> on each release build — no more stale export to keep in sync. MikroTik is moving property tables from the manual pages into its CLI Reference, which rosetta also ingests: property lookups and command explanations use the CLI Reference entry for a menu when it has the better answer, and say which source each answer came from (see `DESIGN.md`). The command tree itself comes from inspect.json.
 
 ---
 

@@ -1241,12 +1241,17 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 9, CR + 6, "chain", "enum", ""],
     [CR + 10, CR + 7, "pvid", "num", "Overlay port VLAN ID."],
     [CR + 11, CR, "note-color", "enum", "  \n"],
+    [CR + 12, CR + 6, "chain", "enum", "Read-only described chain."],
+    [CR + 13, CR + 1, "ws-arg", "num", "\t\n"],
+    [CR + 14, CR + 1, "ws-arg", "num", "Described ws-arg."],
+    [CR + 15, CR + 3, "action", "string", "Fetch's own action."],
   ];
 
   beforeAll(() => {
     // `/tool fetch` only splits into path + verb when the command tree knows `fetch` is a cmd.
+    // `/tool` links to the Firewall Filter page so its `action` row is a page-aligned `medium`.
     db.run(`INSERT INTO commands (id, path, name, type, parent_path, page_id, description, ros_version)
-      VALUES (${CR}, '/tool', 'tool', 'dir', NULL, NULL, 'Tools', '7.22'),
+      VALUES (${CR}, '/tool', 'tool', 'dir', NULL, 2, 'Tools', '7.22'),
              (${CR + 1}, '/tool/fetch', 'fetch', 'cmd', '/tool', NULL, 'Fetch', '7.22'),
              (${CR + 2}, '/ping', 'ping', 'cmd', '/', NULL, 'Ping', '7.22')`);
     for (const [id, path, type] of entries) {
@@ -1265,7 +1270,7 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
       db.run(
         `INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line)
          VALUES (?,?,?,?,?,0,0,?,?,1)`,
-        [id, entry, id === CR + 5 || id === CR + 7 ? "Read-only Argument" : "Argument", name, rawType, description, id],
+        [id, entry, [CR + 5, CR + 7, CR + 12].includes(id) ? "Read-only Argument" : "Argument", name, rawType, description, id],
       );
     }
   });
@@ -1321,6 +1326,15 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     const rows = lookupProperty("pvid", "/interface/bridge/port");
     expect(rows[0]).toMatchObject({ source: "manual", confidence: "high" });
     expect(rows.some((row) => row.source === "cli-reference")).toBe(false);
+  });
+
+  test("scoped: a described read-only sibling does not carry a blank settable row past a medium manual row", () => {
+    const rows = lookupProperty("chain", "/ip/firewall/filter");
+    expect(rows[0]).toMatchObject({ source: "manual", confidence: "medium" });
+  });
+
+  test("scoped: whitespace-only overlay descriptions sort as blank, as JavaScript trims them", () => {
+    expect(lookupProperty("ws-arg", "/ip/unlinked")[0].description).toBe("Described ws-arg.");
   });
 
   test("scoped: a blank overlay row never displaces a medium manual description", () => {
@@ -1382,6 +1396,12 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     const result = explainCommand("/tool fetch fetch-mode=x");
     expect(result.args[0].property).toMatchObject({ description: "How fetch transfers.", page_title: "CLI Reference: /tool/fetch" });
     expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
+  });
+
+  test("explainCommand: a described path/verb entry beats a medium manual menu match", () => {
+    expect(lookupProperty("action", "/tool")[0]).toMatchObject({ source: "manual", confidence: "medium" });
+    const result = explainCommand("/tool fetch action=x");
+    expect(result.args[0].property).toMatchObject({ source: "cli-reference", description: "Fetch's own action." });
   });
 
   test("explainCommand reaches a command's own entry at path/verb", () => {

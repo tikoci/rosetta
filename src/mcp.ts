@@ -330,7 +330,7 @@ const { z } = await import("zod/v3");
 await ensureDbReady((msg) => process.stderr.write(`${msg}\n`));
 
 // Now import db.ts (opens the DB) and query.ts
-const { db, getDbStats, initDb } = await import("./db.ts");
+const { db, getCommandVersionRange, getDbStats, initDb } = await import("./db.ts");
 const {
   browseCommands,
   browseCommandsAtVersion,
@@ -354,6 +354,13 @@ const {
 } = await import("./query.ts");
 
 initDb();
+
+// Read from the DB, never baked in: a hard-coded range went stale (7.9–7.23beta2 while the DB
+// served 7.25rc1), and tool descriptions are what agents read.
+const commandRange = getCommandVersionRange();
+const COMMAND_RANGE = commandRange.min && commandRange.max
+  ? `${commandRange.min}–${commandRange.max}`
+  : "the versions routeros_stats reports";
 
 const newerVersions = newerLocalVersions(import.meta.dirname);
 const SERVER_INSTRUCTIONS = newerVersions.length > 0
@@ -916,7 +923,7 @@ Workflow:
 → routeros_command_tree: browse available commands/arguments under the canonical path
 → routeros_command_version_check / routeros_command_diff: investigate version-specific availability
 
-Boundaries: Documentation covers RouterOS v7, aligned with long-term ~7.22; command data covers 7.9–7.23beta2. This tool is explanatory only — use a separate validator/runner before touching a router.`,
+Boundaries: Documentation is RouterOS v7 from the manual export this DB was built from (routeros_stats → doc_export); command data covers ${COMMAND_RANGE}. This tool is explanatory only — use a separate validator/runner before touching a router.`,
     inputSchema: {
       command: z
         .string()
@@ -952,7 +959,7 @@ Useful for discovering what's available under a command path.
 
 Optionally filter by RouterOS version to check what exists in a specific release.
 Optionally filter by CPU architecture (x86/arm64) to see platform-specific commands.
-Command data covers versions 7.9–7.23beta2. No v6 data.
+Command data covers versions ${COMMAND_RANGE}. No v6 data.
 
 Workflow — combine with other tools:
 → routeros_get_page: read the linked documentation page for a command
@@ -1020,7 +1027,7 @@ Knowledge boundaries:
 - Documentation corpus: see provenance.built_at / provenance.release_tag for what this DB actually is
 - Command tree: RouterOS 7.9+ from inspect.json (with extra-packages from CHR); see ros_version range
 - No RouterOS v6 data available — v6 syntax and subsystems differ significantly from v7
-- For versions older than 7.9, no command tree data exists
+- For versions older than ${commandRange.min ?? "the tracked range"}, no command tree data exists
 - Versions older than current long-term are unpatched by MikroTik
 - Absence of a peripheral in docs doesn't mean unsupported — most MBIM modems work
 
@@ -1266,8 +1273,8 @@ predates our data — check the documentation page for earlier version reference
 
 Useful for answering "is /container supported in 7.12?" or "when was /ip/firewall/raw added?".
 
-Command data covers versions 7.9–7.23beta2. No v6 data.
-For versions below 7.9, no command tree data exists — the command may still exist there.
+Command data covers versions ${COMMAND_RANGE}. No v6 data.
+For versions below ${commandRange.min ?? "that range"}, no command tree data exists — the command may still exist there.
 Cross-reference with routeros_get_page for version mentions in documentation text (callouts
 surface in routeros_search's related block). → routeros_search_changelogs to see what changed between versions.
 
@@ -1301,7 +1308,7 @@ directly answers it by comparing the command tree between any two tracked versio
 Returns added[] (new in to_version) and removed[] (gone from to_version) with counts.
 Use path_prefix to scope the diff to a subsystem (e.g., '/ip/firewall' or '/routing/bgp').
 
-Command data covers 7.9–7.23beta2. Both versions must be in this range for complete results;
+Command data covers ${COMMAND_RANGE}. Both versions must be in this range for complete results;
 if a version is outside the range, a note warns that results may be incomplete.
 
 **Typical workflow for upgrade breakage:**
@@ -1342,7 +1349,7 @@ Without a prefix, a major-version diff can list hundreds of added paths.
         result.note ?? null,
         "No differences found. Possible reasons:",
         "- Both versions have identical command trees for this path",
-        "- One or both versions may not be in our tracked range (7.9–7.23beta2)",
+        `- One or both versions may not be in our tracked range (${COMMAND_RANGE})`,
         "Use routeros_stats to see available version range, or try a different path_prefix.",
       ].filter(Boolean).join("\n");
       return { content: [{ type: "text", text: hint }] };
@@ -1621,8 +1628,8 @@ Useful for determining if a user's version is current, outdated, or unpatched.
 
 Key context for version reasoning:
 - The long-term channel is the recommended minimum — MikroTik does not patch older branches
-- Our documentation aligns with the long-term release at export time (~7.22)
-- Our command tree data covers 7.9–7.23beta2
+- Our documentation is the manual export this DB was built from (routeros_stats → doc_export)
+- Our command tree data covers ${COMMAND_RANGE}
 - If a user's version is older than the current long-term, recommend upgrading
 
 Requires network access to upgrade.mikrotik.com.

@@ -1158,6 +1158,37 @@ export function getAllDbMeta(): Record<string, string> {
   }
 }
 
+/** Order RouterOS version strings — SQL MIN/MAX is lexicographic ("7.10" < "7.9"). */
+function compareRosVersions(a: string, b: string): number {
+  const norm = (v: string) => ({
+    parts: v.replace(/beta\d*/, "").replace(/rc\d*/, "").split(".").map(Number),
+    suffix: v.includes("beta") ? 0 : v.includes("rc") ? 1 : 2,
+  });
+  const na = norm(a), nb = norm(b);
+  for (let i = 0; i < Math.max(na.parts.length, nb.parts.length); i++) {
+    const d = (na.parts[i] ?? 0) - (nb.parts[i] ?? 0);
+    if (d !== 0) return d;
+  }
+  return na.suffix - nb.suffix;
+}
+
+/** [min, max] of a one-column `version` query, in RouterOS order; nulls when empty. */
+function versionRange(sql: string): [string | null, string | null] {
+  const versions = (db.prepare(sql).all() as Array<{ version: string }>).map((r) => r.version).sort(compareRosVersions);
+  return versions.length === 0 ? [null, null] : [versions[0], versions[versions.length - 1]];
+}
+
+/**
+ * The RouterOS versions that actually carry command-tree data. `ros_versions` also holds
+ * metadata-only rows (7.1.1, 7.8) with no `command_versions`, so it overstates the range.
+ * Tool descriptions read this at startup instead of baking a range in — a baked range went stale
+ * (7.9–7.23beta2 while the DB served 7.25rc1).
+ */
+export function getCommandVersionRange(): { min: string | null; max: string | null } {
+  const [min, max] = versionRange("SELECT DISTINCT ros_version AS version FROM command_versions");
+  return { min, max };
+}
+
 export function getDbStats() {
   const count = (sql: string) =>
     Number((db.prepare(sql).get() as { c: number }).c ?? 0);
@@ -1238,25 +1269,8 @@ export function getDbStats() {
     schema_nodes: count("SELECT COUNT(*) AS c FROM schema_nodes"),
     schema_node_presence: count("SELECT COUNT(*) AS c FROM schema_node_presence"),
     ...(() => {
-      // Semantic version sort — SQL MIN/MAX is lexicographic ("7.10" < "7.9")
-      const versions = (db.prepare("SELECT DISTINCT version FROM ros_versions").all() as Array<{ version: string }>).map((r) => r.version);
-      if (versions.length === 0) return { ros_version_min: null, ros_version_max: null };
-      const norm = (v: string) => {
-        const clean = v.replace(/beta\d*/, "").replace(/rc\d*/, "");
-        const parts = clean.split(".").map(Number);
-        const suffix = v.includes("beta") ? 0 : v.includes("rc") ? 1 : 2;
-        return { parts, suffix };
-      };
-      const cmp = (a: string, b: string) => {
-        const na = norm(a), nb = norm(b);
-        for (let i = 0; i < Math.max(na.parts.length, nb.parts.length); i++) {
-          const d = (na.parts[i] ?? 0) - (nb.parts[i] ?? 0);
-          if (d !== 0) return d;
-        }
-        return na.suffix - nb.suffix;
-      };
-      versions.sort(cmp);
-      return { ros_version_min: versions[0], ros_version_max: versions[versions.length - 1] };
+      const [min, max] = versionRange("SELECT DISTINCT version FROM ros_versions");
+      return { ros_version_min: min, ros_version_max: max };
     })(),
     // Derived from db_meta provenance, not hard-coded — a hard-coded export date
     // silently lied whenever the resolved DB was a different corpus (#94). The

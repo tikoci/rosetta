@@ -4,17 +4,19 @@
  * Property-description sources census — the evidence behind B-0025.
  *
  * NOT a CI gate and NOT a source of truth. MikroTik is moving property tables out of manual
- * pages and into the CLI Reference (#169). `lookupProperty` answers from the manual first and
- * falls back to the CLI-Reference overlay only when the manual has nothing better than `low`.
- * This measures what that ordering actually returns, so the store-of-record question in B-0025
- * is argued from counts rather than examples:
+ * pages and into the CLI Reference (#169). `lookupProperty` lets an exact-menu CLI-Reference row
+ * with a description lead unless the manual has a `high` row, and a blank one lead only over `low`
+ * manual rows (B-0025). This measures what that ordering actually returns, so the store-of-record
+ * question in B-0025 is argued from counts rather than examples. QA runs it report-only on every
+ * release:
  *
  * 1. **How much of the overlay is described?** A CLI-Reference field always proves the argument
  *    exists at an exact menu, but its `description_markdown` is often empty.
  * 2. **Who answers today?** For every settable field at an exact menu, the top `lookupProperty`
  *    row's source and tier, split by whether the overlay row has a description.
- * 3. **Which manual answers would a reorder replace?** Manual rows below `high` that win over an
- *    exact overlay row — the class behind `/ip/firewall/filter chain` → "Bridge firewall chain".
+ * 3. **Which manual answers still win below `high` beside a described overlay row?** The class
+ *    behind `/ip/firewall/filter chain` → "Bridge firewall chain". Zero by construction under
+ *    B-0025's ordering, so a non-empty sample means the ordering regressed.
  *
  * Ground against a CI-BUILT artifact, not a local rebuild; `db_meta` is printed first so the
  * corpus under test is never ambiguous. See `.github/instructions/local-db-grounding.instructions.md`.
@@ -42,7 +44,7 @@ say("## 1. CLI-Reference fields with a description\n");
 say("| field_kind | fields | described |");
 say("|---|---:|---:|");
 for (const r of rows<{ kind: string; n: number; described: number }>(
-  `SELECT field_kind kind, COUNT(*) n, SUM(trim(description_markdown) <> '') described
+  `SELECT field_kind kind, COUNT(*) n, SUM(trim(description_markdown, char(32, 9, 10, 13)) <> '') described
    FROM cliref_fields GROUP BY field_kind ORDER BY field_kind`,
 )) {
   say(`| ${r.kind} | ${r.n} | ${r.described} (${pct(r.described, r.n)}) |`);
@@ -52,7 +54,7 @@ say("| menu | fields | described |");
 say("|---|---:|---:|");
 for (const r of rows<{ top: string; n: number; described: number }>(
   `SELECT substr(e.source_path, 1, instr(e.source_path || '/', '/') - 1) top,
-          COUNT(*) n, SUM(trim(f.description_markdown) <> '') described
+          COUNT(*) n, SUM(trim(f.description_markdown, char(32, 9, 10, 13)) <> '') described
    FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
    WHERE f.field_kind = 'Argument'
    GROUP BY top HAVING n >= 100 ORDER BY n DESC`,
@@ -64,7 +66,7 @@ for (const r of rows<{ top: string; n: number; described: number }>(
 // Command entries are named operations (`tool/fetch`), reached by explainCommand at path/verb,
 // not by a menu-scoped lookupProperty — so only Directory/Settings Directory menus are counted.
 const pairs = rows<{ path: string; name: string; described: number }>(
-  `SELECT '/' || e.source_path path, f.name, MAX(trim(f.description_markdown) <> '') described
+  `SELECT '/' || e.source_path path, f.name, MAX(trim(f.description_markdown, char(32, 9, 10, 13)) <> '') described
    FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
    WHERE f.field_kind = 'Argument' AND e.source_type <> 'Command'
    GROUP BY e.source_path, f.name`,

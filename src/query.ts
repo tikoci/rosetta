@@ -724,13 +724,15 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
       // CLI-Reference entry at path/verb, which the menu-level lookup never reaches.
       // A read-only CLI-Reference field is print output, not evidence for a settable argument,
       // so it gives way to any settable row and only survives to explain the warning.
+      // The command's own entry follows the same ordering as a menu's (B-0025): described, it beats
+      // a menu answer below `high`; blank, it only beats a `low` one.
       const menuRows = lookupProperty(parsedArg.name, canonical.path);
       const settable = menuRows.find((row) => !isReadOnlyCliRef(row));
-      const match = settable && settable.confidence !== "low"
-        ? settable
-        : (lookupCliRefProperty(parsedArg.name, `${canonical.path}/${canonical.verb}`).find((row) => !isReadOnlyCliRef(row)) ??
-          menuRows.find(isReadOnlyCliRef) ??
-          settable);
+      const commandRow = lookupCliRefProperty(parsedArg.name, `${canonical.path}/${canonical.verb}`)
+        .find((row) => !isReadOnlyCliRef(row));
+      const menuHolds = settable && settable.confidence !== "low" &&
+        !(commandRow?.description.trim() && settable.confidence !== "high");
+      const match = menuHolds ? settable : (commandRow ?? menuRows.find(isReadOnlyCliRef) ?? settable);
       const readOnly = isReadOnlyCliRef(match);
       const explainedArg: ExplainCommandArg = {
         raw,
@@ -1194,9 +1196,11 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
   const prose = lookupManualProperty(name, commandPath);
   if (!commandPath) return prose.length > 0 ? prose : lookupCliRefProperty(name);
   if (prose.some((row) => row.confidence === "high")) return prose;
+  // Judge the row that would actually lead: a described read-only sibling must not carry a blank
+  // settable row past a medium manual description.
   const overlay = lookupCliRefProperty(name, commandPath);
   const proseAligned = prose.some((row) => row.confidence !== "low");
-  if (overlay.length === 0 || (proseAligned && !overlay.some((row) => row.description.trim()))) return prose;
+  if (overlay.length === 0 || (proseAligned && !overlay[0].description.trim())) return prose;
   return [...overlay, ...prose];
 }
 
@@ -1215,7 +1219,9 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
  * settable rows sort first, and described rows before blank ones.
  */
 function lookupCliRefProperty(name: string, commandPath?: string): PropertyLookupRow[] {
-  // `/` + verb joins to `//ping` for a root command; the stored path is `ping`.
+  // `/` + verb joins to `//ping` for a root command; the stored path is `ping`. Blank-sorting
+  // trims tab/LF/CR as well as spaces, matching the JavaScript `.trim()` callers use: SQLite's
+  // one-argument trim() strips spaces only.
   const sourcePath = commandPath?.replace(/^\/+/, "");
   const rows = db
     .prepare(
@@ -1224,7 +1230,8 @@ function lookupCliRefProperty(name: string, commandPath?: string): PropertyLooku
        JOIN cliref_entries e ON e.id = f.entry_id
        JOIN cliref_pages cp ON cp.id = e.page_id
        WHERE f.name = ? COLLATE NOCASE${sourcePath === undefined ? "" : " AND e.source_path = ?"}
-       ORDER BY e.source_path, f.field_kind = 'Read-only Argument', trim(f.description_markdown) = '',
+       ORDER BY e.source_path, f.field_kind = 'Read-only Argument',
+                trim(f.description_markdown, char(32, 9, 10, 13)) = '',
                 cp.source_order, f.source_order`,
     )
     .all(...(sourcePath === undefined ? [name] : [name, sourcePath])) as Array<{

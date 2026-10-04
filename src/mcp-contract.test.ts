@@ -356,9 +356,11 @@ describe.skipIf(!dbIsReal)(`explain_command grounding budget${dbIsReal ? "" : ` 
       for (const w of result.warnings) {
         if (w.kind === "unknown-arg" || w.kind === "undocumented-arg") misses[w.kind].push(`${path} ${w.arg}`);
       }
+      // explainCommand resolves both the menu and the command's own entry (`tool/fetch`).
+      const sourcePaths = [path, `${path}/${result.canonical?.verb ?? ""}`].map((p) => p.replace(/^\/+/, ""));
       for (const arg of result.args) {
         const p = arg.property;
-        if (p?.source === "manual" && p.confidence !== "high" && exactOverlay.get(path.replace(/^\/+/, ""), arg.name)) {
+        if (p?.source === "manual" && p.confidence !== "high" && sourcePaths.some((sp) => exactOverlay.get(sp, arg.name))) {
           misses["manual-below-high"].push(`${path} ${arg.name} @ ${p.page_title}`);
         }
       }
