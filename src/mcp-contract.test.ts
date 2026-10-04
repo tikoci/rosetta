@@ -7,8 +7,10 @@
  * - Block C: Shape snapshots — fingerprint the *contract* (keys, counts,
  *           classifier output), NOT the corpus. Deliberately omits page IDs
  *           and titles so DB refreshes don't churn snapshots.
- * - Block D: explain_command grounding budget — unknown-arg warnings over a
- *           fixed set of everyday commands stay under a ceiling (#169).
+ * - Block D: explain_command grounding budget — over a fixed set of everyday
+ *           commands, unknown-arg, undocumented-arg, and manual answers that
+ *           sit below `high` beside an exact CLI-Reference row each stay under
+ *           a ceiling (#169, B-0025).
  *
  * These are fast, deterministic, CI-runnable structural tests. No LLM calls,
  * no network. Block A always runs; set ROSETTA_REAL_DB_TESTS=1 to exercise
@@ -32,6 +34,7 @@ const runRealDbBlocks = process.env.ROSETTA_REAL_DB_TESTS === "1";
 // dedicated release/real-DB runs can still exercise Blocks B/C.
 let searchAll: typeof import("./query.ts").searchAll | undefined;
 let explainCommand: typeof import("./query.ts").explainCommand | undefined;
+let realDb: typeof import("./db.ts").db | undefined;
 let realDbPath = ":memory:";
 let dbPages = 0;
 
@@ -40,6 +43,7 @@ if (runRealDbBlocks) {
   const dbModule = await import("./db.ts");
   searchAll = queryModule.searchAll;
   explainCommand = queryModule.explainCommand;
+  realDb = dbModule.db;
   realDbPath = dbModule.DB_PATH;
   try {
     dbPages = dbModule.getDbStats().pages;
@@ -287,7 +291,12 @@ describe.skipIf(!dbIsReal)(`Response-shape invariants${dbIsReal ? "" : ` [skippe
 // outruns the lookup, `unknown-arg` warnings jump across everyday commands (0.11.3-next.113
 // shipped 49 of 70 before the CLI-Reference fallback; 0.11.2 had 7). This block turns that into a
 // number QA fails on, instead of something an agent notices in its output. The set is fixed —
-// change it deliberately, and re-measure the budget when you do.
+// change it deliberately, and re-measure the budgets when you do.
+//
+// `unknown-arg` alone cannot see two other failure shapes (B-0025): an annotation with no
+// description (`undocumented-arg`), and a manual row below `high` answering for a menu whose own
+// CLI-Reference row exists — the class that described `/ip/firewall/filter chain` as "Bridge
+// firewall chain". Each gets its own number.
 
 describe.skipIf(!dbIsReal)(`explain_command grounding budget${dbIsReal ? "" : ` [skipped: ${skipReason}]`}`, () => {
   const COMMANDS = [
@@ -322,23 +331,51 @@ describe.skipIf(!dbIsReal)(`explain_command grounding budget${dbIsReal ? "" : ` 
     "/tool fetch url=https://example.com/x output=file",
     "/tool sniffer set filter-interface=ether1 file-name=cap",
   ];
-  // 70 args. Measured 1 on the 0.11.3 corpus with the fallback (`/ip service` `disabled` is a
-  // print flag in the CLI Reference, not an argument). 7 is where 0.11.2 stood.
-  const UNKNOWN_ARG_BUDGET = 7;
+  // 70 args, measured on v0.11.3-next.114 with B-0025's ordering:
+  // - unknown-arg 1 (`/ip service` `disabled` is a print flag in the CLI Reference, not an
+  //   argument). 7 is where 0.11.2 stood.
+  // - undocumented-arg 4 (`/ip/address address`, `/ip/route` dst-address/gateway/distance:
+  //   blank in the CLI Reference, never tabled in the manual). Budget leaves room for 2 more.
+  // - manual below high beside an exact CLI-Reference row: 0 (was 2 before B-0025 — the bridge
+  //   firewall rows answering `/ip/firewall/filter`). Budget 1, so that pair coming back fails.
+  const BUDGETS = { "unknown-arg": 7, "undocumented-arg": 6, "manual-below-high": 1 } as const;
 
-  test(`unknown-arg warnings ≤ ${UNKNOWN_ARG_BUDGET} across ${COMMANDS.length} everyday commands`, () => {
-    if (!explainCommand) throw new Error("explainCommand unavailable; set ROSETTA_REAL_DB_TESTS=1.");
+  type Tally = Record<keyof typeof BUDGETS, string[]>;
+  function tally(): { args: number; misses: Tally } {
+    if (!explainCommand || !realDb) throw new Error("explainCommand unavailable; set ROSETTA_REAL_DB_TESTS=1.");
+    const exactOverlay = realDb.prepare(
+      `SELECT 1 FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
+       WHERE e.source_path = ? AND f.name = ? COLLATE NOCASE AND f.field_kind = 'Argument' LIMIT 1`,
+    );
     let args = 0;
-    const misses: string[] = [];
+    const misses: Tally = { "unknown-arg": [], "undocumented-arg": [], "manual-below-high": [] };
     for (const command of COMMANDS) {
       const result = explainCommand(command);
+      const path = result.canonical?.path ?? "?";
       args += result.args.length;
       for (const w of result.warnings) {
-        if (w.kind === "unknown-arg") misses.push(`${result.canonical?.path} ${w.arg}`);
+        if (w.kind === "unknown-arg" || w.kind === "undocumented-arg") misses[w.kind].push(`${path} ${w.arg}`);
+      }
+      for (const arg of result.args) {
+        const p = arg.property;
+        if (p?.source === "manual" && p.confidence !== "high" && exactOverlay.get(path.replace(/^\/+/, ""), arg.name)) {
+          misses["manual-below-high"].push(`${path} ${arg.name} @ ${p.page_title}`);
+        }
       }
     }
-    console.log(`  unknown-arg: ${misses.length}/${args}${misses.length ? ` — ${misses.join(", ")}` : ""}`);
+    return { args, misses };
+  }
+  const { args, misses } = dbIsReal ? tally() : { args: 0, misses: {} as Tally };
+
+  test(`fixed set is ${COMMANDS.length} commands / 70 args`, () => {
     expect(args).toBe(70);
-    expect(misses.length).toBeLessThanOrEqual(UNKNOWN_ARG_BUDGET);
   });
+
+  for (const [kind, budget] of Object.entries(BUDGETS) as Array<[keyof typeof BUDGETS, number]>) {
+    test(`${kind} ≤ ${budget} of 70 args`, () => {
+      const hits = misses[kind];
+      console.log(`  ${kind}: ${hits.length}/${args}${hits.length ? ` — ${hits.join(", ")}` : ""}`);
+      expect(hits.length).toBeLessThanOrEqual(budget);
+    });
+  }
 });

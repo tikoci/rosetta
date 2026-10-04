@@ -627,7 +627,13 @@ type ExplainCommandArg = {
 };
 
 type ExplainCommandWarning = {
-  kind: "no-command" | "low-confidence" | "unknown-arg" | "command-not-in-version" | "model-context-unused";
+  kind:
+    | "no-command"
+    | "low-confidence"
+    | "unknown-arg"
+    | "undocumented-arg"
+    | "command-not-in-version"
+    | "model-context-unused";
   message: string;
   arg?: string;
   suggestion?: string;
@@ -717,12 +723,14 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
       // A command that is not a menu verb (`/tool fetch`, `/system reboot`) has its own
       // CLI-Reference entry at path/verb, which the menu-level lookup never reaches.
       // A read-only CLI-Reference field is print output, not evidence for a settable argument,
-      // so it gives way to a settable entry there and only survives to explain the warning.
-      const menuMatch = lookupProperty(parsedArg.name, canonical.path)[0];
-      const match = menuMatch && menuMatch.confidence !== "low" && !isReadOnlyCliRef(menuMatch)
-        ? menuMatch
+      // so it gives way to any settable row and only survives to explain the warning.
+      const menuRows = lookupProperty(parsedArg.name, canonical.path);
+      const settable = menuRows.find((row) => !isReadOnlyCliRef(row));
+      const match = settable && settable.confidence !== "low"
+        ? settable
         : (lookupCliRefProperty(parsedArg.name, `${canonical.path}/${canonical.verb}`).find((row) => !isReadOnlyCliRef(row)) ??
-          menuMatch);
+          menuRows.find(isReadOnlyCliRef) ??
+          settable);
       const readOnly = isReadOnlyCliRef(match);
       const explainedArg: ExplainCommandArg = {
         raw,
@@ -741,6 +749,16 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
           confidence: match.confidence,
           source: match.source,
         };
+        // The overlay proves the argument exists at this menu, but describes nothing — and an
+        // overlay row only leads when no menu-aligned manual row describes it either.
+        if (match.source === "cli-reference" && !match.description.trim()) {
+          warnings.push({
+            kind: "undocumented-arg",
+            arg: parsedArg.name,
+            message: `The CLI Reference lists "${parsedArg.name}" for ${match.page_title.replace(/^CLI Reference: /, "")}${match.type ? ` (type: ${match.type})` : ""}, but neither it nor a menu-aligned manual page describes it.`,
+            suggestion: `Use routeros_search or routeros_get_page for the surrounding documentation before relying on its meaning.`,
+          });
+        }
       } else {
         warnings.push({
           kind: "unknown-arg",
@@ -1159,17 +1177,27 @@ const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p
  * page title, which is how `explainCommand` came to describe `name=ether2` as "Name of the
  * bonding interface".
  *
- * When the manual has nothing better than `low` for the menu — or, unscoped, nothing at all —
- * the CLI-Reference overlay answers instead ({@link lookupCliRefProperty}, #169). Overlay rows
- * lead and any `low` manual rows follow, so `explainCommand`'s first-row pick takes the overlay.
+ * The CLI-Reference overlay ({@link lookupCliRefProperty}) is the other source (#169, B-0025).
+ * Scoped, its exact-menu row leads — with any manual rows following as candidates — when:
+ *
+ * - it has a description and the manual has nothing `high`. A `medium` manual row is often a
+ *   neighbouring menu's (`/ip/firewall/filter chain` → "Bridge firewall chain"), and the overlay
+ *   row is the menu's own definition; or
+ * - the manual has nothing better than `low`, even if the overlay row is blank: an exact menu and
+ *   type beat an unrelated page's description.
+ *
+ * A blank overlay row never displaces a `medium` manual description — 46% of settable overlay
+ * fields are blank, mostly Wi-Fi, where the manual still holds the only description. Unscoped,
+ * the overlay answers only when the manual has nothing at all.
  */
 export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
   const prose = lookupManualProperty(name, commandPath);
-  if (commandPath) {
-    if (prose.some((row) => row.confidence !== "low")) return prose;
-    return [...lookupCliRefProperty(name, commandPath), ...prose];
-  }
-  return prose.length > 0 ? prose : lookupCliRefProperty(name);
+  if (!commandPath) return prose.length > 0 ? prose : lookupCliRefProperty(name);
+  if (prose.some((row) => row.confidence === "high")) return prose;
+  const overlay = lookupCliRefProperty(name, commandPath);
+  const proseAligned = prose.some((row) => row.confidence !== "low");
+  if (overlay.length === 0 || (proseAligned && !overlay.some((row) => row.description.trim()))) return prose;
+  return [...overlay, ...prose];
 }
 
 /**
@@ -1184,7 +1212,7 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
  * the same answer an unscoped manual row gets. The overlay carries no version data, so rows say
  * where they came from through `source` and leave `page_id` null — there is no page to open.
  * `section` is the CLI-Reference table the field sits in, `Argument` or `Read-only Argument`;
- * settable rows sort first.
+ * settable rows sort first, and described rows before blank ones.
  */
 function lookupCliRefProperty(name: string, commandPath?: string): PropertyLookupRow[] {
   // `/` + verb joins to `//ping` for a root command; the stored path is `ping`.
@@ -1196,7 +1224,8 @@ function lookupCliRefProperty(name: string, commandPath?: string): PropertyLooku
        JOIN cliref_entries e ON e.id = f.entry_id
        JOIN cliref_pages cp ON cp.id = e.page_id
        WHERE f.name = ? COLLATE NOCASE${sourcePath === undefined ? "" : " AND e.source_path = ?"}
-       ORDER BY e.source_path, f.field_kind = 'Read-only Argument', cp.source_order, f.source_order`,
+       ORDER BY e.source_path, f.field_kind = 'Read-only Argument', trim(f.description_markdown) = '',
+                cp.source_order, f.source_order`,
     )
     .all(...(sourcePath === undefined ? [name] : [name, sourcePath])) as Array<{
       name: string;

@@ -269,7 +269,7 @@
       "shape": "property",
       "surface": "property",
       "expected_property": { "path": "/ip/firewall/filter", "name": "action" },
-      "notes": "#53: +property. KNOWN-FAILING, intentionally not loosened (Bug Ledger BL-1). `action` exists as a property on the Filter page and `/ip/firewall/filter` exists as a command path, but they are NOT linked, so lookupProperty returns no high-confidence row — nothing ties any candidate section to the menu. Documents the command-path→page linkage gap on a core menu (same footprint as #26's firewall-filter ranking miss). Fixing the link belongs to a follow-up, not #53; this anchor keeps the gap visible and will flip green when it's fixed."
+      "notes": "#53: +property. KNOWN-FAILING, intentionally not loosened (Bug Ledger BL-1). `action` exists as a property on the Filter page and `/ip/firewall/filter` exists as a command path, but they are NOT linked, so lookupProperty returns no high-confidence row — nothing ties any candidate section to the menu. Documents the command-path→page linkage gap on a core menu (same footprint as #26's firewall-filter ranking miss). Fixing the link belongs to a follow-up, not #53; this anchor keeps the gap visible and will flip green when it's fixed. Flipped green 2026-10 (B-0025) without loosening: the top row is now the exact `/ip/firewall/filter` CLI-Reference definition at `high`, which outranks the medium bridge-firewall rows. The manual link itself is still unfixed (#58), so this now proves the answer, not the link."
     },
     {
       "id": "changelog-cve",

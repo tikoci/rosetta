@@ -1225,6 +1225,8 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 3, "tool/fetch", "Command"],
     [CR + 4, "ping", "Command"],
     [CR + 5, "tool", "Directory"],
+    [CR + 6, "ip/firewall/filter", "Directory"],
+    [CR + 7, "interface/bridge/port", "Directory"],
   ];
   const fields: Array<[number, number, string, string, string]> = [
     [CR, CR, "show-at-login", "bool", "Show the note after login."],
@@ -1236,6 +1238,9 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 6, CR + 4, "ping-target", "string", "Host to ping."],
     [CR + 7, CR + 5, "fetch-mode", "enum", "Tool-wide status."],
     [CR + 8, CR + 3, "fetch-mode", "enum", "How fetch transfers."],
+    [CR + 9, CR + 6, "chain", "enum", ""],
+    [CR + 10, CR + 7, "pvid", "num", "Overlay port VLAN ID."],
+    [CR + 11, CR, "note-color", "enum", "  \n"],
   ];
 
   beforeAll(() => {
@@ -1306,9 +1311,21 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     expect(rows.slice(1).every((row) => row.source === "manual" && row.confidence === "low")).toBe(true);
   });
 
-  test("scoped: a menu-aligned manual row wins and the overlay is not consulted", () => {
+  test("scoped: a described overlay row beats a medium manual row, which follows as a candidate (B-0025)", () => {
     const rows = lookupProperty("lease-time", "/ip/dhcp-server");
-    expect(rows[0]).toMatchObject({ source: "manual", confidence: "medium", page_title: "DHCP Server" });
+    expect(rows[0]).toMatchObject({ source: "cli-reference", confidence: "high", description: "Overlay DHCP lease time." });
+    expect(rows[1]).toMatchObject({ source: "manual", confidence: "medium", page_title: "DHCP Server" });
+  });
+
+  test("scoped: a high manual row still wins over a described overlay row", () => {
+    const rows = lookupProperty("pvid", "/interface/bridge/port");
+    expect(rows[0]).toMatchObject({ source: "manual", confidence: "high" });
+    expect(rows.some((row) => row.source === "cli-reference")).toBe(false);
+  });
+
+  test("scoped: a blank overlay row never displaces a medium manual description", () => {
+    const rows = lookupProperty("chain", "/ip/firewall/filter");
+    expect(rows[0]).toMatchObject({ source: "manual", confidence: "medium", page_title: "Firewall Filter" });
     expect(rows.some((row) => row.source === "cli-reference")).toBe(false);
   });
 
@@ -1323,6 +1340,22 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
       name: "show-at-login", source: "cli-reference", confidence: "high", page_id: null,
     });
     expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
+  });
+
+  test("explainCommand flags a blank overlay match as undocumented-arg but keeps the annotation", () => {
+    const result = explainCommand("/system/note set note-color=red");
+    expect(result.args[0].property).toMatchObject({ name: "note-color", source: "cli-reference", type: "enum" });
+    expect(result.warnings).toEqual([{
+      kind: "undocumented-arg",
+      arg: "note-color",
+      message: 'The CLI Reference lists "note-color" for /system/note (type: enum), but neither it nor a menu-aligned manual page describes it.',
+      suggestion: "Use routeros_search or routeros_get_page for the surrounding documentation before relying on its meaning.",
+    }]);
+  });
+
+  test("explainCommand raises no undocumented-arg when the overlay row is described", () => {
+    const result = explainCommand("/system/note set show-at-login=yes");
+    expect(result.warnings.filter((w) => w.kind === "undocumented-arg")).toEqual([]);
   });
 
   test("explainCommand does not accept a read-only field as a settable argument", () => {

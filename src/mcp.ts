@@ -836,11 +836,13 @@ sections that carry properties (42.7%) never name the menu they describe — but
 → routeros_command_tree: confirm the property exists at that command path before relying on it
 
 source says where a row came from. "manual" rows are property tables on documentation pages.
-MikroTik has moved many menus' tables (DNS, DHCP, NAT, user, scheduler, …) to the CLI
-Reference, so when the manual has nothing better than low for the menu — or, without
-command_path, nothing at all — "cli-reference" rows answer instead: high for the exact menu,
-medium without command_path. They carry no version data and no page to open (page_id is
-null, page_url is the CLI Reference page); section is "Argument" or "Read-only Argument".
+"cli-reference" rows are the exact menu's own entry in MikroTik's CLI Reference, where many
+menus' tables now live (DNS, DHCP, NAT, user, scheduler, firewall, …). With command_path, the
+CLI-Reference row leads (high) unless the manual has a high row; a CLI-Reference row with no
+description leads only when the manual has nothing better than low. Without command_path it
+answers only when the manual has nothing (medium). These rows carry no version data and no page
+to open (page_id is null, page_url is the CLI Reference page); section is "Argument" or
+"Read-only Argument"; type is the CLI Reference's own type, including enum values.
 
 A single page may document the same property name several times, each meaning something
 different in its own section — "name" on the PPP AAA page is the profile name, the login
@@ -902,7 +904,8 @@ Returns:
 - confidence: high/medium/low/none from the CLI canonicalizer
 - args: parsed key=value args with first property match, lookup confidence, and source
   (manual or cli-reference) when found; a read-only CLI Reference field is not a match
-- warnings: no-command, low-confidence, unknown-arg, command-not-in-version, or model-context-unused signals
+- warnings: no-command, low-confidence, unknown-arg, undocumented-arg (the CLI Reference lists the
+  argument for this menu but nothing describes it), command-not-in-version, or model-context-unused signals
 - pages: compact documentation search hits
 - changelog_hits: compact changelog hits
 - version_check: command version range when a canonical path is available
