@@ -232,7 +232,7 @@ Before cutting a corpus release, check these inputs separately from CI:
 Published artifacts come from the GitHub Actions `Release` workflow (`workflow_dispatch`), not from local ad hoc release commands.
 
 - **Inputs:** `version` (optional override — see "npm channel" below for how this interacts with prerelease dispatches), `docs_date`, `full_versions`, and `republish_assets`.
-- **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable, and it never moves a floating OCI tag (`:latest`/`:alpha`/`:beta`/`:rc`/`:next`) on any channel. See "Prerelease republish semantics" below for prerelease-specific caveats.
+- **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable, and it never moves a floating OCI tag (`:latest`/`:next`) on any channel. See "Prerelease republish semantics" below for prerelease-specific caveats.
 - **Job graph (Phase B, #42):** `build` → `qa` → `publish` → `bunx-smoke`.
   - **`build`:** npm channel detection (+ workspace-only prerelease version rewrite) → CHANGELOG gate (latest only) → npm publish-access preflight → fast-fail quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → `db_meta` stamping → DB-stats collection. Uploads the built DB and the resolved `package.json` as artifacts.
   - **`qa`:** `uses: ./.github/workflows/qa.yml` with `db_source=artifact` — the single definition of the release-locked gates (contract, retrieval evals, DB-content floors, `db_meta` presence) runs here against the exact DB `build` produced. Nothing publishes if it's red.
@@ -275,31 +275,37 @@ CI no longer bumps `package.json` or promotes `CHANGELOG.md` for you, on **any**
 
 The existing "already published" npm preflight (`npm view <pkg>@<version>`) remains the backstop against re-dispatching an already-shipped version — loud failure, not silent, same as before.
 
-### npm channel: latest vs. prerelease
+### npm channel: latest vs. next
 
-`package.json`'s committed version is the **single source of truth for channel** — no separate CI input duplicates this:
+There are exactly two channels, `latest` and `next` (#152). `package.json`'s committed version is the **single source of truth for channel** — no separate CI input duplicates this:
 
-- A **bare** version (`0.11.0`) means the **latest** channel: `npm publish` runs with no `--tag` (defaults to the `latest` dist-tag), and the OCI `:latest` tag pushes.
-- A **prerelease** version of the form `MAJOR.MINOR.PATCH-<stage>` or `MAJOR.MINOR.PATCH-<stage>.N` (stage restricted to `alpha`, `beta`, or `rc` — anything else fails the workflow with a clear error) means a **prerelease** channel.
+- A **bare** version (`0.11.3`) means the **latest** channel: `npm publish` runs with no `--tag` (defaults to the `latest` dist-tag), and the OCI `:latest` tag pushes.
+- A **prerelease** version of the form `MAJOR.MINOR.PATCH-next` or `MAJOR.MINOR.PATCH-next.N` means the **next** channel. Any other prerelease identifier — including the retired `alpha` / `beta` / `rc` — fails the workflow with a clear error.
 
-For prerelease dispatches, the workflow's very first extraction-pipeline step rewrites `package.json`'s version **in the workspace only** (never committed) to `MAJOR.MINOR.PATCH-<stage>.${GITHUB_RUN_NUMBER}` before any preflight or publish step reads it. This means:
+**`next` is never behind `latest`.** Every run enforces it:
+
+- A prerelease must be semver-newer than both the current `latest` and `next`, or the build job fails before extracting anything ("Verify prerelease is ahead of latest and next"). This catches the easy mistake of dispatching `X.Y.Z-next` after `X.Y.Z` already shipped stable — `X.Y.Z-next.N` sorts *below* `X.Y.Z`. Bump to the next unreleased version instead.
+- A stable publish also moves `next` (npm dist-tag and OCI `:next`) when the current `next` is semver-lower. A newer prerelease already on `next` stays.
+- After publishing, "Read back npm dist-tags" fails the job unless the run's dist-tag resolves to the new version and `next` ≥ `latest`.
+
+For prerelease dispatches, the workflow's very first extraction-pipeline step rewrites `package.json`'s version **in the workspace only** (never committed) to `MAJOR.MINOR.PATCH-next.${GITHUB_RUN_NUMBER}` before any preflight or publish step reads it. This means:
 
 - Repeated dispatches of the same committed prerelease version never collide on an already-published npm version — each run gets its own run-number suffix.
-- `npm publish --tag <stage>` ships the run, immediately followed by `npm dist-tag add @tikoci/rosetta@<version> next` — so `bunx @tikoci/rosetta@next` always resolves to the newest prerelease of *any* stage, while `bunx @tikoci/rosetta@alpha` / `@beta` / `@rc` each stay pinned to their own stage's latest.
+- `npm publish --tag next` ships the run.
 - **Leave the `version` input blank for prerelease dispatches.** The true published version (with its run-number suffix) can't be predicted ahead of dispatch. Supplying `version` anyway will fail the npm publish-access preflight loudly rather than silently publishing under the wrong version.
-- OCI images get a floating per-stage tag (`:alpha`/`:beta`/`:rc`) and a floating `:next`, alongside the always-on `$VERSION` and `sha-$SHORT_SHA` tags. The bare `:latest` OCI tag **never** pushes on a prerelease run — this is the fix for the OCI-latest-clobber risk (an unguarded alpha dispatch used to silently overwrite the production `/app` container's `:latest`).
+- OCI images get a floating `:next`, alongside the always-on `$VERSION` and `sha-$SHORT_SHA` tags. The bare `:latest` OCI tag **never** pushes on a prerelease run — this is the fix for the OCI-latest-clobber risk (an unguarded prerelease dispatch used to silently overwrite the production `/app` container's `:latest`).
 - The GitHub Release is created with `--prerelease` so it doesn't show as "Latest" on the repo's Releases page.
-- `^0.11.0-alpha`-style semver ranges are **not** a substitute for dist-tags — see the caveat in [README.md](README.md#prerelease-channels-optional).
+- `^0.11.3-next`-style semver ranges are **not** a substitute for dist-tags — see the caveat in [README.md](README.md#prerelease-channel-optional).
 
 ### Prerelease republish semantics
 
 `republish_assets: true` re-uploads GitHub Release assets and OCI tags for an already-published version without touching npm. Same-tag asset replacement is **not automatically detected** by the runtime's exact-tag freshness check (#80). Publish a new patch version for normal corrected DB content; reserve republishing for asset recovery. For same-tag recovery, stop clients owning the affected DB, run `--refresh` using their original package version and `--db` / `DB_PATH` destination, then restart them.
 
-**On any channel**, no floating OCI tags move during a republish — `:latest`, `:alpha`/`:beta`/`:rc`, and `:next` are all left alone; only the exact-version and `sha-*` image tags are re-pushed. This applies regardless of whether the republished version is `latest` or a prerelease, so a republish of an older run (of either channel) can never regress what a floating tag currently points testers at.
+**On any channel**, no floating OCI tags move during a republish — `:latest` and `:next` are both left alone; only the exact-version and `sha-*` image tags are re-pushed. This applies regardless of whether the republished version is `latest` or a prerelease, so a republish of an older run (of either channel) can never regress what a floating tag currently points testers at.
 
 For a **prerelease** version specifically, `republish_assets: true` has extra rules, since CI cannot recompute a past run's `$GITHUB_RUN_NUMBER`:
 
-- `version` **must** be supplied as the exact already-published run-numbered version (e.g. `v0.11.0-alpha.42`) — the workflow fails fast if it's blank.
+- `version` **must** be supplied as the exact already-published run-numbered version (e.g. `v0.11.3-next.42`) — the workflow fails fast if it's blank.
 - `package.json` is **not** rewritten in this mode.
 - No `npm dist-tag add` calls happen (npm publish is already fully skipped in `republish_assets` mode).
 
@@ -812,4 +818,4 @@ Once configured as an MCP server, rosetta should keep itself up to date without 
 | **"DB schema mismatch" or "Still incompatible after re-download"** | The selected build and DB disagree. Stop clients owning the reported path, then retry the diagnostic's command, which preserves that build and path. |
 | **Same-tag DB asset was recovered** | Freshness checks cannot detect this. Stop owners, refresh the original version/path, then restart. Publish a new patch version for normal content corrections. |
 | **"is in use by another rosetta client" on refresh** | A running client holds that version's database. Stop the MCP clients using it (or the editor sessions that launched them), then rerun the printed command. |
-| **"rosetta vX has run on this machine; this client is vY"** | Another config resolves a newer rosetta. If this one is meant to follow it, update the package spec (e.g. `@next` lags or is pinned). |
+| **"rosetta vX has run on this machine; this client is vY"** | Another config resolves a newer rosetta. If this one is meant to follow it, update the package spec (e.g. it pins an exact version or a retired `@alpha` / `@beta` / `@rc` tag). |

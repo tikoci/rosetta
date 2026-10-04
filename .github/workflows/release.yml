@@ -5,11 +5,11 @@ on:
       version:
         description: >
           Optional release version override (e.g. v0.2.0). Default: v + package.json version.
-          Latest-channel runs only — leave blank for prerelease (package.json has a -alpha/-beta/-rc
+          Latest-channel runs only — leave blank for prerelease (package.json has a -next
           suffix) dispatches, since the true published version gets a run-number suffix computed
           during the run and can't be predicted ahead of dispatch. Exception: republish_assets: true
           on a prerelease version requires this to be set to the exact already-published
-          run-numbered version (e.g. v0.11.0-alpha.42), since CI cannot recompute a past run's number.
+          run-numbered version (e.g. v0.11.3-next.42), since CI cannot recompute a past run's number.
         required: false
         type: string
         default: ''
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       channel: ${{ steps.channel.outputs.channel }}
-      stage: ${{ steps.channel.outputs.stage }}
+      npm_tag: ${{ steps.channel.outputs.npm_tag }}
       version: ${{ steps.release_version.outputs.version }}
       source: ${{ steps.release_version.outputs.source }}
       short_sha: ${{ steps.image_meta.outputs.short_sha }}
@@ -80,7 +80,7 @@ jobs:
           # only after the compiled HTTP-server smoke passes on Linux.
           bun-version: 1.3.14
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
@@ -89,11 +89,12 @@ jobs:
 
       # ── npm channel detection ──
       # package.json's committed version is the single source of truth for
-      # channel: a prerelease identifier (MAJOR.MINOR.PATCH-<stage> or
-      # -<stage>.N) means non-latest; a bare version means latest. No CI-side
-      # flag duplicates this. For prerelease channels, package.json's version
+      # channel: MAJOR.MINOR.PATCH-next (or -next.N) means the `next`
+      # dist-tag; a bare version means `latest`. There are exactly two
+      # channels (#152) — the old alpha/beta/rc stages are rejected. No CI-side
+      # flag duplicates this. For prerelease runs, package.json's version
       # is rewritten in-place (workspace-only, never committed) to append
-      # $GITHUB_RUN_NUMBER, so repeated dispatches of the same stage never
+      # $GITHUB_RUN_NUMBER, so repeated prerelease dispatches never
       # collide on an already-published npm version. The rewritten package.json
       # is uploaded as an artifact at the end of this job so the `publish` job
       # (a fresh runner) publishes the exact version this job computed and the
@@ -109,62 +110,54 @@ jobs:
 
           if [[ "$PKG_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([A-Za-z]+)(\.[0-9]+)?$ ]]; then
             BASE="${BASH_REMATCH[1]}"
-            STAGE="$(echo "${BASH_REMATCH[2]}" | tr '[:upper:]' '[:lower:]')"
-            case "$STAGE" in
-              alpha|beta|rc) ;;
-              *)
-                echo "::error::Unrecognized prerelease stage '$STAGE' in package.json version '$PKG_VERSION' — allowed stages: alpha, beta, rc"
-                exit 1
-                ;;
-            esac
+            STAGE="${BASH_REMATCH[2]}"
+            if [ "$STAGE" != "next" ]; then
+              echo "::error::Unrecognized prerelease stage '$STAGE' in package.json version '$PKG_VERSION' — the only prerelease channel is 'next' (commit ${BASE}-next). The alpha/beta/rc stages were retired in #152."
+              exit 1
+            fi
 
             echo "channel=prerelease" >> "$GITHUB_OUTPUT"
-            echo "stage=$STAGE" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=next" >> "$GITHUB_OUTPUT"
 
             if [ "$REPUBLISH_ASSETS" = "true" ]; then
               if [ -z "$INPUT_VERSION" ]; then
-                echo "::error::republish_assets=true with a prerelease package.json version ($PKG_VERSION) requires inputs.version set to the exact already-published run-numbered version (e.g. v${BASE}-${STAGE}.42) — package.json's committed version has no run-number suffix and was never itself published."
+                echo "::error::republish_assets=true with a prerelease package.json version ($PKG_VERSION) requires inputs.version set to the exact already-published run-numbered version (e.g. v${BASE}-next.42) — package.json's committed version has no run-number suffix and was never itself published."
                 exit 1
               fi
               echo "republish_assets=true — package.json version left as committed ($PKG_VERSION); inputs.version ($INPUT_VERSION) carries the exact already-published version instead."
             else
-              NEW_VERSION="${BASE}-${STAGE}.${GITHUB_RUN_NUMBER}"
+              NEW_VERSION="${BASE}-next.${GITHUB_RUN_NUMBER}"
               node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version='$NEW_VERSION'; fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
               echo "✓ Rewrote package.json version (workspace-only, not committed): $PKG_VERSION → $NEW_VERSION"
             fi
           elif [[ "$PKG_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "channel=latest" >> "$GITHUB_OUTPUT"
-            echo "stage=" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=latest" >> "$GITHUB_OUTPUT"
             echo "✓ Bare version $PKG_VERSION — latest channel, no rewrite"
           else
-            echo "::error::package.json version '$PKG_VERSION' doesn't match a recognized shape — expected MAJOR.MINOR.PATCH (latest) or MAJOR.MINOR.PATCH-<stage>[.N] with <stage> one of alpha/beta/rc (prerelease). Fix the committed version before dispatching."
+            echo "::error::package.json version '$PKG_VERSION' doesn't match a recognized shape — expected MAJOR.MINOR.PATCH (latest) or MAJOR.MINOR.PATCH-next[.N] (prerelease). Fix the committed version before dispatching."
             exit 1
           fi
 
       # ── Capture the previously-published version on this same channel ──
       # bunx-upgrade-smoke needs a real "before" version to seed a stale DB
-      # from, on the SAME dist-tag this run is about to publish (latest, or
-      # the prerelease stage) — not just any GitHub Release. Empty output
-      # (no prior publish on this tag yet, e.g. the first-ever alpha) skips
+      # from, on the SAME dist-tag this run is about to publish (latest or
+      # next) — not just any GitHub Release. Empty output
+      # (no prior publish on this tag yet) skips
       # that job entirely rather than failing on a nonexistent upgrade path.
       - name: Capture previously-published version (for upgrade smoke)
         id: previous_version
         env:
-          CHANNEL: ${{ steps.channel.outputs.channel }}
-          STAGE: ${{ steps.channel.outputs.stage }}
+          NPM_TAG: ${{ steps.channel.outputs.npm_tag }}
         run: |
           set -euo pipefail
-          NPM_TAG="latest"
-          if [ "$CHANNEL" = "prerelease" ]; then
-            NPM_TAG="$STAGE"
-          fi
           NPM_VIEW_ERR=$(mktemp)
           trap 'rm -f "$NPM_VIEW_ERR"' EXIT
           if PREV=$(npm view "@tikoci/rosetta@${NPM_TAG}" version --registry https://registry.npmjs.org/ 2>"$NPM_VIEW_ERR"); then
             :
           else
             status=$?
-            # A missing dist-tag (e.g. the first alpha release) is the only
+            # A missing dist-tag (a channel's first release) is the only
             # expected lookup failure. Any registry/auth/transport failure
             # must fail the release rather than silently skipping this gate.
             if grep -Eq '^(npm error|npm ERR!) code E404$' "$NPM_VIEW_ERR"; then
@@ -183,6 +176,37 @@ jobs:
             echo "✓ Previous published version under '$NPM_TAG': v$PREV"
           fi
 
+      # ── next only ever moves forward (#152) ──
+      # A prerelease publish moves `next` unconditionally, so it must be
+      # semver-greater than both current dist-tags. The trap this catches:
+      # package.json still at X.Y.Z-next after X.Y.Z shipped stable —
+      # X.Y.Z-next.N sorts BELOW X.Y.Z, and publishing it would point `next`
+      # at older code than `latest`. Likewise a prerelease for an older line
+      # would drag `next` backwards past a newer prerelease. Fails before
+      # anything is built or pushed.
+      - name: Verify prerelease is ahead of latest and next
+        if: inputs.republish_assets != true && steps.channel.outputs.channel == 'prerelease'
+        run: |
+          set -euo pipefail
+          NEW=$(node -p "require('./package.json').version")
+          for TAG in latest next; do
+            NPM_VIEW_ERR=$(mktemp)
+            if CURRENT=$(npm view "@tikoci/rosetta@${TAG}" version --registry https://registry.npmjs.org/ 2>"$NPM_VIEW_ERR"); then
+              rm -f "$NPM_VIEW_ERR"
+            else
+              status=$?
+              cat "$NPM_VIEW_ERR" >&2
+              rm -f "$NPM_VIEW_ERR"
+              echo "::error::Could not read the current '${TAG}' dist-tag to order this prerelease against it."
+              exit "$status"
+            fi
+            if [ "$(bun --eval "console.log(Bun.semver.order('$NEW', '$CURRENT'))")" != "1" ]; then
+              echo "::error::Prerelease $NEW is not newer than ${TAG} ($CURRENT) — publishing it would move 'next' backwards. Bump package.json to the next unreleased version (e.g. the next patch) with a -next suffix."
+              exit 1
+            fi
+            echo "✓ $NEW > ${TAG} ($CURRENT)"
+          done
+
       # ── Latest-channel CHANGELOG gate ──
       # No channel auto-promotes [Unreleased] anymore (bump-version's
       # auto-commit is gone entirely). A bare-version release can't ship
@@ -194,7 +218,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ steps.channel.outputs.channel }}" != "latest" ]; then
-            echo "Prerelease channel (${{ steps.channel.outputs.channel }}/${{ steps.channel.outputs.stage }}) — CHANGELOG promotion gate not applicable."
+            echo "Prerelease channel (${{ steps.channel.outputs.npm_tag }}) — CHANGELOG promotion gate not applicable."
             exit 0
           fi
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -503,7 +527,7 @@ jobs:
           # only after the compiled HTTP-server smoke passes on Linux.
           bun-version: 1.3.14
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
@@ -545,19 +569,61 @@ jobs:
       - name: Build release artifacts
         run: bun run scripts/build-release.ts ${{ needs.build.outputs.version }}
 
+      # `next` must never be behind `latest` (#152). A prerelease always moves
+      # `next` (build's "Verify prerelease is ahead of latest and next" already
+      # proved it is newer than both). A stable publish moves `next` only when the
+      # current `next` is semver-lower — a newer prerelease already on `next`
+      # stays. One decision drives both npm and OCI, so the two stay in step.
+      - name: Decide whether this run moves next
+        id: next_tag
+        if: inputs.republish_assets != true
+        env:
+          CHANNEL: ${{ needs.build.outputs.channel }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          NEW="${VERSION#v}"
+          if [ "$CHANNEL" = "prerelease" ]; then
+            echo "move=true" >> "$GITHUB_OUTPUT"
+            echo "✓ Prerelease $NEW publishes to next"
+            exit 0
+          fi
+          NPM_VIEW_ERR=$(mktemp)
+          trap 'rm -f "$NPM_VIEW_ERR"' EXIT
+          if CURRENT=$(npm view "@tikoci/rosetta@next" version --registry https://registry.npmjs.org/ 2>"$NPM_VIEW_ERR"); then
+            :
+          else
+            status=$?
+            if grep -Eq '^(npm error|npm ERR!) code E404$' "$NPM_VIEW_ERR"; then
+              CURRENT=""
+            else
+              cat "$NPM_VIEW_ERR" >&2
+              echo "::error::Could not read the current 'next' dist-tag."
+              exit "$status"
+            fi
+          fi
+          if [ -z "$CURRENT" ] || [ "$(bun --eval "console.log(Bun.semver.order('$NEW', '$CURRENT'))")" = "1" ]; then
+            echo "move=true" >> "$GITHUB_OUTPUT"
+            echo "✓ Stable $NEW moves next (currently ${CURRENT:-unset})"
+          else
+            echo "move=false" >> "$GITHUB_OUTPUT"
+            echo "✓ next ($CURRENT) is already ≥ $NEW — leaving it"
+          fi
+
       # OCI tags mirror the npm dist-tag scheme: $VERSION and sha-$SHORT_SHA
       # always push. republish_assets: true pushes ONLY those two — no
       # floating tag ever moves during a republish, so a re-run of an older
       # version can't regress what a floating tag currently points testers
-      # at. Otherwise: prerelease runs get a floating per-stage tag
-      # (:alpha/:beta/:rc) and a floating :next; latest-channel runs get the
-      # bare :latest tag. :latest never pushes on a prerelease run — this is
-      # the fix for the OCI-latest-clobber risk (an unguarded alpha dispatch
+      # at. Otherwise: prerelease runs get a floating :next; latest-channel
+      # runs get the bare :latest tag, plus :next when the decision step above
+      # moves npm's next. :latest never pushes on a prerelease run — this is
+      # the fix for the OCI-latest-clobber risk (an unguarded prerelease dispatch
       # would otherwise silently overwrite the production /app container's
       # :latest with an unfinished prerelease DB).
       - name: Build and push OCI images (Docker Hub + GHCR)
         env:
           REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
+          MOVE_NEXT: ${{ steps.next_tag.outputs.move }}
         run: |
           set -euo pipefail
           SHORT_SHA="${{ needs.build.outputs.short_sha }}"
@@ -568,16 +634,18 @@ jobs:
           done
           VERSION="v${RUNTIME_VERSION}"
           CHANNEL="${{ needs.build.outputs.channel }}"
-          STAGE="${{ needs.build.outputs.stage }}"
 
           tags=()
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
             tags+=(--tag "${registry}:${VERSION}" --tag "${registry}:sha-${SHORT_SHA}")
             if [ "$REPUBLISH_ASSETS" != "true" ]; then
               if [ "$CHANNEL" = "prerelease" ]; then
-                tags+=(--tag "${registry}:${STAGE}" --tag "${registry}:next")
+                tags+=(--tag "${registry}:next")
               else
                 tags+=(--tag "${registry}:latest")
+                if [ "$MOVE_NEXT" = "true" ]; then
+                  tags+=(--tag "${registry}:next")
+                fi
               fi
             fi
           done
@@ -750,27 +818,55 @@ jobs:
       # contents. `republish_assets: true` re-clobbers GH release assets and OCI
       # tags, but trying to re-push npm would always 403. Skip npm in that mode.
       #
-      # Prerelease runs publish under their stage's dist-tag (--tag alpha/beta/rc)
-      # instead of the default `latest`, then move the `next` dist-tag to point at
-      # this version too, so `next` always resolves to the newest prerelease of
-      # any stage while `alpha`/`beta`/`rc` each stay pinned to their own stage's
-      # latest. Bare (latest-channel) publishes are unchanged: no --tag, defaults
-      # to the `latest` dist-tag.
+      # Two channels (#152). Prerelease runs publish with --tag next only.
+      # Bare (latest-channel) publishes take the default `latest` dist-tag, then
+      # also move `next` when the decision step says it is behind.
       - name: Publish to npm
         if: inputs.republish_assets != true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          MOVE_NEXT: ${{ steps.next_tag.outputs.move }}
         run: |
           set -euo pipefail
           PKG_NAME=$(node -p "require('./package.json').name")
           NPM_VERSION="${{ needs.build.outputs.version }}"
           NPM_VERSION="${NPM_VERSION#v}"
           if [ "${{ needs.build.outputs.channel }}" = "prerelease" ]; then
-            npm publish --access public --tag "${{ needs.build.outputs.stage }}" --registry https://registry.npmjs.org/
-            npm dist-tag add "${PKG_NAME}@${NPM_VERSION}" next --registry https://registry.npmjs.org/
+            npm publish --access public --tag next --registry https://registry.npmjs.org/
           else
             npm publish --access public --registry https://registry.npmjs.org/
+            if [ "$MOVE_NEXT" = "true" ]; then
+              npm dist-tag add "${PKG_NAME}@${NPM_VERSION}" next --registry https://registry.npmjs.org/
+            fi
           fi
+
+      # Read back what the registry actually serves: this run's dist-tag must
+      # resolve to the version just published, and next must be ≥ latest.
+      # Retries cover registry propagation; a persistent mismatch fails the job.
+      - name: Read back npm dist-tags (next ≥ latest)
+        if: inputs.republish_assets != true
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TAG: ${{ needs.build.outputs.npm_tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          NPM_VERSION="${VERSION#v}"
+          for i in {1..30}; do
+            TAGS=$(npm view @tikoci/rosetta dist-tags --json --registry https://registry.npmjs.org/ 2>/dev/null || echo '{}')
+            if TAGS="$TAGS" NPM_TAG="$NPM_TAG" NPM_VERSION="$NPM_VERSION" bun --eval '
+              const tags = JSON.parse(process.env.TAGS);
+              const own = tags[process.env.NPM_TAG];
+              const ok = own === process.env.NPM_VERSION && tags.next && tags.latest && Bun.semver.order(tags.next, tags.latest) >= 0;
+              console.log(JSON.stringify(tags));
+              process.exit(ok ? 0 : 1);
+            '; then
+              echo "✓ ${NPM_TAG} → ${NPM_VERSION}, next ≥ latest (attempt $i)"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::npm dist-tags did not settle to ${NPM_TAG}=${NPM_VERSION} with next ≥ latest within 150s"
+          exit 1
 
       - name: Skip npm publish (republish_assets mode)
         if: inputs.republish_assets == true
@@ -914,13 +1010,12 @@ jobs:
         env:
           VERSION: ${{ needs.publish.outputs.version }}
           CHANNEL: ${{ needs.build.outputs.channel }}
-          STAGE: ${{ needs.build.outputs.stage }}
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"
           NPM_SPEC="@tikoci/rosetta"
           if [ "$CHANNEL" = "prerelease" ]; then
-            NPM_SPEC="${NPM_SPEC}@${STAGE}"
+            NPM_SPEC="${NPM_SPEC}@next"
           fi
           echo "Waiting for ${NPM_SPEC} to resolve to ${NPM_VER} on npm registry..."
           for i in {1..30}; do
@@ -939,14 +1034,13 @@ jobs:
           VERSION: ${{ needs.publish.outputs.version }}
           PREV_VERSION: ${{ needs.build.outputs.previous_version }}
           CHANNEL: ${{ needs.build.outputs.channel }}
-          STAGE: ${{ needs.build.outputs.stage }}
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"
           PREV_NPM_VER="${PREV_VERSION#v}"
           NPM_SPEC="@tikoci/rosetta"
           if [ "$CHANNEL" = "prerelease" ]; then
-            NPM_SPEC="${NPM_SPEC}@${STAGE}"
+            NPM_SPEC="${NPM_SPEC}@next"
           fi
 
           echo "── bunx @tikoci/rosetta@${PREV_NPM_VER} --refresh (seed pre-upgrade DB) ──"
@@ -998,13 +1092,12 @@ jobs:
           DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
           PREV_VERSION: ${{ needs.build.outputs.previous_version }}
           CHANNEL: ${{ needs.build.outputs.channel }}
-          STAGE: ${{ needs.build.outputs.stage }}
         run: |
           set -euo pipefail
           PREV_NPM_VER="${PREV_VERSION#v}"
           NPM_SPEC="@tikoci/rosetta"
           if [ "$CHANNEL" = "prerelease" ]; then
-            NPM_SPEC="${NPM_SPEC}@${STAGE}"
+            NPM_SPEC="${NPM_SPEC}@next"
           fi
 
           # The previous step proved that this DB was refreshed by the current

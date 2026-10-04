@@ -127,20 +127,17 @@ For a pinned or prerelease install, use your original package version and
 `--db` / `DB_PATH` destination with `--refresh`. Refreshing an existing DB requires
 stopping its owners, including other clients on the same exact version.
 
-### Prerelease channels (optional)
+### Prerelease channel (optional)
 
-New corpus builds sometimes ship first under a non-default npm dist-tag so testers can opt in without moving what everyone else gets by default:
+New builds sometimes ship first as a prerelease (`X.Y.Z-next.N`) so testers can opt in without moving what everyone else gets by default:
 
 ```sh
-bunx @tikoci/rosetta@next     # newest prerelease of any stage (alpha/beta/rc)
-bunx @tikoci/rosetta@alpha    # pinned to the alpha stage's latest
-bunx @tikoci/rosetta@beta     # pinned to the beta stage's latest
-bunx @tikoci/rosetta@rc       # pinned to the rc stage's latest
+bunx @tikoci/rosetta@next     # newest build: a prerelease, or latest when none is newer
 ```
 
-`bunx @tikoci/rosetta` (no tag) and `bunx @tikoci/rosetta@latest` always resolve to the default, non-prerelease channel — publishing a prerelease never moves `latest`.
+`@next` is never behind `latest`: each stable release also moves `next` unless a newer prerelease is already there, so it is safe to leave `@next` in an MCP config. `bunx @tikoci/rosetta` (no tag) and `bunx @tikoci/rosetta@latest` always resolve to the default, non-prerelease channel — publishing a prerelease never moves `latest`.
 
-> **Dist-tags, not semver ranges.** A version range like `^0.11.0-alpha` is **not** equivalent to a dist-tag. npm's prerelease range matching only spans the exact `[major,minor,patch]` tuple written in the range, so it stops tracking new prereleases the moment a patch/minor bump happens. `@next`/`@alpha`/`@beta`/`@rc` are the actual "follow forever" mechanism — use those, not a range, to stay on a moving prerelease channel.
+> **Dist-tags, not semver ranges.** A version range like `^0.11.3-next` is **not** equivalent to a dist-tag. npm's prerelease range matching only spans the exact `[major,minor,patch]` tuple written in the range, so it stops tracking new prereleases the moment a patch/minor bump happens. `@next` is the "follow forever" mechanism. The older `@alpha` / `@beta` / `@rc` tags are retired and no longer receive updates — switch any config using them to `@next`.
 
 ### Configure your MCP client
 
