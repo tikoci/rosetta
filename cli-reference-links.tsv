@@ -1,5 +1,5 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
-# counts	exact=962	alias=0	manual-only=101	entries=1063
+# counts	exact=962	alias=0	manual-only=100	entries=1062
 source_path	source_type	match_kind	match_detail
 interface/ethernet/poe	Directory	manual-only	
 interface/ethernet/poe/monitor	Command	manual-only	
@@ -87,7 +87,6 @@ partitions/restore-config-from	Command	manual-only
 partitions/save-config-to	Command	manual-only	
 root/terminal	Directory	manual-only	
 routing/bfd/authentication	Directory	manual-only	
-routing/route/rule	Directory	manual-only	
 system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
 system/license/output	Command	manual-only	
 system/ptp	Directory	manual-only	

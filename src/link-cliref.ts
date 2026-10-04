@@ -248,6 +248,37 @@ export function buildBaselineTsv(): string {
   ].join("\n");
 }
 
+/**
+ * Line-level diff of two baseline TSVs as `- committed` / `+ built` rows, so a STALE
+ * failure names what moved instead of leaving CI log readers to guess. Lines are counted,
+ * not deduplicated: the corpus allows duplicate heading paths (identical body lines).
+ */
+export function baselineDrift(committed: string, fresh: string): string[] {
+  const counts = new Map<string, number>();
+  for (const line of committed.split("\n")) counts.set(line, (counts.get(line) ?? 0) + 1);
+  const added: string[] = [];
+  for (const line of fresh.split("\n")) {
+    const n = counts.get(line) ?? 0;
+    if (n > 0) counts.set(line, n - 1);
+    else added.push(`+ ${line}`);
+  }
+  const removed: string[] = [];
+  for (const [line, n] of counts) for (let i = 0; i < n; i++) removed.push(`- ${line}`);
+  return [...removed, ...added];
+}
+
+/** The `--check` STALE failure, carrying the drift rows; null when the baseline matches. */
+export function staleBaselineProblem(committed: string, fresh: string): string | null {
+  if (committed === fresh) return null;
+  return (
+    `cli-reference-links.tsv is STALE — the built DB's crosswalk differs from the committed baseline. ` +
+    `Review the change; if intended, run 'make link-cliref-baseline' and commit cli-reference-links.tsv.\n` +
+    baselineDrift(committed, fresh)
+      .map((d) => `      ${d}`)
+      .join("\n")
+  );
+}
+
 /** Every stored alias must name a KNOWN_ALIAS_SEGMENTS member (the linker allowlist). */
 export function auditAliasSegments(): string[] {
   const problems: string[] = [];
@@ -290,12 +321,8 @@ if (import.meta.main) {
     const problems = auditAliasSegments();
     const fresh = buildBaselineTsv();
     const committed = existsSync(BASELINE_PATH) ? readFileSync(BASELINE_PATH, "utf8") : "";
-    if (committed !== fresh) {
-      problems.push(
-        `cli-reference-links.tsv is STALE — the built DB's crosswalk differs from the committed baseline. ` +
-          `Review the change; if intended, run 'make link-cliref-baseline' and commit cli-reference-links.tsv.`,
-      );
-    }
+    const stale = staleBaselineProblem(committed, fresh);
+    if (stale) problems.push(stale);
     if (problems.length > 0) {
       console.error(`\nV-cliref-link-drift FAILED (${problems.length}):`);
       for (const p of problems) console.error(`  ✗ ${p}`);
