@@ -31,6 +31,10 @@ uses [Semantic Versioning](https://semver.org/).
 - **KNOT LR8 / LR9 kit lookups no longer return the base KNOT (#154).** MikroTik's new `/hardware/knot-lr8-kit` and `knot-lr9-kit` pages link the base `knot` product as well as their own, and that cross-link alone matched the KNOT matrix row. These pages turned `knot-lr8-kit` / `knot-lr9-kit` into aliases of the current base board. The hardware assessment now drops a claim made only through a link when another page owns that device by its own slug or title. Both kits resolve as their own discontinued devices.
 - **Command explanations omit unrelated, low-confidence property annotations** and warn per argument when no menu-aligned documentation is available. High/medium annotations and property lookup candidates remain available (#147, part of #58).
 
+### Added
+
+- **`YTDLP_ARGS` for the video transcript extractor (#156).** Extra yt-dlp arguments, such as `--cookies-from-browser firefox`, now pass through to every yt-dlp call when YouTube rate-limits an anonymous scrape. The transcript cache is refreshed to 746 videos (24 new).
+
 ### Changed
 
 - **Product matrix refreshed to the 2026-10-03 snapshot (#121).** `devices` and the hardware overlay now read `matrix/2026-10-03/matrix.csv` (155 products). It adds KNOT Gateway HL9 / LR8 and drops Groove 52, LHG XL 5 ac, and SXTsq 5 ac, which MikroTik no longer lists. MikroTik has since published /hardware pages for LAMP 5G R16, LHGG LTE7 kit, SXTsq Embedded LTE4 Global, and SXTsq 5 ax, so these now resolve without curated exceptions. The KNOT and wAP LoRa kits now link their own /hardware and product pages instead of a shared base-board page.
