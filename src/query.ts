@@ -137,10 +137,14 @@ const COMPOUND_TERMS: [string, string][] = [
 export { KNOWN_TOPICS } from "./classify.ts";
 
 function applyContextualTermFilters(terms: string[]): string[] {
-  if (terms.includes("bridge") && terms.includes("vlan") && terms.includes("filtering")) {
-    return terms.filter((term) => term !== "switch");
+  // "set up" is a phrasal verb: as an AND term the particle "up" excludes focused pages
+  // that never use the word (the split DHCP Server page says "setup"/"set", not "up").
+  // Runs first so adjacency is judged on the original order, not after "switch" is dropped.
+  let filtered = terms.filter((term, i) => !(term === "up" && terms[i - 1] === "set"));
+  if (filtered.includes("bridge") && filtered.includes("vlan") && filtered.includes("filtering")) {
+    filtered = filtered.filter((term) => term !== "switch");
   }
-  return terms;
+  return filtered;
 }
 
 function getSpecialSearchHint(question: string): string | undefined {
@@ -171,9 +175,9 @@ export function extractTerms(question: string): string[] {
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ")
     .split(/\s+/)
-    .filter((t) => t.length >= MIN_TERM_LENGTH && !STOP_WORDS.has(t))
-    .slice(0, MAX_TERMS);
-  return applyContextualTermFilters(terms);
+    .filter((t) => t.length >= MIN_TERM_LENGTH && !STOP_WORDS.has(t));
+  // Cap after the contextual filters so a dropped term frees its slot.
+  return applyContextualTermFilters(terms).slice(0, MAX_TERMS);
 }
 
 export function buildFtsQuery(terms: string[], mode: "AND" | "OR"): string {

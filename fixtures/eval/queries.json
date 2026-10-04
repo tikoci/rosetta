@@ -12,8 +12,8 @@
       "id": "nl-dhcp-server",
       "query": "how do I set up a DHCP server",
       "shape": "nl-question",
-      "expected_rosetta_ids": ["docs/network-management/dhcp"],
-      "notes": "Bread-and-butter NL question."
+      "expected_rosetta_ids": ["docs/network-management/dhcp/server", "docs/network-management/dhcp"],
+      "notes": "Bread-and-butter NL question. Upstream split the single DHCP page (2026-10); dhcp/server is the direct answer, the dhcp index stays acceptable."
     },
     {
       "id": "nl-firewall-filter",
