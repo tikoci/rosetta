@@ -1223,6 +1223,8 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 1, "ip/unlinked", "Directory"],
     [CR + 2, "ip/dhcp-server", "Directory"],
     [CR + 3, "tool/fetch", "Command"],
+    [CR + 4, "ping", "Command"],
+    [CR + 5, "tool", "Directory"],
   ];
   const fields: Array<[number, number, string, string, string]> = [
     [CR, CR, "show-at-login", "bool", "Show the note after login."],
@@ -1231,13 +1233,17 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 3, CR + 2, "lease-time", "time", "Overlay DHCP lease time."],
     [CR + 4, CR + 3, "fetch-target", "string", "Where fetch writes."],
     [CR + 5, CR, "last-shown", "time", "When the note was last shown."],
+    [CR + 6, CR + 4, "ping-target", "string", "Host to ping."],
+    [CR + 7, CR + 5, "fetch-mode", "enum", "Tool-wide status."],
+    [CR + 8, CR + 3, "fetch-mode", "enum", "How fetch transfers."],
   ];
 
   beforeAll(() => {
     // `/tool fetch` only splits into path + verb when the command tree knows `fetch` is a cmd.
     db.run(`INSERT INTO commands (id, path, name, type, parent_path, page_id, description, ros_version)
       VALUES (${CR}, '/tool', 'tool', 'dir', NULL, NULL, 'Tools', '7.22'),
-             (${CR + 1}, '/tool/fetch', 'fetch', 'cmd', '/tool', NULL, 'Fetch', '7.22')`);
+             (${CR + 1}, '/tool/fetch', 'fetch', 'cmd', '/tool', NULL, 'Fetch', '7.22'),
+             (${CR + 2}, '/ping', 'ping', 'cmd', '/', NULL, 'Ping', '7.22')`);
     for (const [id, path, type] of entries) {
       db.run(
         `INSERT INTO cliref_pages (id,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order)
@@ -1254,7 +1260,7 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
       db.run(
         `INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line)
          VALUES (?,?,?,?,?,0,0,?,?,1)`,
-        [id, entry, name === "last-shown" ? "Read-only Argument" : "Argument", name, rawType, description, id],
+        [id, entry, id === CR + 5 || id === CR + 7 ? "Read-only Argument" : "Argument", name, rawType, description, id],
       );
     }
   });
@@ -1263,7 +1269,7 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     db.run(`DELETE FROM cliref_fields WHERE id BETWEEN ${CR} AND ${CR + 99}`);
     db.run(`DELETE FROM cliref_entries WHERE id BETWEEN ${CR} AND ${CR + 99}`);
     db.run(`DELETE FROM cliref_pages WHERE id BETWEEN ${CR} AND ${CR + 99}`);
-    db.run(`DELETE FROM commands WHERE id IN (${CR}, ${CR + 1})`);
+    db.run(`DELETE FROM commands WHERE id IN (${CR}, ${CR + 1}, ${CR + 2})`);
   });
 
   test("unscoped: a name the manual lacks comes back from the overlay at medium, with no page to open", () => {
@@ -1330,6 +1336,19 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
       arg: "last-shown",
       message: "The CLI Reference documents \"last-shown\" for /system/note only as a read-only field, not as a settable argument.",
     }));
+  });
+
+  test("explainCommand reaches a root command's own entry (`/` + verb)", () => {
+    const result = explainCommand("/ping ping-target=192.0.2.1");
+    expect(result.canonical).toMatchObject({ path: "/", verb: "ping" });
+    expect(result.args[0].property).toMatchObject({ name: "ping-target", page_title: "CLI Reference: /ping" });
+  });
+
+  test("explainCommand prefers a settable path/verb entry over a read-only menu field", () => {
+    expect(lookupProperty("fetch-mode", "/tool")[0]).toMatchObject({ section: "Read-only Argument" });
+    const result = explainCommand("/tool fetch fetch-mode=x");
+    expect(result.args[0].property).toMatchObject({ description: "How fetch transfers.", page_title: "CLI Reference: /tool/fetch" });
+    expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
   });
 
   test("explainCommand reaches a command's own entry at path/verb", () => {

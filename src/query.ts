@@ -644,6 +644,10 @@ export type ExplainCommandResult = {
   version_check?: ReturnType<typeof checkCommandVersions>;
 };
 
+function isReadOnlyCliRef(row: PropertyLookupRow | undefined): boolean {
+  return row?.source === "cli-reference" && row.section === "Read-only Argument";
+}
+
 function parseKeyValueArg(raw: string): { name: string; value: string } | null {
   const eq = raw.indexOf("=");
   if (eq <= 0) return null;
@@ -712,12 +716,14 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
       if (!parsedArg) continue;
       // A command that is not a menu verb (`/tool fetch`, `/system reboot`) has its own
       // CLI-Reference entry at path/verb, which the menu-level lookup never reaches.
+      // A read-only CLI-Reference field is print output, not evidence for a settable argument,
+      // so it gives way to a settable entry there and only survives to explain the warning.
       const menuMatch = lookupProperty(parsedArg.name, canonical.path)[0];
-      const match = menuMatch && menuMatch.confidence !== "low"
+      const match = menuMatch && menuMatch.confidence !== "low" && !isReadOnlyCliRef(menuMatch)
         ? menuMatch
-        : (lookupCliRefProperty(parsedArg.name, `${canonical.path}/${canonical.verb}`)[0] ?? menuMatch);
-      // A read-only CLI-Reference field is print output, not evidence for a settable argument.
-      const readOnly = match?.source === "cli-reference" && match.section === "Read-only Argument";
+        : (lookupCliRefProperty(parsedArg.name, `${canonical.path}/${canonical.verb}`).find((row) => !isReadOnlyCliRef(row)) ??
+          menuMatch);
+      const readOnly = isReadOnlyCliRef(match);
       const explainedArg: ExplainCommandArg = {
         raw,
         name: parsedArg.name,
@@ -1181,7 +1187,8 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
  * settable rows sort first.
  */
 function lookupCliRefProperty(name: string, commandPath?: string): PropertyLookupRow[] {
-  const sourcePath = commandPath?.replace(/^\//, "");
+  // `/` + verb joins to `//ping` for a root command; the stored path is `ping`.
+  const sourcePath = commandPath?.replace(/^\/+/, "");
   const rows = db
     .prepare(
       `SELECT f.name, f.field_kind, f.raw_type, f.description_markdown, e.source_path, cp.url
