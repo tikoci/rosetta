@@ -755,6 +755,8 @@ describe("extractTerms", () => {
     expect(extractTerms("how do I set up bridge vlan filtering on a switch")).toEqual(["set", "bridge", "vlan", "filtering"]);
     // Adjacency is judged before "switch" is dropped: here "up" does not follow "set".
     expect(extractTerms("set switch up bridge vlan filtering")).toEqual(["set", "up", "bridge", "vlan", "filtering"]);
+    // The dropped particle frees its MAX_TERMS slot for a trailing term.
+    expect(extractTerms("set up alpha beta gamma delta epsilon zeta dhcp")).toContain("dhcp");
   });
 
   test("filters terms shorter than 2 characters", () => {

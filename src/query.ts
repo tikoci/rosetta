@@ -175,9 +175,9 @@ export function extractTerms(question: string): string[] {
     .toLowerCase()
     .replace(/[^\w\s-]/g, " ")
     .split(/\s+/)
-    .filter((t) => t.length >= MIN_TERM_LENGTH && !STOP_WORDS.has(t))
-    .slice(0, MAX_TERMS);
-  return applyContextualTermFilters(terms);
+    .filter((t) => t.length >= MIN_TERM_LENGTH && !STOP_WORDS.has(t));
+  // Cap after the contextual filters so a dropped term frees its slot.
+  return applyContextualTermFilters(terms).slice(0, MAX_TERMS);
 }
 
 export function buildFtsQuery(terms: string[], mode: "AND" | "OR"): string {
