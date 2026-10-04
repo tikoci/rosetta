@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 process.env.DB_PATH = ":memory:";
 
 // Dynamic imports so the env-var assignment above is visible to db.ts
-const { db, initDb, getDbStats, checkSchemaVersion, SCHEMA_VERSION, DB_PATH } = await import("./db.ts");
+const { db, initDb, getDbStats, getCommandVersionRange, checkSchemaVersion, SCHEMA_VERSION, DB_PATH } = await import("./db.ts");
 
 // Hard guard: if some other test file imported db.ts before us with a real
 // path, the singleton will be pointing at the project's ros-help.db and the
@@ -1225,6 +1225,8 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 3, "tool/fetch", "Command"],
     [CR + 4, "ping", "Command"],
     [CR + 5, "tool", "Directory"],
+    [CR + 6, "ip/firewall/filter", "Directory"],
+    [CR + 7, "interface/bridge/port", "Directory"],
   ];
   const fields: Array<[number, number, string, string, string]> = [
     [CR, CR, "show-at-login", "bool", "Show the note after login."],
@@ -1236,12 +1238,20 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 6, CR + 4, "ping-target", "string", "Host to ping."],
     [CR + 7, CR + 5, "fetch-mode", "enum", "Tool-wide status."],
     [CR + 8, CR + 3, "fetch-mode", "enum", "How fetch transfers."],
+    [CR + 9, CR + 6, "chain", "enum", ""],
+    [CR + 10, CR + 7, "pvid", "num", "Overlay port VLAN ID."],
+    [CR + 11, CR, "note-color", "enum", "  \n"],
+    [CR + 12, CR + 6, "chain", "enum", "Read-only described chain."],
+    [CR + 13, CR + 1, "ws-arg", "num", "\t\n"],
+    [CR + 14, CR + 1, "ws-arg", "num", "Described ws-arg."],
+    [CR + 15, CR + 3, "action", "string", "Fetch's own action."],
   ];
 
   beforeAll(() => {
     // `/tool fetch` only splits into path + verb when the command tree knows `fetch` is a cmd.
+    // `/tool` links to the Firewall Filter page so its `action` row is a page-aligned `medium`.
     db.run(`INSERT INTO commands (id, path, name, type, parent_path, page_id, description, ros_version)
-      VALUES (${CR}, '/tool', 'tool', 'dir', NULL, NULL, 'Tools', '7.22'),
+      VALUES (${CR}, '/tool', 'tool', 'dir', NULL, 2, 'Tools', '7.22'),
              (${CR + 1}, '/tool/fetch', 'fetch', 'cmd', '/tool', NULL, 'Fetch', '7.22'),
              (${CR + 2}, '/ping', 'ping', 'cmd', '/', NULL, 'Ping', '7.22')`);
     for (const [id, path, type] of entries) {
@@ -1260,7 +1270,7 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
       db.run(
         `INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line)
          VALUES (?,?,?,?,?,0,0,?,?,1)`,
-        [id, entry, id === CR + 5 || id === CR + 7 ? "Read-only Argument" : "Argument", name, rawType, description, id],
+        [id, entry, [CR + 5, CR + 7, CR + 12].includes(id) ? "Read-only Argument" : "Argument", name, rawType, description, id],
       );
     }
   });
@@ -1306,9 +1316,30 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     expect(rows.slice(1).every((row) => row.source === "manual" && row.confidence === "low")).toBe(true);
   });
 
-  test("scoped: a menu-aligned manual row wins and the overlay is not consulted", () => {
+  test("scoped: a described overlay row beats a medium manual row, which follows as a candidate (B-0025)", () => {
     const rows = lookupProperty("lease-time", "/ip/dhcp-server");
-    expect(rows[0]).toMatchObject({ source: "manual", confidence: "medium", page_title: "DHCP Server" });
+    expect(rows[0]).toMatchObject({ source: "cli-reference", confidence: "high", description: "Overlay DHCP lease time." });
+    expect(rows[1]).toMatchObject({ source: "manual", confidence: "medium", page_title: "DHCP Server" });
+  });
+
+  test("scoped: a high manual row still wins over a described overlay row", () => {
+    const rows = lookupProperty("pvid", "/interface/bridge/port");
+    expect(rows[0]).toMatchObject({ source: "manual", confidence: "high" });
+    expect(rows.some((row) => row.source === "cli-reference")).toBe(false);
+  });
+
+  test("scoped: a described read-only sibling does not carry a blank settable row past a medium manual row", () => {
+    const rows = lookupProperty("chain", "/ip/firewall/filter");
+    expect(rows[0]).toMatchObject({ source: "manual", confidence: "medium" });
+  });
+
+  test("scoped: whitespace-only overlay descriptions sort as blank, as JavaScript trims them", () => {
+    expect(lookupProperty("ws-arg", "/ip/unlinked")[0].description).toBe("Described ws-arg.");
+  });
+
+  test("scoped: a blank overlay row never displaces a medium manual description", () => {
+    const rows = lookupProperty("chain", "/ip/firewall/filter");
+    expect(rows[0]).toMatchObject({ source: "manual", confidence: "medium", page_title: "Firewall Filter" });
     expect(rows.some((row) => row.source === "cli-reference")).toBe(false);
   });
 
@@ -1323,6 +1354,22 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
       name: "show-at-login", source: "cli-reference", confidence: "high", page_id: null,
     });
     expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
+  });
+
+  test("explainCommand flags a blank overlay match as no-description but keeps the annotation", () => {
+    const result = explainCommand("/system/note set note-color=red");
+    expect(result.args[0].property).toMatchObject({ name: "note-color", source: "cli-reference", type: "enum" });
+    expect(result.warnings).toEqual([{
+      kind: "no-description",
+      arg: "note-color",
+      message: '"note-color" is listed as an argument of /system/note in MikroTik\'s CLI Reference (type: enum), so it exists at this menu. MikroTik has not published a description for it, and no menu-aligned manual page describes it. This is missing documentation, not a sign that the argument is invalid.',
+      suggestion: "Use routeros_search or routeros_get_page for surrounding documentation if you need its meaning.",
+    }]);
+  });
+
+  test("explainCommand raises no no-description warning when the overlay row is described", () => {
+    const result = explainCommand("/system/note set show-at-login=yes");
+    expect(result.warnings.filter((w) => w.kind === "no-description")).toEqual([]);
   });
 
   test("explainCommand does not accept a read-only field as a settable argument", () => {
@@ -1349,6 +1396,12 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     const result = explainCommand("/tool fetch fetch-mode=x");
     expect(result.args[0].property).toMatchObject({ description: "How fetch transfers.", page_title: "CLI Reference: /tool/fetch" });
     expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
+  });
+
+  test("explainCommand: a described path/verb entry beats a medium manual menu match", () => {
+    expect(lookupProperty("action", "/tool")[0]).toMatchObject({ source: "manual", confidence: "medium" });
+    const result = explainCommand("/tool fetch action=x");
+    expect(result.args[0].property).toMatchObject({ source: "cli-reference", description: "Fetch's own action." });
   });
 
   test("explainCommand reaches a command's own entry at path/verb", () => {
@@ -1454,7 +1507,7 @@ describe("explainCommand", () => {
     expect(result.args).toEqual([{ raw: "action=masquerade", name: "action", value: "masquerade" }]);
     expect(result.warnings).toEqual([{
       kind: "unknown-arg", arg: "action",
-      message: 'No menu-aligned documentation for property "action" was found for /ip/firewall/nat. This does not establish whether the RouterOS argument is valid.',
+      message: '"action" was not found for /ip/firewall/nat: neither MikroTik\'s CLI Reference nor a menu-aligned manual page lists it. Rosetta cannot tell whether the RouterOS argument is valid.',
       suggestion: 'Use routeros_command_tree path="/ip/firewall/nat" or routeros_get_page for the linked documentation to confirm available arguments.',
     }]);
     expect(lookupProperty("action", "/ip/firewall/nat")).toEqual(candidates);
@@ -2638,6 +2691,19 @@ describe("schema", () => {
 // ---------------------------------------------------------------------------
 // getDbStats: version range uses semantic sort (not lexicographic)
 // ---------------------------------------------------------------------------
+
+describe("getCommandVersionRange", () => {
+  // `9.1beta2` sorts after `9.1beta10` as text, so a comparator that drops the prerelease counter
+  // ties them and reports whichever SQLite returned last: the older beta2.
+  afterAll(() => {
+    db.run(`DELETE FROM command_versions WHERE ros_version IN ('9.1beta2', '9.1beta10')`);
+  });
+
+  test("orders prerelease counters numerically, so the newest beta is the maximum", () => {
+    db.run(`INSERT INTO command_versions (command_path, ros_version) VALUES ('/ip', '9.1beta2'), ('/ip', '9.1beta10')`);
+    expect(getCommandVersionRange().max).toBe("9.1beta10");
+  });
+});
 
 describe("getDbStats", () => {
   test("version range is semantically sorted (7.9 < 7.10.2 < 7.22)", () => {

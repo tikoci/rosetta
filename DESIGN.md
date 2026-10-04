@@ -263,16 +263,25 @@ field-typed shape reflects a WinBox/C-struct-style internal model is plausible a
 everything above, but it is a **hypothesis about the upstream source**, not something this repo has
 verified.
 
-**The overlay already answers property lookups when the manual can't (#169).** Upstream is moving
-property tables out of manual pages and into the CLI Reference, where each field carries its own
-description: by October 2026 DNS, DHCP, NAT, IP addresses, routes, users, the scheduler, NTP and
-`/system/note` had no prose table left. `lookupProperty` therefore falls back to `cliref_fields` when
-the prose has nothing better than `low` for the menu, matching the exact entry path only.
-`explainCommand` also tries a command's own entry (`tool/fetch`). The overlay row is labelled
-`source: "cli-reference"`, so its missing version data is never mistaken for a prose row's. Read-only
-fields are never accepted as settable arguments, for the same reason they are excluded from the
-inspect crosswalk. This is a fallback, not the base-layer redesign above, and it adds no join between
-the stores. `V-explain-grounding` makes the next table move fail release QA instead of reaching an agent.
+**The overlay answers property lookups beside the manual (#169, B-0025).** Upstream is moving
+property tables out of manual pages and into the CLI Reference, where many fields carry their own
+description. By October 2026, DNS, DHCP, NAT, IP addresses, routes, users, the scheduler, NTP and
+`/system/note` had no prose table left. `lookupProperty` therefore consults `cliref_fields` at the
+exact entry path only:
+
+- An overlay row with a description leads unless the prose has a `high` row. A `medium` prose row
+  is often a neighbouring menu's, such as the bridge firewall answering `/ip/firewall/filter`.
+- A blank overlay row leads only when the prose has nothing better than `low`. 54% of settable
+  overlay fields are blank, mostly Wi-Fi, and there the manual still holds the only description.
+
+`explainCommand` reports a blank overlay answer as `no-description` (the argument is listed, so it
+exists; only its description is missing) rather than as documented, and
+also tries a command's own entry (`tool/fetch`). Overlay rows are labelled
+`source: "cli-reference"`, so their missing version data is never mistaken for a prose row's.
+Read-only fields are never accepted as settable arguments, for the same reason they are excluded
+from the inspect crosswalk. This is an ordering rule, not the base-layer redesign above (B-0025
+option D, still open), and it adds no join between the stores. `V-explain-grounding` makes the next
+table move fail release QA instead of reaching an agent.
 
 ### CSV requires manual download
 

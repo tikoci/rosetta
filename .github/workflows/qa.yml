@@ -398,6 +398,14 @@ jobs:
             exit "$status"
           fi
 
+      # B-0025 census — which store answers property lookups, and how much of the CLI Reference
+      # carries descriptions, per top-level menu. Report-only: the trend shows when MikroTik moves
+      # the next set of manual tables (the gates on its consequences are MCP contract Block D).
+      - name: Property-source census (db-content, report-only)
+        if: inputs.test_scope == 'db-content' || (inputs.test_scope == 'all' && (inputs.db_source == 'local-build' || inputs.db_source == 'artifact'))
+        continue-on-error: true
+        run: bun run src/eval/property-sources.ts | tee -a "$GITHUB_STEP_SUMMARY"
+
       # V-docusaurus-docs-count — extracted /docs page count vs the scoped llms.txt.
       # local-build only: needs the manual/pages/ cache the local-build fetch wrote.
       - name: Docusaurus docs-count (docusaurus-count)
