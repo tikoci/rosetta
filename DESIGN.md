@@ -274,7 +274,8 @@ exact entry path only:
 - A blank overlay row leads only when the prose has nothing better than `low`. 54% of settable
   overlay fields are blank, mostly Wi-Fi, and there the manual still holds the only description.
 
-`explainCommand` reports a blank overlay answer as `undocumented-arg` rather than as documented, and
+`explainCommand` reports a blank overlay answer as `no-description` (the argument is listed, so it
+exists; only its description is missing) rather than as documented, and
 also tries a command's own entry (`tool/fetch`). Overlay rows are labelled
 `source: "cli-reference"`, so their missing version data is never mistaken for a prose row's.
 Read-only fields are never accepted as settable arguments, for the same reason they are excluded

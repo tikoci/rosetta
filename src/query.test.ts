@@ -1356,20 +1356,20 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
   });
 
-  test("explainCommand flags a blank overlay match as undocumented-arg but keeps the annotation", () => {
+  test("explainCommand flags a blank overlay match as no-description but keeps the annotation", () => {
     const result = explainCommand("/system/note set note-color=red");
     expect(result.args[0].property).toMatchObject({ name: "note-color", source: "cli-reference", type: "enum" });
     expect(result.warnings).toEqual([{
-      kind: "undocumented-arg",
+      kind: "no-description",
       arg: "note-color",
-      message: 'The CLI Reference lists "note-color" for /system/note (type: enum), but neither it nor a menu-aligned manual page describes it.',
-      suggestion: "Use routeros_search or routeros_get_page for the surrounding documentation before relying on its meaning.",
+      message: '"note-color" is listed as an argument of /system/note in MikroTik\'s CLI Reference (type: enum), so it exists at this menu. MikroTik has not published a description for it, and no menu-aligned manual page describes it. This is missing documentation, not a sign that the argument is invalid.',
+      suggestion: "Use routeros_search or routeros_get_page for surrounding documentation if you need its meaning.",
     }]);
   });
 
-  test("explainCommand raises no undocumented-arg when the overlay row is described", () => {
+  test("explainCommand raises no no-description warning when the overlay row is described", () => {
     const result = explainCommand("/system/note set show-at-login=yes");
-    expect(result.warnings.filter((w) => w.kind === "undocumented-arg")).toEqual([]);
+    expect(result.warnings.filter((w) => w.kind === "no-description")).toEqual([]);
   });
 
   test("explainCommand does not accept a read-only field as a settable argument", () => {
@@ -1507,7 +1507,7 @@ describe("explainCommand", () => {
     expect(result.args).toEqual([{ raw: "action=masquerade", name: "action", value: "masquerade" }]);
     expect(result.warnings).toEqual([{
       kind: "unknown-arg", arg: "action",
-      message: 'No menu-aligned documentation for property "action" was found for /ip/firewall/nat. This does not establish whether the RouterOS argument is valid.',
+      message: '"action" was not found for /ip/firewall/nat: neither MikroTik\'s CLI Reference nor a menu-aligned manual page lists it. Rosetta cannot tell whether the RouterOS argument is valid.',
       suggestion: 'Use routeros_command_tree path="/ip/firewall/nat" or routeros_get_page for the linked documentation to confirm available arguments.',
     }]);
     expect(lookupProperty("action", "/ip/firewall/nat")).toEqual(candidates);

@@ -133,10 +133,12 @@ answers where a described exact overlay row exists.
 1. **Ship option B in the next `-next`.** A described exact overlay row outranks a manual row below
    `high`. A blank overlay row never displaces a manual description.
 2. **A blank overlay match gets its own signal.** `explain_command` keeps the annotation (exact
-   menu, type) and adds an `undocumented-arg` warning. This is #61's "known, undocumented", made
-   concrete.
+   menu, type) and adds a `no-description` warning. This is #61's "known, undocumented", made
+   concrete. It was first named `undocumented-arg`, then renamed because "undocumented" reads as
+   "unsupported". The warning states that the argument is listed (it exists) and only MikroTik's
+   description is missing. `unknown-arg` says "not found" so the two can't be confused.
 3. **The release check tracks three numbers, and two more gate.** MCP contract Block D gates
-   `unknown-arg` (≤7), `undocumented-arg` (≤6), and manual-below-`high` answers beside an exact
+   `unknown-arg` (≤7), `no-description` (≤6), and manual-below-`high` answers beside an exact
    overlay row (≤1) on the fixed 30-command set. QA also runs this census each release
    (report-only), so the described-% trend per top-level menu is on record in every release's step
    summary.
@@ -151,7 +153,7 @@ Measured after B on next.114 (`source_commit` `6928b29` corpus, B applied locall
 | manual / high | 69 | 942 |
 | manual / medium | **0** | 718 |
 
-On rosetta's fixed set: `unknown-arg` 1, `undocumented-arg` 4, manual-below-`high` 0 (2 before B).
+On rosetta's fixed set: `unknown-arg` 1, `no-description` 4, manual-below-`high` 0 (2 before B).
 The golden anchor `prop-firewall-filter-action` (#58's pinned failure) flips green without
 loosening: its top row is the exact `/ip/firewall/filter` definition at `high`.
 

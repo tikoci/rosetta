@@ -911,8 +911,10 @@ Returns:
 - confidence: high/medium/low/none from the CLI canonicalizer
 - args: parsed key=value args with first property match, lookup confidence, and source
   (manual or cli-reference) when found; a read-only CLI Reference field is not a match
-- warnings: no-command, low-confidence, unknown-arg, undocumented-arg (the CLI Reference lists the
-  argument for this menu but nothing describes it), command-not-in-version, or model-context-unused signals
+- warnings: no-command, low-confidence, unknown-arg (not listed for this menu by the CLI Reference or
+  a menu-aligned manual page), no-description (listed for this menu, so it exists, but MikroTik has
+  not described it — missing documentation, not an invalid argument), command-not-in-version, or
+  model-context-unused signals
 - pages: compact documentation search hits
 - changelog_hits: compact changelog hits
 - version_check: command version range when a canonical path is available

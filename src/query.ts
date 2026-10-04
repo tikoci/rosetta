@@ -631,7 +631,7 @@ type ExplainCommandWarning = {
     | "no-command"
     | "low-confidence"
     | "unknown-arg"
-    | "undocumented-arg"
+    | "no-description"
     | "command-not-in-version"
     | "model-context-unused";
   message: string;
@@ -752,13 +752,14 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
           source: match.source,
         };
         // The overlay proves the argument exists at this menu, but describes nothing — and an
-        // overlay row only leads when no menu-aligned manual row describes it either.
+        // overlay row only leads when no menu-aligned manual row describes it either. The warning
+        // must not read as "unsupported": the argument is listed; only its description is missing.
         if (match.source === "cli-reference" && !match.description.trim()) {
           warnings.push({
-            kind: "undocumented-arg",
+            kind: "no-description",
             arg: parsedArg.name,
-            message: `The CLI Reference lists "${parsedArg.name}" for ${match.page_title.replace(/^CLI Reference: /, "")}${match.type ? ` (type: ${match.type})` : ""}, but neither it nor a menu-aligned manual page describes it.`,
-            suggestion: `Use routeros_search or routeros_get_page for the surrounding documentation before relying on its meaning.`,
+            message: `"${parsedArg.name}" is listed as an argument of ${match.page_title.replace(/^CLI Reference: /, "")} in MikroTik's CLI Reference${match.type ? ` (type: ${match.type})` : ""}, so it exists at this menu. MikroTik has not published a description for it, and no menu-aligned manual page describes it. This is missing documentation, not a sign that the argument is invalid.`,
+            suggestion: `Use routeros_search or routeros_get_page for surrounding documentation if you need its meaning.`,
           });
         }
       } else {
@@ -767,7 +768,7 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
           arg: parsedArg.name,
           message: readOnly
             ? `The CLI Reference documents "${parsedArg.name}" for ${canonical.path} only as a read-only field, not as a settable argument.`
-            : `No menu-aligned documentation for property "${parsedArg.name}" was found for ${canonical.path}. This does not establish whether the RouterOS argument is valid.`,
+            : `"${parsedArg.name}" was not found for ${canonical.path}: neither MikroTik's CLI Reference nor a menu-aligned manual page lists it. Rosetta cannot tell whether the RouterOS argument is valid.`,
           suggestion: `Use routeros_command_tree path="${canonical.path}" or routeros_get_page for the linked documentation to confirm available arguments.`,
         });
       }

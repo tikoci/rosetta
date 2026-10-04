@@ -8,7 +8,7 @@
  *           classifier output), NOT the corpus. Deliberately omits page IDs
  *           and titles so DB refreshes don't churn snapshots.
  * - Block D: explain_command grounding budget — over a fixed set of everyday
- *           commands, unknown-arg, undocumented-arg, and manual answers that
+ *           commands, unknown-arg, no-description, and manual answers that
  *           sit below `high` beside an exact CLI-Reference row each stay under
  *           a ceiling (#169, B-0025).
  *
@@ -294,7 +294,7 @@ describe.skipIf(!dbIsReal)(`Response-shape invariants${dbIsReal ? "" : ` [skippe
 // change it deliberately, and re-measure the budgets when you do.
 //
 // `unknown-arg` alone cannot see two other failure shapes (B-0025): an annotation with no
-// description (`undocumented-arg`), and a manual row below `high` answering for a menu whose own
+// description (`no-description`), and a manual row below `high` answering for a menu whose own
 // CLI-Reference row exists — the class that described `/ip/firewall/filter chain` as "Bridge
 // firewall chain". Each gets its own number.
 
@@ -334,11 +334,11 @@ describe.skipIf(!dbIsReal)(`explain_command grounding budget${dbIsReal ? "" : ` 
   // 70 args, measured on v0.11.3-next.114 with B-0025's ordering:
   // - unknown-arg 1 (`/ip service` `disabled` is a print flag in the CLI Reference, not an
   //   argument). 7 is where 0.11.2 stood.
-  // - undocumented-arg 4 (`/ip/address address`, `/ip/route` dst-address/gateway/distance:
+  // - no-description 4 (`/ip/address address`, `/ip/route` dst-address/gateway/distance:
   //   blank in the CLI Reference, never tabled in the manual). Budget leaves room for 2 more.
   // - manual below high beside an exact CLI-Reference row: 0 (was 2 before B-0025 — the bridge
   //   firewall rows answering `/ip/firewall/filter`). Budget 1, so that pair coming back fails.
-  const BUDGETS = { "unknown-arg": 7, "undocumented-arg": 6, "manual-below-high": 1 } as const;
+  const BUDGETS = { "unknown-arg": 7, "no-description": 6, "manual-below-high": 1 } as const;
 
   type Tally = Record<keyof typeof BUDGETS, string[]>;
   function tally(): { args: number; misses: Tally } {
@@ -348,13 +348,13 @@ describe.skipIf(!dbIsReal)(`explain_command grounding budget${dbIsReal ? "" : ` 
        WHERE e.source_path = ? AND f.name = ? COLLATE NOCASE AND f.field_kind = 'Argument' LIMIT 1`,
     );
     let args = 0;
-    const misses: Tally = { "unknown-arg": [], "undocumented-arg": [], "manual-below-high": [] };
+    const misses: Tally = { "unknown-arg": [], "no-description": [], "manual-below-high": [] };
     for (const command of COMMANDS) {
       const result = explainCommand(command);
       const path = result.canonical?.path ?? "?";
       args += result.args.length;
       for (const w of result.warnings) {
-        if (w.kind === "unknown-arg" || w.kind === "undocumented-arg") misses[w.kind].push(`${path} ${w.arg}`);
+        if (w.kind === "unknown-arg" || w.kind === "no-description") misses[w.kind].push(`${path} ${w.arg}`);
       }
       // explainCommand resolves both the menu and the command's own entry (`tool/fetch`).
       const sourcePaths = [path, `${path}/${result.canonical?.verb ?? ""}`].map((p) => p.replace(/^\/+/, ""));
