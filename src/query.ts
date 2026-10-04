@@ -269,8 +269,9 @@ type RelatedProperty = {
   description: string;
   page_title: string;
   page_url: string;
-  page_id: number;
+  page_id: number | null;
   confidence: PropertyLookupConfidence;
+  source: PropertyLookupRow["source"];
 };
 
 type RelatedDevice = {
@@ -404,6 +405,7 @@ export function searchAll(query: string, limit = DEFAULT_LIMIT): SearchAllRespon
         page_url: p.page_url,
         page_id: p.page_id,
         confidence: p.confidence,
+        source: p.source,
       }));
     }
   }
@@ -618,8 +620,9 @@ type ExplainCommandArg = {
     description: string;
     page_title: string;
     page_url: string;
-    page_id: number;
+    page_id: number | null;
     confidence: PropertyLookupConfidence;
+    source: PropertyLookupRow["source"];
   };
 };
 
@@ -707,13 +710,20 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
     for (const raw of canonical.args) {
       const parsedArg = parseKeyValueArg(raw);
       if (!parsedArg) continue;
-      const match = lookupProperty(parsedArg.name, canonical.path)[0];
+      // A command that is not a menu verb (`/tool fetch`, `/system reboot`) has its own
+      // CLI-Reference entry at path/verb, which the menu-level lookup never reaches.
+      const menuMatch = lookupProperty(parsedArg.name, canonical.path)[0];
+      const match = menuMatch && menuMatch.confidence !== "low"
+        ? menuMatch
+        : (lookupCliRefProperty(parsedArg.name, `${canonical.path}/${canonical.verb}`)[0] ?? menuMatch);
+      // A read-only CLI-Reference field is print output, not evidence for a settable argument.
+      const readOnly = match?.source === "cli-reference" && match.section === "Read-only Argument";
       const explainedArg: ExplainCommandArg = {
         raw,
         name: parsedArg.name,
         value: parsedArg.value,
       };
-      if (match && match.confidence !== "low") {
+      if (match && match.confidence !== "low" && !readOnly) {
         explainedArg.property = {
           name: match.name,
           type: match.type,
@@ -723,12 +733,15 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
           page_url: match.page_url,
           page_id: match.page_id,
           confidence: match.confidence,
+          source: match.source,
         };
       } else {
         warnings.push({
           kind: "unknown-arg",
           arg: parsedArg.name,
-          message: `No menu-aligned documentation for property "${parsedArg.name}" was found for ${canonical.path}. This does not establish whether the RouterOS argument is valid.`,
+          message: readOnly
+            ? `The CLI Reference documents "${parsedArg.name}" for ${canonical.path} only as a read-only field, not as a settable argument.`
+            : `No menu-aligned documentation for property "${parsedArg.name}" was found for ${canonical.path}. This does not establish whether the RouterOS argument is valid.`,
           suggestion: `Use routeros_command_tree path="${canonical.path}" or routeros_get_page for the linked documentation to confirm available arguments.`,
         });
       }
@@ -1094,12 +1107,22 @@ export type PropertyLookupRow = {
   section_anchor: string | null;
   page_title: string;
   page_url: string;
-  page_id: number;
+  /** `pages.id` for a manual row; null for a CLI-Reference row, which has no prose page. */
+  page_id: number | null;
   confidence: PropertyLookupConfidence;
+  /**
+   * Where the row came from. `manual` rows are prose property tables on a documentation page.
+   * `cli-reference` rows are `cliref_fields` from manual.mikrotik.com/docs/cli-reference — a
+   * version-less overlay (#25), consulted only when the manual has nothing better (#169).
+   */
+  source: "manual" | "cli-reference";
 };
 
 /** As returned, plus the `section_id` used to grade the row and then dropped. */
-type PropertyLookupRowUngraded = Omit<PropertyLookupRow, "confidence"> & { section_id: number | null };
+type PropertyLookupRowUngraded = Omit<PropertyLookupRow, "confidence" | "source" | "page_id"> & {
+  page_id: number;
+  section_id: number | null;
+};
 
 const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p.section, p.section_id,
           s.anchor_id as section_anchor,
@@ -1129,8 +1152,70 @@ const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p
  * on both the Ethernet and Bonding pages — and without this tie-break the winner was decided by
  * page title, which is how `explainCommand` came to describe `name=ether2` as "Name of the
  * bonding interface".
+ *
+ * When the manual has nothing better than `low` for the menu — or, unscoped, nothing at all —
+ * the CLI-Reference overlay answers instead ({@link lookupCliRefProperty}, #169). Overlay rows
+ * lead and any `low` manual rows follow, so `explainCommand`'s first-row pick takes the overlay.
  */
 export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
+  const prose = lookupManualProperty(name, commandPath);
+  if (commandPath) {
+    if (prose.some((row) => row.confidence !== "low")) return prose;
+    return [...lookupCliRefProperty(name, commandPath), ...prose];
+  }
+  return prose.length > 0 ? prose : lookupCliRefProperty(name);
+}
+
+/**
+ * The CLI-Reference fallback for {@link lookupProperty} (#169). MikroTik keeps moving property
+ * tables out of manual pages into /docs/cli-reference/ (DNS, DHCP, NAT, user, scheduler, …), so
+ * a menu the manual no longer documents would otherwise answer "no property found" even though
+ * `cliref_fields` lists the argument.
+ *
+ * Scoped, it matches the exact menu only (`cliref_entries.source_path` is the path without its
+ * leading slash) and grades `high`: the entry is the official argument list for that menu, not
+ * prose that has to earn its alignment. Unscoped, every same-named field comes back `medium`,
+ * the same answer an unscoped manual row gets. The overlay carries no version data, so rows say
+ * where they came from through `source` and leave `page_id` null — there is no page to open.
+ * `section` is the CLI-Reference table the field sits in, `Argument` or `Read-only Argument`;
+ * settable rows sort first.
+ */
+function lookupCliRefProperty(name: string, commandPath?: string): PropertyLookupRow[] {
+  const sourcePath = commandPath?.replace(/^\//, "");
+  const rows = db
+    .prepare(
+      `SELECT f.name, f.field_kind, f.raw_type, f.description_markdown, e.source_path, cp.url
+       FROM cliref_fields f
+       JOIN cliref_entries e ON e.id = f.entry_id
+       JOIN cliref_pages cp ON cp.id = e.page_id
+       WHERE f.name = ? COLLATE NOCASE${sourcePath === undefined ? "" : " AND e.source_path = ?"}
+       ORDER BY e.source_path, f.field_kind = 'Read-only Argument', cp.source_order, f.source_order`,
+    )
+    .all(...(sourcePath === undefined ? [name] : [name, sourcePath])) as Array<{
+      name: string;
+      field_kind: string;
+      raw_type: string;
+      description_markdown: string;
+      source_path: string;
+      url: string;
+    }>;
+  return rows.map((row) => ({
+    name: row.name,
+    type: row.raw_type.replace(/\s+/g, " ").trim() || null,
+    default_val: null,
+    description: row.description_markdown,
+    section: row.field_kind,
+    section_anchor: null,
+    page_title: `CLI Reference: /${row.source_path}`,
+    page_url: row.url,
+    page_id: null,
+    confidence: commandPath ? "high" : "medium",
+    source: "cli-reference",
+  }));
+}
+
+/** The manual-prose half of {@link lookupProperty}: `properties` rows, graded against the menu. */
+function lookupManualProperty(name: string, commandPath?: string): PropertyLookupRow[] {
   const rows = db
     .prepare(
       `SELECT ${PROPERTY_LOOKUP_COLUMNS}
@@ -1145,7 +1230,7 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
   // Without a requested menu there is nothing to align to, so the tier answers a different
   // question and stays at the unscoped `medium` it has always reported.
   if (!commandPath) {
-    return rows.map(({ section_id: _section_id, ...row }) => ({ ...row, confidence: "medium" }));
+    return rows.map(({ section_id: _section_id, ...row }) => ({ ...row, confidence: "medium", source: "manual" }));
   }
 
   const linked = db
@@ -1167,7 +1252,7 @@ export function lookupProperty(name: string, commandPath?: string): PropertyLook
     if (bestLinkedRank === null || rank < bestLinkedRank) bestLinkedRank = rank;
   }
   return rows
-    .map(({ section_id: _section_id, ...row }, i) => ({ ...row, confidence: tiers[i] }))
+    .map(({ section_id: _section_id, ...row }, i) => ({ ...row, confidence: tiers[i], source: "manual" as const }))
     .filter(
       (row, i) =>
         bestLinkedRank === null || onLinkedPage(rows[i]) || tierRank(row.confidence) <= bestLinkedRank,

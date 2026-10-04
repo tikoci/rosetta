@@ -7,6 +7,8 @@
  * - Block C: Shape snapshots — fingerprint the *contract* (keys, counts,
  *           classifier output), NOT the corpus. Deliberately omits page IDs
  *           and titles so DB refreshes don't churn snapshots.
+ * - Block D: explain_command grounding budget — unknown-arg warnings over a
+ *           fixed set of everyday commands stay under a ceiling (#169).
  *
  * These are fast, deterministic, CI-runnable structural tests. No LLM calls,
  * no network. Block A always runs; set ROSETTA_REAL_DB_TESTS=1 to exercise
@@ -29,6 +31,7 @@ const runRealDbBlocks = process.env.ROSETTA_REAL_DB_TESTS === "1";
 // behind an explicit opt-in so the shared suite stays on `:memory:` and the
 // dedicated release/real-DB runs can still exercise Blocks B/C.
 let searchAll: typeof import("./query.ts").searchAll | undefined;
+let explainCommand: typeof import("./query.ts").explainCommand | undefined;
 let realDbPath = ":memory:";
 let dbPages = 0;
 
@@ -36,6 +39,7 @@ if (runRealDbBlocks) {
   const queryModule = await import("./query.ts");
   const dbModule = await import("./db.ts");
   searchAll = queryModule.searchAll;
+  explainCommand = queryModule.explainCommand;
   realDbPath = dbModule.DB_PATH;
   try {
     dbPages = dbModule.getDbStats().pages;
@@ -273,4 +277,68 @@ describe.skipIf(!dbIsReal)(`Response-shape invariants${dbIsReal ? "" : ` [skippe
       expect(Array.isArray(result.next_steps)).toBe(true);
     });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Block D: explain_command grounding budget (#169)
+// ---------------------------------------------------------------------------
+//
+// MikroTik keeps moving property tables out of manual pages into the CLI Reference. When a move
+// outruns the lookup, `unknown-arg` warnings jump across everyday commands (0.11.3-next.113
+// shipped 49 of 70 before the CLI-Reference fallback; 0.11.2 had 7). This block turns that into a
+// number QA fails on, instead of something an agent notices in its output. The set is fixed —
+// change it deliberately, and re-measure the budget when you do.
+
+describe.skipIf(!dbIsReal)(`explain_command grounding budget${dbIsReal ? "" : ` [skipped: ${skipReason}]`}`, () => {
+  const COMMANDS = [
+    "/ip firewall nat add chain=srcnat action=masquerade out-interface=ether1",
+    "/ip firewall filter add chain=input action=drop connection-state=invalid",
+    "/ip firewall address-list add list=blocked address=192.0.2.4",
+    "/ip address add address=10.0.0.1/24 interface=bridge",
+    "/ip route add dst-address=0.0.0.0/0 gateway=10.0.0.254 distance=1",
+    "/ip dhcp-server add name=dhcp1 interface=bridge address-pool=pool1 lease-time=1h",
+    "/ip dhcp-server network add address=10.0.0.0/24 gateway=10.0.0.1 dns-server=10.0.0.1",
+    "/ip dhcp-client add interface=ether1 add-default-route=yes use-peer-dns=yes",
+    "/ip pool add name=pool1 ranges=10.0.0.10-10.0.0.200",
+    "/ip dns set servers=1.1.1.1 allow-remote-requests=yes",
+    "/ip dns static add name=router.lan address=10.0.0.1",
+    "/ip service set telnet disabled=yes",
+    "/ip proxy set enabled=yes port=8080",
+    "/system note set show-at-login=yes note=x",
+    "/system scheduler add name=s1 interval=1h on-event=foo",
+    "/system ntp client set enabled=yes servers=pool.ntp.org",
+    "/system identity set name=r1",
+    "/system clock set time-zone-name=Europe/Riga",
+    "/system logging add topics=dhcp action=memory",
+    "/user add name=bob group=read password=x",
+    "/user group add name=ops policy=read,write",
+    "/interface bridge add name=bridge vlan-filtering=yes",
+    "/interface bridge port add bridge=bridge interface=ether2 pvid=10",
+    "/interface bridge vlan add bridge=bridge tagged=bridge vlan-ids=10",
+    "/interface vlan add name=vlan10 interface=bridge vlan-id=10",
+    "/interface list member add list=LAN interface=bridge",
+    "/interface wireguard add name=wg0 listen-port=13231",
+    "/interface wireguard peers add interface=wg0 public-key=abc allowed-address=10.9.0.2/32",
+    "/tool fetch url=https://example.com/x output=file",
+    "/tool sniffer set filter-interface=ether1 file-name=cap",
+  ];
+  // 70 args. Measured 1 on the 0.11.3 corpus with the fallback (`/ip service` `disabled` is a
+  // print flag in the CLI Reference, not an argument). 7 is where 0.11.2 stood.
+  const UNKNOWN_ARG_BUDGET = 7;
+
+  test(`unknown-arg warnings ≤ ${UNKNOWN_ARG_BUDGET} across ${COMMANDS.length} everyday commands`, () => {
+    if (!explainCommand) throw new Error("explainCommand unavailable; set ROSETTA_REAL_DB_TESTS=1.");
+    let args = 0;
+    const misses: string[] = [];
+    for (const command of COMMANDS) {
+      const result = explainCommand(command);
+      args += result.args.length;
+      for (const w of result.warnings) {
+        if (w.kind === "unknown-arg") misses.push(`${result.canonical?.path} ${w.arg}`);
+      }
+    }
+    console.log(`  unknown-arg: ${misses.length}/${args}${misses.length ? ` — ${misses.join(", ")}` : ""}`);
+    expect(args).toBe(70);
+    expect(misses.length).toBeLessThanOrEqual(UNKNOWN_ARG_BUDGET);
+  });
 });

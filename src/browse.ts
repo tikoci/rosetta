@@ -340,7 +340,7 @@ type Context =
   | { type: "videos"; query: string; results: VideoSearchResult[] }
   | { type: "dude"; query: string; results: DudeSearchResult[] }
   | { type: "skills" }
-  | { type: "properties"; query: string; pageId?: number; results: Array<{ name: string; page_id: number; page_title: string }> }
+  | { type: "properties"; query: string; pageId?: number; results: Array<{ name: string; page_id: number | null; page_title: string; page_url?: string; description?: string }> }
   | { type: "diff" }
   | { type: "vcheck"; path: string };
 
@@ -1784,6 +1784,14 @@ async function handleNumberSelect(idx: number): Promise<void> {
   }
   if (ctx.type === "properties" && ctx.results[idx]) {
     const p = ctx.results[idx];
+    // A CLI-Reference row (#169) has no prose page to open — show it in place.
+    if (p.page_id === null) {
+      console.log(`\n  ${bold(p.name)}  ${dim(p.page_title)}`);
+      if (p.description) console.log(`  ${p.description}`);
+      if (p.page_url) console.log(`  ${cyan(link(p.page_url, p.page_url))}`);
+      console.log("");
+      return;
+    }
     await doPage(String(p.page_id));
     return;
   }
@@ -1916,7 +1924,7 @@ async function doLookupProperty(name: string): Promise<void> {
     console.log(`  Try: ${cyan("props")} ${name}`);
     return;
   }
-  pushCtx({ type: "properties", query: name, results: results.map(p => ({ name: p.name, page_id: p.page_id, page_title: p.page_title })) });
+  pushCtx({ type: "properties", query: name, results: results.map(p => ({ name: p.name, page_id: p.page_id, page_title: p.page_title, page_url: p.page_url, description: p.description })) });
   await selectFromPager(renderProperties(results), results.length);
 }
 
