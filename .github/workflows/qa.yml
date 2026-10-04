@@ -337,7 +337,8 @@ jobs:
         if: inputs.test_scope == 'db-content' || (inputs.test_scope == 'all' && (inputs.db_source == 'local-build' || inputs.db_source == 'artifact'))
         run: make cliref-db-check
 
-      # V-tool-shapes / V-tool-budget — MCP contract Blocks B/C against the real DB.
+      # V-tool-shapes / V-tool-budget / V-explain-grounding — MCP contract Blocks B/C/D
+      # against the real DB.
       - name: MCP contract tests (contract)
         if: inputs.test_scope == 'contract' || inputs.test_scope == 'all'
         shell: bash

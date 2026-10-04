@@ -835,6 +835,13 @@ answering the same question. A "low" row is not necessarily wrong — 200 of the
 sections that carry properties (42.7%) never name the menu they describe — but it is unverified:
 → routeros_command_tree: confirm the property exists at that command path before relying on it
 
+source says where a row came from. "manual" rows are property tables on documentation pages.
+MikroTik has moved many menus' tables (DNS, DHCP, NAT, user, scheduler, …) to the CLI
+Reference, so when the manual has nothing better than low for the menu — or, without
+command_path, nothing at all — "cli-reference" rows answer instead: high for the exact menu,
+medium without command_path. They carry no version data and no page to open (page_id is
+null, page_url is the CLI Reference page); section is "Argument" or "Read-only Argument".
+
 A single page may document the same property name several times, each meaning something
 different in its own section — "name" on the PPP AAA page is the profile name, the login
 name, and the active-user name. Those rows are distinguished by section_anchor, not by
@@ -893,7 +900,8 @@ Returns:
 - command: original input
 - canonical: { path, verb, args, confidence } for the primary non-subshell command
 - confidence: high/medium/low/none from the CLI canonicalizer
-- args: parsed key=value args with first property match and lookup confidence when found
+- args: parsed key=value args with first property match, lookup confidence, and source
+  (manual or cli-reference) when found; a read-only CLI Reference field is not a match
 - warnings: no-command, low-confidence, unknown-arg, command-not-in-version, or model-context-unused signals
 - pages: compact documentation search hits
 - changelog_hits: compact changelog hits

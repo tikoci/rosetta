@@ -227,7 +227,7 @@ assume wrongly. Regenerate with `bun run src/eval/vocabulary-alignment.ts`.
 |---|---|---|---|
 | `cliref_*` (version-less overlay) | the **element** layer — paths, named fields, platform/capacity | settable-vs-read-only (`field_kind`), `package` / `conditions` / `syscap`, hardware-gated menus | verbs, per-version presence |
 | `schema_nodes` / `commands` (inspect) | the **CLI/expression** layer on top | verbs, per-version and per-architecture presence, settable inputs | read-only state, anything absent from the dumped architecture |
-| `pages` / `sections` / `properties` (prose) | the **human** layer | descriptions — the only source of them | structure; it has no command coordinate at all (B-0024) |
+| `pages` / `sections` / `properties` (prose) | the **human** layer | descriptions in context — sections, callouts, examples | structure; it has no command coordinate at all (B-0024) |
 
 Three measurements behind that table, each of which contradicts a plausible assumption:
 
@@ -262,6 +262,17 @@ command coordinate at all (B-0024's open question). The reading that the overlay
 field-typed shape reflects a WinBox/C-struct-style internal model is plausible and consistent with
 everything above, but it is a **hypothesis about the upstream source**, not something this repo has
 verified.
+
+**The overlay already answers property lookups when the manual can't (#169).** Upstream is moving
+property tables out of manual pages and into the CLI Reference, where each field carries its own
+description: by October 2026 DNS, DHCP, NAT, IP addresses, routes, users, the scheduler, NTP and
+`/system/note` had no prose table left. `lookupProperty` therefore falls back to `cliref_fields` when
+the prose has nothing better than `low` for the menu, matching the exact entry path only.
+`explainCommand` also tries a command's own entry (`tool/fetch`). The overlay row is labelled
+`source: "cli-reference"`, so its missing version data is never mistaken for a prose row's. Read-only
+fields are never accepted as settable arguments, for the same reason they are excluded from the
+inspect crosswalk. This is a fallback, not the base-layer redesign above, and it adds no join between
+the stores. `V-explain-grounding` makes the next table move fail release QA instead of reaching an agent.
 
 ### CSV requires manual download
 

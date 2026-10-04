@@ -7,7 +7,7 @@
  * DB_PATH must be set BEFORE db.ts is first imported; dynamic imports
  * ensure this env-var assignment wins over Bun's static-import hoisting.
  */
-import { beforeAll, describe, expect, test } from "bun:test";
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 
 // Set BEFORE any import that transitively loads db.ts
 process.env.DB_PATH = ":memory:";
@@ -1206,6 +1206,157 @@ describe("lookupProperty", () => {
     expect(Array.isArray(rows)).toBe(true);
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((row) => row.confidence === "low")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// DB integration: lookupProperty CLI-Reference fallback (#169)
+// ---------------------------------------------------------------------------
+
+// MikroTik moved many property tables out of manual pages into /docs/cli-reference/, so the
+// fallback must answer from cliref_fields when the manual has nothing menu-aligned. Inserted and
+// removed here so the other suites keep a cliref-free fixture.
+describe("lookupProperty — CLI-Reference fallback (#169)", () => {
+  const CR = 16900;
+  const entries: Array<[number, string, string]> = [
+    [CR, "system/note", "Settings Directory"],
+    [CR + 1, "ip/unlinked", "Directory"],
+    [CR + 2, "ip/dhcp-server", "Directory"],
+    [CR + 3, "tool/fetch", "Command"],
+    [CR + 4, "ping", "Command"],
+    [CR + 5, "tool", "Directory"],
+  ];
+  const fields: Array<[number, number, string, string, string]> = [
+    [CR, CR, "show-at-login", "bool", "Show the note after login."],
+    [CR + 1, CR, "note", "string\n  (0..4096)\n", "Note text."],
+    [CR + 2, CR + 1, "lease-time", "time", "Overlay lease time."],
+    [CR + 3, CR + 2, "lease-time", "time", "Overlay DHCP lease time."],
+    [CR + 4, CR + 3, "fetch-target", "string", "Where fetch writes."],
+    [CR + 5, CR, "last-shown", "time", "When the note was last shown."],
+    [CR + 6, CR + 4, "ping-target", "string", "Host to ping."],
+    [CR + 7, CR + 5, "fetch-mode", "enum", "Tool-wide status."],
+    [CR + 8, CR + 3, "fetch-mode", "enum", "How fetch transfers."],
+  ];
+
+  beforeAll(() => {
+    // `/tool fetch` only splits into path + verb when the command tree knows `fetch` is a cmd.
+    db.run(`INSERT INTO commands (id, path, name, type, parent_path, page_id, description, ros_version)
+      VALUES (${CR}, '/tool', 'tool', 'dir', NULL, NULL, 'Tools', '7.22'),
+             (${CR + 1}, '/tool/fetch', 'fetch', 'cmd', '/tool', NULL, 'Fetch', '7.22'),
+             (${CR + 2}, '/ping', 'ping', 'cmd', '/', NULL, 'Ping', '7.22')`);
+    for (const [id, path, type] of entries) {
+      db.run(
+        `INSERT INTO cliref_pages (id,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order)
+         VALUES (?,?,?,?,'','', '', '', ?)`,
+        [id, path, `https://manual.mikrotik.com/docs/cli-reference/${path}`, path, id],
+      );
+      db.run(
+        `INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line)
+         VALUES (?,?,?,?,?,1,'',0,1,1)`,
+        [id, id, path, path, type],
+      );
+    }
+    for (const [id, entry, name, rawType, description] of fields) {
+      db.run(
+        `INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line)
+         VALUES (?,?,?,?,?,0,0,?,?,1)`,
+        [id, entry, id === CR + 5 || id === CR + 7 ? "Read-only Argument" : "Argument", name, rawType, description, id],
+      );
+    }
+  });
+
+  afterAll(() => {
+    db.run(`DELETE FROM cliref_fields WHERE id BETWEEN ${CR} AND ${CR + 99}`);
+    db.run(`DELETE FROM cliref_entries WHERE id BETWEEN ${CR} AND ${CR + 99}`);
+    db.run(`DELETE FROM cliref_pages WHERE id BETWEEN ${CR} AND ${CR + 99}`);
+    db.run(`DELETE FROM commands WHERE id IN (${CR}, ${CR + 1}, ${CR + 2})`);
+  });
+
+  test("unscoped: a name the manual lacks comes back from the overlay at medium, with no page to open", () => {
+    expect(lookupProperty("show-at-login")).toEqual([{
+      name: "show-at-login",
+      type: "bool",
+      default_val: null,
+      description: "Show the note after login.",
+      section: "Argument",
+      section_anchor: null,
+      page_title: "CLI Reference: /system/note",
+      page_url: "https://manual.mikrotik.com/docs/cli-reference/system/note",
+      page_id: null,
+      confidence: "medium",
+      source: "cli-reference",
+    }]);
+  });
+
+  test("raw_type whitespace is collapsed for display", () => {
+    expect(lookupProperty("note", "/system/note")[0].type).toBe("string (0..4096)");
+  });
+
+  test("unscoped: a name the manual documents stays manual-only", () => {
+    const rows = lookupProperty("lease-time");
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row) => row.source === "manual")).toBe(true);
+  });
+
+  test("scoped: the exact-menu overlay row leads at high, ahead of low manual rows", () => {
+    const rows = lookupProperty("lease-time", "/ip/unlinked");
+    expect(rows[0]).toMatchObject({
+      source: "cli-reference", confidence: "high", description: "Overlay lease time.", page_id: null,
+    });
+    expect(rows.slice(1).every((row) => row.source === "manual" && row.confidence === "low")).toBe(true);
+  });
+
+  test("scoped: a menu-aligned manual row wins and the overlay is not consulted", () => {
+    const rows = lookupProperty("lease-time", "/ip/dhcp-server");
+    expect(rows[0]).toMatchObject({ source: "manual", confidence: "medium", page_title: "DHCP Server" });
+    expect(rows.some((row) => row.source === "cli-reference")).toBe(false);
+  });
+
+  test("scoped: the overlay matches the exact menu only", () => {
+    expect(lookupProperty("show-at-login", "/system/identity")).toEqual([]);
+    expect(lookupProperty("show-at-login", "/system")).toEqual([]);
+  });
+
+  test("explainCommand annotates an overlay-only argument instead of warning unknown-arg", () => {
+    const result = explainCommand("/system/note set show-at-login=yes");
+    expect(result.args[0].property).toMatchObject({
+      name: "show-at-login", source: "cli-reference", confidence: "high", page_id: null,
+    });
+    expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
+  });
+
+  test("explainCommand does not accept a read-only field as a settable argument", () => {
+    expect(lookupProperty("last-shown", "/system/note")[0]).toMatchObject({
+      source: "cli-reference", section: "Read-only Argument",
+    });
+    const result = explainCommand("/system/note set last-shown=1d");
+    expect(result.args[0].property).toBeUndefined();
+    expect(result.warnings).toContainEqual(expect.objectContaining({
+      kind: "unknown-arg",
+      arg: "last-shown",
+      message: "The CLI Reference documents \"last-shown\" for /system/note only as a read-only field, not as a settable argument.",
+    }));
+  });
+
+  test("explainCommand reaches a root command's own entry (`/` + verb)", () => {
+    const result = explainCommand("/ping ping-target=192.0.2.1");
+    expect(result.canonical).toMatchObject({ path: "/", verb: "ping" });
+    expect(result.args[0].property).toMatchObject({ name: "ping-target", page_title: "CLI Reference: /ping" });
+  });
+
+  test("explainCommand prefers a settable path/verb entry over a read-only menu field", () => {
+    expect(lookupProperty("fetch-mode", "/tool")[0]).toMatchObject({ section: "Read-only Argument" });
+    const result = explainCommand("/tool fetch fetch-mode=x");
+    expect(result.args[0].property).toMatchObject({ description: "How fetch transfers.", page_title: "CLI Reference: /tool/fetch" });
+    expect(result.warnings.filter((w) => w.kind === "unknown-arg")).toEqual([]);
+  });
+
+  test("explainCommand reaches a command's own entry at path/verb", () => {
+    const result = explainCommand("/tool fetch fetch-target=x");
+    expect(result.canonical).toMatchObject({ path: "/tool", verb: "fetch" });
+    expect(result.args[0].property).toMatchObject({
+      name: "fetch-target", source: "cli-reference", page_title: "CLI Reference: /tool/fetch",
+    });
   });
 });
 
