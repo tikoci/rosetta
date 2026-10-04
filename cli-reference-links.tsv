@@ -1,10 +1,11 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
-# counts	exact=962	alias=0	manual-only=98	entries=1060
+# counts	exact=962	alias=0	manual-only=101	entries=1063
 source_path	source_type	match_kind	match_detail
 interface/ethernet/poe	Directory	manual-only	
 interface/ethernet/poe/monitor	Command	manual-only	
 interface/ethernet/poe/power-cycle	Command	manual-only	
 interface/ethernet/poe/settings	Settings Directory	manual-only	
+interface/ethernet/pon	Directory	manual-only	
 interface/ethernet/switch/acl	Directory	manual-only	
 interface/ethernet/switch/acl/policer	Directory	manual-only	
 interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
@@ -66,6 +67,7 @@ iot/gpio	Directory	manual-only
 iot/gpio/analog	Directory	manual-only	
 iot/gpio/digital	Directory	manual-only	
 ip/cloud/back-to-home-file/settings/remove-certificate	Command	manual-only	
+ip/ssh/known-hosts	Directory	manual-only	
 lcd	Settings Directory	manual-only	
 lcd/backlight	Command	manual-only	
 lcd/interface	Directory	manual-only	
@@ -85,6 +87,7 @@ partitions/restore-config-from	Command	manual-only
 partitions/save-config-to	Command	manual-only	
 root/terminal	Directory	manual-only	
 routing/bfd/authentication	Directory	manual-only	
+routing/route/rule	Directory	manual-only	
 system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
 system/license/output	Command	manual-only	
 system/ptp	Directory	manual-only	
