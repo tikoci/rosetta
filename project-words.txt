@@ -134,6 +134,7 @@ evals
 evpn
 fastpath
 fasttrack
+fcntl
 fdb
 fiberboxplus
 figcaption
@@ -254,6 +255,7 @@ mrz
 msrp
 msti
 mtbf
+mtimes
 mtp
 mtu
 multigig

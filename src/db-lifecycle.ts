@@ -11,8 +11,10 @@
  *
  * Deleting or renaming a live DB is unsafe in every open mode on macOS
  * (SQLITE_IOERR_VNODE), and WAL-mode clients are invisible to this probe, so
- * WAL files are never touched here. The legacy shared `ros-help.db` (WAL,
- * written by ≤0.11.2 on every startup) is retired only after 14 quiet days.
+ * WAL files are never touched here — including the legacy shared `ros-help.db`
+ * (WAL, written by ≤0.11.2). Its mtimes only move when a ≤0.11.2 client starts,
+ * not when it queries, so no age rule proves it unowned (#165). Once it has
+ * looked idle for 14 days the collector reports it so the user can delete it.
  */
 
 import { Database } from "bun:sqlite";
@@ -208,7 +210,8 @@ export type CollectResult = {
   kept: string[];
   /** Managed-looking files outside the protocol (WAL mode, symlinks, unreadable headers). */
   skipped: string[];
-  legacyRemoved: boolean;
+  /** Legacy shared ros-help.db that has looked idle for LEGACY_IDLE_MS; reported, never deleted (#165). */
+  legacyIdle: { path: string; size: number } | null;
   bytesFreed: number;
 };
 
@@ -218,7 +221,7 @@ export type CollectResult = {
  * and retried on a later startup.
  */
 export function collectGenerations(dir: string, runningVersion: string, now = Date.now()): CollectResult {
-  const result: CollectResult = { retired: [], live: [], kept: [], skipped: [], legacyRemoved: false, bytesFreed: 0 };
+  const result: CollectResult = { retired: [], live: [], kept: [], skipped: [], legacyIdle: null, bytesFreed: 0 };
   const entries = readdirSync(dir);
 
   // A collector that crashed between rename and unlink leaves an unreachable file.
@@ -275,13 +278,10 @@ export function collectGenerations(dir: string, runningVersion: string, now = Da
   const legacyFiles = [legacy, `${legacy}-wal`, `${legacy}-shm`].filter((f) => existsSync(f));
   try {
     if (legacyFiles.includes(legacy) && legacyFiles.every((f) => now - statSync(f).mtimeMs > LEGACY_IDLE_MS)) {
-      const size = statSync(legacy).size;
-      for (const f of legacyFiles) unlinkIfPresent(f);
-      result.legacyRemoved = true;
-      result.bytesFreed += size;
+      result.legacyIdle = { path: legacy, size: statSync(legacy).size };
     }
   } catch {
-    // retried next startup
+    // re-checked next startup
   }
 
   return result;
@@ -289,9 +289,13 @@ export function collectGenerations(dir: string, runningVersion: string, now = Da
 
 export function formatCollectResult(r: CollectResult): string | null {
   const parts: string[] = [];
-  const removed = r.retired.length + (r.legacyRemoved ? 1 : 0);
+  const removed = r.retired.length;
   if (removed > 0) parts.push(`removed ${removed} old database${removed === 1 ? "" : "s"} (${(r.bytesFreed / 1024 / 1024).toFixed(0)} MB)`);
   if (r.live.length > 0) parts.push(`${r.live.length} in use by other clients`);
   if (r.skipped.length > 0) parts.push(`skipped ${r.skipped.join(", ")}`);
+  if (r.legacyIdle) {
+    const mb = (r.legacyIdle.size / 1024 / 1024).toFixed(0);
+    parts.push(`${r.legacyIdle.path} (${mb} MB) is from rosetta ≤0.11.2 and is not removed automatically — delete it and its -wal/-shm once no ≤0.11.2 client is running`);
+  }
   return parts.length > 0 ? `DB cleanup: ${parts.join("; ")}.` : null;
 }
