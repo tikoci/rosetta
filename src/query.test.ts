@@ -751,6 +751,8 @@ describe("extractTerms", () => {
   test("drops the particle of the phrasal verb 'set up', keeps a standalone up", () => {
     expect(extractTerms("how do I set up a DHCP server")).toEqual(["set", "dhcp", "server"]);
     expect(extractTerms("interface up event")).toEqual(["interface", "up", "event"]);
+    // Both contextual filters apply together.
+    expect(extractTerms("how do I set up bridge vlan filtering on a switch")).toEqual(["set", "bridge", "vlan", "filtering"]);
   });
 
   test("filters terms shorter than 2 characters", () => {
