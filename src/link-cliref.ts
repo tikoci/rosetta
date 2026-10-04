@@ -250,8 +250,8 @@ export function buildBaselineTsv(): string {
 
 /**
  * Line-level diff of two baseline TSVs as `- committed` / `+ built` rows, so a STALE
- * failure names what moved instead of leaving CI log readers to guess. Multiset, since
- * the corpus allows duplicate heading paths (identical body lines).
+ * failure names what moved instead of leaving CI log readers to guess. Lines are counted,
+ * not deduplicated: the corpus allows duplicate heading paths (identical body lines).
  */
 export function baselineDrift(committed: string, fresh: string): string[] {
   const counts = new Map<string, number>();
