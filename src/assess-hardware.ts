@@ -880,6 +880,10 @@ async function main() {
         category: p.category,
         cause: c?.cause,
         matchedMatrixNames: c?.matchedMatrixNames ?? [],
+        // The surviving matches this page owns by its own slug or title — the claim
+        // suppressLinkOnlyClaims() trusts. extract-hardware-catalog.ts applies the same rule to
+        // its declared-code tier, so it needs the set persisted (#155).
+        ownMatrixNames: c ? c.ownNames.filter((n) => c.matchedMatrixNames.includes(n)) : [],
         // Cross-mention pass (2026-07-10): codes/names found in body prose that aren't
         // already captured as a product link — a weaker, unlinked signal kept separate
         // from matchedMatrixNames rather than merged into it (B-0017 "no surprises" ask).

@@ -98,7 +98,7 @@ lhg-xl-5-ac	device	Wireless systems	lhg_xl_5_ac	29		unmatched	https://manual.mik
 lhg-xl-52-ac	device	Wireless systems	lhg_xl_52_ac	41		unmatched	https://manual.mikrotik.com/hardware/lhg-xl-52-ac	
 mantbox-52-15s	device	Wireless systems	mantbox_52_15s	43		unmatched	https://manual.mikrotik.com/hardware/mantbox-52-15s	
 netbox-5	device	Wireless systems	RB911G-5HPacD-NB	29		unmatched	https://manual.mikrotik.com/hardware/netbox-5	
-netmetal-ac	device	Wireless systems	netmetal_ax	44		unmatched	https://manual.mikrotik.com/hardware/netmetal-ac	
+netmetal-ac	device	Wireless systems	netmetal_ac2	45		unmatched	https://manual.mikrotik.com/hardware/netmetal-ac	
 qrt-2	device	Wireless systems	RBQRTG-2SHPnDr2	30		unmatched	https://manual.mikrotik.com/hardware/qrt-2	
 qrt-5-ac	device	Wireless systems	RB911G-5HPacD-QRT	30		unmatched	https://manual.mikrotik.com/hardware/qrt-5-ac	
 sextant-g	device	Wireless systems	RBSEXTANTG-5HPnD	28		unmatched	https://manual.mikrotik.com/hardware/sextant-g	

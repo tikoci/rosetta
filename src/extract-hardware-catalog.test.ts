@@ -25,6 +25,7 @@ function mkPage(overrides: Partial<HardwarePage> & { slug: string }): HardwarePa
     category: null,
     cause: "unmatched",
     matchedMatrixNames: [],
+    ownMatrixNames: [],
     nonDefaultIps: [],
     regulatoryIds: [],
     ...overrides,
@@ -452,6 +453,49 @@ describe("buildCatalog — declared-code third matching tier (ROSE / KNOT)", () 
     expect(bySlug.get("knot-embedded-lte4-global")?.sourceHardwareSlug).toBe("knot-embedded-lte4-global-eg25-g-and-kne");
     // No standalone hw-* duplicates for either.
     expect(result.catalogRows.some((r) => r.rosettaDeviceId.startsWith("hw-knot"))).toBe(false);
+  });
+
+  test("a link-only declared-code hit never claims a row another page owns by its own slug (NetMetal ac², #155)", () => {
+    // NetMetal ac² is discontinued and off-matrix; its /hardware page names netmetal_ax as its
+    // "web page". Without the ownership guard the declared code folded it into NetMetal ax.
+    const rows = [mkMatrixRow("NetMetal ax", "L23UGSR-5HaxD2HaxD-NM")];
+    const pages = [
+      mkPage({ slug: "netmetal-ac", title: "NetMetal ac²", productLinks: ["netmetal_ac2", "netmetal_ax"], cause: "unmatched" }),
+      mkPage({
+        slug: "netmetal-ax",
+        title: "NetMetal ax",
+        productLinks: ["netmetal_ax"],
+        cause: "matched-by-slug",
+        matchedMatrixNames: ["NetMetal ax"],
+        ownMatrixNames: ["NetMetal ax"],
+      }),
+    ];
+    const www = [
+      mkWww("netmetal_ac2", { title: "NetMetal ac²", discontinued: true, specs: { "Product code": "RBD23UGS-5HPacD2HnD-NM" } }),
+      mkWww("netmetal_ax", { title: "NetMetal ax", specs: { "Product code": "L23UGSR-5HaxD2HaxD-NM" } }),
+    ];
+
+    const result = buildCatalog(rows, new Map([["NetMetal ax", 7]]), pages, www);
+    const byId = new Map(result.catalogRows.map((r) => [r.rosettaDeviceId, r]));
+    expect(byId.get("netmetal-ax")?.sourceHardwareSlug).toBe("netmetal-ax");
+    const ac2 = must(byId.get("hw-netmetal-ac"), "hw-netmetal-ac row");
+    expect(ac2.sourceWwwCode).toBe("netmetal_ac2");
+    expect(ac2.discontinued).toBe(1);
+    expect(result.aliasRows.find((a) => a.alias === "netmetal-ac")?.rosettaDeviceId).toBe("hw-netmetal-ac");
+  });
+});
+
+describe("buildCatalog — device-exceptions.toml force-attaches a verified www product (#155)", () => {
+  test("a matrix row with no /hardware page takes its curated www_code past the identity gate (KNOT Gateway HL9)", () => {
+    // The www code (knot_gateway_hl) drops the trailing 9, so no subcode or slug agrees with it.
+    const rows = [mkMatrixRow("KNOT Gateway HL9", "L14G-2ax-BT5-HL9&EG800Q")];
+    const www = [mkWww("knot_gateway_hl", { title: "KNOT Gateway HL9", specs: { "Product code": "L14G-2ax-BT5-HL9&EG800Q", CPU: "x" } })];
+
+    const result = buildCatalog(rows, new Map([["KNOT Gateway HL9", 3]]), [], www);
+    const row = must(result.catalogRows.find((r) => r.rosettaDeviceId === "knot-gateway-hl9"), "knot-gateway-hl9 row");
+    expect(row.sourceWwwCode).toBe("knot_gateway_hl");
+    expect(JSON.parse(row.specsJson ?? "{}")).toMatchObject({ CPU: "x" });
+    expect(result.aliasRows.find((a) => a.alias === "knot_gateway_hl")?.rosettaDeviceId).toBe("knot-gateway-hl9");
   });
 });
 
