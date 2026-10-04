@@ -13,7 +13,7 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 process.env.DB_PATH = ":memory:";
 
 // Dynamic imports so the env-var assignment above is visible to db.ts
-const { db, initDb, getDbStats, checkSchemaVersion, SCHEMA_VERSION, DB_PATH } = await import("./db.ts");
+const { db, initDb, getDbStats, getCommandVersionRange, checkSchemaVersion, SCHEMA_VERSION, DB_PATH } = await import("./db.ts");
 
 // Hard guard: if some other test file imported db.ts before us with a real
 // path, the singleton will be pointing at the project's ros-help.db and the
@@ -2691,6 +2691,19 @@ describe("schema", () => {
 // ---------------------------------------------------------------------------
 // getDbStats: version range uses semantic sort (not lexicographic)
 // ---------------------------------------------------------------------------
+
+describe("getCommandVersionRange", () => {
+  // `9.1beta2` sorts after `9.1beta10` as text, so a comparator that drops the prerelease counter
+  // ties them and reports whichever SQLite returned last: the older beta2.
+  afterAll(() => {
+    db.run(`DELETE FROM command_versions WHERE ros_version IN ('9.1beta2', '9.1beta10')`);
+  });
+
+  test("orders prerelease counters numerically, so the newest beta is the maximum", () => {
+    db.run(`INSERT INTO command_versions (command_path, ros_version) VALUES ('/ip', '9.1beta2'), ('/ip', '9.1beta10')`);
+    expect(getCommandVersionRange().max).toBe("9.1beta10");
+  });
+});
 
 describe("getDbStats", () => {
   test("version range is semantically sorted (7.9 < 7.10.2 < 7.22)", () => {

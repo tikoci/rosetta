@@ -39,6 +39,7 @@
 
 import sqlite from "bun:sqlite";
 import { classifyDbGrounding, detectMode, isManagedDbPath, newerLocalVersions, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
+import { compareVersions } from "./version-compare.ts";
 
 export { SCHEMA_VERSION };
 
@@ -1158,23 +1159,13 @@ export function getAllDbMeta(): Record<string, string> {
   }
 }
 
-/** Order RouterOS version strings — SQL MIN/MAX is lexicographic ("7.10" < "7.9"). */
-function compareRosVersions(a: string, b: string): number {
-  const norm = (v: string) => ({
-    parts: v.replace(/beta\d*/, "").replace(/rc\d*/, "").split(".").map(Number),
-    suffix: v.includes("beta") ? 0 : v.includes("rc") ? 1 : 2,
-  });
-  const na = norm(a), nb = norm(b);
-  for (let i = 0; i < Math.max(na.parts.length, nb.parts.length); i++) {
-    const d = (na.parts[i] ?? 0) - (nb.parts[i] ?? 0);
-    if (d !== 0) return d;
-  }
-  return na.suffix - nb.suffix;
-}
-
-/** [min, max] of a one-column `version` query, in RouterOS order; nulls when empty. */
+/**
+ * [min, max] of a one-column `version` query, in RouterOS order (SQL MIN/MAX is lexicographic:
+ * "7.10" < "7.9"); nulls when empty. `compareVersions` keeps prerelease counters, so `7.24beta10`
+ * sorts after `7.24beta1` instead of tying with it.
+ */
 function versionRange(sql: string): [string | null, string | null] {
-  const versions = (db.prepare(sql).all() as Array<{ version: string }>).map((r) => r.version).sort(compareRosVersions);
+  const versions = (db.prepare(sql).all() as Array<{ version: string }>).map((r) => r.version).sort(compareVersions);
   return versions.length === 0 ? [null, null] : [versions[0], versions[versions.length - 1]];
 }
 
