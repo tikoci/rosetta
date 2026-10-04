@@ -9,7 +9,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 // link-drift baseline tests seed the shared db.ts singleton and clean up in afterAll.
 process.env.DB_PATH = ":memory:";
 const { CLIREF_FIELD_VIEW_SQL, db, initDb } = await import("./db.ts");
-const { resolveEntry, linkEntries, buildBaselineTsv, auditAliasSegments } = await import("./link-cliref.ts");
+const { resolveEntry, linkEntries, buildBaselineTsv, auditAliasSegments, baselineDrift } = await import("./link-cliref.ts");
 
 // A tiny dir/cmd node index (id, type) keyed by path, matching resolveEntry's shape.
 const index = new Map<string, Array<{ id: number; type: string }>>([
@@ -207,5 +207,12 @@ describe("link drift baseline (buildBaselineTsv / auditAliasSegments)", () => {
     const problems = auditAliasSegments();
     expect(problems.length).toBe(1);
     expect(problems[0]).toContain("not in KNOWN_ALIAS_SEGMENTS");
+  });
+
+  test("baselineDrift names removed and added rows, counting duplicates", () => {
+    const committed = "# counts\tmanual-only=3\na\tDirectory\nb\tDirectory\nb\tDirectory\n";
+    const fresh = "# counts\tmanual-only=3\nb\tDirectory\nc\tCommand\nb\tDirectory\n";
+    expect(baselineDrift(committed, fresh)).toEqual(["- a\tDirectory", "+ c\tCommand"]);
+    expect(baselineDrift(fresh, fresh)).toEqual([]);
   });
 });
