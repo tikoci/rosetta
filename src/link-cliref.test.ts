@@ -9,7 +9,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 // link-drift baseline tests seed the shared db.ts singleton and clean up in afterAll.
 process.env.DB_PATH = ":memory:";
 const { CLIREF_FIELD_VIEW_SQL, db, initDb } = await import("./db.ts");
-const { resolveEntry, linkEntries, buildBaselineTsv, auditAliasSegments, baselineDrift } = await import("./link-cliref.ts");
+const { resolveEntry, linkEntries, buildBaselineTsv, auditAliasSegments, baselineDrift, staleBaselineProblem } = await import("./link-cliref.ts");
 
 // A tiny dir/cmd node index (id, type) keyed by path, matching resolveEntry's shape.
 const index = new Map<string, Array<{ id: number; type: string }>>([
@@ -214,5 +214,15 @@ describe("link drift baseline (buildBaselineTsv / auditAliasSegments)", () => {
     const fresh = "# counts\tmanual-only=3\nb\tDirectory\nc\tCommand\nb\tDirectory\n";
     expect(baselineDrift(committed, fresh)).toEqual(["- a\tDirectory", "+ c\tCommand"]);
     expect(baselineDrift(fresh, fresh)).toEqual([]);
+  });
+
+  test("--check STALE message carries the removed and added rows", () => {
+    const committed = "# counts\tmanual-only=1\nrouting/route/rule\tDirectory\tmanual-only\t\n";
+    const fresh = "# counts\tmanual-only=1\nip/ssh/known-hosts\tDirectory\tmanual-only\t\n";
+    const problem = staleBaselineProblem(committed, fresh);
+    expect(problem).toContain("cli-reference-links.tsv is STALE");
+    expect(problem).toContain("- routing/route/rule\tDirectory\tmanual-only");
+    expect(problem).toContain("+ ip/ssh/known-hosts\tDirectory\tmanual-only");
+    expect(staleBaselineProblem(fresh, fresh)).toBeNull();
   });
 });

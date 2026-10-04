@@ -267,6 +267,18 @@ export function baselineDrift(committed: string, fresh: string): string[] {
   return [...removed, ...added];
 }
 
+/** The `--check` STALE failure, carrying the drift rows; null when the baseline matches. */
+export function staleBaselineProblem(committed: string, fresh: string): string | null {
+  if (committed === fresh) return null;
+  return (
+    `cli-reference-links.tsv is STALE — the built DB's crosswalk differs from the committed baseline. ` +
+    `Review the change; if intended, run 'make link-cliref-baseline' and commit cli-reference-links.tsv.\n` +
+    baselineDrift(committed, fresh)
+      .map((d) => `      ${d}`)
+      .join("\n")
+  );
+}
+
 /** Every stored alias must name a KNOWN_ALIAS_SEGMENTS member (the linker allowlist). */
 export function auditAliasSegments(): string[] {
   const problems: string[] = [];
@@ -309,15 +321,8 @@ if (import.meta.main) {
     const problems = auditAliasSegments();
     const fresh = buildBaselineTsv();
     const committed = existsSync(BASELINE_PATH) ? readFileSync(BASELINE_PATH, "utf8") : "";
-    if (committed !== fresh) {
-      problems.push(
-        `cli-reference-links.tsv is STALE — the built DB's crosswalk differs from the committed baseline. ` +
-          `Review the change; if intended, run 'make link-cliref-baseline' and commit cli-reference-links.tsv.\n` +
-          baselineDrift(committed, fresh)
-            .map((d) => `      ${d}`)
-            .join("\n"),
-      );
-    }
+    const stale = staleBaselineProblem(committed, fresh);
+    if (stale) problems.push(stale);
     if (problems.length > 0) {
       console.error(`\nV-cliref-link-drift FAILED (${problems.length}):`);
       for (const p of problems) console.error(`  ✗ ${p}`);
