@@ -137,7 +137,7 @@ bunx @tikoci/rosetta@next     # newest build: a prerelease, or latest when none 
 
 `@next` is never behind `latest`: each stable release also moves `next` unless a newer prerelease is already there, so it is safe to leave `@next` in an MCP config. `bunx @tikoci/rosetta` (no tag) and `bunx @tikoci/rosetta@latest` always resolve to the default, non-prerelease channel — publishing a prerelease never moves `latest`.
 
-> **Dist-tags, not semver ranges.** A version range like `^0.11.3-next` is **not** equivalent to a dist-tag. npm's prerelease range matching only spans the exact `[major,minor,patch]` tuple written in the range, so it stops tracking new prereleases the moment a patch/minor bump happens. `@next` is the "follow forever" mechanism. The older `@alpha` / `@beta` / `@rc` tags are retired and no longer resolve.
+> **Dist-tags, not semver ranges.** A version range like `^0.11.3-next` is **not** equivalent to a dist-tag. npm's prerelease range matching only spans the exact `[major,minor,patch]` tuple written in the range, so it stops tracking new prereleases the moment a patch/minor bump happens. `@next` is the "follow forever" mechanism. The older `@alpha` / `@beta` / `@rc` tags are retired and no longer receive updates — switch any config using them to `@next`.
 
 ### Configure your MCP client
 

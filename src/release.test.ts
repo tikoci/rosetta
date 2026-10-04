@@ -566,21 +566,24 @@ describe("release.yml", () => {
 
     test("accepts only the next prerelease stage; retired alpha/beta/rc fail loudly (#152)", () => {
       const channelBlock = src.slice(channelIdx, changelogGateIdx);
+      // Exact, case-sensitive match: 0.11.3-NEXT must not be normalized and accepted.
       expect(channelBlock).toContain('if [ "$STAGE" != "next" ]; then');
+      expect(channelBlock).not.toContain("tr '[:upper:]' '[:lower:]'");
       expect(channelBlock).toMatch(/::error::Unrecognized prerelease stage/);
       expect(channelBlock).toContain("exit 1");
       expect(channelBlock).not.toContain("alpha|beta|rc) ;;");
     });
 
-    test("a prerelease must be semver-newer than latest before anything builds (#152)", () => {
-      const aheadIdx = mustIndex(src, "Verify prerelease is ahead of latest");
+    test("a prerelease must be semver-newer than latest and next before anything builds (#152)", () => {
+      const aheadIdx = mustIndex(src, "Verify prerelease is ahead of latest and next");
       expect(channelIdx).toBeLessThan(aheadIdx);
       expect(aheadIdx).toBeLessThan(changelogGateIdx);
       const aheadBlock = src.slice(aheadIdx, changelogGateIdx);
       expect(aheadBlock).toContain("steps.channel.outputs.channel == 'prerelease'");
-      expect(aheadBlock).toContain('npm view "@tikoci/rosetta@latest" version');
-      expect(aheadBlock).toContain("Bun.semver.order('$NEW', '$LATEST')");
-      expect(aheadBlock).toMatch(/::error::Prerelease \$NEW is not newer than latest/);
+      expect(aheadBlock).toContain("for TAG in latest next; do");
+      expect(aheadBlock).toContain(`npm view "@tikoci/rosetta@\${TAG}" version`);
+      expect(aheadBlock).toContain("Bun.semver.order('$NEW', '$CURRENT')");
+      expect(aheadBlock).toMatch(/::error::Prerelease \$NEW is not newer than \$\{TAG\}/);
     });
 
     test("a version matching neither the prerelease nor the bare-semver shape fails loudly instead of silently falling through to latest", () => {

@@ -284,7 +284,7 @@ There are exactly two channels, `latest` and `next` (#152). `package.json`'s com
 
 **`next` is never behind `latest`.** Every run enforces it:
 
-- A prerelease must be semver-newer than the current `latest`, or the build job fails before extracting anything ("Verify prerelease is ahead of latest"). This catches the easy mistake of dispatching `X.Y.Z-next` after `X.Y.Z` already shipped stable — `X.Y.Z-next.N` sorts *below* `X.Y.Z`. Bump to the next unreleased version instead.
+- A prerelease must be semver-newer than both the current `latest` and `next`, or the build job fails before extracting anything ("Verify prerelease is ahead of latest and next"). This catches the easy mistake of dispatching `X.Y.Z-next` after `X.Y.Z` already shipped stable — `X.Y.Z-next.N` sorts *below* `X.Y.Z`. Bump to the next unreleased version instead.
 - A stable publish also moves `next` (npm dist-tag and OCI `:next`) when the current `next` is semver-lower. A newer prerelease already on `next` stays.
 - After publishing, "Read back npm dist-tags" fails the job unless the run's dist-tag resolves to the new version and `next` ≥ `latest`.
 

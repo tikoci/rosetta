@@ -110,7 +110,7 @@ jobs:
 
           if [[ "$PKG_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([A-Za-z]+)(\.[0-9]+)?$ ]]; then
             BASE="${BASH_REMATCH[1]}"
-            STAGE="$(echo "${BASH_REMATCH[2]}" | tr '[:upper:]' '[:lower:]')"
+            STAGE="${BASH_REMATCH[2]}"
             if [ "$STAGE" != "next" ]; then
               echo "::error::Unrecognized prerelease stage '$STAGE' in package.json version '$PKG_VERSION' — the only prerelease channel is 'next' (commit ${BASE}-next). The alpha/beta/rc stages were retired in #152."
               exit 1
@@ -176,32 +176,36 @@ jobs:
             echo "✓ Previous published version under '$NPM_TAG': v$PREV"
           fi
 
-      # ── next must never fall behind latest (#152) ──
+      # ── next only ever moves forward (#152) ──
       # A prerelease publish moves `next` unconditionally, so it must be
-      # semver-greater than the current `latest`. The trap this catches:
+      # semver-greater than both current dist-tags. The trap this catches:
       # package.json still at X.Y.Z-next after X.Y.Z shipped stable —
       # X.Y.Z-next.N sorts BELOW X.Y.Z, and publishing it would point `next`
-      # at older code than `latest`. Fails before anything is built or pushed.
-      - name: Verify prerelease is ahead of latest
+      # at older code than `latest`. Likewise a prerelease for an older line
+      # would drag `next` backwards past a newer prerelease. Fails before
+      # anything is built or pushed.
+      - name: Verify prerelease is ahead of latest and next
         if: inputs.republish_assets != true && steps.channel.outputs.channel == 'prerelease'
         run: |
           set -euo pipefail
           NEW=$(node -p "require('./package.json').version")
-          NPM_VIEW_ERR=$(mktemp)
-          trap 'rm -f "$NPM_VIEW_ERR"' EXIT
-          if LATEST=$(npm view "@tikoci/rosetta@latest" version --registry https://registry.npmjs.org/ 2>"$NPM_VIEW_ERR"); then
-            :
-          else
-            status=$?
-            cat "$NPM_VIEW_ERR" >&2
-            echo "::error::Could not read the current 'latest' dist-tag to order this prerelease against it."
-            exit "$status"
-          fi
-          if [ "$(bun --eval "console.log(Bun.semver.order('$NEW', '$LATEST'))")" != "1" ]; then
-            echo "::error::Prerelease $NEW is not newer than latest ($LATEST) — publishing it would put 'next' behind 'latest'. Bump package.json to the next unreleased version (e.g. the next patch) with a -next suffix."
-            exit 1
-          fi
-          echo "✓ $NEW > latest ($LATEST)"
+          for TAG in latest next; do
+            NPM_VIEW_ERR=$(mktemp)
+            if CURRENT=$(npm view "@tikoci/rosetta@${TAG}" version --registry https://registry.npmjs.org/ 2>"$NPM_VIEW_ERR"); then
+              rm -f "$NPM_VIEW_ERR"
+            else
+              status=$?
+              cat "$NPM_VIEW_ERR" >&2
+              rm -f "$NPM_VIEW_ERR"
+              echo "::error::Could not read the current '${TAG}' dist-tag to order this prerelease against it."
+              exit "$status"
+            fi
+            if [ "$(bun --eval "console.log(Bun.semver.order('$NEW', '$CURRENT'))")" != "1" ]; then
+              echo "::error::Prerelease $NEW is not newer than ${TAG} ($CURRENT) — publishing it would move 'next' backwards. Bump package.json to the next unreleased version (e.g. the next patch) with a -next suffix."
+              exit 1
+            fi
+            echo "✓ $NEW > ${TAG} ($CURRENT)"
+          done
 
       # ── Latest-channel CHANGELOG gate ──
       # No channel auto-promotes [Unreleased] anymore (bump-version's
@@ -566,8 +570,8 @@ jobs:
         run: bun run scripts/build-release.ts ${{ needs.build.outputs.version }}
 
       # `next` must never be behind `latest` (#152). A prerelease always moves
-      # `next` (build's "Verify prerelease is ahead of latest" already proved it
-      # is newer than `latest`). A stable publish moves `next` only when the
+      # `next` (build's "Verify prerelease is ahead of latest and next" already
+      # proved it is newer than both). A stable publish moves `next` only when the
       # current `next` is semver-lower — a newer prerelease already on `next`
       # stays. One decision drives both npm and OCI, so the two stay in step.
       - name: Decide whether this run moves next
