@@ -13,6 +13,7 @@
  *   bun run src/extract-videos.ts --force         # re-extract all (delete + reinsert)
  *   bun run src/extract-videos.ts --playlist=URL  # override channel URL
  *   bun run src/extract-videos.ts --max-duration=600  # cap at 10 min (default: 1600)
+ *   YTDLP_ARGS="--cookies-from-browser firefox" bun run src/extract-videos.ts  # YouTube 429s
  *
  * Requirements:
  *   brew install yt-dlp   # macOS
@@ -29,6 +30,14 @@ import { db, initDb } from "./db.ts";
 
 /** yt-dlp executable — override with YTDLP env var for testing. */
 export const YTDLP_DEFAULT = process.env.YTDLP ?? "yt-dlp";
+
+/** Extra yt-dlp arguments from the YTDLP_ARGS env var, split on whitespace (no quoting).
+ *  Prepended to every yt-dlp call — e.g. "--cookies-from-browser firefox" when YouTube
+ *  answers an anonymous scrape with HTTP 429. */
+export function splitYtdlpArgs(value: string | undefined): string[] {
+  return (value ?? "").split(/\s+/).filter(Boolean);
+}
+export const YTDLP_ARGS_DEFAULT = splitYtdlpArgs(process.env.YTDLP_ARGS);
 
 /** Hard timeout per video download (ms). yt-dlp with --retries 2 --socket-timeout 15 should
  *  self-terminate well before this, but this is the absolute backstop. */
@@ -310,10 +319,11 @@ export function listPlaylist(
   url: string,
   ytdlp = YTDLP_DEFAULT,
   timeoutMs = LIST_TIMEOUT_MS,
+  extraArgs = YTDLP_ARGS_DEFAULT,
 ): Array<{ id: string; title: string; duration?: number }> {
   console.log(`Listing videos from: ${url}`);
   const result = Bun.spawnSync(
-    [ytdlp, "--flat-playlist", "--dump-json", "--socket-timeout", "15", "--retries", "2", "--no-warnings", url],
+    [ytdlp, ...extraArgs, "--flat-playlist", "--dump-json", "--socket-timeout", "15", "--retries", "2", "--no-warnings", url],
     { stdio: ["inherit", "pipe", "pipe"], timeout: timeoutMs },
   );
   if (result.exitCode === null) {
@@ -342,17 +352,19 @@ export function listPlaylist(
 
 /** Download metadata + VTT transcript for one video into tmpDir.
  *  Returns "ok" | "timeout" | "error" — never throws.
- *  The ytdlp and timeoutMs params exist for testing (pass a mock binary path). */
+ *  The ytdlp, timeoutMs and extraArgs params exist for testing (pass a mock binary path). */
 export function downloadTranscript(
   videoId: string,
   tmpDir: string,
   ytdlp = YTDLP_DEFAULT,
   timeoutMs = DOWNLOAD_TIMEOUT_MS,
+  extraArgs = YTDLP_ARGS_DEFAULT,
 ): "ok" | "timeout" | "error" {
   const url = `https://www.youtube.com/watch?v=${videoId}`;
   const result = Bun.spawnSync(
     [
       ytdlp,
+      ...extraArgs,
       "--skip-download",
       "--write-auto-subs",
       "--write-info-json",
@@ -579,6 +591,7 @@ async function main() {
   }
 
   if (!checkYtDlp()) process.exit(1);
+  if (YTDLP_ARGS_DEFAULT.length > 0) console.log(`YTDLP_ARGS: ${YTDLP_ARGS_DEFAULT.join(" ")}`);
 
   initDb();
 
