@@ -140,7 +140,9 @@ function applyContextualTermFilters(terms: string[]): string[] {
   if (terms.includes("bridge") && terms.includes("vlan") && terms.includes("filtering")) {
     return terms.filter((term) => term !== "switch");
   }
-  return terms;
+  // "set up" is a phrasal verb: as an AND term the particle "up" excludes focused pages
+  // that never use the word (the split DHCP Server page says "setup"/"set", not "up").
+  return terms.filter((term, i) => !(term === "up" && terms[i - 1] === "set"));
 }
 
 function getSpecialSearchHint(question: string): string | undefined {

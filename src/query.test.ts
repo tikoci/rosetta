@@ -748,6 +748,11 @@ describe("extractTerms", () => {
     expect(extractTerms("bridge vlan filtering on a switch")).toEqual(["bridge", "vlan", "filtering"]);
   });
 
+  test("drops the particle of the phrasal verb 'set up', keeps a standalone up", () => {
+    expect(extractTerms("how do I set up a DHCP server")).toEqual(["set", "dhcp", "server"]);
+    expect(extractTerms("interface up event")).toEqual(["interface", "up", "event"]);
+  });
+
   test("filters terms shorter than 2 characters", () => {
     expect(extractTerms("a x y")).toEqual([]);
   });
