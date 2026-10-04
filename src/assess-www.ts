@@ -34,6 +34,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
 import { loadMatrixRows, normCode } from "./assess-hardware.ts";
+import { exceptionWwwCodes } from "./device-exceptions.ts";
 import { curatedWwwCodes } from "./hardware-www-map.ts";
 import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
@@ -72,6 +73,9 @@ function loadCandidateCodes(): string[] {
   // sxt-2 -> RBSXTG-2HnDr2-168). Without this seed the page never gets fetched and its specs
   // stay blank. Series members (www_codes) are seeded too so their specs land as well.
   for (const c of curatedWwwCodes()) codes.add(c);
+  // Same for device-exceptions.toml: a matrix device with no /hardware page (e.g. KNOT
+  // Gateway HL9 -> knot_gateway_hl) has a verified www code that no link or subcode reaches.
+  for (const c of exceptionWwwCodes()) codes.add(c);
   return [...codes];
 }
 

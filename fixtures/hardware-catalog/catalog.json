@@ -2,7 +2,7 @@
   "generatedFrom": {
     "matrixRows": 155,
     "hardwarePages": 246,
-    "wwwProducts": 309
+    "wwwProducts": 316
   },
   "rows": [
     {
@@ -170,10 +170,10 @@
       "deviceProductName": "Chateau LTE12 (2025)",
       "name": "Chateau LTE12 (2025)",
       "category": null,
-      "discontinued": null,
-      "specsJson": null,
+      "discontinued": 0,
+      "specsJson": "{\"Product code\":\"D53G-5HacD2HnD-TC&EG120K-EA\",\"Suggested price\":\"$179.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"448-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"IPQ-4019\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-20°C to 70°C\",\"Number of DC inputs\":\"1 (DC jack)\",\"DC jack input Voltage\":\"12-28 V\",\"Max power consumption\":\"24 W\",\"Max power consumption without attachments\":\"18 W\",\"Cooling type\":\"Passive\",\"3G Category\":\"R8 (42.2Mbps Downlink, 5.76Mbps Uplink)\",\"3G bands\":\"1 (2100MHz) 3 (1800MHz) 5 (850MHz) 8 (900MHz)\",\"LTE Category\":\"12 (600Mbps Downlink, 150Mbps Uplink)\",\"MIMO DL\":\"4x4\",\"MIMO UL\":\"1x1\",\"LTE FDD bands\":\"1 (2100MHz) 3 (1800MHz) 5 (850MHz) 7 (2600MHz) 8 (900 MHz) 20 (800MHz) 28 (700MHz) 32 (1500 MHz)\",\"LTE TDD bands\":\"38 (2600MHz) 40 (2300MHz) 41 (2500MHz)\",\"TAC\":\"86642205\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"2\",\"Wireless 2.4 GHz chip model\":\"IPQ-4019\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"Wireless 5 GHz Max data rate\":\"867 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"4\",\"Wireless 5 GHz chip model\":\"IPQ-4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"5\",\"Number of SIM slots\":\"1 Modem (Micro SIM)\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Mode button\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"Chateau LTE12 (2025)\",\"_www_tagline\":\"Your best friend when it comes to mobile networks. Amazing in the hands of seasoned system administrators. Or in a household with zero IT skills. Or anything in between. Chateau can do it all. New modem by Quectel: added 4x4 MIMO\\r\\nfor more bands: 1 / 3 / 7 / 38 / 40 / 41. 5x Gigabit Ethernet ports, 600 Mbps Cat12 LTE.\"}",
       "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "sourceWwwCode": "chateau_lte12_2025"
     },
     {
       "rosettaDeviceId": "chateau-lte18-ax",
@@ -560,10 +560,10 @@
       "deviceProductName": "CubeSA 60Pro ac",
       "name": "CubeSA 60Pro ac",
       "category": null,
-      "discontinued": null,
-      "specsJson": null,
+      "discontinued": 0,
+      "specsJson": "{\"Product code\":\"CubeG-5ac60ay-SA\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"448-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Dimensions\":\"115 x 211 x 90 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"64 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"13 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"Wireless 5 GHz Max data rate\":\"433 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"1\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"11.5\",\"Wireless 5 GHz chip model\":\"IPQ4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"1\",\"GNSS standards\":\"GPS\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"CubeSA 60Pro ac\",\"_www_tagline\":\"A powerful sector antenna to connect multiple 60 GHz devices. Quick and easy networking for all kinds of pop-up events and distances up to 800m.\"}",
       "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "sourceWwwCode": "cubesa_60pro_ac"
     },
     {
       "rosettaDeviceId": "fiberbox-plus",
@@ -590,10 +590,10 @@
       "deviceProductName": "FTC21-ups",
       "name": "FTC21-ups",
       "category": null,
-      "discontinued": null,
-      "specsJson": null,
+      "discontinued": 0,
+      "specsJson": "{\"Product code\":\"FTC21-ups\",\"Suggested price\":\"$99.00\",\"Switch chip model\":\"88E6341\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"24-57 V\",\"Max power consumption\":\"28 W\",\"Max power consumption without attachments\":\"3 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"48-57 V\",\"PoE-out ports\":\"Ether2\",\"PoE out\":\"Passive PoE up to 57V\",\"Low voltage PoE-Out current limit\":\"0.625 A\",\"High voltage PoE-Out current limit\":\"0.315 A\",\"Max total out (A)\":\"0.625 A\",\"Total output current\":\"0.625\",\"Total output power\":\"15\",\"10/100/1000 Ethernet ports\":\"2\",\"Number of 1G Ethernet ports with PoE-out\":\"1\",\"SFP ports\":\"1 (2.5G supported)\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"67\",\"_www_title\":\"FTC21-ups\",\"_www_tagline\":\"A weatherproof Fiber-to-Copper converter with 2.5G SFP and 2x Gigabit Ethernet ports, including PoE-out on Ether2. Its integrated battery keeps links stable during short power interruptions, preventing unnecessary renegotiations and device reboots.\"}",
       "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "sourceWwwCode": "ftc21_ups"
     },
     {
       "rosettaDeviceId": "gpen21",
@@ -1446,6 +1446,16 @@
       "sourceWwwCode": "RB911G-5HPacD-NB"
     },
     {
+      "rosettaDeviceId": "hw-netmetal-ac",
+      "deviceProductName": null,
+      "name": "NetMetal ac²",
+      "category": "Wireless systems",
+      "discontinued": 1,
+      "specsJson": "{\"Product code\":\"RBD23UGS-5HPacD2HnD-NM\",\"Suggested price\":\"$169.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"716 MHz\",\"CPU Threads count\":\"4\",\"Switch chip model\":\"IPQ-4019\",\"Dimensions\":\"143 x 247 x 48 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"28 W\",\"Max power consumption without attachments\":\"12 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"24-57 V\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Wireless 2.4 GHz chip model\":\"IPQ-4019\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"Wireless 5 GHz Max data rate\":\"867 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Wireless 5 GHz chip model\":\"IPQ-4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP ports\":\"1\",\"Number of SIM slots\":\"1 Modem (Micro SIM)\",\"MiniPCI-e slots\":\"1\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP66\",\"_www_title\":\"NetMetal ac²\",\"_www_tagline\":\"Our toughest long-range AP, now with dual-band support\",\"_hardware_title\":\"NetMetal ac²\"}",
+      "sourceHardwareSlug": "netmetal-ac",
+      "sourceWwwCode": "netmetal_ac2"
+    },
+    {
       "rosettaDeviceId": "hw-nray-series",
       "deviceProductName": null,
       "name": "Wireless Wire nRAY",
@@ -1900,20 +1910,20 @@
       "deviceProductName": "KNOT Gateway HL9",
       "name": "KNOT Gateway HL9",
       "category": null,
-      "discontinued": null,
-      "specsJson": null,
+      "discontinued": 0,
+      "specsJson": "{\"Product code\":\"L14G-2ax-BT5-HL9&EG800Q\",\"Suggested price\":\"$139.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"IPQ-5010\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 50°C\",\"Number of DC inputs\":\"2 (PoE-IN, 2-pin terminal)\",\"2-pin terminal input Voltage\":\"12-57 V\",\"Max power consumption\":\"7 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"LTE Category\":\"CAT 1 bis (DL: 10 Mbps; UL: 5 Mbps)\",\"MIMO DL\":\"1x1\",\"MIMO UL\":\"1x1\",\"LTE FDD bands\":\"2 (1900 MHz) 4 (1700 MHz) 5 (850 MHz) 12 (700 MHz) 13 (700 MHz) 66 (1700 MHz)\",\"TAC\":\"01688100\",\"Wireless 2.4 GHz Max data rate\":\"287 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"1\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n/ax\",\"Antenna gain dBi for 2.4 GHz\":\"3.9\",\"Wireless 2.4 GHz chip model\":\"IPQ-5010\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 6\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of SIM slots\":\"1 Modem (Nano SIM)\",\"CPU temperature monitor\":\"Yes\",\"Bluetooth version\":\"5.1\",\"Bluetooth RF connector type\":\"uUFL\",\"eSIM\":\"Yes\",\"Certification\":\"FCC, IC, EAC\",\"IP\":\"66\",\"_www_title\":\"KNOT Gateway HL9\",\"_www_tagline\":\"A rugged IP66 IoT gateway combining BLE 5.1, 915 MHz Wi-Fi HaLow, Wi-Fi, Gigabit Ethernet, LTE Cat 1 bis, and GNSS. Need LoRa® instead? The KNOT Gateway is also available in an 868 MHz LoRa version.\"}",
       "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "sourceWwwCode": "knot_gateway_hl"
     },
     {
       "rosettaDeviceId": "knot-gateway-lr8",
       "deviceProductName": "KNOT Gateway LR8",
       "name": "KNOT Gateway LR8",
       "category": null,
-      "discontinued": null,
-      "specsJson": null,
+      "discontinued": 0,
+      "specsJson": "{\"Product code\":\"L14G-2ax-BT5-LR8&EG800K\",\"Suggested price\":\"$139.00\",\"Architecture\":\"ARM 64bit\",\"CPU\":\"IPQ-5010\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 50°C\",\"Number of DC inputs\":\"2 (PoE-IN, 2-pin terminal)\",\"2-pin terminal input Voltage\":\"12-57 V\",\"Max power consumption\":\"9 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"LTE Category\":\"CAT 1 bis (DL: 10Mbps; UL: 5Mbps)\",\"MIMO DL\":\"1x1\",\"MIMO UL\":\"1x1\",\"LTE FDD bands\":\"1 (2100MHz) 3 (1800MHz) 5 (850MHz) 7 (2600MHz) 8 (900 MHz) 20 (800MHz) 28 (700MHz)\",\"TAC\":\"86684606\",\"Wireless 2.4 GHz Max data rate\":\"287 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"1\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n/ax\",\"Antenna gain dBi for 2.4 GHz\":\"3.9\",\"Wireless 2.4 GHz chip model\":\"IPQ-5010\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 6\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of SIM slots\":\"1 Modem (Nano SIM)\",\"CPU temperature monitor\":\"Yes\",\"Bluetooth version\":\"5.1\",\"Bluetooth RF connector type\":\"uUFL\",\"eSIM\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"KNOT Gateway LR8\",\"_www_tagline\":\"A rugged IP66 IoT gateway combining BLE 5.1, 868 MHz LoRa®, Wi-Fi, Gigabit Ethernet, LTE Cat 1 bis, and GNSS. Need Wi-Fi HaLow instead? The KNOT Gateway is also available in a 915 MHz HaLow version.\"}",
       "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "sourceWwwCode": "knot_gateway_lr8"
     },
     {
       "rosettaDeviceId": "knot-lr8g-kit",
@@ -2060,10 +2070,10 @@
       "deviceProductName": "LtAP LTE7 kit",
       "name": "LtAP LTE7 kit",
       "category": null,
-      "discontinued": null,
-      "specsJson": null,
+      "discontinued": 0,
+      "specsJson": "{\"Product code\":\"LtAP-2HnD&R11e-LTE7\",\"Suggested price\":\"$169.00\",\"Architecture\":\"MMIPS\",\"CPU\":\"MT7621AT\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"880 MHz\",\"CPU Threads count\":\"4\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, Automotive)\",\"DC jack input Voltage\":\"12-30 V\",\"Automotive input Voltage\":\"12-27 V\",\"Max power consumption\":\"24 W\",\"Max power consumption without attachments\":\"12 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-30 V\",\"3G Category\":\"R8 (DL: 42.2 Mbps; UL: 5.76 Mbps)\",\"3G bands\":\"1 (2100 MHz) 3 (1800 MHz) 5 (850 MHz) 8 (900 MHz)\",\"LTE Category\":\"7 (DL: 300 Mbps; UL: 100 Mbps)\",\"MIMO DL\":\"2x2\",\"MIMO UL\":\"1x1\",\"LTE FDD bands\":\"1 (2100 MHz) 3 (1800 MHz) 5 (850 MHz) 7 (2600 MHz) 8 (900 MHz) 20 (800 MHz) 28 (700 MHz) 32 (1500 MHz)\",\"LTE TDD bands\":\"38 (2600 MHz) 40 (2300 MHz) 41 (2500 MHz)\",\"TAC\":\"35312597\",\"Wireless 2.4 GHz Max data rate\":\"300 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n\",\"Antenna gain dBi for 2.4 GHz\":\"2.5\",\"Wireless 2.4 GHz chip model\":\"AR9382\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 4\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of SIM slots\":\"3 Modem (Mini SIM)\",\"MiniPCI-e slots\":\"2\",\"Serial console port\":\"RS232\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"GNSS standards\":\"GPS\",\"Certification\":\"CE, E-MARK, EAC, ROHS\",\"IP\":\"54\",\"_www_title\":\"LtAP LTE7 kit\",\"_www_tagline\":\"A compact, heavy-duty LTE access point with built-in GPS – now upgraded with a faster, smarter, more affordable LTE Category 7 modem. Add extensive networking and tracking options to your vehicle without breaking the bank!\"}",
       "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "sourceWwwCode": "ltap_lte7_kit"
     },
     {
       "rosettaDeviceId": "ltap-mini",
@@ -2171,8 +2181,8 @@
       "name": "NetMetal ax",
       "category": "Wireless systems",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"L23UGSR-5HaxD2HaxD-NM\",\"Suggested price\":\"$169.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-5010\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-28 V\",\"Max power consumption\":\"25 W\",\"Max power consumption without attachments\":\"12 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-28 V\",\"Wireless 2.4 GHz Max data rate\":\"574 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n/ax\",\"Wireless 2.4 GHz chip model\":\"IPQ-5010\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 6\",\"Wireless 5 GHz Max data rate\":\"2400 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac/ax\",\"Wireless 5 GHz chip model\":\"QCN-6102\",\"Wireless 5 GHz generation\":\"Wi-Fi 6\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP ports\":\"1 (2.5G supported)\",\"Number of SIM slots\":\"1 Modem (Nano SIM)\",\"MiniPCI-e slots\":\"1\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1.5\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"NetMetal ax\",\"_www_tagline\":\"The Mars rover of networking. Our toughest long-range outdoor access point – now with Wi-Fi 6!\",\"_hardware_title\":\"NetMetal ac²\"}",
-      "sourceHardwareSlug": "netmetal-ac",
+      "specsJson": "{\"Product code\":\"L23UGSR-5HaxD2HaxD-NM\",\"Suggested price\":\"$169.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-5010\",\"CPU core count\":\"2\",\"CPU nominal frequency\":\"800 MHz\",\"CPU Threads count\":\"2\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-28 V\",\"Max power consumption\":\"25 W\",\"Max power consumption without attachments\":\"12 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-28 V\",\"Wireless 2.4 GHz Max data rate\":\"574 Mbit/s\",\"Wireless 2.4 GHz Number of chains\":\"2\",\"Wireless 2.4 GHz standards\":\"802.11b/g/n/ax\",\"Wireless 2.4 GHz chip model\":\"IPQ-5010\",\"Wireless 2.4 GHz generation\":\"Wi-Fi 6\",\"Wireless 5 GHz Max data rate\":\"2400 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac/ax\",\"Wireless 5 GHz chip model\":\"QCN-6102\",\"Wireless 5 GHz generation\":\"Wi-Fi 6\",\"10/100/1000 Ethernet ports\":\"1\",\"SFP ports\":\"1 (2.5G supported)\",\"Number of SIM slots\":\"1 Modem (Nano SIM)\",\"MiniPCI-e slots\":\"1\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1.5\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"NetMetal ax\",\"_www_tagline\":\"The Mars rover of networking. Our toughest long-range outdoor access point – now with Wi-Fi 6!\",\"_hardware_title\":\"NetMetal ax\"}",
+      "sourceHardwareSlug": "netmetal-ax",
       "sourceWwwCode": "netmetal_ax"
     },
     {
@@ -2250,10 +2260,10 @@
       "deviceProductName": "R11e-LTE7",
       "name": "R11e-LTE7",
       "category": null,
-      "discontinued": null,
-      "specsJson": null,
+      "discontinued": 0,
+      "specsJson": "{\"Product code\":\"R11e-LTE7\",\"Suggested price\":\"$65.00\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-10°C to 55°C\",\"Max power consumption\":\"5 W\",\"3G Category\":\"R8 (DL: 42.2 Mbps; UL: 5.76 Mbps)\",\"3G bands\":\"1 (2100MHz) 3 (1800 MHz) 5 (850MHz) 8 (900MHz)\",\"LTE Category\":\"7 (DL: 300 Mbps; UL: 100 Mbps)\",\"MIMO DL\":\"2x2\",\"MIMO UL\":\"1x1\",\"LTE FDD bands\":\"1 (2100MHz) 3 (1800MHz) 5 (850MHz) 7 (2600MHz) 8 (900 MHz) 20 (800MHz) 28 (700MHz) 32 (1500 MHz)\",\"LTE TDD bands\":\"38 (2600MHz) 40 (2300MHz) 41 (2500MHz)\",\"TAC\":\"35312597\",\"Certification\":\"CE, ROHS\",\"IP\":\"00\",\"_www_title\":\"R11e-LTE7\",\"_www_tagline\":\"An easy drop-in upgrade for RouterBOARD integrators. This miniPCIe CAT7 modem delivers up to 300 Mbps with Band 28 & 32 support and carrier aggregation for better rural performance. Fully compatible with RouterOS v7 devices such as LtAP and RBM33G – upgrade your LTE speed without changing your setup.\"}",
       "sourceHardwareSlug": null,
-      "sourceWwwCode": null
+      "sourceWwwCode": "r11e_lte7"
     },
     {
       "rosettaDeviceId": "rb1100ahx4",
@@ -3196,6 +3206,11 @@
       "alias": "chateau_lte12",
       "rosettaDeviceId": "hw-chateau-lte12",
       "source": "hardware-link"
+    },
+    {
+      "alias": "chateau_lte12_2025",
+      "rosettaDeviceId": "chateau-lte12-2025",
+      "source": "www-code"
     },
     {
       "alias": "chateau_lte6",
@@ -4308,6 +4323,11 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "cubesa_60pro_ac",
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "source": "www-code"
+    },
+    {
       "alias": "cubesa60proac",
       "rosettaDeviceId": "cubesa-60pro-ac",
       "source": "collapsed"
@@ -4321,6 +4341,11 @@
       "alias": "d53g-5hacd2hnd-tc&eg06-a",
       "rosettaDeviceId": "chateau-lte6-us",
       "source": "hardware-table"
+    },
+    {
+      "alias": "d53g-5hacd2hnd-tc&eg120k-ea",
+      "rosettaDeviceId": "chateau-lte12-2025",
+      "source": "www-declared-code"
     },
     {
       "alias": "d53g-5hacd2hnd-tc&fg621-ea",
@@ -4344,6 +4369,11 @@
     },
     {
       "alias": "d53g5hacd2hndtc",
+      "rosettaDeviceId": "chateau-lte12-2025",
+      "source": "collapsed"
+    },
+    {
+      "alias": "d53g5hacd2hndtcandeg120kea",
       "rosettaDeviceId": "chateau-lte12-2025",
       "source": "collapsed"
     },
@@ -4616,6 +4646,11 @@
       "alias": "ftc21",
       "rosettaDeviceId": "hw-ftc21",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "ftc21_ups",
+      "rosettaDeviceId": "ftc21-ups",
+      "source": "www-code"
     },
     {
       "alias": "ftc21-ups",
@@ -5213,6 +5248,16 @@
       "source": "hardware-link"
     },
     {
+      "alias": "knot_gateway_hl",
+      "rosettaDeviceId": "knot-gateway-hl9",
+      "source": "www-code"
+    },
+    {
+      "alias": "knot_gateway_lr8",
+      "rosettaDeviceId": "knot-gateway-lr8",
+      "source": "www-code"
+    },
+    {
       "alias": "knot_lr8",
       "rosettaDeviceId": "hw-knot-lr8-kit",
       "source": "hardware-link"
@@ -5275,6 +5320,11 @@
     {
       "alias": "knotemblte4global",
       "rosettaDeviceId": "knot-embedded-lte4-global",
+      "source": "collapsed"
+    },
+    {
+      "alias": "knotgatewayhl",
+      "rosettaDeviceId": "knot-gateway-hl9",
       "source": "collapsed"
     },
     {
@@ -5378,9 +5428,19 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "l14g-2ax-bt5-hl9&eg800q",
+      "rosettaDeviceId": "knot-gateway-hl9",
+      "source": "www-declared-code"
+    },
+    {
       "alias": "l14g-2ax-bt5-lr8",
       "rosettaDeviceId": "knot-gateway-lr8",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "l14g-2ax-bt5-lr8&eg800k",
+      "rosettaDeviceId": "knot-gateway-lr8",
+      "source": "www-declared-code"
     },
     {
       "alias": "l14g2axbt5hl9",
@@ -5388,7 +5448,17 @@
       "source": "collapsed"
     },
     {
+      "alias": "l14g2axbt5hl9andeg800q",
+      "rosettaDeviceId": "knot-gateway-hl9",
+      "source": "collapsed"
+    },
+    {
       "alias": "l14g2axbt5lr8",
+      "rosettaDeviceId": "knot-gateway-lr8",
+      "source": "collapsed"
+    },
+    {
+      "alias": "l14g2axbt5lr8andeg800k",
       "rosettaDeviceId": "knot-gateway-lr8",
       "source": "collapsed"
     },
@@ -5893,6 +5963,11 @@
       "source": "www-code"
     },
     {
+      "alias": "ltap_lte7_kit",
+      "rosettaDeviceId": "ltap-lte7-kit",
+      "source": "www-code"
+    },
+    {
       "alias": "ltap_mini",
       "rosettaDeviceId": "ltap-mini",
       "source": "hardware-link"
@@ -5915,6 +5990,16 @@
     {
       "alias": "ltap-2hnd&fg621-ea&lr8gr2",
       "rosettaDeviceId": "hw-ltap-lr8g-lte6-kit",
+      "source": "www-compare-id"
+    },
+    {
+      "alias": "ltap-2hnd&r11e-lte7",
+      "rosettaDeviceId": "ltap-lte7-kit",
+      "source": "www-declared-code"
+    },
+    {
+      "alias": "ltap-2hnd&r11e-lte7r2",
+      "rosettaDeviceId": "ltap-lte7-kit",
       "source": "www-compare-id"
     },
     {
@@ -5960,6 +6045,16 @@
     {
       "alias": "ltap2hndandfg621eaandlr8gr2",
       "rosettaDeviceId": "hw-ltap-lr8g-lte6-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltap2hndandr11elte7",
+      "rosettaDeviceId": "ltap-lte7-kit",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ltap2hndandr11elte7r2",
+      "rosettaDeviceId": "ltap-lte7-kit",
       "source": "collapsed"
     },
     {
@@ -6213,13 +6308,18 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "netmetal_ac2",
+      "rosettaDeviceId": "hw-netmetal-ac",
+      "source": "hardware-link"
+    },
+    {
       "alias": "netmetal_ax",
       "rosettaDeviceId": "netmetal-ax",
       "source": "hardware-link"
     },
     {
       "alias": "netmetal-ac",
-      "rosettaDeviceId": "netmetal-ax",
+      "rosettaDeviceId": "hw-netmetal-ac",
       "source": "hardware-slug"
     },
     {
@@ -6235,6 +6335,16 @@
     {
       "alias": "netmetal5",
       "rosettaDeviceId": "netmetal-5",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netmetalac",
+      "rosettaDeviceId": "hw-netmetal-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "netmetalac2",
+      "rosettaDeviceId": "hw-netmetal-ac",
       "source": "collapsed"
     },
     {
@@ -6456,6 +6566,11 @@
       "alias": "qrt5ac",
       "rosettaDeviceId": "hw-qrt-5-ac",
       "source": "collapsed"
+    },
+    {
+      "alias": "r11e_lte7",
+      "rosettaDeviceId": "r11e-lte7",
+      "source": "www-code"
     },
     {
       "alias": "r11e-4g",
@@ -7316,6 +7431,16 @@
       "alias": "rbd22ugs-5hpacd2hnd-15s",
       "rosettaDeviceId": "hw-mantbox-52-15s",
       "source": "hardware-table"
+    },
+    {
+      "alias": "rbd23ugs-5hpacd2hnd-nm",
+      "rosettaDeviceId": "hw-netmetal-ac",
+      "source": "www-declared-code"
+    },
+    {
+      "alias": "rbd23ugs5hpacd2hndnm",
+      "rosettaDeviceId": "hw-netmetal-ac",
+      "source": "collapsed"
     },
     {
       "alias": "rbd25g-5hpacqd2hpnd",
@@ -9036,11 +9161,6 @@
     },
     {
       "kind": "www-product",
-      "id": "netmetal_ac2",
-      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
-    },
-    {
-      "kind": "www-product",
       "id": "pwr_line_ap",
       "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
     },
@@ -9547,6 +9667,13 @@
       "droppedSource": "www-declared-code"
     },
     {
+      "alias": "netmetal_ax",
+      "kept": "netmetal-ax",
+      "keptSource": "hardware-link",
+      "dropped": "hw-netmetal-ac",
+      "droppedSource": "hardware-link"
+    },
+    {
       "alias": "r11e-lr8",
       "kept": "hw-knot-lr8-kit",
       "keptSource": "www-declared-code",
@@ -9670,6 +9797,13 @@
       "kept": "chateau-lte7",
       "keptSource": "matrix.csv",
       "dropped": "lhgg-lte7-kit",
+      "droppedSource": "www-declared-code"
+    },
+    {
+      "alias": "r11e-lte7",
+      "kept": "chateau-lte7",
+      "keptSource": "matrix.csv",
+      "dropped": "ltap-lte7-kit",
       "droppedSource": "www-declared-code"
     },
     {

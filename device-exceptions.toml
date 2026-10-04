@@ -24,6 +24,11 @@
 #                      given when the /hardware page exists. (THEIR gap, or a slug we can't guess)
 #   accessory        — a user-installable module (LTE/LoRa/wireless miniPCIe), not a standalone
 #                      router/switch/AP; typically has a www product but no /hardware page by nature.
+#
+# www_code is consumed beyond the device map (#155, via src/device-exceptions.ts): assess-www.ts
+# seeds it into its fetch, and extract-hardware-catalog.ts force-attaches that product to the
+# matrix row past the identity-agreement gate, so the row gets specs_json + product-code aliases
+# even with no /hardware page. Only list a www_code a human has verified is THIS device's product.
 
 ["CubeSA 60Pro ac"]
 class = "curated-alias"

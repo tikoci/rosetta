@@ -56,6 +56,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { canon, loadMatrixRows, type MatrixRow, normCode, slugify } from "./assess-hardware.ts";
 import { db, initDb, setDbMeta } from "./db.ts";
+import { exceptionWwwCodeForDevice } from "./device-exceptions.ts";
 import { curatedWwwCodeForSlug } from "./hardware-www-map.ts";
 import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
@@ -99,6 +100,8 @@ export interface HardwarePage {
   category: string | null;
   cause: "matched-by-code" | "matched-by-table" | "matched-by-slug" | "no-product-link" | "unmatched";
   matchedMatrixNames: string[];
+  /** The subset of matchedMatrixNames this page owns by its own slug or title (assess-hardware.ts). */
+  ownMatrixNames: string[];
   /**
    * Raw management IPs that are not literally 192.168.88.1 (assess-hardware.ts). This still
    * includes same-subnet secondaries (`.88.2`/`.88.3`/`.88.0`); the surface-worthy-deviation
@@ -356,7 +359,11 @@ function attributeToken(token: string, candidateNames: string[], matrixRowByName
  *       rows, whose slugs encode EC25-EU&KNe / EG25-G&KNe even though both link the same
  *       (mislabelled) www product;
  *   (2) a product link -> www product -> its declared full "Product code" -> matrix full
- *       code — resolves ROSE Data server (RDS), whose slug carries no code.
+ *       code — resolves ROSE Data server (RDS), whose slug carries no code. Like
+ *       assess-hardware's suppressLinkOnlyClaims(), a hit on a row that another page owns by
+ *       its own slug or title is dropped: /hardware/netmetal-ac (NetMetal ac², off-matrix)
+ *       links netmetal_ax as its "web page", and that link alone must not fold it into the
+ *       NetMetal ax row that /hardware/netmetal-ax owns (#155).
  * Returns matrix row names, or [] when neither mechanism fires.
  */
 function resolveViaDeclaredCode(
@@ -364,6 +371,7 @@ function resolveViaDeclaredCode(
   matrixRows: MatrixRow[],
   matrixByFullCode: Map<string, string>,
   wwwByKey: Map<string, WwwProduct>,
+  ownedRows: Set<string>,
 ): string[] {
   // (1) slug-suffix against a matrix row's full-code slug (>= 6 chars to avoid stubby hits).
   const slugHits = new Set<string>();
@@ -382,7 +390,7 @@ function resolveViaDeclaredCode(
     const declared = www?.specs["Product code"];
     if (!declared) continue;
     const name = matrixByFullCode.get(normCode(declared));
-    if (name) declaredHits.add(name);
+    if (name && !ownedRows.has(name)) declaredHits.add(name);
   }
   return [...declaredHits];
 }
@@ -536,11 +544,12 @@ export function buildCatalog(
   // ── Resolve every page to its effective matrix membership (assess-hardware tiers, then
   //    the declared-code tier for the ones it left unmatched) ──
   const effectiveMatches = new Map<string, string[]>();
+  const ownedRows = new Set(sortedPages.flatMap((p) => p.ownMatrixNames));
   for (const page of sortedPages) {
     const base = page.matchedMatrixNames.filter((n) => matrixRowByName.has(n));
     effectiveMatches.set(
       page.slug,
-      base.length > 0 ? base : resolveViaDeclaredCode(page, sortedMatrix, matrixByFullCode, wwwByKey),
+      base.length > 0 ? base : resolveViaDeclaredCode(page, sortedMatrix, matrixByFullCode, wwwByKey, ownedRows),
     );
   }
 
@@ -643,7 +652,13 @@ export function buildCatalog(
     // tokens are only trusted through the agreement gate inside findAgreeingWww().
     const ownFamily = identSlugs(row.name, row.nameSlug, ...row.subCodes, ...row.codeSlugs, ...slugList);
     const candidateKeys = [row.code, ...row.subCodes, ...(attr ? [...attr.linkTokens, ...attr.tableTokens] : [])];
-    const www = findAgreeingWww(candidateKeys, wwwByKey, ownFamily);
+    // Curated force-attach (device-exceptions.toml), the matrix-row twin of the slug-keyed
+    // hardware-www-map.toml path below: a maintainer verified this device's www product, which
+    // no subcode or /hardware link reaches (e.g. KNOT Gateway HL9 -> knot_gateway_hl, no
+    // /hardware page yet). Resolves only once assess-www has fetched it (it seeds the same codes).
+    const exceptionCode = exceptionWwwCodeForDevice(row.name);
+    const exceptionWww = exceptionCode ? (wwwByKey.get(normCode(exceptionCode)) ?? null) : null;
+    const www = exceptionWww ?? findAgreeingWww(candidateKeys, wwwByKey, ownFamily);
     recordWww(www);
 
     const ownCodes = [...row.subCodes, ...(attr ? [...attr.tableTokens] : [])];

@@ -22,8 +22,8 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import exceptions from "../device-exceptions.toml";
 import { canonForms, loadMatrixRows, type MatrixRow } from "./assess-hardware.ts";
+import { deviceExceptions } from "./device-exceptions.ts";
 import { classifyHardwareKind } from "./hardware-kind.ts";
 import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
@@ -43,13 +43,7 @@ const CHECK_ONLY = process.argv.includes("--check");
 const HW_BASE = "https://manual.mikrotik.com/hardware";
 const WWW_BASE = "https://mikrotik.com/product";
 
-interface Exception {
-  class: "curated-alias" | "no-hardware-page" | "no-www-product" | "accessory";
-  hardware_slug?: string;
-  www_code?: string;
-  note?: string;
-}
-const EXCEPTIONS = exceptions as Record<string, Exception>;
+const EXCEPTIONS = deviceExceptions();
 
 interface HwPage {
   slug: string;
