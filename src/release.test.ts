@@ -43,11 +43,11 @@ function getWorkflowShellFunction(workflow: string, name: string): string {
 describe("package.json", () => {
   const pkg = JSON.parse(readText("package.json"));
 
-  test("version is valid semver, optionally with an alpha/beta/rc prerelease channel suffix", () => {
+  test("version is valid semver, optionally with the -next prerelease channel suffix", () => {
     // release.yml's "Determine npm release channel" step reads this committed
     // value as the single source of truth: a bare MAJOR.MINOR.PATCH means
-    // latest, a -<stage> or -<stage>.N suffix means a prerelease dist-tag.
-    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+(-(alpha|beta|rc)(\.\d+)?)?$/);
+    // latest, a -next or -next.N suffix means the `next` dist-tag (#152).
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+(-next(\.\d+)?)?$/);
   });
 
   test("name is @tikoci/rosetta", () => {
@@ -553,21 +553,34 @@ describe("release.yml", () => {
       expect(channelIdx).toBeLessThan(resolveVersionIdx);
     });
 
-    test("parses a MAJOR.MINOR.PATCH-<stage> or -<stage>.N package.json version into channel/stage outputs", () => {
+    test("parses a MAJOR.MINOR.PATCH-<stage> or -<stage>.N package.json version into channel/npm_tag outputs", () => {
       const channelBlock = src.slice(channelIdx, changelogGateIdx);
       expect(channelBlock).toContain(
         "^([0-9]+\\.[0-9]+\\.[0-9]+)-([A-Za-z]+)(\\.[0-9]+)?$",
       );
       expect(channelBlock).toContain("channel=prerelease");
       expect(channelBlock).toContain("channel=latest");
-      expect(channelBlock).toContain("stage=$STAGE");
+      expect(channelBlock).toContain("npm_tag=next");
+      expect(channelBlock).toContain("npm_tag=latest");
     });
 
-    test("validates the parsed stage against the alpha/beta/rc allowlist, not arbitrary strings", () => {
+    test("accepts only the next prerelease stage; retired alpha/beta/rc fail loudly (#152)", () => {
       const channelBlock = src.slice(channelIdx, changelogGateIdx);
-      expect(channelBlock).toContain("alpha|beta|rc) ;;");
+      expect(channelBlock).toContain('if [ "$STAGE" != "next" ]; then');
       expect(channelBlock).toMatch(/::error::Unrecognized prerelease stage/);
       expect(channelBlock).toContain("exit 1");
+      expect(channelBlock).not.toContain("alpha|beta|rc) ;;");
+    });
+
+    test("a prerelease must be semver-newer than latest before anything builds (#152)", () => {
+      const aheadIdx = mustIndex(src, "Verify prerelease is ahead of latest");
+      expect(channelIdx).toBeLessThan(aheadIdx);
+      expect(aheadIdx).toBeLessThan(changelogGateIdx);
+      const aheadBlock = src.slice(aheadIdx, changelogGateIdx);
+      expect(aheadBlock).toContain("steps.channel.outputs.channel == 'prerelease'");
+      expect(aheadBlock).toContain('npm view "@tikoci/rosetta@latest" version');
+      expect(aheadBlock).toContain("Bun.semver.order('$NEW', '$LATEST')");
+      expect(aheadBlock).toMatch(/::error::Prerelease \$NEW is not newer than latest/);
     });
 
     test("a version matching neither the prerelease nor the bare-semver shape fails loudly instead of silently falling through to latest", () => {
@@ -585,7 +598,7 @@ describe("release.yml", () => {
 
     test("rewrites package.json's version in-place with a run-number suffix for prerelease, workspace-only (not committed)", () => {
       const channelBlock = src.slice(channelIdx, changelogGateIdx);
-      expect(channelBlock).toContain(`\${BASE}-\${STAGE}.\${GITHUB_RUN_NUMBER}`);
+      expect(channelBlock).toContain(`\${BASE}-next.\${GITHUB_RUN_NUMBER}`);
       expect(channelBlock).toContain("fs.writeFileSync('package.json'");
       expect(channelBlock).not.toContain("git add package.json");
       expect(channelBlock).not.toContain("git commit");
@@ -618,12 +631,12 @@ describe("release.yml", () => {
       expect(gateBlock).toMatch(/::error::CHANGELOG\.md has no/);
     });
 
-    test("npm publish uses --tag <stage> for prerelease and adds a next dist-tag; latest is unchanged bare publish", () => {
+    test("npm publish uses --tag next for prerelease; latest publishes bare and moves next only when the decision step says so", () => {
       const publishIdx = mustIndex(src, "Publish to npm");
-      const bunxSmokeIdx = mustIndex(src, "bunx-smoke:");
-      const publishBlock = src.slice(publishIdx, bunxSmokeIdx);
+      const readBackIdx = mustIndex(src, "Read back npm dist-tags");
+      const publishBlock = src.slice(publishIdx, readBackIdx);
       expect(publishBlock).toContain(
-        `npm publish --access public --tag "\${{ needs.build.outputs.stage }}"`,
+        "npm publish --access public --tag next --registry https://registry.npmjs.org/",
       );
       // Reads PKG_NAME from package.json dynamically rather than hardcoding
       // the package name, so a rename can't silently drift out of sync.
@@ -633,18 +646,48 @@ describe("release.yml", () => {
       expect(publishBlock).toContain(
         `npm dist-tag add "\${PKG_NAME}@\${NPM_VERSION}" next`,
       );
+      expect(publishBlock).toContain('if [ "$MOVE_NEXT" = "true" ]; then');
       expect(publishBlock).toContain(
         "npm publish --access public --registry https://registry.npmjs.org/",
       );
     });
 
-    test("OCI tags align with npm scheme: version+sha always, floating stage/next for prerelease, latest only for latest channel, republish never moves floating tags", () => {
+    test("a stable publish moves next only when next is semver-lower; one decision drives npm and OCI (#152)", () => {
+      const decideIdx = mustIndex(src, "Decide whether this run moves next");
+      const ociIdx = mustIndex(src, "Build and push OCI images");
+      const publishIdx = mustIndex(src, "Publish to npm");
+      expect(decideIdx).toBeLessThan(ociIdx);
+      const decideBlock = src.slice(decideIdx, ociIdx);
+      expect(decideBlock).toContain("id: next_tag");
+      expect(decideBlock).toContain('npm view "@tikoci/rosetta@next" version');
+      expect(decideBlock).toContain("Bun.semver.order('$NEW', '$CURRENT')");
+      expect(decideBlock).toContain("code E404");
+      expect(decideBlock).toContain('echo "move=false"');
+      const moveEnv = `MOVE_NEXT: \${{ steps.next_tag.outputs.move }}`;
+      expect(src.slice(ociIdx, publishIdx)).toContain(moveEnv);
+      expect(src.slice(publishIdx)).toContain(moveEnv);
+    });
+
+    test("after publishing, a read-back fails the job unless this run's tag resolves to it and next ≥ latest (#152)", () => {
+      const readBackIdx = mustIndex(src, "Read back npm dist-tags");
+      const skipIdx = mustIndex(src, "Skip npm publish (republish_assets mode)");
+      const readBackBlock = src.slice(readBackIdx, skipIdx);
+      expect(readBackBlock).toContain("if: inputs.republish_assets != true");
+      expect(readBackBlock).toContain("npm view @tikoci/rosetta dist-tags --json");
+      expect(readBackBlock).toContain("Bun.semver.order(tags.next, tags.latest) >= 0");
+      expect(readBackBlock).toContain("own === process.env.NPM_VERSION");
+      expect(readBackBlock).toMatch(/::error::npm dist-tags did not settle/);
+    });
+
+    test("OCI tags align with npm scheme: version+sha always, floating next for prerelease, latest (+next when moved) for latest channel, republish never moves floating tags", () => {
       const ociIdx = mustIndex(src, "Build and push OCI images");
       const smokeIdx = mustIndex(src, "Smoke test published OCI images");
       const ociBlock = src.slice(ociIdx, smokeIdx);
       expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${VERSION}" --tag "\${registry}:sha-\${SHORT_SHA}")`);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${STAGE}" --tag "\${registry}:next")`);
+      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:next")`);
       expect(ociBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
+      expect(ociBlock).toContain('if [ "$MOVE_NEXT" = "true" ]; then');
+      expect(ociBlock).not.toContain("STAGE");
       // republish_assets is read via env: (template-injection guard), not
       // interpolated directly into the `if [ ... ]` shell test.
       expect(ociBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);

@@ -138,7 +138,7 @@ CI auto-promotion was removed by T-0037): before a latest-channel release, a
 human edits `package.json` and promotes `[Unreleased]` to `[VERSION] — DATE`
 by hand; a release-workflow preflight gate fails the run if the heading is
 missing. Agents and developers only ever write to the current `[Unreleased]`
-section. Prerelease (alpha/beta/rc) runs don't promote `[Unreleased]` at all.
+section. Prerelease (`-next`) runs don't promote `[Unreleased]` at all.
 
 ## Creating a Release
 
