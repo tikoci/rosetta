@@ -109,7 +109,7 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
 
-- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (722 videos, ~2,316 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
+- **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (746 videos, ~2,374 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
 
 - **Archived Dude Wiki** — Wayback Machine snapshots cached in `dude/pages/`, exposed through separate Dude tools because the retired GUI docs are not part of current RouterOS v7 help.
 
@@ -164,6 +164,14 @@ make save-videos-cache
 git add transcripts/
 git commit -m "refresh transcript cache YYYY-MM-DD"
 ```
+
+If YouTube answers the scrape with HTTP 429, pass browser cookies through `YTDLP_ARGS`. It holds extra yt-dlp arguments, split on whitespace with no quoting, and they're added to every yt-dlp call:
+
+```sh
+YTDLP_ARGS="--cookies-from-browser firefox" make extract-videos
+```
+
+Use Firefox while logged in to YouTube. It reads cookies without prompting, while Chrome needs a Keychain unlock and Safari needs Full Disk Access for the terminal. If a video still returns 429 with cookies, the block is probably on your IP address: wait and retry, or use a different source IP or proxy (`YTDLP_ARGS="--proxy …"`). yt-dlp's FAQ covers the other options. `YTDLP` still overrides the binary itself.
 
 Release CI consumes committed NDJSON via `make extract-videos-from-cache`; it does not run a live YouTube scrape.
 

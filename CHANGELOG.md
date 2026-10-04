@@ -32,6 +32,10 @@ uses [Semantic Versioning](https://semver.org/).
 - **Hardware catalog: devices without a /hardware page now carry their www specs, and NetMetal ac² is no longer an alias of NetMetal ax (#155).** Curated `device-exceptions.toml` www codes (KNOT Gateway HL9/LR8, LtAP LTE7 kit, Chateau LTE12 (2025), FTC21-ups, CubeSA 60Pro ac, R11e-LTE7) are now fetched and attached to their catalog rows. MikroTik's `/hardware/netmetal-ac` page links `netmetal_ax` as its product page, and that link alone used to fold the discontinued NetMetal ac² into NetMetal ax. It now resolves as its own discontinued device, and NetMetal ax cites its own `/hardware/netmetal-ax` page.
 - **Command explanations omit unrelated, low-confidence property annotations** and warn per argument when no menu-aligned documentation is available. High/medium annotations and property lookup candidates remain available (#147, part of #58).
 
+### Added
+
+- **`YTDLP_ARGS` for the video transcript extractor (#156).** Extra yt-dlp arguments, such as `--cookies-from-browser firefox`, now pass through to every yt-dlp call when YouTube rate-limits an anonymous scrape. The transcript cache is refreshed to 746 videos (24 new).
+
 ### Changed
 
 - **Product matrix refreshed to the 2026-10-03 snapshot (#121).** `devices` and the hardware overlay now read `matrix/2026-10-03/matrix.csv` (155 products). It adds KNOT Gateway HL9 / LR8 and drops Groove 52, LHG XL 5 ac, and SXTsq 5 ac, which MikroTik no longer lists. MikroTik has since published /hardware pages for LAMP 5G R16, LHGG LTE7 kit, SXTsq Embedded LTE4 Global, and SXTsq 5 ax, so these now resolve without curated exceptions. The KNOT and wAP LoRa kits now link their own /hardware and product pages instead of a shared base-board page.

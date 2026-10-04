@@ -22,7 +22,7 @@ import { join } from "node:path";
 // Dynamic imports guarantee that the DB_PATH env-var above wins over Bun's
 // static-import hoisting — same pattern as query.test.ts.
 const { db, initDb } = await import("./db.ts");
-const { downloadTranscript, listPlaylist, saveCache, importCache, loadKnownBad, findLatestCache } =
+const { downloadTranscript, listPlaylist, saveCache, importCache, loadKnownBad, findLatestCache, splitYtdlpArgs } =
   await import("./extract-videos.ts");
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -114,6 +114,37 @@ describe("downloadTranscript", () => {
 });
 
 // ── listPlaylist failure modes ────────────────────────────────────────────────
+
+// ── YTDLP_ARGS passthrough ──────────────────────────────────────────────────
+
+describe("YTDLP_ARGS", () => {
+  test("splitYtdlpArgs splits on whitespace and drops empties", () => {
+    expect(splitYtdlpArgs(undefined)).toEqual([]);
+    expect(splitYtdlpArgs("   ")).toEqual([]);
+    expect(splitYtdlpArgs(" --cookies-from-browser  firefox\t--sleep-requests 1 ")).toEqual([
+      "--cookies-from-browser",
+      "firefox",
+      "--sleep-requests",
+      "1",
+    ]);
+  });
+
+  test("extra args precede the extractor's own args in both yt-dlp calls", () => {
+    const argvFile = join(tmpBase, "argv.txt");
+    const extra = ["--cookies-from-browser", "firefox"];
+    writeMock(mockBin, `printf '%s\\n' "$@" > "${argvFile}"`);
+
+    downloadTranscript("vid1", downloadDir, mockBin, 10_000, extra);
+    const dl = readFileSync(argvFile, "utf-8").trim().split("\n");
+    expect(dl.slice(0, 3)).toEqual([...extra, "--skip-download"]);
+    expect(dl.at(-1)).toBe("https://www.youtube.com/watch?v=vid1");
+
+    listPlaylist("https://example.com", mockBin, 10_000, extra);
+    const ls = readFileSync(argvFile, "utf-8").trim().split("\n");
+    expect(ls.slice(0, 3)).toEqual([...extra, "--flat-playlist"]);
+    expect(ls.at(-1)).toBe("https://example.com");
+  });
+});
 
 describe("listPlaylist", () => {
   test("throws when yt-dlp exits non-zero", () => {
