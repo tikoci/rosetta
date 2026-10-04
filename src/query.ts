@@ -137,13 +137,14 @@ const COMPOUND_TERMS: [string, string][] = [
 export { KNOWN_TOPICS } from "./classify.ts";
 
 function applyContextualTermFilters(terms: string[]): string[] {
-  let filtered = terms;
+  // "set up" is a phrasal verb: as an AND term the particle "up" excludes focused pages
+  // that never use the word (the split DHCP Server page says "setup"/"set", not "up").
+  // Runs first so adjacency is judged on the original order, not after "switch" is dropped.
+  let filtered = terms.filter((term, i) => !(term === "up" && terms[i - 1] === "set"));
   if (filtered.includes("bridge") && filtered.includes("vlan") && filtered.includes("filtering")) {
     filtered = filtered.filter((term) => term !== "switch");
   }
-  // "set up" is a phrasal verb: as an AND term the particle "up" excludes focused pages
-  // that never use the word (the split DHCP Server page says "setup"/"set", not "up").
-  return filtered.filter((term, i) => !(term === "up" && filtered[i - 1] === "set"));
+  return filtered;
 }
 
 function getSpecialSearchHint(question: string): string | undefined {

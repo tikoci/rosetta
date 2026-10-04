@@ -753,6 +753,8 @@ describe("extractTerms", () => {
     expect(extractTerms("interface up event")).toEqual(["interface", "up", "event"]);
     // Both contextual filters apply together.
     expect(extractTerms("how do I set up bridge vlan filtering on a switch")).toEqual(["set", "bridge", "vlan", "filtering"]);
+    // Adjacency is judged before "switch" is dropped: here "up" does not follow "set".
+    expect(extractTerms("set switch up bridge vlan filtering")).toEqual(["set", "up", "bridge", "vlan", "filtering"]);
   });
 
   test("filters terms shorter than 2 characters", () => {
