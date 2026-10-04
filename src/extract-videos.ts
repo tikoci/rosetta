@@ -591,7 +591,11 @@ async function main() {
   }
 
   if (!checkYtDlp()) process.exit(1);
-  if (YTDLP_ARGS_DEFAULT.length > 0) console.log(`YTDLP_ARGS: ${YTDLP_ARGS_DEFAULT.join(" ")}`);
+  // Option names only: a value can be a password or an auth header.
+  if (YTDLP_ARGS_DEFAULT.length > 0) {
+    const names = YTDLP_ARGS_DEFAULT.filter((arg) => arg.startsWith("-")).map((arg) => arg.split("=")[0]);
+    console.log(`YTDLP_ARGS: ${YTDLP_ARGS_DEFAULT.length} extra argument(s) (${names.join(" ") || "no options"}; values not shown)`);
+  }
 
   initDb();
 

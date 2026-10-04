@@ -171,7 +171,7 @@ If YouTube answers the scrape with HTTP 429, pass browser cookies through `YTDLP
 YTDLP_ARGS="--cookies-from-browser firefox" make extract-videos
 ```
 
-Use Firefox while logged in to YouTube. It reads cookies without prompting, while Chrome needs a Keychain unlock and Safari needs Full Disk Access for the terminal. If one video still returns 429 with cookies, the block is IP-level and only waiting helps. `YTDLP` still overrides the binary itself.
+Use Firefox while logged in to YouTube. It reads cookies without prompting, while Chrome needs a Keychain unlock and Safari needs Full Disk Access for the terminal. If a video still returns 429 with cookies, the block is probably on your IP address: wait and retry, or use a different source IP or proxy (`YTDLP_ARGS="--proxy …"`). yt-dlp's FAQ covers the other options. `YTDLP` still overrides the binary itself.
 
 Release CI consumes committed NDJSON via `make extract-videos-from-cache`; it does not run a live YouTube scrape.
 
