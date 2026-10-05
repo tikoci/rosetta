@@ -8,6 +8,7 @@
 # covers all casings. Keep sorted; add a word rather than tolerate noise. British
 # locale variants (normalise, behavioural, …) are also kept here; reserve
 # cspell.json `ignoreWords` for true throwaways (see `behaviour` there).
+abgn
 aboutness
 acd
 acrpsma

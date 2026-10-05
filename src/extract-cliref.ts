@@ -19,7 +19,9 @@
  * in cliref_pages, so a future parser improvement re-reads source without a re-fetch.
  *
  * Usage:
- *   bun run src/extract-cliref.ts                 # live fetch, caches .md to CACHE_DIR
+ *   bun run src/extract-cliref.ts                 # live fetch of every page (never reads
+ *                                                 # the cache); overwrites CACHE_DIR, then
+ *                                                 # prunes pages this run did not discover
  *   bun run src/extract-cliref.ts --from-cache    # re-extract from CACHE_DIR, no network
  *                                                 # (needs _sitemap.txt AND _llms.txt: since
  *                                                 #  #137 both are discovery inputs, not just
@@ -30,6 +32,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
+import { pruneCache } from "./cache-prune.ts";
 import { db, initDb } from "./db.ts";
 import { parseSitemapLocs } from "./rosetta-id.ts";
 
@@ -207,14 +210,18 @@ async function loadTocNames(): Promise<Map<string, string>> {
 
 async function fetchPage(slug: string): Promise<string | null> {
   const file = safeCachePath(cacheName(slug));
-  // Read directly (try/catch) rather than existsSync-then-read, closing the check-then-use
-  // race CodeQL flags and keeping cache-hit the fast path.
-  try {
-    return readFileSync(file, "utf8");
-  } catch {
-    // not cached — fall through
+  if (FROM_CACHE) {
+    // Read directly (try/catch) rather than existsSync-then-read, closing the check-then-use
+    // race CodeQL flags.
+    try {
+      return readFileSync(file, "utf8");
+    } catch {
+      return null;
+    }
   }
-  if (FROM_CACHE) return null;
+  // A live run never reads the cache (#160): every page is re-fetched and its cache file
+  // overwritten. A reused July copy of routing__route.md once kept a section MikroTik had
+  // since removed, so a "live" local build disagreed with CI's empty-cache build (#159).
   const res = await fetch(`${BASE}${CLI_PREFIX}${slug}.md`, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) return null;
   const body = await res.text();
@@ -649,6 +656,14 @@ async function main(): Promise<void> {
   db.run("DELETE FROM cliref_pages;");
   store(pages);
   console.log(`Stored into ${process.env.DB_PATH ?? "ros-help.db"}`);
+
+  // The cache is a record of the last complete live run, so --from-cache reproduces it.
+  // A full live run that got here fetched every discovered page (a missing one threw above);
+  // a --limit run is partial on purpose and must not prune the pages it skipped.
+  if (!FROM_CACHE) {
+    if (LIMIT === undefined) pruneCache(CACHE_DIR, slugs.map(cacheName), ".md");
+    else console.log("Cache not pruned: a --limit run is partial");
+  }
 }
 
 if (import.meta.main) {

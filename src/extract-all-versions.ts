@@ -22,6 +22,7 @@ import {
   fetchWithRetry,
   isHttpUrl,
   RESTRAML_PAGES_URL,
+  type RetryOptions,
 } from "./restraml.ts";
 
 const SOURCE = process.argv[2];
@@ -72,8 +73,8 @@ function compareVersions(a: string, b: string): number {
  * the retries throws, rather than silently downgrading a version from deep-inspect to
  * legacy inspect.json the way the old `.catch(() => false)` did.
  */
-async function probeExists(url: string): Promise<boolean> {
-  const response = await fetchWithRetry(url, { method: "HEAD" });
+export async function probeExists(url: string, retry: RetryOptions = {}): Promise<boolean> {
+  const response = await fetchWithRetry(url, { method: "HEAD" }, retry);
   if (response.ok) return true;
   if (response.status === 404) return false;
   throw new Error(`HEAD ${url}: HTTP ${response.status}`);

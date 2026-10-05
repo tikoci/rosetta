@@ -19,7 +19,8 @@
  * of a series page's device membership.
  *
  * Usage:
- *   bun run src/assess-hardware.ts                    # live fetch, caches HTML to CACHE_DIR
+ *   bun run src/assess-hardware.ts                    # live fetch, caches HTML to CACHE_DIR and
+ *                                                     # prunes cached pages the run did not discover
  *   bun run src/assess-hardware.ts --from-cache        # re-analyze from CACHE_DIR, no network
  *   bun run src/assess-hardware.ts --limit=25          # cap page count (smoke-testing)
  *   bun run src/assess-hardware.ts --matrix=path.csv   # override matrix.csv path
@@ -28,6 +29,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
+import { pruneCache } from "./cache-prune.ts";
 import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 import { loadSitemapUrls } from "./rosetta-id.ts";
 
@@ -897,6 +899,13 @@ async function main() {
   const outPath = resolve(PROJECT_ROOT, "ros-hardware-assessment.json");
   await Bun.write(outPath, JSON.stringify(summary, null, 2));
   console.log(`\nFull assessment written to ${outPath}`);
+
+  // The cache is a record of the last complete live run: --from-cache discovers pages by
+  // listing the cache dir, so a /hardware page MikroTik deleted would otherwise linger (#154).
+  if (!FROM_CACHE) {
+    if (!LIMIT && fetchErrors === 0) pruneCache(DEFAULT_CACHE_DIR, slugs.map((s) => `${s}.html`), ".html");
+    else console.log(`Cache not pruned: partial run (${LIMIT ? "--limit" : `${fetchErrors} fetch error(s)`})`);
+  }
 }
 
 if (import.meta.main) {

@@ -44,6 +44,8 @@ export function releaseChanges(changelog: string, version: string): string {
     const since = lastReleasedVersion(changelog);
     const title = since ? `## Changes since ${since} (unreleased)` : "## Unreleased changes";
     const block = changelogBlock(changelog, "Unreleased");
+    // A missing heading is a broken CHANGELOG, not "nothing changed" — fail like the stable path.
+    if (block === null) throw new Error('CHANGELOG.md has no "## [Unreleased]" heading');
     return `${title}\n\n${block || "_No unreleased changes are recorded in CHANGELOG.md._"}`;
   }
   const block = changelogBlock(changelog, bare);

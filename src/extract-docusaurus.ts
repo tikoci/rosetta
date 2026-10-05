@@ -16,7 +16,8 @@
  * "H7 — Identity / rosetta-id design").
  *
  * Usage:
- *   bun run src/extract-docusaurus.ts                  # live fetch, caches .md to CACHE_DIR
+ *   bun run src/extract-docusaurus.ts                  # live fetch, caches .md to CACHE_DIR and
+ *                                                      # prunes cached pages the run did not discover
  *   bun run src/extract-docusaurus.ts --from-cache      # re-extract from CACHE_DIR, no network
  *   bun run src/extract-docusaurus.ts --limit=25        # cap page count (smoke-testing)
  *   bun run src/extract-docusaurus.ts --check-counts    # compare extracted count vs llms.txt (non-blocking)
@@ -25,6 +26,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
+import { pruneCache } from "./cache-prune.ts";
 import { db, initDb } from "./db.ts";
 import { deriveRosettaId, loadSitemapUrls, rosettaIdToUrl } from "./rosetta-id.ts";
 
@@ -885,7 +887,7 @@ export function parseLlmsTxtInScopeCount(llmsTxt: string): number {
   return links.filter((u) => isInScopeDocsUrl(u)).length;
 }
 
-async function checkCounts(extractedCount: number): Promise<boolean> {
+async function checkCounts(extractedCount: number): Promise<"match" | "mismatch" | "skipped"> {
   try {
     const res = await fetch(LLMS_TXT_URL, { signal: AbortSignal.timeout(10_000) });
     // Don't parse an error page as if it were llms.txt — a non-2xx here would yield a
@@ -896,13 +898,13 @@ async function checkCounts(extractedCount: number): Promise<boolean> {
     const expected = parseLlmsTxtInScopeCount(llmsTxt);
     const ok = expected === extractedCount;
     console.log(`\nCount cross-check (V-docusaurus-docs-count${STRICT ? "" : ", non-blocking"}): llms.txt in-scope=${expected}, extracted=${extractedCount} — ${ok ? "MATCH" : "MISMATCH"}`);
-    return ok;
+    return ok ? "match" : "mismatch";
   } catch (e) {
     console.log(`\nCount cross-check skipped (fetch failed): ${e}`);
     // Plain --check-counts (local/manual) stays soft: a network blip shouldn't fail
     // a dev run. But --strict is release.yml's blocking use (V-docusaurus-docs-count) —
-    // there, a skipped cross-check must not silently read as a pass.
-    return !STRICT;
+    // there, a skipped cross-check must not silently read as a pass (see main()).
+    return "skipped";
   }
 }
 
@@ -1216,9 +1218,21 @@ async function main() {
     process.exit(1);
   }
 
-  if (CHECK_COUNTS) {
-    const ok = await checkCounts(parsedPages.length);
-    if (!ok && STRICT) process.exit(1);
+  const counts = CHECK_COUNTS ? await checkCounts(parsedPages.length) : "match";
+  if (counts !== "match" && STRICT) process.exit(1);
+  // Non-strict runs carry on after a mismatch or a skipped check, but don't prune on one.
+  const countsOk = counts === "match";
+
+  // The cache is a record of the last complete live run: --from-cache discovers pages by
+  // listing CACHE_DIR, so a page upstream deleted would otherwise be re-extracted forever.
+  // Only a complete run prunes — --limit skips pages on purpose, a fetch error leaves that
+  // page's older cache file in place, and a failed count check keeps the cache for a retry.
+  if (!FROM_CACHE) {
+    if (!LIMIT && fetchErrors === 0 && countsOk) pruneCache(CACHE_DIR, rosettaIds.map((id) => `${id}.md`), ".md");
+    else {
+      const why = LIMIT ? "--limit" : fetchErrors > 0 ? `${fetchErrors} fetch error(s)` : `count check ${counts}`;
+      console.log(`Cache not pruned: partial run (${why})`);
+    }
   }
 }
 

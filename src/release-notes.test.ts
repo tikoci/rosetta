@@ -60,6 +60,10 @@ describe("releaseChanges", () => {
     expect(body).toBe("## Changes since 1.0.0 (unreleased)\n\n_No unreleased changes are recorded in CHANGELOG.md._");
   });
 
+  test("a -next release without an [Unreleased] heading fails loudly", () => {
+    expect(() => releaseChanges("## [1.0.0]\n- x\n", "1.0.1-next.5")).toThrow('no "## [Unreleased]" heading');
+  });
+
   test("a latest release without a heading fails loudly", () => {
     expect(() => releaseChanges(CHANGELOG, "1.2.3")).toThrow('no "## [1.2.3]" heading');
   });

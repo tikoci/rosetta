@@ -7,15 +7,17 @@
  * caches raw HTML to dude/pages/, and populates dude_pages + dude_images tables.
  *
  * Usage:
- *   bun run src/extract-dude.ts              # Fetch from Wayback Machine + download images
- *   bun run src/extract-dude.ts --from-cache # Re-extract from cached dude/pages/ HTML
- *   bun run src/extract-dude.ts --from-cache --skip-images  # CI path: no image download
- *   bun run src/extract-dude.ts --force      # Force re-download even if cached
+ *   bun run src/extract-dude.ts              # Re-fetch every page from Wayback (overwrites and
+ *                                            # prunes dude/pages/) + download missing images
+ *   bun run src/extract-dude.ts --from-cache # Re-extract from cached dude/pages/ HTML; no network,
+ *                                            # so no image download (implies --skip-images)
+ *   bun run src/extract-dude.ts --force      # Also re-download images already in dude/images/
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseHTML } from "linkedom";
+import { pruneCache } from "./cache-prune.ts";
 import { db, initDb } from "./db.ts";
 
 // ── Configuration ──
@@ -26,8 +28,12 @@ const IMAGES_DIR = join(PROJECT_ROOT, "dude", "images");
 const FETCH_DELAY_MS = 500;
 
 const FROM_CACHE = process.argv.includes("--from-cache");
+// Images only: pages are always re-fetched on a live run, but an image already in
+// dude/images/ is kept unless --force. Images are display assets, not extraction input —
+// dude_images rows come from the page HTML either way.
 const FORCE = process.argv.includes("--force");
-const SKIP_IMAGES = process.argv.includes("--skip-images");
+// --from-cache is an offline contract (#160), so it never downloads images either.
+const SKIP_IMAGES = process.argv.includes("--skip-images") || FROM_CACHE;
 
 /** Page definition: wiki path suffix → metadata */
 interface PageDef {
@@ -315,6 +321,39 @@ async function main() {
   mkdirSync(PAGES_DIR, { recursive: true });
   mkdirSync(IMAGES_DIR, { recursive: true });
 
+  // Load every page before touching the DB. A live run that loses one page to a Wayback
+  // error then fails with dude_pages untouched, instead of exiting 0 with a partial table.
+  const pages: Array<{ pageDef: (typeof ALL_PAGES)[number]; html: string }> = [];
+  let errorCount = 0;
+  for (const pageDef of ALL_PAGES) {
+    const cacheFile = join(PAGES_DIR, `${pageDef.slug}.html`);
+    // A live run never reads the page cache (#160): every page is re-fetched and its cache
+    // file overwritten, so dude/pages/ is a record of the last live run.
+    if (FROM_CACHE) {
+      if (!existsSync(cacheFile)) {
+        console.log(`  SKIP (no cache): ${pageDef.slug}`);
+        continue;
+      }
+      pages.push({ pageDef, html: readFileSync(cacheFile, "utf-8") });
+      console.log(`  [cache] ${pageDef.slug}`);
+    } else {
+      console.log(`  [fetch] ${pageDef.slug} ...`);
+      try {
+        const response = await fetchWithRetry(waybackUrl(pageDef.wikiPath));
+        const html = await response.text();
+        writeFileSync(cacheFile, html);
+        pages.push({ pageDef, html });
+        await delay(FETCH_DELAY_MS);
+      } catch (e) {
+        console.log(`  ERROR: ${pageDef.slug}: ${e}`);
+        errorCount++;
+      }
+    }
+  }
+  if (errorCount > 0) {
+    throw new Error(`${errorCount} page fetch(es) failed; dude_pages left unchanged and the cache not pruned`);
+  }
+
   // Idempotent: clear existing data
   db.run("DELETE FROM dude_images");
   db.run("DELETE FROM dude_pages");
@@ -330,38 +369,10 @@ async function main() {
 
   let pageCount = 0;
   let imageCount = 0;
-  let errorCount = 0;
 
-  for (const pageDef of ALL_PAGES) {
-    const cacheFile = join(PAGES_DIR, `${pageDef.slug}.html`);
+  for (const { pageDef, html } of pages) {
     const wbUrl = waybackUrl(pageDef.wikiPath);
     const originalUrl = `${WIKI_BASE}${pageDef.wikiPath}`;
-
-    let html: string;
-
-    if (FROM_CACHE || (existsSync(cacheFile) && !FORCE)) {
-      // Read from cache
-      if (!existsSync(cacheFile)) {
-        console.log(`  SKIP (no cache): ${pageDef.slug}`);
-        continue;
-      }
-      html = readFileSync(cacheFile, "utf-8");
-      console.log(`  [cache] ${pageDef.slug}`);
-    } else {
-      // Fetch from Wayback Machine
-      console.log(`  [fetch] ${pageDef.slug} ...`);
-      try {
-        const response = await fetchWithRetry(wbUrl);
-        html = await response.text();
-        // Cache the raw HTML
-        writeFileSync(cacheFile, html);
-        await delay(FETCH_DELAY_MS);
-      } catch (e) {
-        console.log(`  ERROR: ${pageDef.slug}: ${e}`);
-        errorCount++;
-        continue;
-      }
-    }
 
     // Parse HTML
     const parsed = parseDudePage(html, wbUrl);
@@ -439,6 +450,11 @@ async function main() {
   const stats = db.prepare("SELECT COUNT(*) AS c FROM dude_pages").get() as { c: number };
   const imgStats = db.prepare("SELECT COUNT(*) AS c FROM dude_images").get() as { c: number };
   console.log(`DB: ${stats.c} dude_pages, ${imgStats.c} dude_images`);
+
+  // Prune page HTML for any slug no longer in ALL_PAGES, so --from-cache (the CI path)
+  // reproduces this run. A live run only gets here with every page fetched.
+  // dude/images/ is not pruned — it is a download target, not an extraction input.
+  if (!FROM_CACHE) pruneCache(PAGES_DIR, ALL_PAGES.map((p) => `${p.slug}.html`), ".html");
 }
 
 if (import.meta.main) {
