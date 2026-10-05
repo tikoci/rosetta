@@ -9,8 +9,8 @@
  * Usage:
  *   bun run src/extract-dude.ts              # Re-fetch every page from Wayback (overwrites and
  *                                            # prunes dude/pages/) + download missing images
- *   bun run src/extract-dude.ts --from-cache # Re-extract from cached dude/pages/ HTML, no network
- *   bun run src/extract-dude.ts --from-cache --skip-images  # CI path: no image download
+ *   bun run src/extract-dude.ts --from-cache # Re-extract from cached dude/pages/ HTML; no network,
+ *                                            # so no image download (implies --skip-images)
  *   bun run src/extract-dude.ts --force      # Also re-download images already in dude/images/
  */
 
@@ -32,7 +32,8 @@ const FROM_CACHE = process.argv.includes("--from-cache");
 // dude/images/ is kept unless --force. Images are display assets, not extraction input —
 // dude_images rows come from the page HTML either way.
 const FORCE = process.argv.includes("--force");
-const SKIP_IMAGES = process.argv.includes("--skip-images");
+// --from-cache is an offline contract (#160), so it never downloads images either.
+const SKIP_IMAGES = process.argv.includes("--skip-images") || FROM_CACHE;
 
 /** Page definition: wiki path suffix → metadata */
 interface PageDef {

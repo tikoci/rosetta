@@ -183,15 +183,22 @@ async function main() {
         const res = await fetchProductHtml(code);
         status = res.status;
         html = res.html;
-        // Cache both hits and misses (empty file = confirmed 404) so --from-cache reruns
-        // don't re-treat a known-404 candidate as "never checked".
-        writeFileSync(cacheFile, html);
         await delay(FETCH_DELAY_MS);
       } catch (e) {
         console.log(`  ERROR: ${code}: ${e}`);
         fetchErrors++;
         continue;
       }
+      // Only a 200 or a 404 is an answer. A 429/5xx is a failed fetch: don't cache it as
+      // a "confirmed 404", and count it so the run doesn't prune the last good cache.
+      if (status !== 200 && status !== 404) {
+        console.log(`  ERROR: ${code}: HTTP ${status}`);
+        fetchErrors++;
+        continue;
+      }
+      // Cache both hits and misses (empty file = confirmed 404) so --from-cache reruns
+      // don't re-treat a known-404 candidate as "never checked".
+      writeFileSync(cacheFile, html);
       if (status !== 200) {
         notFound.push(code);
         continue;
