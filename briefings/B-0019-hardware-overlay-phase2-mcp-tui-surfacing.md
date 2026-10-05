@@ -1,13 +1,13 @@
 ---
 id: B-0019-hardware-overlay-phase2-mcp-tui-surfacing
 topic: Hardware overlay Phase 2 — surfacing hardware_catalog + device_aliases in MCP/TUI (design pre-plan for #39)
-status: open
+status: resolved
 related_tasks:
   - "#39"
   - "#28"
   - "#27"
 created: 2026-07-12
-last_revisited: 2026-07-12
+last_revisited: 2026-10-04
 ---
 
 # Question

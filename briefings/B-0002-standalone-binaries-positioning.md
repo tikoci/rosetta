@@ -1,10 +1,10 @@
 ---
 id: B-0002-standalone-binaries-positioning
 topic: How aggressively should we de-emphasize standalone compiled binaries?
-status: open
+status: resolved
 related_tasks: []
 created: 2026-05-02
-last_revisited: 2026-05-02
+last_revisited: 2026-10-04
 ---
 
 # Question
@@ -27,7 +27,11 @@ Should README/MANUAL further de-emphasize the compiled binaries to reduce Gateke
 
 Option 2 — bunx-first, binaries below. Don't hide them; people legitimately want them for air-gapped or no-Bun environments.
 
-# Open questions
+# Decision (2026-10-04)
+
+Resolved by what the docs already do: the README leads with `bunx` and doesn't mention the compiled binaries at all; `MANUAL.md` keeps them first-class for no-Bun / air-gapped use, with the macOS Gatekeeper workaround next to the download table. That's option 2 leaning toward 1, and nobody has reported binary friction since. Reopen only if a support pattern shows up.
+
+# Open questions (historical)
 
 - Are there real users running rosetta from a binary today? Telemetry-free project, so this is judgment.
 - Would documenting a "right-click → Open" flow for first launch close most of the gap without removing binaries?

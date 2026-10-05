@@ -10,7 +10,7 @@ uses [Semantic Versioning](https://semver.org/).
 > is a manual step, done by hand alongside the `package.json` version bump
 > before dispatching a latest-channel release (see `MANUAL.md` "Release
 > Workflow") — CI no longer auto-bumps versions or auto-promotes CHANGELOG on
-> any channel. Prerelease (`alpha`/`beta`/`rc`) release runs never promote
+> any channel. Prerelease (`-next`) release runs never promote
 > `[Unreleased]` either, since they don't represent the next stable version.
 > CI-only auto-bumps and pure refactors with no external effect are
 > intentionally omitted — git history is authoritative for those.

@@ -4,7 +4,7 @@ topic: The command↔prose join — `commands.page_id` is a page-level proxy for
 status: open
 related_tasks: ["#58", "#61", "#131", "#132", "#100", "#25", "B-0001", "B-0011", "B-0016", "B-0023"]
 created: 2026-07-31
-last_revisited: 2026-08-01
+last_revisited: 2026-10-04
 ---
 
 # Question
@@ -756,6 +756,14 @@ Two findings that were not in #132 as filed:
   Type-as-description.
 
 # Open questions
+
+> **2026-10-04 status:** #58 and #61, the two symptom issues this briefing re-anchored, are closed. Their
+> symptoms are answered by exact CLI-Reference rows (#170–#172), not by repairing `commands.page_id`. The
+> store question that step 6 raised ("what is the missing row") partly has its answer in
+> `briefings/B-0025-property-description-store-of-record.md`: for menus MikroTik moved into the CLI
+> Reference, the overlay *is* the exact join. The open questions below still apply to the menus the
+> overlay describes poorly (`/interface` 36%, `/caps-man` 0%), and #131 still owns the ranker remnant.
+
 
 - ~~**Is fragment-grained path extraction precise *and fine* enough to be the key?**~~ **Answered: no —
   precise enough (75.6% conditional), not fine enough (42.7% barren sections, 63.6% of rows sharing a

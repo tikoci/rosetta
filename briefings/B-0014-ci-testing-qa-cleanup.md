@@ -1,10 +1,10 @@
 ---
 id: B-0014-ci-testing-qa-cleanup
 topic: CI is release-workflow-locked, not PR/main-gated — QA cleanup plan before scaling B-0012 testing
-status: open
+status: resolved
 related_tasks: []
 created: 2026-07-07
-last_revisited: 2026-07-07
+last_revisited: 2026-10-04
 ---
 
 # Question
@@ -191,7 +191,11 @@ regardless of what else gets picked.
   would unlock, and it's genuine new scope, not a rediscovery of something
   that already works.
 
-## Current lean
+## Decision (2026-10-04)
+
+Resolved. The plan in the 2026-07-08 follow-up shipped in the order the maintainer set: the npm prerelease channel (E, since collapsed to `latest` + `next` by #152), a dispatchable reusable `qa.yml` that `release.yml` calls (B), `test.yml` gating every PR and push to `main`, `main` branch protection with the review gates, and **coverage reporting (D)**: `release.yml` runs `bun test --coverage`, writes the table to the step summary and uploads `coverage-lcov` (`VALIDATION.md` → `V-coverage-reported`, informational, no threshold). The old-vs-new corpus parity check (item 6) was answered by `src/eval/corpus-compare.ts` in B-0020.
+
+## Current lean (historical)
 
 1. **Coverage reporting (D) first.** Cheapest, non-invasive, and the data it
    produces should inform everything downstream rather than guessing.
