@@ -22,9 +22,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.3] — 2026-10-05
+
 ### Fixed
 
-- **A release can no longer ship with a RouterOS version missing (#178).** `0.11.3-next.116` shipped without any command data for 7.15: one transient GitHub Pages 503 failed that version's extraction, and the build carried on. So on that build, `routeros_command_version_check` and `routeros_command_diff` gave wrong answers for 7.15. restraml fetches now retry server errors, a failed version fails the build, and the release gate checks that every listed version has command data. This build supersedes next.116.
+- **A release can no longer ship with a RouterOS version missing (#178).** One transient GitHub Pages 503 could fail a single version's command extraction while the build carried on, leaving `routeros_command_version_check` and `routeros_command_diff` wrong for that version. restraml fetches now retry server errors, a failed version fails the build, and the release gate checks that every listed version has command data.
 - **`bunx @tikoci/rosetta` runs under Bun in one process (#175).** Every launch printed "Note: rosetta requires the Bun runtime. Attempting to run via bun..." and then started a second process, because `bunx` runs a file with a `node` shebang under Node. The entry point now has a `bun` shebang. `npx` without Bun now fails with `env: bun: No such file or directory`; it was never supported.
 - **A slow npm registry no longer skips the install smoke (#176).** The npm dist-tag read-back now runs as its own job with a 15-minute budget. The three-OS `bunx` install and upgrade smoke jobs no longer wait for it, and they can be dispatched on their own (`release-smoke.yml`) against an already-published version.
 - **Dotted Wi-Fi settings get documentation (#58/#61 BL-3).** `channel.width`, `security.authentication-types`, `configuration.mode` and `configuration.manager` on `/interface/wifi` returned `unknown-arg`. The manual's Wi-Fi page documents all four under their sub-menus, for example `width` under `/interface/wifi/channel`. The CLI Reference lists the first three there, without descriptions, and doesn't list `configuration.manager`. A dotted name with no answer at its own menu is now looked up as its last segment under the sub-menu the other segments name. Across the command tree, answered dotted settings rose from 140 to 271 of 539, 128 of them with manual descriptions. `unknown-arg` also no longer claims that MikroTik's documentation doesn't list a setting. It says rosetta matched nothing, which is a lookup gap and not proof that the argument is invalid.
@@ -756,7 +758,8 @@ Initial public release.
   dev / package at `~/.rosetta/`).
 - Bun tests for the query planner + schema health.
 
-[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.11.2...HEAD
+[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.11.3...HEAD
+[0.11.3]: https://github.com/tikoci/rosetta/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/tikoci/rosetta/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/tikoci/rosetta/compare/v0.11.0...v0.11.1
 [0.11.0]: https://github.com/tikoci/rosetta/compare/v0.10.0...v0.11.0
