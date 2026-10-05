@@ -160,11 +160,17 @@ loosening: its top row is the exact `/ip/firewall/filter` definition at `high`.
 # Still open (backlog review)
 
 - **B as the end state, or D as the direction.** D matches the layering in `DESIGN.md` and the
-  "rosetta surfaces prose" role, and it would decide B-0011 rather than defer it.
+  "rosetta surfaces prose" role, and it would decide B-0011 rather than defer it. **2026-10-04:** B
+  stays for now. Deciding between B and D, and with it whether `routeros_lookup_property` retires
+  (B-0011), needs cross-repo planning first: `centrs` owns exact command validation, and
+  `lsp-routeros-ts` consumes descriptions, so rosetta's answer shape should be agreed with both rather
+  than chosen here alone. 0.12 scope, since either way it changes tool output.
 - **The 69 + 942 `manual / high` rows** beside an exact overlay row. Under B these keep the manual
   answer. That is right while `high` means "the section names this menu", but 69 of them have a
-  described overlay alternative that nobody has compared.
-- ~~**Dotted names.**~~ **Done (next.116 candidate).** `lookupProperty` retries a dotted name with no
+  described overlay alternative that nobody has compared. **2026-10-04: measure next.** List the 69 with
+  both descriptions side by side and classify each (manual better / overlay better / equivalent / wrong
+  menu) before deciding anything. That is read-only homework on a release DB.
+- ~~**Dotted names.**~~ **Done (#172, shipped in next.116).** `lookupProperty` retries a dotted name with no
   answer at its own menu as the last segment under the sub-menu the other segments name
   (`channel.width` → `width` at `/interface/wifi/channel`). It runs the full lookup there, so the
   manual counts too, not only the overlay. On next.115, answered dotted (menu, arg) pairs rose from
@@ -172,4 +178,12 @@ loosening: its top row is the exact `/ip/firewall/filter` definition at `high`.
   honest `no-description`. The consumer found this after next.115's `unknown-arg` rewording
   claimed these settings weren't listed at all. That wording now says what rosetta did: "matched
   nothing", which is a lookup gap, not proof the argument is invalid.
-- **#58, #61 and #100 dispositions** in light of the table above.
+- ~~**#58, #61 and #100 dispositions**~~ **Done 2026-10-04.** #58 and #61 closed: every filed symptom
+  is answered through #170–#172 (the firewall anchor resolves from the exact overlay row; "known,
+  undocumented" shipped as `no-description`; dotted names map to their sub-menu). #100 re-grounded:
+  the DNS adlist table is now covered by described overlay rows, and the remaining value is
+  `route-selection-and-filtering`'s two rule-language property tables, which the CLI Reference will
+  never cover. They need grounding against a real router before extraction, plus a decision on where
+  rule-language rows attach. #25 is unblocked (CLI-Reference rows are "current" = stable at build time).
+  Version coverage per data kind, and the "old version → suggest upgrade, centrs for exact
+  validation" framing, is #174.

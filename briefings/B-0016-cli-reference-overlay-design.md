@@ -10,7 +10,7 @@ related_tasks:
   - "#131"
   - "B-0024"
 created: 2026-07-10
-last_revisited: 2026-07-31
+last_revisited: 2026-10-04
 ---
 
 # Question
@@ -321,7 +321,7 @@ source semantics and overlay multiplicity.
    module segment (`caps-man/acl/access-list` → `/caps-man/access-list`). Keep the source path unchanged
    and represent exact/alias resolution in `cliref_entry_schema_links`. See "Join-key robustness" and
    "Second-pass schema and export review" above.
-3. **Quasi-provenance format.** #25 proposes text like *"applies to stable; current stable at import time
+3. ~~**Quasi-provenance format.**~~ **Answered 2026-10-04 (maintainer, on #25): keep it simple.** An overlay row is MikroTik's *current* manual, and "current" means the stable release at build time, read from `upgrade.mikrotik.com/routeros/NEWESTa7.stable` during extraction and stamped once into build provenance with the fetch date, not per row. Versioned manual URLs (`/docs/7.24/…`) are deliberately not used until MikroTik forks 7.25 into its own manual release (BACKLOG trigger). Original question: #25 proposes text like *"applies to stable; current stable at import time
    was X.Y"* — needs an exact column (or JSON shape) and a defined source for "current stable at import
    time" (restraml's own version detection? a live `/system/package/update` style check? hardcoded at
    extraction time?).
@@ -454,8 +454,8 @@ Four findings worth carrying forward:
 The `fixtures/cli-reference/sample.md` fixture deliberately keeps the historical multi-entry shape: it
 is what proves intra-page heading ancestry still parses, which no live page currently exercises.
 
-The briefing therefore stays `open` **only** for the genuinely unresolved work: **Q3** (quasi-provenance
-format — now owned by [#25](https://github.com/tikoci/rosetta/issues/25) rather than being a precursor),
+The briefing therefore stays `open` **only** for the genuinely unresolved work: ~~**Q3**~~ (answered
+2026-10-04 on [#25](https://github.com/tikoci/rosetta/issues/25), see above),
 **Q5** (agent surfacing — partially answered 2026-07-31 by B-0024's bounded `(path, name)` validation,
 but the wider "how do `Conditions`/`Syscap`/`Package` reach an agent" question is untouched), **Q7**
 (is the alias list closed — pending its `VALIDATION.md` row), and **Q8** (how read-only arguments
@@ -464,6 +464,6 @@ surface).
 ## Open questions
 
 See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled **and implemented**;
-3, 5, 7, and 8 remain (7 now has a concrete ambiguity policy — manual-only + loud validation — pending
+3 is decided (2026-10-04, implementation tracked on #25); 5, 7, and 8 remain (7 now has a concrete ambiguity policy — manual-only + loud validation — pending
 only its `VALIDATION.md` row). Next revisit trigger: an answer to Q3 on #25, or any upstream docs
 rebuild that changes the page count away from 228.

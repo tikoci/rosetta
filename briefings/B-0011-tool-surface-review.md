@@ -4,7 +4,7 @@ topic: Audit the 14-tool MCP surface for consolidation candidates
 status: open
 related_tasks: ["#131", "#132", "B-0001", "B-0024"]
 created: 2026-05-02
-last_revisited: 2026-07-31
+last_revisited: 2026-10-04
 ---
 
 # Question
@@ -37,6 +37,14 @@ Are any of the current 14 MCP tools redundant, under-used, or candidates for con
   reports. Folding now would launder it. Order of operations: **fix the join, recalibrate confidence,
   then decide the surface.** See `briefings/B-0024-command-prose-join.md` and B-0001's revisit trigger.
   This does not change the lean; it blocks acting on it until B-0024 step 3 has data.
+
+  **2026-10-04: the premise above moved.** "manual.mikrotik.com prose is still the only source of
+  narrative property descriptions" is no longer true: MikroTik moved many property tables into the CLI
+  Reference, and #170 / #171 answer from it (B-0025). For the menus the CLI Reference covers, an exact
+  (menu, field) row *is* the join, so the B-0024 precondition may no longer be what gates this fold.
+  Whether to retire, keep, or reshape `routeros_lookup_property` is now B-0025's "B as end state or D"
+  question, to be decided with cross-repo planning (centrs owns exact validation, lsp-routeros-ts
+  consumes descriptions), not in isolation. 0.12 scope.
 
 # Method for the audit
 
