@@ -465,5 +465,6 @@ surface).
 
 See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled **and implemented**;
 3 is decided (2026-10-04, implementation tracked on #25); 5, 7, and 8 remain (7 now has a concrete ambiguity policy — manual-only + loud validation — pending
-only its `VALIDATION.md` row). Next revisit trigger: an answer to Q3 on #25, or any upstream docs
+only its `VALIDATION.md` row). Next revisit trigger: the #25 implementation of the Q3 decision (the
+first user-visible provenance shape is Q5's answer too), Q7's `VALIDATION.md` row, or any upstream docs
 rebuild that changes the page count away from 228.

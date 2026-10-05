@@ -193,7 +193,7 @@ regardless of what else gets picked.
 
 ## Decision (2026-10-04)
 
-Resolved. The plan in the 2026-07-08 follow-up shipped in the order the maintainer set: the npm prerelease channel (E, since collapsed to `latest` + `next` by #152), a dispatchable reusable `qa.yml` that `release.yml` calls (B), `test.yml` gating every PR and push to `main`, and `main` branch protection with the review gates. The one item never done is **coverage reporting (D)**, which was meant to ride along with whichever workflow was being touched. It isn't tracked separately; promote it when a coverage question actually comes up. The old-vs-new corpus parity check (item 6) was answered by `src/eval/corpus-compare.ts` in B-0020.
+Resolved. The plan in the 2026-07-08 follow-up shipped in the order the maintainer set: the npm prerelease channel (E, since collapsed to `latest` + `next` by #152), a dispatchable reusable `qa.yml` that `release.yml` calls (B), `test.yml` gating every PR and push to `main`, `main` branch protection with the review gates, and **coverage reporting (D)**: `release.yml` runs `bun test --coverage`, writes the table to the step summary and uploads `coverage-lcov` (`VALIDATION.md` → `V-coverage-reported`, informational, no threshold). The old-vs-new corpus parity check (item 6) was answered by `src/eval/corpus-compare.ts` in B-0020.
 
 ## Current lean (historical)
 
