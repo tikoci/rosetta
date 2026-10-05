@@ -60,27 +60,31 @@ export interface RetryOptions {
   fetchImpl?: typeof fetch;
 }
 
+/** Thrown from a `read` callback to stop retrying (e.g. a 404). */
+class FatalFetchError extends Error {}
+
 /**
- * fetch() that retries network errors and 5xx responses with exponential backoff.
- * GitHub Pages serves routine transient 503s; one of those dropped 7.15 from a
- * release (#178). Other statuses (404 and friends) return immediately so the caller
- * can fail on them. Each attempt gets its own timeout unless the caller passes a
- * signal. After the last attempt the final response is returned (or the
- * final network error thrown) for the caller to handle.
+ * One attempt loop for status, network and body failures: GitHub Pages serves routine
+ * transient 503s, and one of those dropped 7.15 from a release (#178). A network error,
+ * a timeout, a 5xx, or a failure inside `read` (a reset or truncated body) retries with
+ * exponential backoff, up to `attempts` requests in total. A non-5xx response goes
+ * straight to `read`, which throws FatalFetchError to fail at once. Each attempt gets
+ * its own timeout, covering the body read, unless the caller passes a signal.
  */
-export async function fetchWithRetry(
+async function withRetry<T>(
   url: string,
-  init: RequestInit = {},
-  { attempts = 4, baseDelayMs = 1000, timeoutMs = 120_000, fetchImpl = fetch }: RetryOptions = {},
-): Promise<Response> {
+  init: RequestInit,
+  { attempts = 4, baseDelayMs = 1000, timeoutMs = 120_000, fetchImpl = fetch }: RetryOptions,
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
   for (let attempt = 1; ; attempt++) {
     const last = attempt >= attempts;
     try {
       const response = await fetchImpl(url, { ...init, signal: init.signal ?? AbortSignal.timeout(timeoutMs) });
-      if (response.status < 500 || last) return response;
+      if (response.status < 500 || last) return await read(response);
       console.warn(`  ${url}: HTTP ${response.status}, retry ${attempt}/${attempts - 1}`);
     } catch (e) {
-      if (last) throw e;
+      if (last || e instanceof FatalFetchError) throw e;
       console.warn(`  ${url}: ${(e as Error).message}, retry ${attempt}/${attempts - 1}`);
     }
     await Bun.sleep(baseDelayMs * 2 ** (attempt - 1));
@@ -88,26 +92,23 @@ export async function fetchWithRetry(
 }
 
 /**
- * Load a JSON file from a URL or local path. A URL load also retries when reading or
- * parsing the body fails (a reset or truncated stream after the headers arrived);
- * a non-5xx error status still fails at once.
+ * fetch() with the retry policy above. After the last attempt the final response is
+ * returned (or the final network error thrown) for the caller to handle.
+ */
+export function fetchWithRetry(url: string, init: RequestInit = {}, retry: RetryOptions = {}): Promise<Response> {
+  return withRetry(url, init, retry, async (response) => response);
+}
+
+/**
+ * Load a JSON file from a URL or local path. A URL load retries 5xx, network and
+ * body-read failures in one budget; any other error status fails at once.
  */
 export async function loadJson<T = unknown>(source: string, retry: RetryOptions = {}): Promise<T> {
   if (isHttpUrl(source)) {
-    const { attempts = 4, baseDelayMs = 1000 } = retry;
-    for (let attempt = 1; ; attempt++) {
-      const response = await fetchWithRetry(source, {}, retry);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${source}: HTTP ${response.status}`);
-      }
-      try {
-        return (await response.json()) as T;
-      } catch (e) {
-        if (attempt >= attempts) throw e;
-        console.warn(`  ${source}: body read failed (${(e as Error).message}), retry ${attempt}/${attempts - 1}`);
-        await Bun.sleep(baseDelayMs * 2 ** (attempt - 1));
-      }
-    }
+    return withRetry(source, {}, retry, async (response) => {
+      if (!response.ok) throw new FatalFetchError(`Failed to fetch ${source}: HTTP ${response.status}`);
+      return (await response.json()) as T;
+    });
   }
   return (await Bun.file(source).json()) as T;
 }

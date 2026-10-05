@@ -81,6 +81,18 @@ describe("fetchWithRetry / loadJson", () => {
     expect(signals.every((s) => s instanceof AbortSignal)).toBe(true);
   });
 
+  test("5xx and body failures share one attempt budget", async () => {
+    const calls: string[] = [];
+    const replies: Array<[number, string]> = [[503, ""], [200, '{"trunc'], [502, ""], [200, '{"also-trunc']];
+    const fetchImpl = (async (url: string) => {
+      calls.push(url);
+      const [status, body] = replies.shift() ?? [200, "{}"];
+      return new Response(body, { status });
+    }) as unknown as typeof fetch;
+    await expect(loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 0 })).rejects.toThrow();
+    expect(calls).toHaveLength(4);
+  });
+
   test("a 404 fails at once, without retrying", async () => {
     const { calls, fetchImpl } = scripted([404, 200]);
     await expect(loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 0 })).rejects.toThrow("HTTP 404");
