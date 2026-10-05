@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { changelogBlock, lastReleasedVersion, releaseChanges } from "./release-notes.ts";
+import { changelogBlock, lastReleasedVersion, releaseChanges } from "../scripts/release-notes.ts";
 
 const CHANGELOG = `# Changelog
 
