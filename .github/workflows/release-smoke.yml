@@ -71,14 +71,15 @@ jobs:
           # Strip leading v — npm versions are unprefixed.
           NPM_VER="${VERSION#v}"
           echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
-          for i in {1..30}; do
+          # Same 900s budget as verify-dist-tags: registry propagation has been slowing (#176).
+          for i in {1..180}; do
             if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
               echo "✓ npm registry has ${NPM_VER} (attempt $i)"
               exit 0
             fi
             sleep 5
           done
-          echo "::error::npm registry did not surface @tikoci/rosetta@${NPM_VER} within 150s"
+          echo "::error::npm registry did not surface @tikoci/rosetta@${NPM_VER} within 900s"
           exit 1
 
       - name: bunx --refresh exits 0 (DB downloads + opens cleanly)

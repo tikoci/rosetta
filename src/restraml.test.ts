@@ -56,6 +56,31 @@ describe("fetchWithRetry / loadJson", () => {
     expect(calls).toHaveLength(2);
   });
 
+  test("retries when the body read fails after a 200", async () => {
+    const calls: string[] = [];
+    const bodies = ['{"trunc', '{"ok":true}'];
+    const fetchImpl = (async (url: string) => {
+      calls.push(url);
+      return new Response(bodies.shift(), { status: 200 });
+    }) as unknown as typeof fetch;
+    const data = await loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 0 });
+    expect(data).toEqual({ ok: true });
+    expect(calls).toHaveLength(2);
+  });
+
+  test("each attempt gets a timeout signal, and a timed-out attempt retries", async () => {
+    const signals: Array<AbortSignal | null | undefined> = [];
+    let n = 0;
+    const fetchImpl = (async (_url: string, init?: RequestInit) => {
+      signals.push(init?.signal);
+      if (n++ === 0) throw new DOMException("The operation timed out.", "TimeoutError");
+      return new Response("{}", { status: 200 });
+    }) as unknown as typeof fetch;
+    await loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 0 });
+    expect(signals).toHaveLength(2);
+    expect(signals.every((s) => s instanceof AbortSignal)).toBe(true);
+  });
+
   test("a 404 fails at once, without retrying", async () => {
     const { calls, fetchImpl } = scripted([404, 200]);
     await expect(loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 0 })).rejects.toThrow("HTTP 404");
