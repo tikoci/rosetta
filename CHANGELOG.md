@@ -46,7 +46,7 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **GitHub Release notes start with what changed (#22).** A stable release's notes open with its CHANGELOG section. A `-next` release's notes open with the `[Unreleased]` section, headed "Changes since *last release* (unreleased)". The database stats and build info follow.
+- **GitHub Release notes start with what changed (#22).** A stable release's notes open with its CHANGELOG section. A `-next` release's notes open with the `[Unreleased]` section, headed "Changes since *last release* (unreleased)". The database stats and build info follow. A `-next` release fails if `CHANGELOG.md` has no `[Unreleased]` heading, rather than reporting that nothing changed.
 - **`YTDLP_ARGS` for the video transcript extractor (#156).** Extra yt-dlp arguments, such as `--cookies-from-browser firefox`, now pass through to every yt-dlp call when YouTube rate-limits an anonymous scrape. The transcript cache is refreshed to 746 videos (24 new).
 
 ### Changed
