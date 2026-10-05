@@ -42,7 +42,7 @@ permissions:
   contents: write
   packages: write
 
-# Phase B (#42) job graph: build → qa → publish → bunx-smoke.
+# Phase B (#42) job graph: build → qa → publish → {verify-dist-tags, smoke}.
 #
 #   build    extracts + stamps the DB once, runs the fast-fail + preflight gates,
 #            and hands the DB (and the workspace-rewritten package.json) to the
@@ -54,7 +54,10 @@ permissions:
 #            file anymore, so there is nothing to drift.
 #   publish  side effects only — OCI push, GitHub Release, npm publish — gated
 #            behind `needs: [build, qa]` so nothing ships unless qa is green.
-#   bunx-smoke  end-to-end install smoke of the just-published npm package.
+#   verify-dist-tags  reads the npm dist-tags back after publish (slow registry
+#            propagation fails here without blocking the smoke).
+#   smoke    `uses: ./.github/workflows/release-smoke.yml` — end-to-end install +
+#            upgrade smoke of the just-published npm package on macOS/Linux/Windows.
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -734,7 +737,14 @@ jobs:
             PRERELEASE_FLAGS=(--prerelease)
           fi
 
-          NOTES="## Database Stats
+          # CHANGELOG first (#22): the version's own block on latest, [Unreleased] on
+          # -next. scripts/release-notes.ts is a pure function of the version and the
+          # checked-out CHANGELOG.md, so republish_assets rewrites the same body.
+          CHANGES=$(bun run scripts/release-notes.ts "$VERSION")
+
+          NOTES="${CHANGES}
+
+          ## Database Stats
           - **Pages:** ${{ needs.build.outputs.pages }}
           - **Commands:** ${{ needs.build.outputs.commands }} (command entries; \`routeros_stats\` also counts menus and arguments)
           - **RouterOS versions with command data:** ${{ needs.build.outputs.versions }}
@@ -845,19 +855,33 @@ jobs:
             fi
           fi
 
-      # Read back what the registry actually serves: this run's dist-tag must
-      # resolve to the version just published, and next must be ≥ latest.
-      # Retries cover registry propagation (0.11.3-next.112 needed ~135s, so the
-      # budget is 300s); a persistent mismatch fails the job.
+      - name: Skip npm publish (republish_assets mode)
+        if: inputs.republish_assets == true
+        run: echo "republish_assets=true → skipping npm publish (npm versions are immutable; bump package.json for a new npm package)"
+
+  # Read back what the registry actually serves: this run's dist-tag must resolve
+  # to the version just published, and next must be ≥ latest. Its own job (#176):
+  # dist-tag propagation keeps getting slower (next.112 ~135s, next.113 ~185s,
+  # next.116 >300s), and as a `publish` step its timeout failed `publish` and so
+  # skipped the install smoke, which only needs the exact version. A tag that never
+  # settles still fails the run, here, after 900s.
+  verify-dist-tags:
+    needs: [build, publish]
+    if: inputs.republish_assets != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Read back npm dist-tags (next ≥ latest)
-        if: inputs.republish_assets != true
         env:
           NPM_TAG: ${{ needs.build.outputs.npm_tag }}
           VERSION: ${{ needs.build.outputs.version }}
         run: |
           set -euo pipefail
           NPM_VERSION="${VERSION#v}"
-          for i in {1..60}; do
+          for i in {1..180}; do
             TAGS=$(npm view @tikoci/rosetta dist-tags --json --registry https://registry.npmjs.org/ 2>/dev/null || echo '{}')
             if TAGS="$TAGS" NPM_TAG="$NPM_TAG" NPM_VERSION="$NPM_VERSION" bun --eval '
               const tags = JSON.parse(process.env.TAGS);
@@ -871,293 +895,20 @@ jobs:
             fi
             sleep 5
           done
-          echo "::error::npm dist-tags did not settle to ${NPM_TAG}=${NPM_VERSION} with next ≥ latest within 300s"
+          echo "::error::npm dist-tags did not settle to ${NPM_TAG}=${NPM_VERSION} with next ≥ latest within 900s"
           exit 1
 
-      - name: Skip npm publish (republish_assets mode)
-        if: inputs.republish_assets == true
-        run: echo "republish_assets=true → skipping npm publish (npm versions are immutable; bump package.json for a new npm package)"
-
-  # End-to-end bunx smoke — replicates exactly what users hit:
-  # fresh runner → bunx pulls the just-published @tikoci/rosetta → --refresh
-  # downloads the DB and opens it. Matrix now covers macOS + Linux + Windows so
-  # the v0.8.x Windows EBUSY / temp-artifact class and the macOS readonly-WAL
-  # class are both exercised on the release path.
-  #
-  # Consumes needs.publish.outputs.version rather than assuming it
-  # equals package.json's committed value — prerelease runs rewrite the
-  # version in-workspace (with a run-number suffix) before npm publish, so
-  # this job output is the only reliable source for "what actually published."
-  bunx-smoke:
+  # End-to-end install smoke (V-bunx-*, V-bunx-upgrade) of the just-published npm
+  # package. The jobs live in release-smoke.yml so they can also be dispatched on
+  # their own against an already-published version (#176) — a release whose smoke
+  # was skipped can be proven afterwards without publishing again. They wait for the
+  # exact version they test, not for verify-dist-tags. needs.publish.outputs.version
+  # is the only reliable "what actually published": prerelease runs rewrite the
+  # version in-workspace with a run-number suffix before npm publish.
+  smoke:
     needs: [build, publish]
     if: inputs.republish_assets != true  # republish_assets skips npm publish, so nothing to smoke
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - run: bun install --frozen-lockfile
-
-      - name: Wait for npm registry to propagate @tikoci/rosetta@${{ needs.publish.outputs.version }}
-        env:
-          VERSION: ${{ needs.publish.outputs.version }}
-        run: |
-          set -euo pipefail
-          # Strip leading v — npm versions are unprefixed.
-          NPM_VER="${VERSION#v}"
-          echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
-          for i in {1..30}; do
-            if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
-              echo "✓ npm registry has ${NPM_VER} (attempt $i)"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::error::npm registry did not surface @tikoci/rosetta@${NPM_VER} within 150s"
-          exit 1
-
-      - name: bunx --refresh exits 0 (DB downloads + opens cleanly)
-        env:
-          VERSION: ${{ needs.publish.outputs.version }}
-        run: |
-          set -euo pipefail
-          NPM_VER="${VERSION#v}"
-          # Pin to the exact version so a stale `latest` tag can't mask a broken build.
-          echo "── bunx @tikoci/rosetta@${NPM_VER} --refresh ──"
-          bunx "@tikoci/rosetta@${NPM_VER}" --refresh
-          # DB should now exist and be readable from a second invocation
-          # (this is where the v0.8.0 readonly-probe bug would reappear).
-          echo "── bunx @tikoci/rosetta@${NPM_VER} --version ──"
-          OUT=$(bunx "@tikoci/rosetta@${NPM_VER}" --version)
-          echo "$OUT"
-          echo "$OUT" | grep -F "${NPM_VER}" > /dev/null
-
-      - name: MCP server starts and DB probe succeeds
-        env:
-          VERSION: ${{ needs.publish.outputs.version }}
-        run: |
-          set -euo pipefail
-          NPM_VER="${VERSION#v}"
-          # Spawn the HTTP server, wait for /mcp to answer, shut down.
-          # If ensureDbReady's probe regresses (e.g. readonly-on-WAL), the
-          # server exits with "Still incompatible after re-download" and /mcp
-          # never responds.
-          PORT=18765
-          LOG="${RUNNER_TEMP}/rosetta-bunx-smoke-${{ matrix.os }}.log"
-          rm -f "$LOG"
-          bunx "@tikoci/rosetta@${NPM_VER}" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
-          PID=$!
-          trap 'kill "$PID" 2>/dev/null || true' EXIT
-
-          ok=0
-          for _ in {1..30}; do
-            if ! kill -0 "$PID" 2>/dev/null; then
-              echo "::error::Server exited early"
-              cat "$LOG"
-              exit 1
-            fi
-            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/mcp" || true)
-            if [ "$code" != 000 ] && [ "$code" != 404 ]; then
-              ok=1
-              break
-            fi
-            sleep 1
-          done
-
-          if [ "$ok" -ne 1 ]; then
-            echo "::error::MCP server never answered on /mcp"
-            cat "$LOG"
-            exit 1
-          fi
-          echo "✓ MCP server answered (HTTP $code)"
-          echo "── server log (first 40 lines) ──"
-          head -40 "$LOG"
-
-      - name: Installed clients coexist on default paths and start with a missing DB_PATH parent
-        env:
-          CURRENT_VERSION: ${{ needs.publish.outputs.version }}
-          PREVIOUS_VERSION: ${{ needs.build.outputs.previous_version }}
-        run: bun scripts/smoke-install.ts "$CURRENT_VERSION" "$PREVIOUS_VERSION"
-
-  # End-to-end DB-freshness upgrade smoke — the actual bug #76/#23 traced and
-  # #78 fixed: a bunx cache + DB seeded by the PREVIOUS published version on
-  # this same dist-tag, then a bare (no --refresh) invocation of the version
-  # THIS run just published, proving ensureDbReady()'s checkDbFreshness
-  # release-tag comparison auto-refreshes the DB instead of silently leaving
-  # it stale. bunx-smoke above only ever installs fresh onto an empty cache,
-  # so it can't catch this class of bug at all. Skipped when there's no prior
-  # publish on this channel yet (needs.build.outputs.previous_version empty).
-  bunx-upgrade-smoke:
-    needs: [build, publish]
-    if: inputs.republish_assets != true && needs.build.outputs.previous_version != ''
-    defaults:
-      run:
-        shell: bash
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Wait for npm registry to resolve this channel to ${{ needs.publish.outputs.version }}
-        env:
-          VERSION: ${{ needs.publish.outputs.version }}
-          CHANNEL: ${{ needs.build.outputs.channel }}
-        run: |
-          set -euo pipefail
-          NPM_VER="${VERSION#v}"
-          NPM_SPEC="@tikoci/rosetta"
-          if [ "$CHANNEL" = "prerelease" ]; then
-            NPM_SPEC="${NPM_SPEC}@next"
-          fi
-          echo "Waiting for ${NPM_SPEC} to resolve to ${NPM_VER} on npm registry..."
-          for i in {1..30}; do
-            if [ "$(npm view "$NPM_SPEC" version 2>/dev/null || true)" = "$NPM_VER" ]; then
-              echo "✓ ${NPM_SPEC} resolves to ${NPM_VER} (attempt $i)"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::error::npm registry did not resolve ${NPM_SPEC} to ${NPM_VER} within 150s"
-          exit 1
-
-      - name: Bare bunx of the new version auto-refreshes a DB seeded by the previous version (no --refresh)
-        env:
-          DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
-          VERSION: ${{ needs.publish.outputs.version }}
-          PREV_VERSION: ${{ needs.build.outputs.previous_version }}
-          CHANNEL: ${{ needs.build.outputs.channel }}
-        run: |
-          set -euo pipefail
-          NPM_VER="${VERSION#v}"
-          PREV_NPM_VER="${PREV_VERSION#v}"
-          NPM_SPEC="@tikoci/rosetta"
-          if [ "$CHANNEL" = "prerelease" ]; then
-            NPM_SPEC="${NPM_SPEC}@next"
-          fi
-
-          echo "── bunx @tikoci/rosetta@${PREV_NPM_VER} --refresh (seed pre-upgrade DB) ──"
-          bunx "@tikoci/rosetta@${PREV_NPM_VER}" --refresh
-
-          PORT=18766
-          LOG="${RUNNER_TEMP}/rosetta-upgrade-smoke-${{ matrix.os }}.log"
-          rm -f "$LOG"
-          echo "── bunx ${NPM_SPEC} --http (bare/tag form — proves the real client path, not an exact pin) ──"
-          bunx "$NPM_SPEC" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
-          PID=$!
-          trap 'kill "$PID" 2>/dev/null || true' EXIT
-
-          ok=0
-          for _ in {1..30}; do
-            if ! kill -0 "$PID" 2>/dev/null; then
-              echo "::error::Server exited early"
-              cat "$LOG"
-              exit 1
-            fi
-            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/mcp" || true)
-            if [ "$code" != 000 ] && [ "$code" != 404 ]; then
-              ok=1
-              break
-            fi
-            sleep 1
-          done
-
-          if [ "$ok" -ne 1 ]; then
-            echo "::error::MCP server never answered on /mcp"
-            cat "$LOG"
-            exit 1
-          fi
-
-          echo "── server log ──"
-          cat "$LOG"
-
-          # ensureDbReady's startup banner names the release actually served.
-          # If checkDbFreshness's release-tag comparison (or its wiring into
-          # mcp.ts) ever regresses, this would still show ${PREV_VERSION} here.
-          if ! grep -F "release v${NPM_VER}" "$LOG" > /dev/null; then
-            echo "::error::Server log does not show release v${NPM_VER} — DB did not auto-refresh across the ${PREV_VERSION} -> v${NPM_VER} upgrade (see #76/#23/#78)"
-            exit 1
-          fi
-          echo "✓ DB auto-refreshed from ${PREV_VERSION} to release v${NPM_VER} without a manual --refresh"
-
-      - name: ROSETTA_OFFLINE=1 degrades gracefully on a stale DB instead of crashing
-        env:
-          DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
-          PREV_VERSION: ${{ needs.build.outputs.previous_version }}
-          CHANNEL: ${{ needs.build.outputs.channel }}
-        run: |
-          set -euo pipefail
-          PREV_NPM_VER="${PREV_VERSION#v}"
-          NPM_SPEC="@tikoci/rosetta"
-          if [ "$CHANNEL" = "prerelease" ]; then
-            NPM_SPEC="${NPM_SPEC}@next"
-          fi
-
-          # The previous step proved that this DB was refreshed by the current
-          # release. Record its schema before replacing it with the old DB
-          # below: offline fallback is only valid for a release-tag mismatch,
-          # never for a genuinely incompatible schema.
-          CURRENT_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval 'import sqlite from "bun:sqlite"; const db = new sqlite(process.env.DB_PATH); console.log(db.query("PRAGMA user_version").get().user_version); db.close();')
-
-          # Re-seed the stale (previous-version) DB — the prior step already
-          # upgraded it to the current release, so this step needs its own
-          # stale copy.
-          echo "── re-seeding stale DB (@${PREV_NPM_VER}) ──"
-          bunx "@tikoci/rosetta@${PREV_NPM_VER}" --refresh
-
-          SEEDED_SCHEMA=$(DB_PATH="$DB_PATH" bun --eval 'import sqlite from "bun:sqlite"; const db = new sqlite(process.env.DB_PATH); console.log(db.query("PRAGMA user_version").get().user_version); db.close();')
-          if [ "$SEEDED_SCHEMA" != "$CURRENT_SCHEMA" ]; then
-            echo "✓ Skipping ROSETTA_OFFLINE smoke: seeded DB schema v${SEEDED_SCHEMA} differs from current v${CURRENT_SCHEMA}, and offline recovery must fail for a genuine schema mismatch."
-            exit 0
-          fi
-
-          PORT=18767
-          LOG="${RUNNER_TEMP}/rosetta-offline-smoke-${{ matrix.os }}.log"
-          rm -f "$LOG"
-          echo "── ROSETTA_OFFLINE=1 bunx ${NPM_SPEC} --http (stale DB, no network refresh) ──"
-          ROSETTA_OFFLINE=1 bunx "$NPM_SPEC" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
-          PID=$!
-          trap 'kill "$PID" 2>/dev/null || true' EXIT
-
-          ok=0
-          for _ in {1..30}; do
-            if ! kill -0 "$PID" 2>/dev/null; then
-              echo "::error::Server exited early under ROSETTA_OFFLINE=1 — a release-tag-only mismatch should degrade gracefully, not crash"
-              cat "$LOG"
-              exit 1
-            fi
-            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${PORT}/mcp" || true)
-            if [ "$code" != 000 ] && [ "$code" != 404 ]; then
-              ok=1
-              break
-            fi
-            sleep 1
-          done
-
-          if [ "$ok" -ne 1 ]; then
-            echo "::error::MCP server never answered on /mcp under ROSETTA_OFFLINE=1"
-            cat "$LOG"
-            exit 1
-          fi
-
-          echo "── server log ──"
-          cat "$LOG"
-
-          if ! grep -F "ROSETTA_OFFLINE=1" "$LOG" > /dev/null; then
-            echo "::error::Server log doesn't show the ROSETTA_OFFLINE short-circuit — did it skip the network attempt as intended?"
-            exit 1
-          fi
-          echo "✓ Server started under ROSETTA_OFFLINE=1 with a release-tag-only mismatch, degrading gracefully instead of crashing"
+    uses: ./.github/workflows/release-smoke.yml
+    with:
+      version: ${{ needs.publish.outputs.version }}
+      previous_version: ${{ needs.build.outputs.previous_version }}

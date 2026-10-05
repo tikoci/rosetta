@@ -52,16 +52,63 @@ export async function discoverRemoteVersions(): Promise<string[]> {
     .map((e) => e.name);
 }
 
+export interface RetryOptions {
+  attempts?: number;
+  baseDelayMs?: number;
+  /** Per-attempt limit, covering the body read too. A stalled connection then retries. */
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+}
+
+/** Thrown from a `read` callback to stop retrying (e.g. a 404). */
+class FatalFetchError extends Error {}
+
 /**
- * Load a JSON file from a URL or local path.
+ * One attempt loop for status, network and body failures: GitHub Pages serves routine
+ * transient 503s, and one of those dropped 7.15 from a release (#178). A network error,
+ * a timeout, a 5xx, or a failure inside `read` (a reset or truncated body) retries with
+ * exponential backoff, up to `attempts` requests in total. A non-5xx response goes
+ * straight to `read`, which throws FatalFetchError to fail at once. Each attempt gets
+ * its own timeout, covering the body read, unless the caller passes a signal.
  */
-export async function loadJson<T = unknown>(source: string): Promise<T> {
-  if (isHttpUrl(source)) {
-    const response = await fetch(source);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${source}: HTTP ${response.status}`);
+async function withRetry<T>(
+  url: string,
+  init: RequestInit,
+  { attempts = 4, baseDelayMs = 1000, timeoutMs = 120_000, fetchImpl = fetch }: RetryOptions,
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    const last = attempt >= attempts;
+    try {
+      const response = await fetchImpl(url, { ...init, signal: init.signal ?? AbortSignal.timeout(timeoutMs) });
+      if (response.status < 500 || last) return await read(response);
+      console.warn(`  ${url}: HTTP ${response.status}, retry ${attempt}/${attempts - 1}`);
+    } catch (e) {
+      if (last || e instanceof FatalFetchError) throw e;
+      console.warn(`  ${url}: ${(e as Error).message}, retry ${attempt}/${attempts - 1}`);
     }
-    return (await response.json()) as T;
+    await Bun.sleep(baseDelayMs * 2 ** (attempt - 1));
+  }
+}
+
+/**
+ * fetch() with the retry policy above. After the last attempt the final response is
+ * returned (or the final network error thrown) for the caller to handle.
+ */
+export function fetchWithRetry(url: string, init: RequestInit = {}, retry: RetryOptions = {}): Promise<Response> {
+  return withRetry(url, init, retry, async (response) => response);
+}
+
+/**
+ * Load a JSON file from a URL or local path. A URL load retries 5xx, network and
+ * body-read failures in one budget; any other error status fails at once.
+ */
+export async function loadJson<T = unknown>(source: string, retry: RetryOptions = {}): Promise<T> {
+  if (isHttpUrl(source)) {
+    return withRetry(source, {}, retry, async (response) => {
+      if (!response.ok) throw new FatalFetchError(`Failed to fetch ${source}: HTTP ${response.status}`);
+      return (await response.json()) as T;
+    });
   }
   return (await Bun.file(source).json()) as T;
 }

@@ -24,6 +24,9 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **A release can no longer ship with a RouterOS version missing (#178).** `0.11.3-next.116` shipped without any command data for 7.15: one transient GitHub Pages 503 failed that version's extraction, and the build carried on. So on that build, `routeros_command_version_check` and `routeros_command_diff` gave wrong answers for 7.15. restraml fetches now retry server errors, a failed version fails the build, and the release gate checks that every listed version has command data. This build supersedes next.116.
+- **`bunx @tikoci/rosetta` runs under Bun in one process (#175).** Every launch printed "Note: rosetta requires the Bun runtime. Attempting to run via bun..." and then started a second process, because `bunx` runs a file with a `node` shebang under Node. The entry point now has a `bun` shebang. `npx` without Bun now fails with `env: bun: No such file or directory`; it was never supported.
+- **A slow npm registry no longer skips the install smoke (#176).** The npm dist-tag read-back now runs as its own job with a 15-minute budget. The three-OS `bunx` install and upgrade smoke jobs no longer wait for it, and they can be dispatched on their own (`release-smoke.yml`) against an already-published version.
 - **Dotted Wi-Fi settings get documentation (#58/#61 BL-3).** `channel.width`, `security.authentication-types`, `configuration.mode` and `configuration.manager` on `/interface/wifi` returned `unknown-arg`. The manual's Wi-Fi page documents all four under their sub-menus, for example `width` under `/interface/wifi/channel`. The CLI Reference lists the first three there, without descriptions, and doesn't list `configuration.manager`. A dotted name with no answer at its own menu is now looked up as its last segment under the sub-menu the other segments name. Across the command tree, answered dotted settings rose from 140 to 271 of 539, 128 of them with manual descriptions. `unknown-arg` also no longer claims that MikroTik's documentation doesn't list a setting. It says rosetta matched nothing, which is a lookup gap and not proof that the argument is invalid.
 - **Release notes report accurate stats.** "RouterOS Versions" counted (version, architecture) rows plus metadata-only versions (103). It now counts versions with command data (67). "Commands" is labelled as command entries only. "Docs date" no longer shows the retired 2026-05-26 export date, because the manual is extracted live at each build.
 - **Package database coexistence (#145).** Each exact package version now uses its own default `~/.rosetta/ros-help-<version>.db`, so versions in use never replace each other's files; idle copies are cleaned up automatically (#151). Same-tag asset recovery remains a manual refresh; normal corrected content should ship as a new patch (#80).
@@ -41,6 +44,7 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **GitHub Release notes start with what changed (#22).** A stable release's notes open with its CHANGELOG section. A `-next` release's notes open with the `[Unreleased]` section, headed "Changes since *last release* (unreleased)". The database stats and build info follow.
 - **`YTDLP_ARGS` for the video transcript extractor (#156).** Extra yt-dlp arguments, such as `--cookies-from-browser firefox`, now pass through to every yt-dlp call when YouTube rate-limits an anonymous scrape. The transcript cache is refreshed to 746 videos (24 new).
 
 ### Changed

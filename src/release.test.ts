@@ -91,9 +91,9 @@ describe("bin/rosetta.js", () => {
     expect(existsSync(path.join(ROOT, "bin/rosetta.js"))).toBe(true);
   });
 
-  test("has node shebang", () => {
+  test("has a bun shebang, so bunx runs it under Bun in one process (#175)", () => {
     const src = readText("bin/rosetta.js");
-    expect(src.startsWith("#!/usr/bin/env node")).toBe(true);
+    expect(src.startsWith("#!/usr/bin/env bun")).toBe(true);
   });
 
   test("detects Bun runtime", () => {
@@ -101,9 +101,11 @@ describe("bin/rosetta.js", () => {
     expect(src).toContain('typeof Bun !== "undefined"');
   });
 
-  test("falls back to spawning bun for Node", () => {
+  test("falls back to spawning bun for Node, and speaks only when Bun is missing", () => {
     const src = readText("bin/rosetta.js");
     expect(src).toContain('spawn("bun"');
+    expect(src).toContain('err.code === "ENOENT"');
+    expect(src).not.toContain("Attempting to run via bun");
   });
 });
 
@@ -218,7 +220,7 @@ describe("build-release.ts", () => {
   test("release build and publish jobs pin the compiled-binary toolchain", () => {
     const src = readText(".github/workflows/release.yml");
     const buildJob = src.slice(mustIndex(src, "\n  build:"), mustIndex(src, "\n  qa:"));
-    const publishJob = src.slice(mustIndex(src, "\n  publish:"), mustIndex(src, "\n  bunx-smoke:"));
+    const publishJob = src.slice(mustIndex(src, "\n  publish:"), mustIndex(src, "\n  verify-dist-tags:"));
     expect(buildJob).toContain("bun-version: 1.3.14");
     expect(publishJob).toContain("bun-version: 1.3.14");
   });
@@ -671,11 +673,15 @@ describe("release.yml", () => {
       expect(src.slice(publishIdx)).toContain(moveEnv);
     });
 
-    test("after publishing, a read-back fails the job unless this run's tag resolves to it and next ≥ latest (#152)", () => {
-      const readBackIdx = mustIndex(src, "Read back npm dist-tags");
-      const skipIdx = mustIndex(src, "Skip npm publish (republish_assets mode)");
-      const readBackBlock = src.slice(readBackIdx, skipIdx);
-      expect(readBackBlock).toContain("if: inputs.republish_assets != true");
+    test("after publishing, a read-back fails the run unless this run's tag resolves to it and next ≥ latest (#152)", () => {
+      // Its own job since #176, so a slow registry can't skip the install smoke.
+      const jobIdx = mustIndex(src, "\n  verify-dist-tags:");
+      const smokeIdx = mustIndex(src, "\n  smoke:");
+      const jobBlock = src.slice(jobIdx, smokeIdx);
+      expect(jobBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
+      expect(jobBlock).toContain("if: inputs.republish_assets != true");
+      expect(jobBlock).toContain("for i in {1..180}; do");
+      const readBackBlock = jobBlock.slice(mustIndex(jobBlock, "Read back npm dist-tags"));
       expect(readBackBlock).toContain("npm view @tikoci/rosetta dist-tags --json");
       expect(readBackBlock).toContain("Bun.semver.order(tags.next, tags.latest) >= 0");
       expect(readBackBlock).toContain("own === process.env.NPM_VERSION");
@@ -714,6 +720,19 @@ describe("release.yml", () => {
       expect(releaseBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
       expect(releaseBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" = "true" \]/);
       expect(releaseBlock).not.toContain(`DOCS_DATE="\${{ inputs.docs_date }}"`);
+    });
+
+    test("the release body leads with the CHANGELOG block, then the stats (#22)", () => {
+      const releaseIdx = mustIndex(src, "Create or update GitHub Release");
+      const publishIdx = mustIndex(src, "Publish to npm");
+      const releaseBlock = src.slice(releaseIdx, publishIdx);
+      expect(releaseBlock).toContain('CHANGES=$(bun run scripts/release-notes.ts "$VERSION")');
+      const notesIdx = releaseBlock.indexOf(`NOTES="\${CHANGES}`);
+      expect(notesIdx).toBeGreaterThan(-1);
+      expect(notesIdx).toBeLessThan(releaseBlock.indexOf("## Database Stats"));
+      // Every path rewrites the whole body with --notes; none appends.
+      expect(releaseBlock).not.toContain("--notes-file");
+      expect(releaseBlock.match(/gh release edit "\$VERSION" --notes "\$NOTES"/g)?.length).toBe(3);
     });
   });
 
@@ -933,7 +952,7 @@ exit $?`,
       /Publish to npm[\s\S]{0,120}if: inputs\.republish_assets != true/,
     );
     expect(src).toMatch(
-      /bunx-smoke:[\s\S]{0,120}if: inputs\.republish_assets != true/,
+      /\n {2}smoke:[\s\S]{0,120}if: inputs\.republish_assets != true/,
     );
   });
 
@@ -952,7 +971,7 @@ exit $?`,
   });
 
   test("bunx-smoke covers windows with bash steps and a runner temp log", () => {
-    const src = readText(".github/workflows/release.yml");
+    const src = readText(".github/workflows/release-smoke.yml");
     const bunxIdx = mustIndex(src, "bunx-smoke:");
     const bunxBlock = src.slice(bunxIdx);
 
@@ -992,8 +1011,7 @@ exit $?`,
   test("publish restores the resolved package.json + DB artifact and needs both build and qa", () => {
     const src = readText(".github/workflows/release.yml");
     const publishIdx = mustIndex(src, "\n  publish:");
-    const bunxIdx = mustIndex(src, "\n  bunx-smoke:");
-    const publishBlock = src.slice(publishIdx, bunxIdx);
+    const publishBlock = src.slice(publishIdx, mustIndex(src, "\n  verify-dist-tags:"));
 
     // Downloads the exact DB qa validated and the run-numbered package.json.
     expect(publishBlock).toContain("name: Download built DB artifact");
@@ -1006,16 +1024,34 @@ exit $?`,
     expect(publishBlock).toContain("npm publish --access public");
   });
 
-  test("bunx-smoke depends on publish and reads the published version from its output", () => {
+  test("smoke depends on publish only and passes the published version to release-smoke.yml (#176)", () => {
     const src = readText(".github/workflows/release.yml");
-    const bunxIdx = mustIndex(src, "\n  bunx-smoke:");
-    const upgradeIdx = mustIndex(src, "\n  bunx-upgrade-smoke:");
-    const bunxBlock = src.slice(bunxIdx, upgradeIdx);
-    expect(bunxBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
-    expect(bunxBlock).toContain('bun scripts/smoke-install.ts "$CURRENT_VERSION" "$PREVIOUS_VERSION"');
-    expect(bunxBlock).toContain("needs.publish.outputs.version");
+    const smokeBlock = src.slice(mustIndex(src, "\n  smoke:"));
+    // Not on verify-dist-tags: the smoke waits for the exact version it tests.
+    expect(smokeBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
+    expect(smokeBlock).toContain("uses: ./.github/workflows/release-smoke.yml");
+    expect(smokeBlock).toContain(`version: \${{ needs.publish.outputs.version }}`);
+    expect(smokeBlock).toContain(`previous_version: \${{ needs.build.outputs.previous_version }}`);
+    // The smoke jobs themselves live only in release-smoke.yml.
+    expect(src).not.toContain("\n  bunx-smoke:");
+    expect(src).not.toContain("\n  bunx-upgrade-smoke:");
     // The old monolithic job name is gone entirely.
     expect(src).not.toContain("build-and-release");
+
+    const smoke = readText(".github/workflows/release-smoke.yml");
+    const bunxBlock = smoke.slice(mustIndex(smoke, "\n  bunx-smoke:"), mustIndex(smoke, "\n  bunx-upgrade-smoke:"));
+    expect(bunxBlock).toContain('bun scripts/smoke-install.ts "$CURRENT_VERSION" "$PREVIOUS_VERSION"');
+    expect(bunxBlock).toContain(`npm view "@tikoci/rosetta@\${NPM_VER}" version`);
+  });
+
+  test("release-smoke.yml is dispatchable against an already-published version (#176)", () => {
+    const smoke = readText(".github/workflows/release-smoke.yml");
+    expect(smoke).toMatch(/on:\s*\n\s*workflow_dispatch:/);
+    expect(smoke).toContain("workflow_call:");
+    expect(smoke).toMatch(/version:\s*\n\s*description:[^\n]*\n\s*required: true/);
+    // No job outputs from release.yml exist on a dispatch — inputs only.
+    expect(smoke).not.toContain("needs.build.");
+    expect(smoke).not.toContain("needs.publish.");
   });
 
   test("build job captures the previously-published version per dist-tag (for bunx-upgrade-smoke)", () => {
@@ -1037,13 +1073,16 @@ exit $?`,
   });
 
   test("bunx-upgrade-smoke seeds a stale DB from the previous version, then proves a bare bunx auto-refreshes it (#76/#23/#78)", () => {
-    const src = readText(".github/workflows/release.yml");
+    const src = readText(".github/workflows/release-smoke.yml");
     const upgradeIdx = mustIndex(src, "\n  bunx-upgrade-smoke:");
     const upgradeBlock = src.slice(upgradeIdx);
 
     // Skipped (not failed) when there's no prior publish on this channel yet.
-    expect(upgradeBlock).toMatch(/if: inputs\.republish_assets != true && needs\.build\.outputs\.previous_version != ''/);
-    expect(upgradeBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
+    expect(upgradeBlock).toMatch(/if: inputs\.previous_version != ''/);
+    // The channel comes from the version: a prerelease resolves through @next.
+    expect(upgradeBlock).toContain(`case "$NPM_VER" in *-*) NPM_SPEC="\${NPM_SPEC}@next" ;; esac`);
+    // It waits on the dist-tag itself, so it gets the long budget (#176).
+    expect(upgradeBlock).toContain("for i in {1..180}; do");
 
     // Seeds with the OLD version, then invokes the NEW version through the
     // real bare/tag client form (never an exact-version pin or --refresh).
@@ -1181,6 +1220,13 @@ describe("qa.yml", () => {
     ]) {
       expect(qa).toMatch(re);
     }
+  });
+
+  test("gates version coverage against the count extract-all-versions stamped (#178)", () => {
+    const qa = readText(".github/workflows/qa.yml");
+    expect(qa).toContain("key = 'command_versions_expected'");
+    expect(qa).toMatch(/CMD_VERSIONS.*-lt "\$EXPECTED_VERSIONS"/);
+    expect(readText("src/extract-all-versions.ts")).toContain('setDbMeta("command_versions_expected"');
   });
 
   test("gates the CLI-Reference overlay in db-content: link-drift + db-integrity (#127)", () => {
