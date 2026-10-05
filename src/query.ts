@@ -768,7 +768,7 @@ export function explainCommand(command: string, rosVersion?: string, model?: str
           arg: parsedArg.name,
           message: readOnly
             ? `The CLI Reference documents "${parsedArg.name}" for ${canonical.path} only as a read-only field, not as a settable argument.`
-            : `"${parsedArg.name}" was not found for ${canonical.path}: neither MikroTik's CLI Reference nor a menu-aligned manual page lists it. Rosetta cannot tell whether the RouterOS argument is valid.`,
+            : `"${parsedArg.name}" was not found for ${canonical.path}: rosetta matched no argument in MikroTik's CLI Reference and no menu-aligned manual property. This is a gap in what rosetta could match, not proof that the argument is invalid.`,
           suggestion: `Use routeros_command_tree path="${canonical.path}" or routeros_get_page for the linked documentation to confirm available arguments.`,
         });
       }
@@ -1192,8 +1192,25 @@ const PROPERTY_LOOKUP_COLUMNS = `p.name, p.type, p.default_val, p.description, p
  * A blank overlay row never displaces a `medium` manual description — 46% of settable overlay
  * fields are blank, mostly Wi-Fi, where the manual still holds the only description. Unscoped,
  * the overlay answers only when the manual has nothing at all.
+ *
+ * A dotted name with no answer at its own menu (`channel.width` at `/interface/wifi`) is retried
+ * as the last segment under the sub-menu the other segments name (`width` at
+ * `/interface/wifi/channel`), which is where both the manual and the CLI Reference document it.
+ * Rows keep the documented name (`width`).
  */
 export function lookupProperty(name: string, commandPath?: string): PropertyLookupRow[] {
+  const direct = lookupPropertyAt(name, commandPath);
+  if (!commandPath || !name.includes(".") || direct.some((row) => row.confidence !== "low")) return direct;
+  // inspect names nested settings with dots (`/interface/wifi` `channel.width`); the manual and
+  // the CLI Reference document the same setting as `width` under `/interface/wifi/channel`.
+  const segments = name.split(".");
+  const field = segments.pop() as string;
+  const nested = lookupPropertyAt(field, `${commandPath.replace(/\/+$/, "")}/${segments.join("/")}`);
+  return nested.some((row) => row.confidence !== "low") ? [...nested, ...direct] : direct;
+}
+
+/** {@link lookupProperty} for one exact (name, menu) pair, before any dotted-name mapping. */
+function lookupPropertyAt(name: string, commandPath?: string): PropertyLookupRow[] {
   const prose = lookupManualProperty(name, commandPath);
   if (!commandPath) return prose.length > 0 ? prose : lookupCliRefProperty(name);
   if (prose.some((row) => row.confidence === "high")) return prose;
