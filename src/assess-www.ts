@@ -25,7 +25,8 @@
  * still 404 under this heuristic; that's recorded as notFound, not silently dropped.
  *
  * Usage:
- *   bun run src/assess-www.ts                    # live fetch, caches HTML to CACHE_DIR
+ *   bun run src/assess-www.ts                    # live fetch, caches HTML to CACHE_DIR and
+ *                                                # prunes cached codes that are no longer candidates
  *   bun run src/assess-www.ts --from-cache        # re-analyze from CACHE_DIR, no network
  *   bun run src/assess-www.ts --limit=25          # cap candidate count (smoke-testing)
  */
@@ -34,6 +35,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseHTML } from "linkedom";
 import { loadMatrixRows, normCode } from "./assess-hardware.ts";
+import { pruneCache } from "./cache-prune.ts";
 import { exceptionWwwCodes } from "./device-exceptions.ts";
 import { curatedWwwCodes } from "./hardware-www-map.ts";
 import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
@@ -81,11 +83,14 @@ function loadCandidateCodes(): string[] {
 
 // ── HTML fetching / caching ──
 
-function cachePathFor(code: string): string {
+function cacheNameFor(code: string): string {
   // Product codes can contain characters unsafe for filenames on some filesystems (/, :) —
   // none observed live so far, but sanitize defensively rather than assume.
-  const safe = code.replace(/[^A-Za-z0-9_.+-]/g, "_");
-  return resolve(DEFAULT_CACHE_DIR, `${safe}.html`);
+  return `${code.replace(/[^A-Za-z0-9_.+-]/g, "_")}.html`;
+}
+
+function cachePathFor(code: string): string {
+  return resolve(DEFAULT_CACHE_DIR, cacheNameFor(code));
 }
 
 async function fetchProductHtml(code: string): Promise<{ status: number; html: string }> {
@@ -258,6 +263,13 @@ async function main() {
   const outPath = resolve(PROJECT_ROOT, "ros-www-assessment.json");
   await Bun.write(outPath, JSON.stringify(summary, null, 2));
   console.log(`\nFull assessment written to ${outPath}`);
+
+  // The cache is a record of the last complete live run. Confirmed-404 codes keep their
+  // empty cache file (they are candidates this run checked); codes no longer a candidate go.
+  if (!FROM_CACHE) {
+    if (!LIMIT && fetchErrors === 0) pruneCache(DEFAULT_CACHE_DIR, codes.map(cacheNameFor), ".html");
+    else console.log(`Cache not pruned: partial run (${LIMIT ? "--limit" : `${fetchErrors} fetch error(s)`})`);
+  }
 }
 
 if (import.meta.main) {

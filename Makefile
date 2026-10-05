@@ -49,9 +49,18 @@ browse:
 assess:
 	bun run src/assess-html.ts
 
+# Page-cache contract (#160), shared by assess-hardware, assess-www, extract-docusaurus,
+# extract-cliref and extract-dude: a live run re-fetches every page it discovers and
+# overwrites its cache file (never reads the cache as input). After a complete live run
+# (no --limit, no fetch errors) it deletes cached pages it did not discover, keeping the
+# index files it wrote (_sitemap.txt, _llms.txt). A --from-cache run makes no network
+# requests and reproduces that last complete live run.
+
+# Live fetch of manual.mikrotik.com/hardware/*, cached to manual/pages/hardware/.
 assess-hardware:
 	bun run src/assess-hardware.ts
 
+# Live fetch of mikrotik.com/product/<code>, cached to manual/pages/www/.
 assess-www:
 	bun run src/assess-www.ts
 
@@ -145,11 +154,12 @@ extract: extract-docusaurus extract-commands extract-devices extract-hardware-ca
 extract-full: extract-docusaurus extract-all-versions extract-devices extract-hardware-catalog extract-test-results extract-changelogs extract-dude-from-cache extract-skills extract-cliref link link-cliref
 
 # Live fetch from manual.mikrotik.com's sitemap.xml, caching each page's raw
-# Markdown to manual/pages/ (gitignored — not the full-corpus fixture set).
+# Markdown to manual/pages/ (gitignored — not the full-corpus fixture set) and
+# pruning cached pages the run did not discover (page-cache contract above).
 extract-docusaurus:
 	bun run src/extract-docusaurus.ts
 
-# Re-extract from a previously-populated manual/pages/ cache — no network dependency.
+# Re-extract from the manual/pages/ cache (the last complete live run) — no network.
 extract-docusaurus-from-cache:
 	bun run src/extract-docusaurus.ts --from-cache
 
@@ -158,12 +168,14 @@ extract-docusaurus-from-cache:
 extract-docusaurus-check-counts:
 	bun run src/extract-docusaurus.ts --from-cache --check-counts
 
-# CLI-Reference overlay (issue #124): live fetch from the cli-reference sitemap,
-# caching each page's raw Markdown to manual/cli-reference/ (gitignored). Populates
+# CLI-Reference overlay (issue #124): live fetch of every cli-reference page (sitemap ∪
+# llms.txt), overwriting manual/cli-reference/ (gitignored) and pruning pages the run did
+# not discover — a cached page is never reused (#160). Populates
 # cliref_pages/entries/fields/flags; link-cliref (below) adds the inspect crosswalk.
 extract-cliref:
 	bun run src/extract-cliref.ts
 
+# Re-extract from manual/cli-reference/ (the last complete live run) — no network.
 extract-cliref-from-cache:
 	bun run src/extract-cliref.ts --from-cache --check-counts
 
@@ -238,11 +250,13 @@ extract-videos-from-cache:
 save-videos-cache:
 	bun run src/extract-videos.ts --save-cache
 
-# Fetch The Dude wiki docs from Wayback Machine (one-time, caches to dude/pages/).
+# Re-fetch every Dude wiki page from the Wayback Machine, rewriting the committed
+# dude/pages/ HTML and pruning pages no longer listed (review the diff before committing).
+# Images already in dude/images/ are kept; pass --force to the script to re-download them.
 extract-dude:
 	bun run src/extract-dude.ts
 
-# Re-extract from cached HTML in dude/pages/ — no network dependency.
+# Re-extract from the committed HTML in dude/pages/ — no network dependency.
 extract-dude-from-cache:
 	bun run src/extract-dude.ts --from-cache --skip-images
 

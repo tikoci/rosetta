@@ -16,7 +16,8 @@
  * "H7 — Identity / rosetta-id design").
  *
  * Usage:
- *   bun run src/extract-docusaurus.ts                  # live fetch, caches .md to CACHE_DIR
+ *   bun run src/extract-docusaurus.ts                  # live fetch, caches .md to CACHE_DIR and
+ *                                                      # prunes cached pages the run did not discover
  *   bun run src/extract-docusaurus.ts --from-cache      # re-extract from CACHE_DIR, no network
  *   bun run src/extract-docusaurus.ts --limit=25        # cap page count (smoke-testing)
  *   bun run src/extract-docusaurus.ts --check-counts    # compare extracted count vs llms.txt (non-blocking)
@@ -25,6 +26,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
+import { pruneCache } from "./cache-prune.ts";
 import { db, initDb } from "./db.ts";
 import { deriveRosettaId, loadSitemapUrls, rosettaIdToUrl } from "./rosetta-id.ts";
 
@@ -1214,6 +1216,15 @@ async function main() {
     }
     console.error("A constraint is silently discarding rows. Do not 'fix' this by lowering the parsed count (issue #90).");
     process.exit(1);
+  }
+
+  // The cache is a record of the last complete live run: --from-cache discovers pages by
+  // listing CACHE_DIR, so a page upstream deleted would otherwise be re-extracted forever.
+  // Only a complete run prunes — --limit skips pages on purpose, and a fetch error leaves
+  // that page's older cache file in place.
+  if (!FROM_CACHE) {
+    if (!LIMIT && fetchErrors === 0) pruneCache(CACHE_DIR, rosettaIds.map((id) => `${id}.md`), ".md");
+    else console.log(`Cache not pruned: partial run (${LIMIT ? "--limit" : `${fetchErrors} fetch error(s)`})`);
   }
 
   if (CHECK_COUNTS) {

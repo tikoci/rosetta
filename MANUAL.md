@@ -141,7 +141,7 @@ make gc-versions EXTRA_FLAGS=--verbose
 - `make extract` runs the single-version ETL chain: Docusaurus `/docs` prose → commands → devices → test results → changelogs → Dude cache → skills → link.
 - `make extract-full` keeps the same pipeline but uses all tracked RouterOS versions for command/schema extraction.
 - `make gc-versions` is the release-retention step that prunes `schema_node_presence` down to active channel heads; local full extracts intentionally keep the full presence history until you run it.
-- `make extract-docusaurus` runs the Docusaurus step alone, live-fetching every in-scope `/docs` page and caching each page's raw Markdown to `manual/pages/` (gitignored — not committed). `make extract-docusaurus-from-cache` re-runs from that cache with no network dependency, for fast local iteration. `make extract-docusaurus-check-counts` compares the extracted page count against `llms.txt`'s scoped entry count (B-0012 H8, `V-docusaurus-docs-count`) — non-blocking, prints MATCH/MISMATCH.
+- `make extract-docusaurus` runs the Docusaurus step alone, live-fetching every in-scope `/docs` page and caching each page's raw Markdown to `manual/pages/` (gitignored — not committed). `make extract-docusaurus-from-cache` re-runs from that cache with no network dependency, for fast local iteration; the cache holds the last complete live run (see "Local-only source refreshes"). `make extract-docusaurus-check-counts` compares the extracted page count against `llms.txt`'s scoped entry count (B-0012 H8, `V-docusaurus-docs-count`) — non-blocking, prints MATCH/MISMATCH.
 
 ### Rebuilding a historical (pre-migration) Confluence release DB
 
@@ -217,13 +217,20 @@ with `--update-baseline` to accept the new numbers.
 
 ### Local-only source refreshes
 
+**Live vs. `--from-cache` (#160).** Every extractor with a page cache follows one contract: `extract-docusaurus` (`manual/pages/`), `extract-cliref` (`manual/cli-reference/`), `assess-hardware` (`manual/pages/hardware/`), `assess-www` (`manual/pages/www/`) and `extract-dude` (`dude/pages/`).
+
+- A **live run** (no `--from-cache`) re-fetches every page it discovers and overwrites that page's cache file. It never reads the cache as input, so a page MikroTik changed upstream can't be served from an older cached copy.
+- After a **complete** live run (no `--limit`, no fetch errors), it deletes the cached pages the run did not discover and keeps the index files it wrote (`_sitemap.txt`, `_llms.txt`). The log line starts `Pruned N cached page(s)`. A partial run logs `Cache not pruned` and leaves older files in place; rerun it live before relying on the cache.
+- A **`--from-cache` run** makes no network requests. Right after a complete live run it reproduces that run exactly (for `extract-cliref`, the same entry, field and flag counts).
+- `extract-dude --force` now only re-downloads images already in `dude/images/`. Pages are always re-fetched on a live run, and `dude/images/` is never pruned.
+
 Before cutting a corpus release, check these inputs separately from CI:
 
 | Source | CI behavior | Local action when freshness matters |
 | --- | --- | --- |
 | YouTube transcripts | Imports the latest committed `transcripts/YYYY-MM-DD/videos.ndjson` cache. | Run `make extract-videos` for the live scrape, then `make save-videos-cache` (or `bun run src/extract-videos.ts --save-cache`) to write the committed cache. |
 | Product matrix | Parses the committed matrix CSV path used by `src/extract-devices.ts`. | Export **All** from <https://mikrotik.com/products/matrix>, save `matrix/YYYY-MM-DD/matrix.csv`, and update the extractor default if the release should consume it. |
-| Dude wiki | Imports committed `dude/pages/` HTML with `--skip-images`. | Rerun `make extract-dude` only when intentionally curating archived Wayback snapshots. It is not a routine current-source refresh. |
+| Dude wiki | Imports committed `dude/pages/` HTML with `--skip-images`. | Rerun `make extract-dude` only when intentionally curating archived Wayback snapshots. It is not a routine current-source refresh. It rewrites every committed `dude/pages/` file, so review the diff before committing. |
 | Changelog patch probing | Runs the normal live changelog extractor. | `make extract-changelogs-extended` is exploratory unless the release workflow is changed to use it. |
 | RouterOS versions, product tests, skills | Fetched live in release CI. | No local cache refresh is required for normal release prep. |
 

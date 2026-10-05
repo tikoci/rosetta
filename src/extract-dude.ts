@@ -7,15 +7,17 @@
  * caches raw HTML to dude/pages/, and populates dude_pages + dude_images tables.
  *
  * Usage:
- *   bun run src/extract-dude.ts              # Fetch from Wayback Machine + download images
- *   bun run src/extract-dude.ts --from-cache # Re-extract from cached dude/pages/ HTML
+ *   bun run src/extract-dude.ts              # Re-fetch every page from Wayback (overwrites and
+ *                                            # prunes dude/pages/) + download missing images
+ *   bun run src/extract-dude.ts --from-cache # Re-extract from cached dude/pages/ HTML, no network
  *   bun run src/extract-dude.ts --from-cache --skip-images  # CI path: no image download
- *   bun run src/extract-dude.ts --force      # Force re-download even if cached
+ *   bun run src/extract-dude.ts --force      # Also re-download images already in dude/images/
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseHTML } from "linkedom";
+import { pruneCache } from "./cache-prune.ts";
 import { db, initDb } from "./db.ts";
 
 // ── Configuration ──
@@ -26,6 +28,9 @@ const IMAGES_DIR = join(PROJECT_ROOT, "dude", "images");
 const FETCH_DELAY_MS = 500;
 
 const FROM_CACHE = process.argv.includes("--from-cache");
+// Images only: pages are always re-fetched on a live run, but an image already in
+// dude/images/ is kept unless --force. Images are display assets, not extraction input —
+// dude_images rows come from the page HTML either way.
 const FORCE = process.argv.includes("--force");
 const SKIP_IMAGES = process.argv.includes("--skip-images");
 
@@ -339,8 +344,9 @@ async function main() {
 
     let html: string;
 
-    if (FROM_CACHE || (existsSync(cacheFile) && !FORCE)) {
-      // Read from cache
+    // A live run never reads the page cache (#160): every page is re-fetched and its cache
+    // file overwritten, so dude/pages/ is a record of the last live run.
+    if (FROM_CACHE) {
       if (!existsSync(cacheFile)) {
         console.log(`  SKIP (no cache): ${pageDef.slug}`);
         continue;
@@ -439,6 +445,14 @@ async function main() {
   const stats = db.prepare("SELECT COUNT(*) AS c FROM dude_pages").get() as { c: number };
   const imgStats = db.prepare("SELECT COUNT(*) AS c FROM dude_images").get() as { c: number };
   console.log(`DB: ${stats.c} dude_pages, ${imgStats.c} dude_images`);
+
+  // Prune page HTML for any slug no longer in ALL_PAGES, so --from-cache (the CI path)
+  // reproduces this run. Skipped after a fetch error: that page's older file stays put.
+  // dude/images/ is not pruned — it is a download target, not an extraction input.
+  if (!FROM_CACHE) {
+    if (errorCount === 0) pruneCache(PAGES_DIR, ALL_PAGES.map((p) => `${p.slug}.html`), ".html");
+    else console.log(`Cache not pruned: partial run (${errorCount} fetch error(s))`);
+  }
 }
 
 if (import.meta.main) {

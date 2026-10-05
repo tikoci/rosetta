@@ -1,5 +1,7 @@
+import sqlite from "bun:sqlite";
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 // extract-cliref.ts imports db.ts, which opens the DB at module scope. Set DB_PATH
@@ -196,5 +198,95 @@ describe("parsePage — robustness", () => {
       ["interface", "iface_enum { <l2tp>:0xfffffffe }", true],
       ["mtu", "num", false],
     ]);
+  });
+});
+
+describe("live run vs cache (#160)", () => {
+  const BASE = "https://manual.mikrotik.com";
+  const PREAMBLE = "# T\n\nimport {ArgTable} from 'x';\n\n---\n\n";
+  const ROUTE = `${PREAMBLE}## ip/route\n\n**Type:** Directory\n\n<ArgTable c1="Argument" c2="Type" c3="Description">\n<ArgTableRow arg="gateway" typ="str">the gateway</ArgTableRow>\n</ArgTable>\n`;
+  // What a months-old cache held for ip/address: a section upstream has since removed (#159).
+  const STALE_ADDRESS = `${PREAMBLE}## ip/address/stale-rule\n\n**Type:** Directory\n\nRemoved upstream.\n`;
+  const SITEMAP = `<urlset>${["ip/address", "ip/route"].map((s) => `<url><loc>${BASE}/docs/cli-reference/${s}</loc></url>`).join("")}</urlset>`;
+
+  // "Live" manual.mikrotik.com, served to the extractor subprocess by a preloaded fetch stub.
+  const ROUTES: Record<string, string> = {
+    [`${BASE}/sitemap.xml`]: SITEMAP,
+    [`${BASE}/llms.txt`]: `- [Address](${BASE}/docs/cli-reference/ip/address.md)\n- [Route](${BASE}/docs/cli-reference/ip/route.md)\n`,
+    [`${BASE}/docs/cli-reference/ip/address.md`]: FIXTURE,
+    [`${BASE}/docs/cli-reference/ip/route.md`]: ROUTE,
+  };
+  const MOCK_FETCH = `const routes = await Bun.file(process.env.MOCK_FETCH_ROUTES).json();
+globalThis.fetch = async (input) => {
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  if (!(url in routes)) console.error("mock fetch: no route for " + url);
+  return url in routes ? new Response(routes[url]) : new Response("not found", { status: 404 });
+};
+`;
+
+  function extract(dir: string, dbName: string, ...flags: string[]): void {
+    const result = Bun.spawnSync(
+      [
+        process.execPath,
+        `--preload=${join(dir, "mock-fetch.js")}`,
+        "run",
+        join(import.meta.dirname, "extract-cliref.ts"),
+        `--cache-dir=${join(dir, "cache")}`,
+        ...flags,
+      ],
+      {
+        env: { DB_PATH: join(dir, dbName), MOCK_FETCH_ROUTES: join(dir, "routes.json") },
+        stdout: "pipe",
+        stderr: "pipe",
+      },
+    );
+    const output = `${result.stdout.toString()}${result.stderr.toString()}`;
+    expect(result.exitCode, output).toBe(0);
+    expect(output).not.toContain("no route for");
+  }
+
+  function query<T>(dbPath: string, sql: string): T[] {
+    const db = new sqlite(dbPath, { readonly: true });
+    try {
+      return db.query(sql).all() as T[];
+    } finally {
+      db.close();
+    }
+  }
+
+  const COUNTS = `SELECT (SELECT COUNT(*) FROM cliref_pages) AS pages, (SELECT COUNT(*) FROM cliref_entries) AS entries,
+                         (SELECT COUNT(*) FROM cliref_fields) AS fields, (SELECT COUNT(*) FROM cliref_flags) AS flags`;
+
+  test("a live run re-fetches a stale cached page, prunes undiscovered ones, and --from-cache reproduces it", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rosetta-cliref-live-"));
+    try {
+      writeFileSync(join(dir, "mock-fetch.js"), MOCK_FETCH);
+      writeFileSync(join(dir, "routes.json"), JSON.stringify(ROUTES));
+      const cache = join(dir, "cache");
+      mkdirSync(cache);
+      writeFileSync(join(cache, "ip__address.md"), STALE_ADDRESS);
+      writeFileSync(join(cache, "gone__page.md"), `${PREAMBLE}## gone/page\n\n**Type:** Directory\n`);
+      writeFileSync(join(cache, "_sitemap.txt"), `<urlset><url><loc>${BASE}/docs/cli-reference/gone/page</loc></url></urlset>`);
+
+      extract(dir, "live.db");
+
+      const paths = query<{ source_path: string }>(join(dir, "live.db"), "SELECT source_path FROM cliref_entries").map(
+        (r) => r.source_path,
+      );
+      expect(paths).toContain("ip/address");
+      expect(paths).toContain("ip/route");
+      expect(paths).not.toContain("ip/address/stale-rule");
+      expect(paths).not.toContain("gone/page");
+
+      // The cache now holds exactly this run: live page bodies plus the index files it wrote.
+      expect(readFileSync(join(cache, "ip__address.md"), "utf8")).toBe(FIXTURE);
+      expect(readFileSync(join(cache, "_sitemap.txt"), "utf8")).toBe(SITEMAP);
+      expect(readdirSync(cache).sort()).toEqual(["_llms.txt", "_sitemap.txt", "ip__address.md", "ip__route.md"]);
+
+      extract(dir, "cached.db", "--from-cache");
+      expect(query(join(dir, "cached.db"), COUNTS)).toEqual(query(join(dir, "live.db"), COUNTS));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
