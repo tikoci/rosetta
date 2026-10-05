@@ -1253,9 +1253,13 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
 
   beforeAll(() => {
     // `/tool fetch` only splits into path + verb when the command tree knows `fetch` is a cmd.
-    // `/tool` links to the Firewall Filter page so its `action` row is a page-aligned `medium`.
+    // `/tool` and `/system/note/look` link to the Firewall Filter page, so manual rows there are
+    // page-aligned `medium` for those menus.
+    db.run(`INSERT INTO properties (id, page_id, name, type, default_val, description, section, sort_order)
+      VALUES (${CR}, 2, 'shade', 'string', '', 'Manual-only nested shade.', NULL, 99)`);
     db.run(`INSERT INTO commands (id, path, name, type, parent_path, page_id, description, ros_version)
       VALUES (${CR}, '/tool', 'tool', 'dir', NULL, 2, 'Tools', '7.22'),
+             (${CR + 3}, '/system/note/look', 'look', 'dir', '/system/note', 2, 'Look', '7.22'),
              (${CR + 1}, '/tool/fetch', 'fetch', 'cmd', '/tool', NULL, 'Fetch', '7.22'),
              (${CR + 2}, '/ping', 'ping', 'cmd', '/', NULL, 'Ping', '7.22')`);
     for (const [id, path, type] of entries) {
@@ -1283,7 +1287,8 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     db.run(`DELETE FROM cliref_fields WHERE id BETWEEN ${CR} AND ${CR + 99}`);
     db.run(`DELETE FROM cliref_entries WHERE id BETWEEN ${CR} AND ${CR + 99}`);
     db.run(`DELETE FROM cliref_pages WHERE id BETWEEN ${CR} AND ${CR + 99}`);
-    db.run(`DELETE FROM commands WHERE id IN (${CR}, ${CR + 1}, ${CR + 2})`);
+    db.run(`DELETE FROM commands WHERE id IN (${CR}, ${CR + 1}, ${CR + 2}, ${CR + 3})`);
+    db.run(`DELETE FROM properties WHERE id = ${CR}`);
   });
 
   test("unscoped: a name the manual lacks comes back from the overlay at medium, with no page to open", () => {
@@ -1414,6 +1419,14 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     });
     const result = explainCommand("/system/note set display.color=red");
     expect(result.args[0].property).toMatchObject({ name: "color", description: "Display color of the note." });
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a dotted name maps to a manual-only nested row too (the configuration.manager shape)", () => {
+    const result = explainCommand("/system/note set look.shade=dark");
+    expect(result.args[0].property).toMatchObject({
+      name: "shade", source: "manual", confidence: "medium", description: "Manual-only nested shade.",
+    });
     expect(result.warnings).toEqual([]);
   });
 
