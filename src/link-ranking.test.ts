@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  flattenedRun,
   type PageCandidate,
   pageIdentitySegs,
   pickBestPageId,
@@ -65,7 +66,46 @@ describe("scoreCandidate", () => {
   });
 });
 
+describe("flattenedRun", () => {
+  test("counts trailing command segments spelled out as in-order `-` components", () => {
+    expect(flattenedRun(["interface", "bridge", "vlan"], "bridge-vlan-table")).toBe(2);
+    expect(flattenedRun(["ip", "packing"], "ip-packing")).toBe(2);
+  });
+
+  test("a lone component, an out-of-order run, or an unhyphenated segment is not a run", () => {
+    expect(flattenedRun(["container"], "container-freeradius-server")).toBe(0);
+    expect(flattenedRun(["interface", "vlan"], "basic-vlan-switching")).toBe(0);
+    expect(flattenedRun(["vlan", "bridge"], "bridge-vlan-table")).toBe(0);
+    expect(flattenedRun(["ip", "firewall"], "firewall")).toBe(0);
+  });
+});
+
 describe("pickBestPageId", () => {
+  test("#131: /interface/bridge/vlan links to Bridge VLAN Table, not VLANs on Wireless", () => {
+    const candidates: PageCandidate[] = [
+      { id: 350, segs: ["wireless", "abgn", "vlans-on-wireless"], propCount: 0 }, // prefix `vlan` ↔ `vlans-…`
+      { id: 24, segs: ["bridging-and-switching", "user-guides", "basic-vlan-switching"], propCount: 0 },
+      { id: 26, segs: ["bridging-and-switching", "user-guides", "bridge-vlan-table"], propCount: 0 },
+    ];
+    expect(pickBestPageId("/interface/bridge/vlan", candidates)).toBe(26);
+  });
+
+  test("an exact component run outscores a prefix match, even against more properties", () => {
+    const run = scoreCandidate(["interface", "bridge", "vlan"], ["user-guides", "bridge-vlan-table"], 0);
+    const prefix = scoreCandidate(["interface", "bridge", "vlan"], ["abgn", "vlans-on-wireless"], 999);
+    expect(run).toBeGreaterThan(prefix);
+  });
+
+  test("a single shared component is not credited above a prefix (/container keeps Container)", () => {
+    // Both are prefix matches today; crediting the lone `container` component would hand
+    // /container to the freeradius user guide (26 rows re-pointed in the #131 corpus diff).
+    const candidates: PageCandidate[] = [
+      { id: 35, segs: ["containers"], propCount: 60 },
+      { id: 39, segs: ["containers", "user-guides", "container-freeradius-server"], propCount: 0 },
+    ];
+    expect(pickBestPageId("/container", candidates)).toBe(35);
+  });
+
   test("the authoritative (path-aligned) page beats a property-rich unrelated page", () => {
     const candidates: PageCandidate[] = [
       { id: 1, segs: ["bridging-and-switching", "l3-hardware-offloading"], propCount: 50 }, // rich but wrong

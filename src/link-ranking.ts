@@ -38,6 +38,9 @@ export function pageIdentitySegs(url: string | null | undefined, breadcrumb = ""
  * Contiguous trailing-segment match anchored at the command leaf. `/ip/firewall/filter`
  * against `docs/firewall-and-quality-of-service/firewall/filter` matches `filter` then
  * `firewall` (depth 6) before the top-level `ip` diverges; an unrelated page scores 0.
+ * One hyphenated slug segment may consume several command segments when it spells them
+ * out in order (`/ip/packing` ↔ `ip-packing`, `bridge/vlan` ↔ `bridge-vlan-table`) — see
+ * {@link flattenedRun}.
  *
  * A page with **no** trailing alignment scores 0 regardless of how many properties it
  * has — otherwise a property-rich but unrelated page (e.g. bridging-and-switching) would
@@ -45,13 +48,47 @@ export function pageIdentitySegs(url: string | null | undefined, breadcrumb = ""
  */
 export function scoreCandidate(cmdSegs: string[], pageSegs: string[], propCount: number): number {
   let depth = 0;
-  for (let i = 1; i <= Math.min(cmdSegs.length, pageSegs.length); i++) {
-    const m = segMatch(cmdSegs[cmdSegs.length - i], pageSegs[pageSegs.length - i]);
-    if (m === 0) break;
-    depth += m;
+  let ci = cmdSegs.length - 1;
+  let pi = pageSegs.length - 1;
+  while (ci >= 0 && pi >= 0) {
+    const run = flattenedRun(cmdSegs.slice(0, ci + 1), pageSegs[pi]);
+    if (run >= 2) {
+      // Each command segment in the run is an exact `-` component of the slug segment.
+      depth += 3 * run;
+      ci -= run;
+    } else {
+      const m = segMatch(cmdSegs[ci], pageSegs[pi]);
+      if (m === 0) break;
+      depth += m;
+      ci--;
+    }
+    pi--;
   }
   if (depth === 0) return 0;
   return depth * 1000 + Math.min(propCount, 999);
+}
+
+/**
+ * How many trailing command segments a single slug segment spells out as an in-order run of
+ * its `-` components: `["interface","bridge","vlan"]` vs `bridge-vlan-table` → 2 (`bridge`,
+ * `vlan`). Docusaurus slugs often flatten a menu path into one hyphenated segment, and a run
+ * of two or more exact components is a word-boundary match on the command's own path — which
+ * is why it outranks a plain prefix such as `vlan` ↔ `vlans-on-wireless` (#131).
+ *
+ * A run of one is deliberately not credited: a lone component (`container` ↔
+ * `container-freeradius-server`, `client` ↔ `tr069-client`) is too weak to override the
+ * existing exact/prefix rules.
+ */
+export function flattenedRun(cmdSegs: string[], pageSeg: string): number {
+  const comps = pageSeg.split("-");
+  if (comps.length < 2) return 0;
+  for (let k = Math.min(cmdSegs.length, comps.length); k >= 2; k--) {
+    const tail = cmdSegs.slice(cmdSegs.length - k);
+    for (let start = 0; start + k <= comps.length; start++) {
+      if (tail.every((seg, j) => comps[start + j] === seg)) return k;
+    }
+  }
+  return 0;
 }
 
 export type PageCandidate = { id: number; segs: string[]; propCount: number };
