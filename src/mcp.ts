@@ -911,8 +911,8 @@ Returns:
 - confidence: high/medium/low/none from the CLI canonicalizer
 - args: parsed key=value args with first property match, lookup confidence, and source
   (manual or cli-reference) when found; a read-only CLI Reference field is not a match
-- warnings: no-command, low-confidence, unknown-arg (not listed for this menu by the CLI Reference or
-  a menu-aligned manual page), no-description (listed for this menu, so it exists, but MikroTik has
+- warnings: no-command, low-confidence, unknown-arg (rosetta matched nothing for this menu in the CLI
+  Reference or a menu-aligned manual page — a lookup gap, not proof the argument is invalid), no-description (listed for this menu, so it exists, but MikroTik has
   not described it — missing documentation, not an invalid argument), command-not-in-version, or
   model-context-unused signals
 - pages: compact documentation search hits

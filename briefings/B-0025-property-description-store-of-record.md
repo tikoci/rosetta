@@ -164,6 +164,12 @@ loosening: its top row is the exact `/ip/firewall/filter` definition at `high`.
 - **The 69 + 942 `manual / high` rows** beside an exact overlay row. Under B these keep the manual
   answer. That is right while `high` means "the section names this menu", but 69 of them have a
   described overlay alternative that nobody has compared.
-- **Dotted names.** Map `<menu>/<prefix>` → `<suffix>` for the 112 of 539 dotted args the overlay
-  can host, or wait until those overlay rows are described?
+- ~~**Dotted names.**~~ **Done (next.116 candidate).** `lookupProperty` retries a dotted name with no
+  answer at its own menu as the last segment under the sub-menu the other segments name
+  (`channel.width` → `width` at `/interface/wifi/channel`). It runs the full lookup there, so the
+  manual counts too, not only the overlay. On next.115, answered dotted (menu, arg) pairs rose from
+  140 to 271 of 539. 128 gained real manual descriptions from the Wi-Fi page, and 3 more get an
+  honest `no-description`. The consumer found this after next.115's `unknown-arg` rewording
+  claimed these settings weren't listed at all. That wording now says what rosetta did: "matched
+  nothing", which is a lookup gap, not proof the argument is invalid.
 - **#58, #61 and #100 dispositions** in light of the table above.

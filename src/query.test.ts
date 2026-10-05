@@ -1227,6 +1227,7 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 5, "tool", "Directory"],
     [CR + 6, "ip/firewall/filter", "Directory"],
     [CR + 7, "interface/bridge/port", "Directory"],
+    [CR + 8, "system/note/display", "Directory"],
   ];
   const fields: Array<[number, number, string, string, string]> = [
     [CR, CR, "show-at-login", "bool", "Show the note after login."],
@@ -1245,6 +1246,9 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     [CR + 13, CR + 1, "ws-arg", "num", "\t\n"],
     [CR + 14, CR + 1, "ws-arg", "num", "Described ws-arg."],
     [CR + 15, CR + 3, "action", "string", "Fetch's own action."],
+    [CR + 16, CR + 8, "color", "enum", "Display color of the note."],
+    [CR + 17, CR, "display.size", "num", "Directly listed dotted name."],
+    [CR + 18, CR + 8, "size", "num", "Nested size."],
   ];
 
   beforeAll(() => {
@@ -1404,6 +1408,25 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     expect(result.args[0].property).toMatchObject({ source: "cli-reference", description: "Fetch's own action." });
   });
 
+  test("a dotted name is retried as its last segment under the sub-menu it names", () => {
+    expect(lookupProperty("display.color", "/system/note")[0]).toMatchObject({
+      name: "color", source: "cli-reference", confidence: "high", page_title: "CLI Reference: /system/note/display",
+    });
+    const result = explainCommand("/system/note set display.color=red");
+    expect(result.args[0].property).toMatchObject({ name: "color", description: "Display color of the note." });
+    expect(result.warnings).toEqual([]);
+  });
+
+  test("a dotted name answered at its own menu is not remapped", () => {
+    expect(lookupProperty("display.size", "/system/note")[0]).toMatchObject({ description: "Directly listed dotted name." });
+  });
+
+  test("a dotted name with no answer anywhere stays unknown-arg", () => {
+    const result = explainCommand("/system/note set display.nothing=1");
+    expect(result.args[0].property).toBeUndefined();
+    expect(result.warnings.map((w) => w.kind)).toEqual(["unknown-arg"]);
+  });
+
   test("explainCommand reaches a command's own entry at path/verb", () => {
     const result = explainCommand("/tool fetch fetch-target=x");
     expect(result.canonical).toMatchObject({ path: "/tool", verb: "fetch" });
@@ -1507,7 +1530,7 @@ describe("explainCommand", () => {
     expect(result.args).toEqual([{ raw: "action=masquerade", name: "action", value: "masquerade" }]);
     expect(result.warnings).toEqual([{
       kind: "unknown-arg", arg: "action",
-      message: '"action" was not found for /ip/firewall/nat: neither MikroTik\'s CLI Reference nor a menu-aligned manual page lists it. Rosetta cannot tell whether the RouterOS argument is valid.',
+      message: '"action" was not found for /ip/firewall/nat: rosetta matched no argument in MikroTik\'s CLI Reference and no menu-aligned manual property. This is a gap in what rosetta could match, not proof that the argument is invalid.',
       suggestion: 'Use routeros_command_tree path="/ip/firewall/nat" or routeros_get_page for the linked documentation to confirm available arguments.',
     }]);
     expect(lookupProperty("action", "/ip/firewall/nat")).toEqual(candidates);

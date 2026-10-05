@@ -14,10 +14,13 @@ on:
         type: string
         default: ''
       docs_date:
-        description: 'Export date or presumed RouterOS version for traceability (e.g. 2026-03-25)'
+        description: >
+          Optional traceability note for the release body. The manual is extracted live at build
+          time, so leave blank unless you need to record something (a blank shows "extracted live
+          at build time"). The old fixed default (2026-05-26) dated a retired export.
         required: false
         type: string
-        default: '2026-05-26'
+        default: ''
       full_versions:
         description: 'Extract all RouterOS versions (true) or single primary only (false)'
         required: false
@@ -446,7 +449,9 @@ jobs:
         run: |
           PAGES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM pages")
           COMMANDS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM commands WHERE type='cmd'")
-          VERSIONS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM ros_versions")
+          # Versions that carry command-tree data. COUNT(*) FROM ros_versions counted
+          # (version, arch) rows plus metadata-only versions with no commands (103 vs 67).
+          VERSIONS=$(sqlite3 ros-help.db "SELECT COUNT(DISTINCT ros_version) FROM command_versions")
           DEVICES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM devices")
           PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
           PAGE_TABLES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM page_tables" 2>/dev/null || echo 0)
@@ -731,15 +736,15 @@ jobs:
 
           NOTES="## Database Stats
           - **Pages:** ${{ needs.build.outputs.pages }}
-          - **Commands:** ${{ needs.build.outputs.commands }}
-          - **RouterOS Versions:** ${{ needs.build.outputs.versions }}
+          - **Commands:** ${{ needs.build.outputs.commands }} (command entries; \`routeros_stats\` also counts menus and arguments)
+          - **RouterOS versions with command data:** ${{ needs.build.outputs.versions }}
           - **Devices:** ${{ needs.build.outputs.devices }}
           - **Properties:** ${{ needs.build.outputs.properties }}
           - **Videos:** ${{ needs.build.outputs.videos }} (${{ needs.build.outputs.segments }} transcript segments)
 
           ## Build Info
           - **Commit:** ${{ github.sha }}
-          - **Docs date:** ${DOCS_DATE:-not specified}
+          - **Docs date:** ${DOCS_DATE:-extracted live at build time}
           - **Release version source:** ${{ needs.build.outputs.source }}
           - **Full version extraction:** ${{ inputs.full_versions }}
           - **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
