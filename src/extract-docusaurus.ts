@@ -1218,18 +1218,19 @@ async function main() {
     process.exit(1);
   }
 
+  const countsOk = CHECK_COUNTS ? await checkCounts(parsedPages.length) : true;
+  if (!countsOk && STRICT) process.exit(1);
+
   // The cache is a record of the last complete live run: --from-cache discovers pages by
   // listing CACHE_DIR, so a page upstream deleted would otherwise be re-extracted forever.
-  // Only a complete run prunes — --limit skips pages on purpose, and a fetch error leaves
-  // that page's older cache file in place.
+  // Only a complete run prunes — --limit skips pages on purpose, a fetch error leaves that
+  // page's older cache file in place, and a failed count check keeps the cache for a retry.
   if (!FROM_CACHE) {
-    if (!LIMIT && fetchErrors === 0) pruneCache(CACHE_DIR, rosettaIds.map((id) => `${id}.md`), ".md");
-    else console.log(`Cache not pruned: partial run (${LIMIT ? "--limit" : `${fetchErrors} fetch error(s)`})`);
-  }
-
-  if (CHECK_COUNTS) {
-    const ok = await checkCounts(parsedPages.length);
-    if (!ok && STRICT) process.exit(1);
+    if (!LIMIT && fetchErrors === 0 && countsOk) pruneCache(CACHE_DIR, rosettaIds.map((id) => `${id}.md`), ".md");
+    else {
+      const why = LIMIT ? "--limit" : fetchErrors > 0 ? `${fetchErrors} fetch error(s)` : "count check failed";
+      console.log(`Cache not pruned: partial run (${why})`);
+    }
   }
 }
 

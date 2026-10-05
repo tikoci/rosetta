@@ -54,7 +54,8 @@ assess:
 # overwrites its cache file (never reads the cache as input). After a complete live run
 # (no --limit, no fetch errors) it deletes cached pages it did not discover, keeping the
 # index files it wrote (_sitemap.txt, _llms.txt). A --from-cache run makes no network
-# requests and reproduces that last complete live run.
+# requests and reproduces that last complete live run. The one exception is
+# extract-docusaurus --check-counts, which compares against the live llms.txt on purpose.
 
 # Live fetch of manual.mikrotik.com/hardware/*, cached to manual/pages/hardware/.
 assess-hardware:
@@ -163,8 +164,9 @@ extract-docusaurus:
 extract-docusaurus-from-cache:
 	bun run src/extract-docusaurus.ts --from-cache
 
-# Compare extracted page count against llms.txt (B-0012 H8, V-docusaurus-docs-count).
-# Non-blocking by design — prints a MATCH/MISMATCH line, does not fail the build.
+# Compare extracted page count against the live llms.txt (B-0012 H8, V-docusaurus-docs-count);
+# the one network request a --from-cache run makes. Non-blocking by design — prints a
+# MATCH/MISMATCH line, does not fail the build.
 extract-docusaurus-check-counts:
 	bun run src/extract-docusaurus.ts --from-cache --check-counts
 

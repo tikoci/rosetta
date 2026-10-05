@@ -321,6 +321,39 @@ async function main() {
   mkdirSync(PAGES_DIR, { recursive: true });
   mkdirSync(IMAGES_DIR, { recursive: true });
 
+  // Load every page before touching the DB. A live run that loses one page to a Wayback
+  // error then fails with dude_pages untouched, instead of exiting 0 with a partial table.
+  const pages: Array<{ pageDef: (typeof ALL_PAGES)[number]; html: string }> = [];
+  let errorCount = 0;
+  for (const pageDef of ALL_PAGES) {
+    const cacheFile = join(PAGES_DIR, `${pageDef.slug}.html`);
+    // A live run never reads the page cache (#160): every page is re-fetched and its cache
+    // file overwritten, so dude/pages/ is a record of the last live run.
+    if (FROM_CACHE) {
+      if (!existsSync(cacheFile)) {
+        console.log(`  SKIP (no cache): ${pageDef.slug}`);
+        continue;
+      }
+      pages.push({ pageDef, html: readFileSync(cacheFile, "utf-8") });
+      console.log(`  [cache] ${pageDef.slug}`);
+    } else {
+      console.log(`  [fetch] ${pageDef.slug} ...`);
+      try {
+        const response = await fetchWithRetry(waybackUrl(pageDef.wikiPath));
+        const html = await response.text();
+        writeFileSync(cacheFile, html);
+        pages.push({ pageDef, html });
+        await delay(FETCH_DELAY_MS);
+      } catch (e) {
+        console.log(`  ERROR: ${pageDef.slug}: ${e}`);
+        errorCount++;
+      }
+    }
+  }
+  if (errorCount > 0) {
+    throw new Error(`${errorCount} page fetch(es) failed; dude_pages left unchanged and the cache not pruned`);
+  }
+
   // Idempotent: clear existing data
   db.run("DELETE FROM dude_images");
   db.run("DELETE FROM dude_pages");
@@ -336,39 +369,10 @@ async function main() {
 
   let pageCount = 0;
   let imageCount = 0;
-  let errorCount = 0;
 
-  for (const pageDef of ALL_PAGES) {
-    const cacheFile = join(PAGES_DIR, `${pageDef.slug}.html`);
+  for (const { pageDef, html } of pages) {
     const wbUrl = waybackUrl(pageDef.wikiPath);
     const originalUrl = `${WIKI_BASE}${pageDef.wikiPath}`;
-
-    let html: string;
-
-    // A live run never reads the page cache (#160): every page is re-fetched and its cache
-    // file overwritten, so dude/pages/ is a record of the last live run.
-    if (FROM_CACHE) {
-      if (!existsSync(cacheFile)) {
-        console.log(`  SKIP (no cache): ${pageDef.slug}`);
-        continue;
-      }
-      html = readFileSync(cacheFile, "utf-8");
-      console.log(`  [cache] ${pageDef.slug}`);
-    } else {
-      // Fetch from Wayback Machine
-      console.log(`  [fetch] ${pageDef.slug} ...`);
-      try {
-        const response = await fetchWithRetry(wbUrl);
-        html = await response.text();
-        // Cache the raw HTML
-        writeFileSync(cacheFile, html);
-        await delay(FETCH_DELAY_MS);
-      } catch (e) {
-        console.log(`  ERROR: ${pageDef.slug}: ${e}`);
-        errorCount++;
-        continue;
-      }
-    }
 
     // Parse HTML
     const parsed = parseDudePage(html, wbUrl);
@@ -448,12 +452,9 @@ async function main() {
   console.log(`DB: ${stats.c} dude_pages, ${imgStats.c} dude_images`);
 
   // Prune page HTML for any slug no longer in ALL_PAGES, so --from-cache (the CI path)
-  // reproduces this run. Skipped after a fetch error: that page's older file stays put.
+  // reproduces this run. A live run only gets here with every page fetched.
   // dude/images/ is not pruned — it is a download target, not an extraction input.
-  if (!FROM_CACHE) {
-    if (errorCount === 0) pruneCache(PAGES_DIR, ALL_PAGES.map((p) => `${p.slug}.html`), ".html");
-    else console.log(`Cache not pruned: partial run (${errorCount} fetch error(s))`);
-  }
+  if (!FROM_CACHE) pruneCache(PAGES_DIR, ALL_PAGES.map((p) => `${p.slug}.html`), ".html");
 }
 
 if (import.meta.main) {

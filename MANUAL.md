@@ -221,7 +221,8 @@ with `--update-baseline` to accept the new numbers.
 
 - A **live run** (no `--from-cache`) re-fetches every page it discovers and overwrites that page's cache file. It never reads the cache as input, so a page MikroTik changed upstream can't be served from an older cached copy.
 - After a **complete** live run (no `--limit`, no fetch errors), it deletes the cached pages the run did not discover and keeps the index files it wrote (`_sitemap.txt`, `_llms.txt`). The log line starts `Pruned N cached page(s)`. A partial run logs `Cache not pruned` and leaves older files in place; rerun it live before relying on the cache.
-- A **`--from-cache` run** makes no network requests. Right after a complete live run it reproduces that run exactly (for `extract-cliref`, the same entry, field and flag counts).
+- A **`--from-cache` run** makes no network requests. Right after a complete live run it reproduces that run exactly (for `extract-cliref`, the same entry, field and flag counts). One exception, by design: `extract-docusaurus --from-cache --check-counts` fetches the live `llms.txt`, because `V-docusaurus-docs-count` (the `qa.yml` docusaurus-count gate) compares the cached pages against what MikroTik lists today.
+- `extract-docusaurus` also skips the prune when `--check-counts` fails, so a failed `--strict` run keeps its cache for a retry. A live `extract-dude` with any failed page fetch now fails before touching `dude_pages`.
 - `extract-dude --force` now only re-downloads images already in `dude/images/`. Pages are always re-fetched on a live run, and `dude/images/` is never pruned.
 
 Before cutting a corpus release, check these inputs separately from CI:
