@@ -52,12 +52,44 @@ export async function discoverRemoteVersions(): Promise<string[]> {
     .map((e) => e.name);
 }
 
+export interface RetryOptions {
+  attempts?: number;
+  baseDelayMs?: number;
+  fetchImpl?: typeof fetch;
+}
+
+/**
+ * fetch() that retries network errors and 5xx responses with exponential backoff.
+ * GitHub Pages serves routine transient 503s; one of those dropped 7.15 from a
+ * release (#178). Other statuses (404 and friends) return immediately so the caller
+ * can fail on them. After the last attempt the final response is returned (or the
+ * final network error thrown) for the caller to handle.
+ */
+export async function fetchWithRetry(
+  url: string,
+  init: RequestInit = {},
+  { attempts = 4, baseDelayMs = 1000, fetchImpl = fetch }: RetryOptions = {},
+): Promise<Response> {
+  for (let attempt = 1; ; attempt++) {
+    const last = attempt >= attempts;
+    try {
+      const response = await fetchImpl(url, init);
+      if (response.status < 500 || last) return response;
+      console.warn(`  ${url}: HTTP ${response.status}, retry ${attempt}/${attempts - 1}`);
+    } catch (e) {
+      if (last) throw e;
+      console.warn(`  ${url}: ${(e as Error).message}, retry ${attempt}/${attempts - 1}`);
+    }
+    await Bun.sleep(baseDelayMs * 2 ** (attempt - 1));
+  }
+}
+
 /**
  * Load a JSON file from a URL or local path.
  */
-export async function loadJson<T = unknown>(source: string): Promise<T> {
+export async function loadJson<T = unknown>(source: string, retry: RetryOptions = {}): Promise<T> {
   if (isHttpUrl(source)) {
-    const response = await fetch(source);
+    const response = await fetchWithRetry(source, {}, retry);
     if (!response.ok) {
       throw new Error(`Failed to fetch ${source}: HTTP ${response.status}`);
     }

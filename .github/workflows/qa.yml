@@ -241,6 +241,8 @@ jobs:
           # A single-version local-build (make extract) has no schema_nodes and runs no
           # link-cliref, so the link floor + drift gate below are skipped for that DB.
           SCHEMA_CMD_NODES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM schema_nodes WHERE type IN ('dir','cmd')" 2>/dev/null || echo 0)
+          CMD_VERSIONS=$(sqlite3 ros-help.db "SELECT COUNT(DISTINCT ros_version) FROM command_versions" 2>/dev/null || echo 0)
+          EXPECTED_VERSIONS=$(sqlite3 ros-help.db "SELECT value FROM db_meta WHERE key = 'command_versions_expected'" 2>/dev/null || echo "")
           echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties ($TABLE_PROPERTIES table-linked), $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases, $CLIREF_ENTRIES cliref_entries ($CLIREF_FIELDS fields, $CLIREF_FLAGS flags, $CLIREF_LINKS links)"
           fail=0
           if [ "${PAGES:-0}" -lt 200 ]; then
@@ -311,6 +313,23 @@ jobs:
           if [ "${SCHEMA_CMD_NODES:-0}" -gt 0 ] && [ "${CLIREF_LINKS:-0}" -lt 800 ]; then
             echo "::error::DB has only ${CLIREF_LINKS} cliref_entry_schema_links — expected ≥800. Did link-cliref run after schema_nodes was populated?"
             fail=1
+          fi
+          # Version coverage (#178): next.116 shipped with 66 of 67 versions because one
+          # child extraction failed, and no aggregate floor moves for a single version.
+          # extract-all-versions stamps how many versions restraml listed; every one of
+          # them must still have command_versions rows in the DB about to ship. Full-versions
+          # builds only — a single-version build has no schema_nodes and runs no
+          # extract-all-versions.
+          if [ "${SCHEMA_CMD_NODES:-0}" -gt 0 ]; then
+            if [ -z "$EXPECTED_VERSIONS" ]; then
+              echo "::error::db_meta has no command_versions_expected — did extract-all-versions finish?"
+              fail=1
+            elif [ "${CMD_VERSIONS:-0}" -lt "$EXPECTED_VERSIONS" ]; then
+              echo "::error::command_versions covers ${CMD_VERSIONS} versions — restraml listed ${EXPECTED_VERSIONS}. A version's command data is missing."
+              fail=1
+            else
+              echo "✓ command_versions covers ${CMD_VERSIONS}/${EXPECTED_VERSIONS} versions"
+            fi
           fi
           if [ "$fail" = "1" ]; then exit 1; fi
           echo "✓ DB content validation passed"

@@ -233,10 +233,14 @@ Published artifacts come from the GitHub Actions `Release` workflow (`workflow_d
 
 - **Inputs:** `version` (optional override — see "npm channel" below for how this interacts with prerelease dispatches), `docs_date`, `full_versions`, and `republish_assets`.
 - **`republish_assets`:** reuploads GitHub Release assets and OCI tags for an existing version. It does **not** republish npm because npm versions are immutable, and it never moves a floating OCI tag (`:latest`/`:next`) on any channel. See "Prerelease republish semantics" below for prerelease-specific caveats.
-- **Job graph (Phase B, #42):** `build` → `qa` → `publish` → `bunx-smoke`.
+- **Job graph (Phase B, #42; #176):** `build` → `qa` → `publish` → {`verify-dist-tags`, `smoke`}.
   - **`build`:** npm channel detection (+ workspace-only prerelease version rewrite) → CHANGELOG gate (latest only) → npm publish-access preflight → fast-fail quality gate → live Docusaurus extraction (`extract-docusaurus.ts --check-counts --strict`, proving `V-docusaurus-docs-count` on every run) → extraction chain → transcript/Dude cache imports → skill extraction → command linking → `schema_node_presence` GC → DB-wipe guard → `db_meta` stamping → DB-stats collection. Uploads the built DB and the resolved `package.json` as artifacts.
   - **`qa`:** `uses: ./.github/workflows/qa.yml` with `db_source=artifact` — the single definition of the release-locked gates (contract, retrieval evals, DB-content floors, `db_meta` presence) runs here against the exact DB `build` produced. Nothing publishes if it's red.
   - **`publish`:** downloads the gated DB + resolved `package.json`, then OCI build/push → GitHub Release → npm publish (side effects only, keyed off `build`'s job outputs).
+  - **`verify-dist-tags`:** reads the npm dist-tags back (up to 15 minutes; see "npm channel" below). It is a separate job so that slow registry propagation fails the run without skipping the install smoke.
+  - **`smoke`:** `uses: ./.github/workflows/release-smoke.yml`, the three-OS `bunx-smoke` and `bunx-upgrade-smoke` jobs. They wait for the exact version they test, not for the dist-tag read-back.
+- **Re-running a skipped smoke:** `release-smoke.yml` is also dispatchable on its own against an already-published version, e.g. `gh workflow run release-smoke.yml -f version=v0.11.3-next.116 -f previous_version=v0.11.3-next.115`. Leave `previous_version` empty to run `bunx-smoke` only. `bunx-upgrade-smoke` resolves the dist-tag, so it can only pass for the version that is currently the tag's head.
+- **Release notes (#22):** the GitHub Release body starts with the version's `CHANGELOG.md` block on a latest release, or the `[Unreleased]` block (headed "Changes since *last release* (unreleased)") on a `-next` release, then the DB stats and build info. `scripts/release-notes.ts` builds it from the checked-out `CHANGELOG.md`, so a `republish_assets` run from the same commit writes the same body.
 - **Provenance:** release notes include DB stats, and the stamped `db_meta` keys (`release_tag`, `built_at`, `source_commit`, `schema_version`) let runtime surfaces report exactly what shipped.
 - **Test coverage:** the fast-fail `bun test` step runs with `--coverage`, prints a per-file table to the workflow's step summary, and uploads `coverage/lcov.info` as a `coverage-lcov` workflow artifact. Informational only — not a gate.
 
@@ -286,7 +290,7 @@ There are exactly two channels, `latest` and `next` (#152). `package.json`'s com
 
 - A prerelease must be semver-newer than both the current `latest` and `next`, or the build job fails before extracting anything ("Verify prerelease is ahead of latest and next"). This catches the easy mistake of dispatching `X.Y.Z-next` after `X.Y.Z` already shipped stable — `X.Y.Z-next.N` sorts *below* `X.Y.Z`. Bump to the next unreleased version instead.
 - A stable publish also moves `next` (npm dist-tag and OCI `:next`) when the current `next` is semver-lower. A newer prerelease already on `next` stays.
-- After publishing, "Read back npm dist-tags" fails the job unless the run's dist-tag resolves to the new version and `next` ≥ `latest`.
+- After publishing, the `verify-dist-tags` job fails the run unless, within 15 minutes, the run's dist-tag resolves to the new version and `next` ≥ `latest`. Propagation has taken from ~135s (next.112) to over 300s (next.116), which is why this is no longer a `publish` step (#176).
 
 For prerelease dispatches, the workflow's very first extraction-pipeline step rewrites `package.json`'s version **in the workspace only** (never committed) to `MAJOR.MINOR.PATCH-next.${GITHUB_RUN_NUMBER}` before any preflight or publish step reads it. This means:
 
@@ -773,7 +777,10 @@ glossary (
 -- overlay ETL (extract-hardware-catalog.ts) stamps three more:
 -- hardware_catalog_source, hardware_catalog_built_at, and
 -- hardware_catalog_matrix_snapshot (the dated matrix/<date>/ snapshot the
--- device_id links were built from).
+-- device_id links were built from). extract-all-versions.ts stamps
+-- command_versions_expected (how many RouterOS versions restraml listed),
+-- which qa.yml's db-content gate compares with the versions that have
+-- command data (#178).
 db_meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -807,8 +814,8 @@ Once configured as an MCP server, rosetta should keep itself up to date without 
 | Issue | Solution |
 |-------|----------|
 | **First launch is slow** | One-time database download (~50 MB). Subsequent starts are instant. |
-| **`npx @tikoci/rosetta` fails** | This package requires Bun, not Node.js. Use `bunx` instead of `npx`. |
-| **`npm install -g` then `rosetta` fails** | Global npm install works if Bun is on PATH — it delegates to `bun` at runtime. But prefer `bunx` — it's simpler and auto-updates. |
+| **`npx @tikoci/rosetta` fails** | Not supported: this package requires Bun, not Node.js. Use `bunx` instead of `npx`. Without Bun on PATH, `npx` fails with `env: bun: No such file or directory` (the entry point has a `bun` shebang, #175). |
+| **`npm install -g` then `rosetta` fails** | A global npm install works only if Bun is on PATH, because the `rosetta` command runs under `bun`. Prefer `bunx`: it's simpler and auto-updates. |
 | **ChatGPT Apps can't connect** | ChatGPT Apps require a remote HTTPS MCP endpoint. Use the [MikroTik /app install](README.md#install-on-mikrotik-app) for a hosted endpoint, or Codex CLI for local stdio. |
 | **Claude Desktop can't find `bunx`** | Claude Desktop on macOS may not inherit shell PATH. Use the full path to bunx (run `which bunx` to find it, typically `~/.bun/bin/bunx`). `bunx @tikoci/rosetta --setup` prints the full-path config. |
 | **macOS Gatekeeper blocks binary** | Use `bunx` install (no Gatekeeper issues), or: `xattr -d com.apple.quarantine ./rosetta` |
