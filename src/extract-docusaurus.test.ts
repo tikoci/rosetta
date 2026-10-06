@@ -26,7 +26,8 @@ const {
   extractCodeBlocks,
   slugify,
   parseLlmsTxtInScopeCount,
-  markdownUrlFor,
+  markdownUrlsFor,
+  fetchMarkdown,
   expandDocCardLists,
   cardMetaFor,
   directChildIds,
@@ -68,6 +69,17 @@ describe("isInScopeDocsUrl", () => {
     expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference/ip/address")).toBeFalse();
   });
 
+  test("rejects the CLI Reference root however llms.txt or the sitemap spells it", () => {
+    // llms.txt switched from cli-reference/index.md to cli-reference.md on 2026-10-06.
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference.md")).toBeFalse();
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference/index.md")).toBeFalse();
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference/")).toBeFalse();
+  });
+
+  test("accepts a prose page linked by its .md URL", () => {
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/management-tools/cmr.md")).toBeTrue();
+  });
+
   test("rejects tag-index pages, including the bare tags root (no trailing slash — real 404 live)", () => {
     expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/tags/dhcp")).toBeFalse();
     expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/tags")).toBeFalse();
@@ -80,15 +92,68 @@ describe("isInScopeDocsUrl", () => {
   });
 });
 
-describe("markdownUrlFor", () => {
+describe("markdownUrlsFor", () => {
   test("appends .md to an ordinary leaf page URL", () => {
-    expect(markdownUrlFor(DHCP_URL)).toBe(`${DHCP_URL}.md`);
+    expect(markdownUrlsFor(DHCP_URL)).toEqual([`${DHCP_URL}.md`]);
   });
 
-  test("appends index.md (not .md) to a category/index page URL — real 404 otherwise", () => {
-    // Confirmed live 2026-07-07: .../accounting.md 404s, .../accounting/index.md is 200.
+  test("tries <slug>.md then <slug>/index.md for a category/index page URL", () => {
+    // The site has served both: index.md on 2026-07-07, <slug>.md on 2026-10-06.
     const categoryUrl = "https://manual.mikrotik.com/docs/authentication-authorization-accounting/";
-    expect(markdownUrlFor(categoryUrl)).toBe(`${categoryUrl}index.md`);
+    expect(markdownUrlsFor(categoryUrl)).toEqual([
+      "https://manual.mikrotik.com/docs/authentication-authorization-accounting.md",
+      `${categoryUrl}index.md`,
+    ]);
+  });
+});
+
+describe("fetchMarkdown", () => {
+  const CATEGORY = "https://manual.mikrotik.com/docs/storage/";
+  const SLUG_MD = "https://manual.mikrotik.com/docs/storage.md";
+  const INDEX_MD = `${CATEGORY}index.md`;
+
+  /** Swap in a fetch that serves `routes` (url -> status) and records each request. */
+  async function withFetch(routes: Record<string, number>, run: (requested: string[]) => Promise<void>) {
+    const realFetch = globalThis.fetch;
+    const requested: string[] = [];
+    globalThis.fetch = (async (input: string | URL | Request) => {
+      const url = String(input);
+      requested.push(url);
+      const status = routes[url] ?? 404;
+      return new Response(status === 200 ? `body of ${url}` : "", { status });
+    }) as typeof fetch;
+    try {
+      await run(requested);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  }
+
+  test("falls back to <dir>/index.md when <dir>.md 404s", async () => {
+    await withFetch({ [INDEX_MD]: 200 }, async (requested) => {
+      expect(await fetchMarkdown(CATEGORY)).toBe(`body of ${INDEX_MD}`);
+      expect(requested).toEqual([SLUG_MD, INDEX_MD]);
+    });
+  });
+
+  test("uses <dir>.md without probing index.md when it is served", async () => {
+    await withFetch({ [SLUG_MD]: 200 }, async (requested) => {
+      expect(await fetchMarkdown(CATEGORY)).toBe(`body of ${SLUG_MD}`);
+      expect(requested).toEqual([SLUG_MD]);
+    });
+  });
+
+  test("fails on a non-404 error instead of retrying the other spelling", async () => {
+    await withFetch({ [SLUG_MD]: 503, [INDEX_MD]: 200 }, async (requested) => {
+      await expect(fetchMarkdown(CATEGORY)).rejects.toThrow(`HTTP 503 fetching ${SLUG_MD}`);
+      expect(requested).toEqual([SLUG_MD]);
+    });
+  });
+
+  test("reports the last candidate when every spelling 404s", async () => {
+    await withFetch({}, async () => {
+      await expect(fetchMarkdown(CATEGORY)).rejects.toThrow(`HTTP 404 fetching ${INDEX_MD}`);
+    });
   });
 });
 

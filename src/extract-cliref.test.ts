@@ -53,7 +53,12 @@ describe("reconcileTrailingDirs (#137 discovery gate)", () => {
   const B = "https://manual.mikrotik.com/docs/cli-reference";
   const locs = [`${B}/`, `${B}/app/`, `${B}/caps-man/interface/`, `${B}/ip/address`];
 
-  test("passes when every category dir contributes its <dir>/<basename> leaf", () => {
+  test("passes when every category dir contributes its <dir> page (shape since 2026-10-06)", () => {
+    const discovered = new Set(["app", "caps-man/interface", "ip/address"]);
+    expect(() => reconcileTrailingDirs(locs, discovered)).not.toThrow();
+  });
+
+  test("passes when every category dir contributes its <dir>/<basename> leaf (shape until 2026-10-06)", () => {
     const discovered = new Set(["app/app", "caps-man/interface/interface", "ip/address"]);
     expect(() => reconcileTrailingDirs(locs, discovered)).not.toThrow();
   });
@@ -156,6 +161,20 @@ describe("parsePage — robustness", () => {
     for (const e of page.entries) {
       expect(e.sourceEndLine).toBeGreaterThanOrEqual(e.sourceLine);
     }
+  });
+
+  test("parses the rendered-Markdown preamble served since 2026-10-06 (no imports, real blurb)", () => {
+    // The title h1 equals the top-level command name, so it must be split off, not walked.
+    const md =
+      "# app\n\n> RouterOS directory reference for /app.\n\n-----------\n\n## app \n" +
+      "**Syscap:** app\n**Package:** container\n**Type:** Directory\n";
+    const p = parsePage("app", md, "app");
+    expect(p.sourceTitle).toBe("app");
+    expect(p.entries.map((e) => [e.sourcePath, e.sourceType, e.headingLevel, e.sourceLine])).toEqual([
+      ["app", "Directory", 2, 7],
+    ]);
+    expect(p.entries[0].package).toBe("container");
+    expect(p.entries[0].syscap).toBe("app");
   });
 
   test("fails loud on an unknown entry Type label", () => {
