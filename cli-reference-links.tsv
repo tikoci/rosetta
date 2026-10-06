@@ -1,6 +1,38 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
-# counts	exact=962	alias=0	manual-only=100	entries=1062
+# counts	exact=962	alias=0	manual-only=132	entries=1094
 source_path	source_type	match_kind	match_detail
+cmr	Settings Directory	manual-only	
+cmr/alert	Directory	manual-only	
+cmr/alert/show-devices	Command	manual-only	
+cmr/alert/test	Command	manual-only	
+cmr/client	Settings Directory	manual-only	
+cmr/client/forget	Command	manual-only	
+cmr/client/pair	Command	manual-only	
+cmr/client/push-button	Command	manual-only	
+cmr/device	Directory	manual-only	
+cmr/device/apptraffic	Command	manual-only	
+cmr/device/dashboard	Command	manual-only	
+cmr/device/pair	Command	manual-only	
+cmr/device/reboot	Command	manual-only	
+cmr/device/run-script	Command	manual-only	
+cmr/device/upgrade	Command	manual-only	
+cmr/device/wifi-logs	Command	manual-only	
+cmr/layout	Directory	manual-only	
+cmr/layout/add-devices	Command	manual-only	
+cmr/layout/link	Directory	manual-only	
+cmr/layout/node	Directory	manual-only	
+cmr/layout/rebuild-links	Command	manual-only	
+cmr/push-button	Command	manual-only	
+cmr/upgrade	Directory	manual-only	
+cmr/upgrade/job	Directory	manual-only	
+cmr/upgrade/job/run-next	Command	manual-only	
+cmr/upgrade/job/show-devices	Command	manual-only	
+cmr/upgrade/show-devices	Command	manual-only	
+cmr/upgrade/trigger	Command	manual-only	
+cmr/upgrade/version-check	Command	manual-only	
+cmr/vlan	Directory	manual-only	
+cmr/wifi	Directory	manual-only	
+cmr/wifi/radio	Directory	manual-only	
 interface/ethernet/poe	Directory	manual-only	
 interface/ethernet/poe/monitor	Command	manual-only	
 interface/ethernet/poe/power-cycle	Command	manual-only	
