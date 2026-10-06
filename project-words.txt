@@ -68,6 +68,7 @@ cli
 cliref
 cmdver
 cmp
+cmr
 coderabbit
 coderabbitai
 configur
