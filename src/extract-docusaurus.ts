@@ -859,7 +859,7 @@ export function markdownUrlsFor(url: string): string[] {
   return [`${url.slice(0, -1)}.md`, `${url}index.md`];
 }
 
-async function fetchMarkdown(url: string): Promise<string> {
+export async function fetchMarkdown(url: string): Promise<string> {
   const candidates = markdownUrlsFor(url);
   for (const [i, mdUrl] of candidates.entries()) {
     const res = await fetch(mdUrl, { signal: AbortSignal.timeout(10_000) });
