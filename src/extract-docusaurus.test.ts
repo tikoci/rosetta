@@ -26,7 +26,7 @@ const {
   extractCodeBlocks,
   slugify,
   parseLlmsTxtInScopeCount,
-  markdownUrlFor,
+  markdownUrlsFor,
   expandDocCardLists,
   cardMetaFor,
   directChildIds,
@@ -68,6 +68,17 @@ describe("isInScopeDocsUrl", () => {
     expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference/ip/address")).toBeFalse();
   });
 
+  test("rejects the CLI Reference root however llms.txt or the sitemap spells it", () => {
+    // llms.txt switched from cli-reference/index.md to cli-reference.md on 2026-10-06.
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference.md")).toBeFalse();
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference/index.md")).toBeFalse();
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/cli-reference/")).toBeFalse();
+  });
+
+  test("accepts a prose page linked by its .md URL", () => {
+    expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/management-tools/cmr.md")).toBeTrue();
+  });
+
   test("rejects tag-index pages, including the bare tags root (no trailing slash — real 404 live)", () => {
     expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/tags/dhcp")).toBeFalse();
     expect(isInScopeDocsUrl("https://manual.mikrotik.com/docs/tags")).toBeFalse();
@@ -80,15 +91,18 @@ describe("isInScopeDocsUrl", () => {
   });
 });
 
-describe("markdownUrlFor", () => {
+describe("markdownUrlsFor", () => {
   test("appends .md to an ordinary leaf page URL", () => {
-    expect(markdownUrlFor(DHCP_URL)).toBe(`${DHCP_URL}.md`);
+    expect(markdownUrlsFor(DHCP_URL)).toEqual([`${DHCP_URL}.md`]);
   });
 
-  test("appends index.md (not .md) to a category/index page URL — real 404 otherwise", () => {
-    // Confirmed live 2026-07-07: .../accounting.md 404s, .../accounting/index.md is 200.
+  test("tries <slug>.md then <slug>/index.md for a category/index page URL", () => {
+    // The site has served both: index.md on 2026-07-07, <slug>.md on 2026-10-06.
     const categoryUrl = "https://manual.mikrotik.com/docs/authentication-authorization-accounting/";
-    expect(markdownUrlFor(categoryUrl)).toBe(`${categoryUrl}index.md`);
+    expect(markdownUrlsFor(categoryUrl)).toEqual([
+      "https://manual.mikrotik.com/docs/authentication-authorization-accounting.md",
+      `${categoryUrl}index.md`,
+    ]);
   });
 });
 

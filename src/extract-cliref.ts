@@ -70,8 +70,8 @@ export function cliRefSlug(urlOrPath: string): string | null {
   const slug = path.slice(CLI_PREFIX.length).replace(/\/$/, "");
   // A trailing-slash URL is the Docusaurus generated category page for a branching menu.
   // It has no .md of its own — but the menu's own Directory entry IS published, at
-  // `<dir>/<basename(dir)>.md` (`app/` -> `app/app.md`). That leaf arrives through
-  // llms.txt (see loadCliRefSlugs), so the category URL itself stays excluded here.
+  // `<dir>.md` (`app/` -> `app.md`; it was `app/app.md` until 2026-10-06). That page
+  // arrives through llms.txt (see loadCliRefSlugs), so the category URL stays excluded here.
   if (slug === "" || path.endsWith("/") || !CLI_SLUG.test(slug)) return null;
   // `index` is the section landing page's .md — the argument-type glossary prose, with no
   // **Type:** entry of its own. It is listed in llms.txt but is not a CLI path.
@@ -112,8 +112,8 @@ function tocGroup(slug: string): string {
  * The sitemap serves a branching menu as a trailing-slash category URL (`…/app/`), which
  * has no .md of its own — so sitemap-only discovery silently drops the Directory entry for
  * every branching menu (256 of 1,070 leaves, ~24%, when this was found). Those menus ARE
- * published, as `<dir>/<basename(dir)>.md`, and llms.txt lists them alongside every other
- * .md. Taking the union restores them without guessing at URLs.
+ * published, as `<dir>.md` (as `<dir>/<basename(dir)>.md` until 2026-10-06), and llms.txt
+ * lists them alongside every other .md. Taking the union restores them without guessing at URLs.
  *
  * reconcileTrailingDirs() then asserts the two sources still agree on that shape, so the
  * next inventory change fails the build instead of quietly shrinking the corpus.
@@ -148,9 +148,10 @@ async function loadCliRefSlugs(tocNames: Map<string, string>): Promise<string[]>
 }
 
 /**
- * Every trailing-slash category URL must contribute its menu's own Directory leaf
- * (`app/` -> `app/app`), or that menu's entry is being dropped — the #137 defect, which
- * was invisible precisely because it looked like a category page with no source.
+ * Every trailing-slash category URL must contribute its menu's own Directory page, or that
+ * menu's entry is being dropped — the #137 defect, which was invisible precisely because it
+ * looked like a category page with no source. The page is `app` today (`app/` -> `app.md`)
+ * and was `app/app` until 2026-10-06; either shape satisfies the gate.
  *
  * Fails loud on a shape change in either direction: MikroTik publishing a category with no
  * Directory leaf is a real inventory change that must be re-verified by hand, not absorbed.
@@ -167,11 +168,11 @@ export function reconcileTrailingDirs(locs: string[], discovered: ReadonlySet<st
     if (!path.startsWith(CLI_PREFIX) || !path.endsWith("/")) continue;
     const dir = path.slice(CLI_PREFIX.length).replace(/\/$/, "");
     if (dir === "" || !CLI_SLUG.test(dir)) continue; // the section root itself
-    if (!discovered.has(`${dir}/${dir.split("/").pop()}`)) orphans.push(dir);
+    if (!discovered.has(dir) && !discovered.has(`${dir}/${dir.split("/").pop()}`)) orphans.push(dir);
   }
   if (orphans.length > 0) {
     throw new Error(
-      `Discovery shape drift: ${orphans.length} sitemap category dir(s) have no <dir>/<basename> leaf ` +
+      `Discovery shape drift: ${orphans.length} sitemap category dir(s) have no <dir> or <dir>/<basename> page ` +
         `in the discovered inventory (sitemap ∪ llms.txt) — their Directory entry would be dropped ` +
         `silently (#137). Re-verify the inventory before extracting: ${orphans.slice(0, 10).join(", ")}` +
         (orphans.length > 10 ? `, … (+${orphans.length - 10} more)` : ""),
@@ -300,22 +301,25 @@ function trimBlankLines(s: string): string {
 }
 
 /**
- * Split off the MDX preamble (title / blurb / import lines / `---` rule). The body's
- * own headings are command paths, so the page-title h1 must not be walked as one —
- * top-level commands like `# app` also sit at h1. Returns the body plus the 1-based
- * source line the body starts on (for absolute line attribution).
+ * Split off the preamble (title / blurb / import lines / `---` rule). The body's own
+ * headings are command paths, so the page-title h1 must not be walked as one — the
+ * title of `app.md` is `# app`. Returns the body plus the 1-based source line the body
+ * starts on (for absolute line attribution).
+ *
+ * Two preamble shapes have been served: MDX source with `import {…}` lines and an empty
+ * `> -----------` blurb (until 2026-10-06), and rendered Markdown with a real
+ * `> RouterOS directory reference for /…` blurb and no imports (since). Skipping the
+ * leading title, blurb, import, blank and rule lines covers both.
  */
 function splitPreamble(md: string): { title: string | null; body: string; bodyStartLine: number } {
   const lines = md.split("\n");
-  const titleLine = lines.find((l) => l.startsWith("# "));
-  const title = titleLine ? titleLine.slice(2).trim() : null;
-
-  let lastImport = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/^import\s*\{/.test(lines[i])) lastImport = i;
+  let start = 0;
+  let title: string | null = null;
+  if (lines[0]?.startsWith("# ")) {
+    title = lines[0].slice(2).trim();
+    start = 1;
   }
-  let start = lastImport + 1;
-  while (start < lines.length && (lines[start].trim() === "" || /^-{3,}$/.test(lines[start].trim()))) {
+  while (start < lines.length && /^(?:\s*|>.*|import\s*\{.*|-{3,}\s*)$/.test(lines[start])) {
     start++;
   }
   return { title, body: lines.slice(start).join("\n"), bodyStartLine: start + 1 };

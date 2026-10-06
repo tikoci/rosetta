@@ -22,6 +22,16 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Manual extraction works with manual.mikrotik.com's new Markdown layout.** On
+  2026-10-06 the site moved category pages from `<dir>/index.md` to `<dir>.md`,
+  CLI Reference menu pages from `<dir>/<dir>.md` to `<dir>.md`, and dropped the MDX
+  `import` preamble from CLI Reference pages. The release build failed on all three
+  (74 prose pages 404'd; the CLI Reference discovery gate tripped). The extractors
+  now accept both layouts, so the corpus picks up the new CMR pages (RouterOS
+  7.26beta1) with no other entries lost.
+
 ## [0.11.3] — 2026-10-05
 
 ### Fixed

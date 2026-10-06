@@ -68,10 +68,14 @@ export function isInScopeDocsUrl(urlOrPath: string): boolean {
   // same as unversioned ones — mirrors deriveRosettaId()'s version handling.
   // manual.mikrotik.com is unversioned today, but B-0012 H7 treats this as cheap now.
   path = path.replace(/^\/docs\/(?:next|v?\d+(?:\.\d+)*(?:-[a-z0-9.]+)?)\//, "/docs/");
-  if (path.startsWith("/docs/cli-reference/")) return false;
+  // llms.txt links a section root as `<root>.md` since 2026-10-06 (it was
+  // `<root>/index.md`), so compare roots without the Markdown suffix.
+  path = path.replace(/\.mdx?$/, "");
   // The tag-index root ("/docs/tags", no trailing slash, no real .md content —
   // confirmed live 2026-07-07: 404s) and individual tag pages both excluded.
-  if (path === "/docs/tags" || path.startsWith("/docs/tags/")) return false;
+  for (const root of ["/docs/cli-reference", "/docs/tags"]) {
+    if (path === root || path.startsWith(`${root}/`)) return false;
+  }
   return true;
 }
 
@@ -846,18 +850,25 @@ function cachePathFor(rosettaId: string): string {
 /**
  * Category/index pages (a directory's landing page, e.g.
  * .../authentication-authorization-accounting/) are listed in sitemap.xml with a
- * trailing slash and serve their Markdown at `index.md`, not `<slug>.md` — confirmed
- * live (2026-07-07): `.../accounting.md` 404s, `.../accounting/index.md` is 200.
+ * trailing slash. The site has served their Markdown at both spellings: `<slug>/index.md`
+ * on 2026-07-07 (`<slug>.md` 404'd), then `<slug>.md` on 2026-10-06 (`index.md` 404'd).
+ * Try the current spelling first and fall back to the other on a 404.
  */
-export function markdownUrlFor(url: string): string {
-  return url.endsWith("/") ? `${url}index.md` : `${url}.md`;
+export function markdownUrlsFor(url: string): string[] {
+  if (!url.endsWith("/")) return [`${url}.md`];
+  return [`${url.slice(0, -1)}.md`, `${url}index.md`];
 }
 
 async function fetchMarkdown(url: string): Promise<string> {
-  const mdUrl = markdownUrlFor(url);
-  const res = await fetch(mdUrl, { signal: AbortSignal.timeout(10_000) });
-  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${mdUrl}`);
-  return res.text();
+  const candidates = markdownUrlsFor(url);
+  for (const [i, mdUrl] of candidates.entries()) {
+    const res = await fetch(mdUrl, { signal: AbortSignal.timeout(10_000) });
+    if (res.ok) return res.text();
+    if (res.status !== 404 || i === candidates.length - 1) {
+      throw new Error(`HTTP ${res.status} fetching ${mdUrl}`);
+    }
+  }
+  throw new Error(`no Markdown URL for ${url}`);
 }
 
 function delay(ms: number): Promise<void> {
