@@ -42,8 +42,9 @@ Items waiting on a specific external event. Not tracked as issues because the wa
 | LSP consumer artifacts | When `lsp-routeros-ts` is ready for static manifests. The path→URL/title half is now [#173](https://github.com/tikoci/rosetta/issues/173) (publish `rosetta export` output); a `verbs.json` manifest (#5 H4) would ride the same publishing path. |
 | Manual doc-changes watcher | After Docusaurus extraction lands: CI polls `manual.mikrotik.com/changelog/rss.xml` (verified live 2026-07-07) and opens an issue/PR when the manual changed, making re-extraction event-driven instead of scheduled. |
 | bench-routeros-tools merge | When `agents/grounded-data-collection-agents` and the pending Claude matrix work land, review benchmark reports for stable external-eval fixtures and decide whether to promote a rosetta task. |
-| Versioned CLI Reference / manual (`manual.mikrotik.com/docs/7.NN/…`) | When MikroTik forks **7.25** into its own manual release. Until then rosetta treats the manual and CLI Reference as "current" = stable at build time (#25 decision, 2026-10-04): the 7.24 snapshot's shape differs from current in places while MikroTik is still refining the site. A 7.25 snapshot should match today's shape, so per-version overlay rows may be worth it then. |
 | Overlay-as-base path vocabulary (B-0024 step 8) | When `centrs`' `explain` canonicalization work settles whether the CLI-Reference path vocabulary can host inspect's verbs without a new alias layer. Until then rosetta keeps the overlay beside `schema_nodes`, not under it. Do not preempt with a rosetta-local alias scheme. |
+
+Fired 2026-10-20: **versioned manual** — `/docs/7.24/` and `/docs/7.25/` now serve `llms.txt` + `.md`, and the default tree declares itself 7.26 (development), not stable. Tracked in [#187](https://github.com/tikoci/rosetta/issues/187) (stamp the ingested manual version), [#188](https://github.com/tikoci/rosetta/issues/188) (per-version CLI Reference as a published dataset for centrs), and [#186](https://github.com/tikoci/rosetta/issues/186) (per-version prose).
 
 ---
 
