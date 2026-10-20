@@ -1263,6 +1263,13 @@ export function getDbStats() {
       const [min, max] = versionRange("SELECT DISTINCT version FROM ros_versions");
       return { ros_version_min: min, ros_version_max: max };
     })(),
+    // The manual tree each docs store came from (#187). Not the command-tree range above:
+    // manual.mikrotik.com's default tree can be a development manual (7.26 while stable
+    // was 7.24.5), and null means the extractor predates the stamp or never ran.
+    manual_version: {
+      docs: getDbMeta("docs_manual_version"),
+      cli_reference: getDbMeta("cliref_manual_version"),
+    },
     // Derived from db_meta provenance, not hard-coded — a hard-coded export date
     // silently lied whenever the resolved DB was a different corpus (#94). The
     // string is self-describing (it is a DB build stamp, not a doc-export date),

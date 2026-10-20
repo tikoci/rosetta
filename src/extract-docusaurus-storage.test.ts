@@ -63,9 +63,11 @@ test(
     try {
       const firstOutput = extract(dbPath);
       expect(firstOutput).toContain("Tables:");
+      expect(firstOutput).toContain("Manual tree: RouterOS 7.26");
 
       let db = new sqlite(dbPath, { readonly: true });
       expect((db.query("PRAGMA user_version").get() as { user_version: number }).user_version).toBe(SCHEMA_VERSION);
+      expect(db.query("SELECT value FROM db_meta WHERE key = 'docs_manual_version'").get()).toEqual({ value: "7.26" });
 
       const counts = db
         .query(`

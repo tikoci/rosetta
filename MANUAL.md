@@ -788,7 +788,10 @@ glossary (
 -- device_id links were built from). extract-all-versions.ts stamps
 -- command_versions_expected (how many RouterOS versions restraml listed),
 -- which qa.yml's db-content gate compares with the versions that have
--- command data (#178).
+-- command data (#178). extract-docusaurus.ts and extract-cliref.ts stamp
+-- docs_manual_version and cliref_manual_version: the version each read
+-- tree declares in its llms.txt header (#187). extract-cliref fails when
+-- the two disagree.
 db_meta (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL

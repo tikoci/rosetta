@@ -33,7 +33,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { pruneCache } from "./cache-prune.ts";
-import { db, initDb } from "./db.ts";
+import { db, getDbMeta, initDb, setDbMeta } from "./db.ts";
+import { CLIREF_MANUAL_VERSION_KEY, DOCS_MANUAL_VERSION_KEY, manualVersionMismatch, parseManualVersion } from "./manual-version.ts";
 import { parseSitemapLocs } from "./rosetta-id.ts";
 
 const BASE = "https://manual.mikrotik.com";
@@ -184,7 +185,7 @@ export function reconcileTrailingDirs(locs: string[], discovered: ReadonlySet<st
  * llms.txt's published-.md list: slug -> sidebar label. The label is not derivable from the
  * slug ("caps-man" -> "Caps Man"); the key set is also half of discovery (loadCliRefSlugs).
  */
-async function loadTocNames(): Promise<Map<string, string>> {
+async function loadTocNames(): Promise<{ names: Map<string, string>; manualVersion: string }> {
   const cached = safeCachePath("_llms.txt");
   let txt: string;
   if (FROM_CACHE) {
@@ -206,7 +207,7 @@ async function loadTocNames(): Promise<Map<string, string>> {
     const slug = cliRefSlug(m[2].replace(/\.md$/, ""));
     if (slug !== null) names.set(slug, m[1]);
   }
-  return names;
+  return { names, manualVersion: parseManualVersion(txt) };
 }
 
 async function fetchPage(slug: string): Promise<string | null> {
@@ -600,7 +601,8 @@ function store(pages: CliRefPage[]): void {
 // ── Main ──
 
 async function main(): Promise<void> {
-  const tocNames = await loadTocNames();
+  const { names: tocNames, manualVersion } = await loadTocNames();
+  console.log(`Manual tree: RouterOS ${manualVersion} (llms.txt header)`);
   let slugs = await loadCliRefSlugs(tocNames);
   if (FROM_CACHE) console.log(`Discovering pages from cache: ${CACHE_DIR}`);
   if (LIMIT !== undefined) slugs = slugs.slice(0, LIMIT);
@@ -653,12 +655,20 @@ async function main(): Promise<void> {
   if (CHECK_COUNTS) console.log(`Count check OK: ${rawTypeMarkers} entries, ${rawRows} field+flag rows`);
 
   initDb();
+  // extract-docusaurus runs first in both `make extract` and release.yml; a disagreeing
+  // stamp means the prose and the overlay would describe different manuals (#187).
+  const mismatch = manualVersionMismatch(
+    { key: CLIREF_MANUAL_VERSION_KEY, version: manualVersion },
+    { key: DOCS_MANUAL_VERSION_KEY, version: getDbMeta(DOCS_MANUAL_VERSION_KEY) },
+  );
+  if (mismatch !== null) throw new Error(mismatch);
   db.run("DELETE FROM cliref_entry_schema_links;");
   db.run("DELETE FROM cliref_flags;");
   db.run("DELETE FROM cliref_fields;");
   db.run("DELETE FROM cliref_entries;");
   db.run("DELETE FROM cliref_pages;");
   store(pages);
+  setDbMeta(CLIREF_MANUAL_VERSION_KEY, manualVersion);
   console.log(`Stored into ${process.env.DB_PATH ?? "ros-help.db"}`);
 
   // The cache is a record of the last complete live run, so --from-cache reproduces it.

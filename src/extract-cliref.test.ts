@@ -231,7 +231,7 @@ describe("live run vs cache (#160)", () => {
   // "Live" manual.mikrotik.com, served to the extractor subprocess by a preloaded fetch stub.
   const ROUTES: Record<string, string> = {
     [`${BASE}/sitemap.xml`]: SITEMAP,
-    [`${BASE}/llms.txt`]: `- [Address](${BASE}/docs/cli-reference/ip/address.md)\n- [Route](${BASE}/docs/cli-reference/ip/route.md)\n`,
+    [`${BASE}/llms.txt`]: `# MikroTik RouterOS Manual\n\nIndex of the RouterOS 7.26 manual, in documentation menu order.\n\n- [Address](${BASE}/docs/cli-reference/ip/address.md)\n- [Route](${BASE}/docs/cli-reference/ip/route.md)\n`,
     [`${BASE}/docs/cli-reference/ip/address.md`]: FIXTURE,
     [`${BASE}/docs/cli-reference/ip/route.md`]: ROUTE,
   };
@@ -243,7 +243,11 @@ globalThis.fetch = async (input) => {
 };
 `;
 
-  function extract(dir: string, dbName: string, ...flags: string[]): void {
+  function extract(dir: string, dbName: string, ...flags: string[]): string {
+    return extractExpecting(0, dir, dbName, ...flags);
+  }
+
+  function extractExpecting(exitCode: number, dir: string, dbName: string, ...flags: string[]): string {
     const result = Bun.spawnSync(
       [
         process.execPath,
@@ -260,8 +264,9 @@ globalThis.fetch = async (input) => {
       },
     );
     const output = `${result.stdout.toString()}${result.stderr.toString()}`;
-    expect(result.exitCode, output).toBe(0);
+    expect(result.exitCode, output).toBe(exitCode);
     expect(output).not.toContain("no route for");
+    return output;
   }
 
   function query<T>(dbPath: string, sql: string): T[] {
@@ -304,6 +309,31 @@ globalThis.fetch = async (input) => {
 
       extract(dir, "cached.db", "--from-cache");
       expect(query(join(dir, "cached.db"), COUNTS)).toEqual(query(join(dir, "live.db"), COUNTS));
+
+      // #187: both runs stamp the version the cached/live llms.txt header declares.
+      for (const name of ["live.db", "cached.db"]) {
+        expect(query(join(dir, name), "SELECT value FROM db_meta WHERE key = 'cliref_manual_version'")).toEqual([
+          { value: "7.26" },
+        ]);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses to store an overlay from a different manual tree than the prose (#187)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "rosetta-cliref-mismatch-"));
+    try {
+      writeFileSync(join(dir, "mock-fetch.js"), MOCK_FETCH);
+      writeFileSync(join(dir, "routes.json"), JSON.stringify(ROUTES));
+      const seeded = new sqlite(join(dir, "mixed.db"));
+      seeded.run("CREATE TABLE db_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
+      seeded.run("INSERT INTO db_meta (key, value) VALUES ('docs_manual_version', '7.24')");
+      seeded.close();
+
+      const output = extractExpecting(1, dir, "mixed.db");
+      expect(output).toContain("cliref_manual_version=7.26 but docs_manual_version=7.24");
+      expect(query(join(dir, "mixed.db"), "SELECT COUNT(*) AS n FROM cliref_pages")).toEqual([{ n: 0 }]);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

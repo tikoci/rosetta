@@ -2749,6 +2749,15 @@ describe("getDbStats", () => {
     expect(stats.ros_version_max).toBe("7.22");
   });
 
+  test("reports each docs store's manual version from db_meta (#187)", () => {
+    db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('docs_manual_version', '7.26')");
+    try {
+      expect(getDbStats().manual_version).toEqual({ docs: "7.26", cli_reference: null });
+    } finally {
+      db.run("DELETE FROM db_meta WHERE key = 'docs_manual_version'");
+    }
+  });
+
   test("includes skills count", () => {
     const stats = getDbStats();
     expect(stats).toHaveProperty("skills");
