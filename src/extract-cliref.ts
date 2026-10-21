@@ -18,19 +18,25 @@
  * Lossless-by-construction: each page's exact fetched Markdown + SHA-256 is retained
  * in cliref_pages, so a future parser improvement re-reads source without a re-fetch.
  *
+ * Versions (#188): every served manual tree is extracted — the default /docs/ tree plus each
+ * /docs/<v>/ tree cli-compare.json lists — keyed by the version its llms.txt declares. See
+ * resolveTreesLive() for which trees are fetched, skipped, or fail the build.
+ *
  * Usage:
- *   bun run src/extract-cliref.ts                 # live fetch of every page (never reads
- *                                                 # the cache); overwrites CACHE_DIR, then
- *                                                 # prunes pages this run did not discover
- *   bun run src/extract-cliref.ts --from-cache    # re-extract from CACHE_DIR, no network
- *                                                 # (needs _sitemap.txt AND _llms.txt: since
- *                                                 #  #137 both are discovery inputs, not just
- *                                                 #  the sitemap — see loadCliRefSlugs)
- *   bun run src/extract-cliref.ts --limit=25       # cap page count (smoke-testing)
+ *   bun run src/extract-cliref.ts                 # live fetch of every tree and page (never
+ *                                                 # reads the cache); overwrites CACHE_DIR/<v>/,
+ *                                                 # then prunes what this run did not discover
+ *   bun run src/extract-cliref.ts --from-cache    # re-extract from CACHE_DIR, no network: each
+ *                                                 # <v>/ dir with a _tree.json is one tree (the
+ *                                                 # default tree also needs its _sitemap.txt)
+ *   bun run src/extract-cliref.ts --limit=25       # cap page count per tree (smoke-testing)
  *   bun run src/extract-cliref.ts --check-counts   # assert parsed == source markers
+ *   bun run src/extract-cliref.ts --reconcile-report=FILE  # where the cli-compare.json
+ *                                                 # reconciliation TSV goes (default:
+ *                                                 # CACHE_DIR/cli-compare-reconcile.tsv)
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { pruneCache } from "./cache-prune.ts";
 import { db, getDbMeta, initDb, setDbMeta } from "./db.ts";
@@ -40,7 +46,12 @@ import { parseSitemapLocs } from "./rosetta-id.ts";
 const BASE = "https://manual.mikrotik.com";
 const LLMS_TXT_URL = `${BASE}/llms.txt`;
 const SITEMAP_URL = `${BASE}/sitemap.xml`;
-const CLI_PREFIX = "/docs/cli-reference/";
+const CLI_COMPARE_URL = `${BASE}/cli-compare.json`;
+const DEFAULT_DOCS_PREFIX = "/docs/";
+const CLI_PREFIX = `${DEFAULT_DOCS_PREFIX}cli-reference/`;
+// A declared tree label becomes a URL segment and a cache directory name, so it is held to
+// the version shape parseManualVersion accepts.
+const TREE_LABEL = /^\d+\.\d+(?:\.\d+)?(?:(?:alpha|beta|rc)\d+)?$/;
 const CLI_SLUG = /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
 /**
  * Pages under /docs/cli-reference/ that llms.txt lists but that document no CLI path:
@@ -64,18 +75,20 @@ const limitArg = argv.find((a) => a.startsWith("--limit="));
 const LIMIT = limitArg ? Number(limitArg.slice("--limit=".length)) : undefined;
 const cacheDirArg = argv.find((a) => a.startsWith("--cache-dir="));
 const CACHE_DIR = cacheDirArg ? cacheDirArg.slice("--cache-dir=".length) : DEFAULT_CACHE_DIR;
+const reportArg = argv.find((a) => a.startsWith("--reconcile-report="));
+const RECONCILE_REPORT = reportArg ? reportArg.slice("--reconcile-report=".length) : join(CACHE_DIR, "cli-compare-reconcile.tsv");
 
 // ── Discovery ──
 
 /** CLI-Reference slug for a URL, or null when the URL is out of scope / not a CLI page. */
-export function cliRefSlug(urlOrPath: string): string | null {
-  const slug = cliRefPathSlug(urlOrPath);
+export function cliRefSlug(urlOrPath: string, cliPrefix = CLI_PREFIX): string | null {
+  const slug = cliRefPathSlug(urlOrPath, cliPrefix);
   return slug === null || NON_CLI_PAGES.has(slug) ? null : slug;
 }
 
 /** A NON_CLI_PAGES slug when `urlOrPath` addresses one, else null. */
-export function nonCliPageSlug(urlOrPath: string): string | null {
-  const slug = cliRefPathSlug(urlOrPath);
+export function nonCliPageSlug(urlOrPath: string, cliPrefix = CLI_PREFIX): string | null {
+  const slug = cliRefPathSlug(urlOrPath, cliPrefix);
   return slug !== null && NON_CLI_PAGES.has(slug) ? slug : null;
 }
 
@@ -90,15 +103,15 @@ export function assertNonCliPage(slug: string, md: string): void {
   }
 }
 
-function cliRefPathSlug(urlOrPath: string): string | null {
+function cliRefPathSlug(urlOrPath: string, cliPrefix: string): string | null {
   let path: string;
   try {
     path = new URL(urlOrPath).pathname;
   } catch {
     path = urlOrPath;
   }
-  if (!path.startsWith(CLI_PREFIX)) return null;
-  const slug = path.slice(CLI_PREFIX.length).replace(/\/$/, "");
+  if (!path.startsWith(cliPrefix)) return null;
+  const slug = path.slice(cliPrefix.length).replace(/\/$/, "");
   // A trailing-slash URL is the Docusaurus generated category page for a branching menu.
   // It has no .md of its own — but the menu's own Directory entry IS published, at
   // `<dir>.md` (`app/` -> `app.md`; it was `app/app.md` until 2026-10-06). That page
@@ -113,19 +126,182 @@ function cacheName(slug: string): string {
 }
 
 /**
- * Absolute cache path for a name, guaranteed to stay inside CACHE_DIR. cacheName()
+ * Absolute cache path for a name, guaranteed to stay inside `dir`. cacheName()
  * already neutralizes "/" (→ "__"), but names derive from the network sitemap, so this
  * is an explicit containment backstop — a write can never escape the cache dir even from
  * a hostile slug (mirrors extract-docusaurus.ts's cache guard; satisfies CodeQL's
  * network-data-to-file / traversal check).
  */
-function safeCachePath(name: string): string {
-  const target = resolve(CACHE_DIR, name);
-  const root = resolve(CACHE_DIR);
+function safeCachePath(dir: string, name: string): string {
+  const target = resolve(dir, name);
+  const root = resolve(dir);
   if (target !== root && !target.startsWith(root + sep)) {
-    throw new Error(`cache name ${JSON.stringify(name)} resolves outside ${CACHE_DIR}`);
+    throw new Error(`cache name ${JSON.stringify(name)} resolves outside ${dir}`);
   }
   return target;
+}
+
+// ── Trees (#188) ──
+
+/**
+ * One served CLI-Reference tree. `label` is the version its llms.txt declares and is the
+ * tree's identity; `docsPrefix` is where it was read from (`/docs/` for the default tree,
+ * `/docs/<v>/` for a versioned one).
+ */
+export interface CliRefTree {
+  label: string;
+  docsPrefix: string;
+  isDefault: boolean;
+  fetchedAt: string;
+  llmsTxt: string;
+}
+
+function treeCliPrefix(tree: CliRefTree): string {
+  return `${tree.docsPrefix}cli-reference/`;
+}
+
+/** The tree's own cache directory, `CACHE_DIR/<label>/`. */
+function treeCacheDir(tree: Pick<CliRefTree, "label">): string {
+  return safeCachePath(CACHE_DIR, tree.label);
+}
+
+export interface CliCompareChange {
+  path: string;
+  added: { params: string[]; flags: string[] };
+  removed: { params: string[]; flags: string[] };
+}
+
+export interface CliComparePair {
+  changedCommands: CliCompareChange[];
+  addedCommands: string[];
+  removedCommands: string[];
+}
+
+/** MikroTik's https://manual.mikrotik.com/cli-compare.json: the served versions and per-pair diffs. */
+export interface CliCompare {
+  versions: string[];
+  pairs: Record<string, CliComparePair>;
+}
+
+const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
+
+/** Parse and shape-check cli-compare.json. A served file that does not parse is broken: throw. */
+export function parseCliCompare(text: string): CliCompare {
+  const fail = (why: string): never => {
+    throw new Error(`cli-compare.json is served but malformed (${why}) — re-check its shape before extracting (#188)`);
+  };
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return fail("not JSON");
+  }
+  const j = raw as { versions?: unknown; pairs?: unknown };
+  if (!isStringArray(j.versions)) return fail("versions is not a string array");
+  for (const v of j.versions) if (!TREE_LABEL.test(v)) fail(`version ${JSON.stringify(v)}`);
+  if (typeof j.pairs !== "object" || j.pairs === null) return fail("pairs is not an object");
+  const sides = (x: unknown) => {
+    const o = x as { params?: unknown; flags?: unknown } | null;
+    if (!o || !isStringArray(o.params) || !isStringArray(o.flags)) fail("change side lacks params/flags arrays");
+    return { params: (o as { params: string[] }).params, flags: (o as { flags: string[] }).flags };
+  };
+  const pairs: Record<string, CliComparePair> = {};
+  for (const [key, value] of Object.entries(j.pairs as Record<string, unknown>)) {
+    const p = value as { changedCommands?: unknown; addedCommands?: unknown; removedCommands?: unknown };
+    if (!Array.isArray(p.changedCommands) || !isStringArray(p.addedCommands) || !isStringArray(p.removedCommands)) {
+      fail(`pair ${key}`);
+    }
+    pairs[key] = {
+      addedCommands: p.addedCommands as string[],
+      removedCommands: p.removedCommands as string[],
+      changedCommands: (p.changedCommands as Array<{ path?: unknown; added?: unknown; removed?: unknown }>).map((c) => {
+        if (typeof c.path !== "string") fail(`pair ${key} change without a path`);
+        return { path: c.path as string, added: sides(c.added), removed: sides(c.removed) };
+      }),
+    };
+  }
+  return { versions: j.versions, pairs };
+}
+
+async function fetchText(url: string): Promise<{ status: number; text: string }> {
+  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  return { status: res.status, text: res.ok ? await res.text() : "" };
+}
+
+/**
+ * Which trees a live run extracts. The default tree's declared version is resolved first;
+ * every version cli-compare.json lists, plus that one, is then probed at /docs/<v>/:
+ *
+ *   200                         → extract it from /docs/<v>/ (for the default's own version
+ *                                 this is the dedupe case: one tree, its stable URL, is_default)
+ *   404, the default's version  → covered by the default /docs/ tree, silently (7.26 today)
+ *   404, any other version      → warn and skip — an upstream absence never fails a build
+ *   anything else, or a 200 whose llms.txt declares another version → throw: served but broken
+ *
+ * cli-compare.json itself: 404 → warn and fall back to the default tree alone; a 200 that
+ * does not parse → throw (parseCliCompare).
+ */
+async function resolveTreesLive(): Promise<{ trees: CliRefTree[]; compare: CliCompare | null; compareText: string | null }> {
+  const fetchedAt = new Date().toISOString();
+  const root = await fetchText(LLMS_TXT_URL);
+  if (root.status !== 200) throw new Error(`Failed to fetch ${LLMS_TXT_URL}: HTTP ${root.status}`);
+  const defaultLabel = parseManualVersion(root.text);
+
+  const cmp = await fetchText(CLI_COMPARE_URL);
+  let compare: CliCompare | null = null;
+  if (cmp.status === 404) {
+    console.log(`::warning::${CLI_COMPARE_URL} returned 404 — extracting the default tree only, with no reconciliation`);
+  } else if (cmp.status !== 200) {
+    throw new Error(`Failed to fetch ${CLI_COMPARE_URL}: HTTP ${cmp.status}`);
+  } else {
+    compare = parseCliCompare(cmp.text);
+  }
+
+  // Default first: its rows are stored first, so their ids match a single-tree build.
+  const labels = [defaultLabel, ...(compare?.versions ?? []).filter((v) => v !== defaultLabel)];
+  const trees: CliRefTree[] = [];
+  for (const label of new Set(labels)) {
+    const docsPrefix = `${DEFAULT_DOCS_PREFIX}${label}/`;
+    const probe = await fetchText(`${BASE}${docsPrefix}llms.txt`);
+    const isDefault = label === defaultLabel;
+    if (probe.status === 200) {
+      const declared = parseManualVersion(probe.text);
+      if (declared !== label) throw new Error(`${docsPrefix}llms.txt declares ${declared}, not ${label} — served but broken (#188)`);
+      trees.push({ label, docsPrefix, isDefault, fetchedAt, llmsTxt: probe.text });
+    } else if (probe.status === 404) {
+      if (isDefault) trees.push({ label, docsPrefix: DEFAULT_DOCS_PREFIX, isDefault, fetchedAt, llmsTxt: root.text });
+      else console.log(`::warning::cli-compare.json lists ${label}, but ${docsPrefix}llms.txt returned 404 — tree skipped`);
+    } else {
+      throw new Error(`Failed to fetch ${BASE}${docsPrefix}llms.txt: HTTP ${probe.status}`);
+    }
+  }
+  return { trees, compare, compareText: compare === null ? null : cmp.text };
+}
+
+/** --from-cache: every CACHE_DIR/<v>/ holding a _tree.json is one tree, read back as the live run left it. */
+function readCachedTrees(): { trees: CliRefTree[]; compare: CliCompare | null } {
+  const trees: CliRefTree[] = [];
+  const dirs = existsSync(CACHE_DIR) ? readdirSync(CACHE_DIR, { withFileTypes: true }).filter((d) => d.isDirectory()) : [];
+  for (const d of dirs.map((x) => x.name).sort()) {
+    if (!TREE_LABEL.test(d)) continue;
+    const dir = safeCachePath(CACHE_DIR, d);
+    let meta: { label: string; docsPrefix: string; isDefault: boolean; fetchedAt: string };
+    try {
+      meta = JSON.parse(readFileSync(join(dir, "_tree.json"), "utf8"));
+    } catch {
+      continue; // not a tree directory this extractor wrote
+    }
+    if (meta.label !== d) throw new Error(`${dir}/_tree.json names tree ${meta.label}`);
+    trees.push({ ...meta, llmsTxt: readFileSync(join(dir, "_llms.txt"), "utf8") });
+  }
+  if (trees.length === 0) {
+    throw new Error(`--from-cache set but no cached trees (<version>/_tree.json) under ${CACHE_DIR} — run one live extract first (#188)`);
+  }
+  if (trees.filter((t) => t.isDefault).length !== 1) throw new Error(`--from-cache: expected exactly one default tree under ${CACHE_DIR}`);
+  trees.sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
+  const comparePath = join(CACHE_DIR, "_cli-compare.json");
+  const compare = existsSync(comparePath) ? parseCliCompare(readFileSync(comparePath, "utf8")) : null;
+  return { trees, compare };
 }
 
 /** URL-parent slug segment used as the sidebar group ("interface/wifi" -> "interface"). */
@@ -146,8 +322,15 @@ function tocGroup(slug: string): string {
  * reconcileTrailingDirs() then asserts the two sources still agree on that shape, so the
  * next inventory change fails the build instead of quietly shrinking the corpus.
  */
-async function loadCliRefSlugs(tocNames: Map<string, string>): Promise<string[]> {
-  const cached = safeCachePath("_sitemap.txt");
+async function loadCliRefSlugs(tree: CliRefTree, tocNames: Map<string, string>): Promise<string[]> {
+  // The sitemap lists no versioned URLs (0 of 2,306 on 2026-10-20), so for a /docs/<v>/ tree
+  // llms.txt is the whole inventory — and the #137 trailing-dir gate has nothing to check.
+  if (tree.docsPrefix !== DEFAULT_DOCS_PREFIX) {
+    console.log(`Discovery [${tree.label}]: ${tocNames.size} pages from ${tree.docsPrefix}llms.txt (no sitemap for versioned trees)`);
+    return [...tocNames.keys()].sort();
+  }
+  const cacheDir = treeCacheDir(tree);
+  const cached = safeCachePath(cacheDir, "_sitemap.txt");
   let xml: string;
   if (FROM_CACHE) {
     try {
@@ -159,16 +342,16 @@ async function loadCliRefSlugs(tocNames: Map<string, string>): Promise<string[]>
     const res = await fetch(SITEMAP_URL, { signal: AbortSignal.timeout(10_000) });
     if (!res.ok) throw new Error(`Failed to fetch ${SITEMAP_URL}: HTTP ${res.status}`);
     xml = await res.text();
-    mkdirSync(CACHE_DIR, { recursive: true });
+    mkdirSync(cacheDir, { recursive: true });
     writeFileSync(cached, xml);
   }
   const locs = parseSitemapLocs(xml);
-  const sitemap = new Set(locs.map(cliRefSlug).filter((s): s is string => s !== null));
+  const sitemap = new Set(locs.map((l) => cliRefSlug(l)).filter((s): s is string => s !== null));
   const discovered = new Set([...sitemap, ...tocNames.keys()]);
   const llmsOnly = [...tocNames.keys()].filter((s) => !sitemap.has(s));
   const sitemapOnly = [...sitemap].filter((s) => !tocNames.has(s));
   console.log(
-    `Discovery: ${discovered.size} pages = ${sitemap.size} sitemap + ${llmsOnly.length} llms.txt-only` +
+    `Discovery [${tree.label}]: ${discovered.size} pages = ${sitemap.size} sitemap + ${llmsOnly.length} llms.txt-only` +
       (sitemapOnly.length > 0 ? ` (${sitemapOnly.length} sitemap-only, absent from llms.txt)` : ""),
   );
   reconcileTrailingDirs(locs, discovered);
@@ -214,38 +397,24 @@ export function reconcileTrailingDirs(locs: string[], discovered: ReadonlySet<st
 /**
  * llms.txt's published-.md list: slug -> sidebar label. The label is not derivable from the
  * slug ("caps-man" -> "Caps Man"); the key set is also half of discovery (loadCliRefSlugs).
+ * Listed NON_CLI_PAGES come back separately, to be checked rather than extracted.
  */
-async function loadTocNames(): Promise<{ names: Map<string, string>; nonCliPages: string[]; manualVersion: string }> {
-  const cached = safeCachePath("_llms.txt");
-  let txt: string;
-  if (FROM_CACHE) {
-    // --from-cache is an offline contract: never fall through to a live fetch.
-    try {
-      txt = readFileSync(cached, "utf8");
-    } catch {
-      throw new Error(`--from-cache set but no cached llms.txt at ${cached}`);
-    }
-  } else {
-    const res = await fetch(LLMS_TXT_URL, { signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) throw new Error(`Failed to fetch ${LLMS_TXT_URL}: HTTP ${res.status}`);
-    txt = await res.text();
-    mkdirSync(CACHE_DIR, { recursive: true });
-    writeFileSync(cached, txt);
-  }
+export function parseLlmsToc(llmsTxt: string, cliPrefix = CLI_PREFIX): { names: Map<string, string>; nonCliPages: string[] } {
   const names = new Map<string, string>();
   const nonCliPages: string[] = [];
-  for (const m of txt.matchAll(/^- \[([^\]]*)\]\((https:\/\/[^)]*)\)/gm)) {
+  for (const m of llmsTxt.matchAll(/^- \[([^\]]*)\]\((https:\/\/[^)]*)\)/gm)) {
     const url = m[2].replace(/\.md$/, "");
-    const slug = cliRefSlug(url);
+    const slug = cliRefSlug(url, cliPrefix);
     if (slug !== null) names.set(slug, m[1]);
-    const nonCli = nonCliPageSlug(url);
+    const nonCli = nonCliPageSlug(url, cliPrefix);
     if (nonCli !== null) nonCliPages.push(nonCli);
   }
-  return { names, nonCliPages, manualVersion: parseManualVersion(txt) };
+  return { names, nonCliPages };
 }
 
-async function fetchPage(slug: string): Promise<string | null> {
-  const file = safeCachePath(cacheName(slug));
+async function fetchPage(tree: CliRefTree, slug: string): Promise<string | null> {
+  const cacheDir = treeCacheDir(tree);
+  const file = safeCachePath(cacheDir, cacheName(slug));
   if (FROM_CACHE) {
     // Read directly (try/catch) rather than existsSync-then-read, closing the check-then-use
     // race CodeQL flags.
@@ -258,10 +427,10 @@ async function fetchPage(slug: string): Promise<string | null> {
   // A live run never reads the cache (#160): every page is re-fetched and its cache file
   // overwritten. A reused July copy of routing__route.md once kept a section MikroTik had
   // since removed, so a "live" local build disagreed with CI's empty-cache build (#159).
-  const res = await fetch(`${BASE}${CLI_PREFIX}${slug}.md`, { signal: AbortSignal.timeout(10_000) });
+  const res = await fetch(`${BASE}${treeCliPrefix(tree)}${slug}.md`, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) return null;
   const body = await res.text();
-  mkdirSync(CACHE_DIR, { recursive: true });
+  mkdirSync(cacheDir, { recursive: true });
   writeFileSync(file, body);
   await Bun.sleep(FETCH_DELAY_MS);
   return body;
@@ -414,7 +583,7 @@ function parseArgTable(
   }
 }
 
-export function parsePage(slug: string, md: string, tocName: string): CliRefPage {
+export function parsePage(slug: string, md: string, tocName: string, url = `${BASE}${CLI_PREFIX}${slug}`): CliRefPage {
   const { title, body, bodyStartLine } = splitPreamble(md);
   const lines = body.split("\n");
   const entries: CliRefEntry[] = [];
@@ -526,7 +695,7 @@ export function parsePage(slug: string, md: string, tocName: string): CliRefPage
 
   return {
     slug,
-    url: `${BASE}${CLI_PREFIX}${slug}`,
+    url,
     tocName,
     tocGroup: tocGroup(slug),
     sourceTitle: title,
@@ -553,12 +722,145 @@ export function countStructuralMarkers(md: string): { entries: number; rows: num
   return { entries, rows };
 }
 
+// ── cli-compare.json reconciliation (#188) ──
+
+/**
+ * Names cli-compare.json lists that are not CLI pages. `Headings` is a `##` section of the
+ * 7.24 landing page that MikroTik's generator counted as a command (gone from 7.25 on).
+ */
+export const CLI_COMPARE_ARTIFACTS: ReadonlySet<string> = new Set(["Headings"]);
+
+/** One disagreement: `only_in` names the side that has the item the other lacks. */
+export interface ReconcileRow {
+  pair: string;
+  kind: "command-added" | "command-removed" | "param-added" | "param-removed" | "flag-added" | "flag-removed";
+  path: string;
+  name: string;
+  only_in: "rosetta" | "cli-compare";
+}
+
+/** Page slug -> the field names and print-flag letters of all its entries. */
+function pageVocabulary(pages: CliRefPage[]): Map<string, { params: Set<string>; flags: Set<string> }> {
+  const out = new Map<string, { params: Set<string>; flags: Set<string> }>();
+  for (const p of pages) {
+    const v = { params: new Set<string>(), flags: new Set<string>() };
+    for (const e of p.entries) {
+      for (const f of e.fields) v.params.add(f.name);
+      for (const fl of e.flags) v.flags.add(fl.flag);
+    }
+    out.set(p.slug, v);
+  }
+  return out;
+}
+
+const minus = (a: Iterable<string>, b: ReadonlySet<string>) => [...a].filter((x) => !b.has(x));
+
+/**
+ * Compare each cli-compare.json pair with the same diff computed from rosetta's own rows, as
+ * sets, never counts: a page's params are the field names of all its entries, its flags the
+ * print-flag letters. Pairs naming a tree this run did not extract are skipped. An empty
+ * result means the two agree exactly.
+ */
+export function reconcileCliCompare(treePages: ReadonlyMap<string, CliRefPage[]>, compare: CliCompare): ReconcileRow[] {
+  const rows: ReconcileRow[] = [];
+  for (const [pair, theirs] of Object.entries(compare.pairs)) {
+    const [from, to] = pair.split("->");
+    const a = treePages.get(from);
+    const b = treePages.get(to);
+    if (a === undefined || b === undefined) continue;
+    const va = pageVocabulary(a);
+    const vb = pageVocabulary(b);
+    const push = (kind: ReconcileRow["kind"], path: string, name: string, onlyIn: ReconcileRow["only_in"]) =>
+      rows.push({ pair, kind, path, name, only_in: onlyIn });
+
+    const ourAdded = new Set(minus(vb.keys(), new Set(va.keys())));
+    const ourRemoved = new Set(minus(va.keys(), new Set(vb.keys())));
+    const theirAdded = new Set(minus(theirs.addedCommands, CLI_COMPARE_ARTIFACTS));
+    const theirRemoved = new Set(minus(theirs.removedCommands, CLI_COMPARE_ARTIFACTS));
+    for (const x of minus(ourAdded, theirAdded)) push("command-added", x, "", "rosetta");
+    for (const x of minus(theirAdded, ourAdded)) push("command-added", x, "", "cli-compare");
+    for (const x of minus(ourRemoved, theirRemoved)) push("command-removed", x, "", "rosetta");
+    for (const x of minus(theirRemoved, ourRemoved)) push("command-removed", x, "", "cli-compare");
+
+    const theirChanged = new Map(theirs.changedCommands.map((c) => [c.path, c]));
+    const paths = new Set([...theirChanged.keys(), ...[...va.keys()].filter((k) => vb.has(k))]);
+    for (const path of [...paths].sort()) {
+      const pa = va.get(path);
+      const pb = vb.get(path);
+      const ours = {
+        "param-added": pa && pb ? minus(pb.params, pa.params) : [],
+        "param-removed": pa && pb ? minus(pa.params, pb.params) : [],
+        "flag-added": pa && pb ? minus(pb.flags, pa.flags) : [],
+        "flag-removed": pa && pb ? minus(pa.flags, pb.flags) : [],
+      };
+      const c = theirChanged.get(path);
+      const their = {
+        "param-added": c?.added.params ?? [],
+        "param-removed": c?.removed.params ?? [],
+        "flag-added": c?.added.flags ?? [],
+        "flag-removed": c?.removed.flags ?? [],
+      };
+      for (const kind of ["param-added", "param-removed", "flag-added", "flag-removed"] as const) {
+        const o = new Set(ours[kind]);
+        const t = new Set(their[kind]);
+        for (const x of minus(o, t)) push(kind, path, x, "rosetta");
+        for (const x of minus(t, o)) push(kind, path, x, "cli-compare");
+      }
+    }
+  }
+  return rows;
+}
+
+/** The reconciliation as TSV; the header is always written, so an empty report is one line. */
+export function reconcileTsv(rows: ReconcileRow[]): string {
+  const cols = ["pair", "kind", "path", "name", "only_in"] as const;
+  return [cols.join("\t"), ...rows.map((r) => cols.map((c) => r[c]).join("\t")), ""].join("\n");
+}
+
+/**
+ * Report, never fail (maintainer decision on #188, 2026-10-21): write the TSV, log per-pair
+ * counts, and add them to the GitHub job summary. release.yml turns a non-empty report into
+ * a tracking issue, so a mismatch reaches a person instead of a log.
+ */
+function reportReconciliation(rows: ReconcileRow[], compare: CliCompare, extracted: ReadonlySet<string>): void {
+  mkdirSync(resolve(RECONCILE_REPORT, ".."), { recursive: true });
+  writeFileSync(RECONCILE_REPORT, reconcileTsv(rows));
+  const lines: string[] = [];
+  for (const pair of Object.keys(compare.pairs)) {
+    const [from, to] = pair.split("->");
+    if (!extracted.has(from) || !extracted.has(to)) {
+      lines.push(`| ${pair} | not compared (tree not extracted) |`);
+      continue;
+    }
+    const n = rows.filter((r) => r.pair === pair).length;
+    lines.push(`| ${pair} | ${n === 0 ? "agrees" : `${n} mismatch(es)`} |`);
+  }
+  console.log(`cli-compare.json reconciliation: ${rows.length} mismatch(es) -> ${RECONCILE_REPORT}`);
+  for (const l of lines) console.log(`  ${l}`);
+  if (rows.length > 0) console.log(`::warning::CLI Reference disagrees with cli-compare.json in ${rows.length} place(s); see ${RECONCILE_REPORT}`);
+  const summary = process.env.GITHUB_STEP_SUMMARY;
+  if (summary) {
+    appendFileSync(summary, `### CLI Reference vs cli-compare.json\n\n| Pair | Result |\n|---|---|\n${lines.join("\n")}\n\n`);
+  }
+}
+
 // ── Storage ──
 
-function store(pages: CliRefPage[]): void {
+interface TreeResult {
+  tree: CliRefTree;
+  pages: CliRefPage[];
+  /** Cache filenames (relative to the tree's dir) a complete live run keeps. */
+  keep: string[];
+}
+
+function store(results: TreeResult[]): void {
+  const insTree = db.prepare(
+    `INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256)
+     VALUES (?, ?, ?, ?, 0, ?, ?)`,
+  );
   const insPage = db.prepare(
-    `INSERT INTO cliref_pages (slug, url, toc_name, toc_group, source_title, source_markdown, source_sha256, source_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+    `INSERT INTO cliref_pages (manual_version, slug, url, toc_name, toc_group, source_title, source_markdown, source_sha256, source_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
   );
   const insEntry = db.prepare(
     `INSERT INTO cliref_entries
@@ -577,55 +879,66 @@ function store(pages: CliRefPage[]): void {
   );
 
   db.transaction(() => {
-    let pageOrder = 0;
-    for (const page of pages) {
-      const { id: pageId } = insPage.get(
-        page.slug,
-        page.url,
-        page.tocName,
-        page.tocGroup,
-        page.sourceTitle,
-        page.sourceMarkdown,
-        page.sourceSha256,
-        pageOrder++,
-      ) as { id: number };
-
-      const localToDb = new Map<number, number>();
-      for (const e of page.entries) {
-        const parentId = e.parentLocalId === null ? null : (localToDb.get(e.parentLocalId) ?? null);
-        const { id: entryId } = insEntry.get(
-          pageId,
-          parentId,
-          e.sourceHeading,
-          e.sourcePath,
-          e.sourceType,
-          e.headingLevel,
-          e.package,
-          e.conditions,
-          e.syscap,
-          e.descriptionMarkdown,
-          e.sourceOrder,
-          e.sourceLine,
-          e.sourceEndLine,
+    for (const { tree, pages } of results) {
+      insTree.run(
+        tree.label,
+        `${BASE}${tree.docsPrefix}`,
+        tree.isDefault ? 1 : 0,
+        tree.fetchedAt,
+        tree.llmsTxt,
+        new Bun.CryptoHasher("sha256").update(tree.llmsTxt).digest("hex"),
+      );
+      let pageOrder = 0;
+      for (const page of pages) {
+        const { id: pageId } = insPage.get(
+          tree.label,
+          page.slug,
+          page.url,
+          page.tocName,
+          page.tocGroup,
+          page.sourceTitle,
+          page.sourceMarkdown,
+          page.sourceSha256,
+          pageOrder++,
         ) as { id: number };
-        localToDb.set(e.localId, entryId);
 
-        for (const f of e.fields) {
-          insField.run(
-            entryId,
-            f.fieldKind,
-            f.name,
-            f.rawType,
-            f.mandatory ? 1 : 0,
-            f.unsettable ? 1 : 0,
-            f.syscap,
-            f.descriptionMarkdown,
-            f.sourceOrder,
-            f.sourceLine,
-          );
-        }
-        for (const fl of e.flags) {
-          insFlag.run(entryId, fl.flag, fl.name, fl.descriptionMarkdown, fl.sourceOrder, fl.sourceLine);
+        const localToDb = new Map<number, number>();
+        for (const e of page.entries) {
+          const parentId = e.parentLocalId === null ? null : (localToDb.get(e.parentLocalId) ?? null);
+          const { id: entryId } = insEntry.get(
+            pageId,
+            parentId,
+            e.sourceHeading,
+            e.sourcePath,
+            e.sourceType,
+            e.headingLevel,
+            e.package,
+            e.conditions,
+            e.syscap,
+            e.descriptionMarkdown,
+            e.sourceOrder,
+            e.sourceLine,
+            e.sourceEndLine,
+          ) as { id: number };
+          localToDb.set(e.localId, entryId);
+
+          for (const f of e.fields) {
+            insField.run(
+              entryId,
+              f.fieldKind,
+              f.name,
+              f.rawType,
+              f.mandatory ? 1 : 0,
+              f.unsettable ? 1 : 0,
+              f.syscap,
+              f.descriptionMarkdown,
+              f.sourceOrder,
+              f.sourceLine,
+            );
+          }
+          for (const fl of e.flags) {
+            insFlag.run(entryId, fl.flag, fl.name, fl.descriptionMarkdown, fl.sourceOrder, fl.sourceLine);
+          }
         }
       }
     }
@@ -634,76 +947,111 @@ function store(pages: CliRefPage[]): void {
 
 // ── Main ──
 
-async function main(): Promise<void> {
-  const { names: tocNames, nonCliPages, manualVersion } = await loadTocNames();
-  console.log(`Manual tree: RouterOS ${manualVersion} (llms.txt header)`);
-  let slugs = await loadCliRefSlugs(tocNames);
-  if (FROM_CACHE) console.log(`Discovering pages from cache: ${CACHE_DIR}`);
+/** Discover, fetch and parse one tree, with every per-tree completeness gate. */
+async function extractTree(tree: CliRefTree): Promise<TreeResult> {
+  const cacheDir = treeCacheDir(tree);
+  if (!FROM_CACHE) {
+    // The tree's index files, written before any page so --from-cache can rebuild the run.
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(safeCachePath(cacheDir, "_llms.txt"), tree.llmsTxt);
+    const { llmsTxt: _omit, ...meta } = tree;
+    writeFileSync(safeCachePath(cacheDir, "_tree.json"), `${JSON.stringify(meta, null, 2)}\n`);
+  }
+  const cliPrefix = treeCliPrefix(tree);
+  const { names: tocNames, nonCliPages } = parseLlmsToc(tree.llmsTxt, cliPrefix);
+  let slugs = await loadCliRefSlugs(tree, tocNames);
   if (LIMIT !== undefined) slugs = slugs.slice(0, LIMIT);
-
-  console.log(`Discovered ${slugs.length} CLI-Reference pages (category URLs excluded; their Directory leaves kept)`);
 
   const pages: CliRefPage[] = [];
   const missing: string[] = [];
   for (const slug of slugs) {
-    const md = await fetchPage(slug);
+    const md = await fetchPage(tree, slug);
     if (md === null) {
       missing.push(slug);
       continue;
     }
     const tocName = tocNames.get(slug);
-    if (tocName === undefined) throw new Error(`No llms.txt toc_name for slug ${JSON.stringify(slug)}`);
-    pages.push(parsePage(slug, md, tocName));
+    if (tocName === undefined) throw new Error(`[${tree.label}] No llms.txt toc_name for slug ${JSON.stringify(slug)}`);
+    pages.push(parsePage(slug, md, tocName, `${BASE}${cliPrefix}${slug}`));
   }
 
   // Listed non-CLI pages are fetched (and cached, for --from-cache) only to prove they still
   // are. A missing one is fine: nothing would have been extracted from it anyway.
   const checkedNonCli: string[] = [];
   for (const slug of nonCliPages) {
-    const md = await fetchPage(slug);
+    const md = await fetchPage(tree, slug);
     if (md === null) continue;
     assertNonCliPage(slug, md);
     checkedNonCli.push(slug);
   }
-  if (checkedNonCli.length > 0) console.log(`Non-CLI pages checked (no **Type:** entries): ${checkedNonCli.join(", ")}`);
+  if (checkedNonCli.length > 0) console.log(`[${tree.label}] Non-CLI pages checked (no **Type:** entries): ${checkedNonCli.join(", ")}`);
 
   const entries = pages.flatMap((p) => p.entries);
   const fields = entries.flatMap((e) => e.fields);
   const flags = entries.flatMap((e) => e.flags);
   console.log(
-    `Parsed ${pages.length} pages -> ${entries.length} entries, ${fields.length} fields, ${flags.length} flags`,
+    `[${tree.label}${tree.isDefault ? ", default" : ""}] Parsed ${pages.length} pages -> ${entries.length} entries, ${fields.length} fields, ${flags.length} flags`,
   );
   if (missing.length > 0) {
     // In a full live run, a missing .md is a fetch failure that would silently ship a
-    // partial overlay (the count asserts below only see fetched pages). Fail hard.
-    // --limit is intentionally partial. A full cached run is expected to be complete:
-    // the cached sitemap supplies the offline page inventory, so a missing page is drift.
-    const msg = `Missing (no .md): ${missing.join(", ")}`;
+    // partial overlay (the count asserts below only see fetched pages). Fail hard: a tree
+    // that is served but incomplete is broken (#188). --limit is intentionally partial. A
+    // full cached run is expected to be complete: the cached index supplies the inventory.
+    const msg = `[${tree.label}] Missing (no .md): ${missing.join(", ")}`;
     if (LIMIT === undefined) {
       throw new Error(`${msg}\nRefusing to store a partial overlay from a full run.`);
     }
     console.log(msg);
   }
 
-  // Crash-early: parsed structure must reconcile with the raw source markers.
+  // Crash-early: parsed structure must reconcile with the raw source markers, per tree.
   const markerCounts = pages.map((p) => countStructuralMarkers(p.sourceMarkdown));
   const rawTypeMarkers = markerCounts.reduce((sum, c) => sum + c.entries, 0);
   const rawRows = markerCounts.reduce((sum, c) => sum + c.rows, 0);
   if (rawTypeMarkers !== entries.length) {
-    throw new Error(`entry drift: ${rawTypeMarkers} **Type:** markers, ${entries.length} entries parsed`);
+    throw new Error(`[${tree.label}] entry drift: ${rawTypeMarkers} **Type:** markers, ${entries.length} entries parsed`);
   }
   if (rawRows !== fields.length + flags.length) {
     throw new Error(
-      `row drift: ${rawRows} <ArgTableRow> in source, ${fields.length + flags.length} fields+flags parsed`,
+      `[${tree.label}] row drift: ${rawRows} <ArgTableRow> in source, ${fields.length + flags.length} fields+flags parsed`,
     );
   }
-  if (CHECK_COUNTS) console.log(`Count check OK: ${rawTypeMarkers} entries, ${rawRows} field+flag rows`);
+  if (CHECK_COUNTS) console.log(`[${tree.label}] Count check OK: ${rawTypeMarkers} entries, ${rawRows} field+flag rows`);
+  return { tree, pages, keep: [...slugs, ...checkedNonCli].map(cacheName) };
+}
+
+async function main(): Promise<void> {
+  let trees: CliRefTree[];
+  let compare: CliCompare | null;
+  if (FROM_CACHE) {
+    console.log(`Discovering trees from cache: ${CACHE_DIR}`);
+    ({ trees, compare } = readCachedTrees());
+  } else {
+    let compareText: string | null;
+    ({ trees, compare, compareText } = await resolveTreesLive());
+    mkdirSync(CACHE_DIR, { recursive: true });
+    const comparePath = safeCachePath(CACHE_DIR, "_cli-compare.json");
+    if (compareText !== null) writeFileSync(comparePath, compareText);
+    else rmSync(comparePath, { force: true });
+  }
+  const defaultTree = trees.find((t) => t.isDefault);
+  if (defaultTree === undefined) throw new Error("no default tree resolved");
+  console.log(`Manual trees: ${trees.map((t) => `${t.label}${t.isDefault ? " (default)" : ""} from ${t.docsPrefix}`).join(", ")}`);
+
+  const results: TreeResult[] = [];
+  for (const tree of trees) results.push(await extractTree(tree));
+
+  if (compare !== null) {
+    const treePages = new Map(results.map((r) => [r.tree.label, r.pages]));
+    reportReconciliation(reconcileCliCompare(treePages, compare), compare, new Set(treePages.keys()));
+  }
 
   initDb();
-  // extract-docusaurus runs first in both `make extract` and release.yml; a disagreeing
-  // stamp means the prose and the overlay would describe different manuals (#187).
+  // extract-docusaurus runs first in both `make extract` and release.yml, and reads the
+  // default tree; a disagreeing stamp means the prose and the overlay's default tree would
+  // describe different manuals (#187).
   const mismatch = manualVersionMismatch(
-    { key: CLIREF_MANUAL_VERSION_KEY, version: manualVersion },
+    { key: CLIREF_MANUAL_VERSION_KEY, version: defaultTree.label },
     { key: DOCS_MANUAL_VERSION_KEY, version: getDbMeta(DOCS_MANUAL_VERSION_KEY) },
   );
   if (mismatch !== null) throw new Error(mismatch);
@@ -712,16 +1060,29 @@ async function main(): Promise<void> {
   db.run("DELETE FROM cliref_fields;");
   db.run("DELETE FROM cliref_entries;");
   db.run("DELETE FROM cliref_pages;");
-  store(pages);
-  setDbMeta(CLIREF_MANUAL_VERSION_KEY, manualVersion);
-  console.log(`Stored into ${process.env.DB_PATH ?? "ros-help.db"}`);
+  db.run("DELETE FROM cliref_trees;");
+  store(results);
+  setDbMeta(CLIREF_MANUAL_VERSION_KEY, defaultTree.label);
+  console.log(`Stored ${results.length} tree(s) into ${process.env.DB_PATH ?? "ros-help.db"}`);
 
   // The cache is a record of the last complete live run, so --from-cache reproduces it.
-  // A full live run that got here fetched every discovered page (a missing one threw above);
-  // a --limit run is partial on purpose and must not prune the pages it skipped.
+  // A full live run that got here fetched every discovered page of every tree (a missing one
+  // threw above); a --limit run is partial on purpose and must not prune what it skipped.
+  // A tree dir from an earlier run that this run did not extract is removed whole, so a
+  // cached rebuild cannot resurrect a tree the site no longer serves.
   if (!FROM_CACHE) {
-    if (LIMIT === undefined) pruneCache(CACHE_DIR, [...slugs, ...checkedNonCli].map(cacheName), ".md");
-    else console.log("Cache not pruned: a --limit run is partial");
+    if (LIMIT !== undefined) {
+      console.log("Cache not pruned: a --limit run is partial");
+      return;
+    }
+    const current = new Set(trees.map((t) => t.label));
+    for (const d of readdirSync(CACHE_DIR, { withFileTypes: true })) {
+      if (d.isDirectory() && TREE_LABEL.test(d.name) && !current.has(d.name)) {
+        rmSync(safeCachePath(CACHE_DIR, d.name), { recursive: true, force: true });
+        console.log(`Removed cached tree ${d.name}: not served this run`);
+      }
+    }
+    pruneCache(CACHE_DIR, results.flatMap((r) => r.keep.map((name) => `${r.tree.label}/${name}`)), ".md");
   }
 }
 

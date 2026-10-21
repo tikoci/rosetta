@@ -220,8 +220,13 @@ export const MATRIX_CSV_RELATIVE_PATH = "matrix/2026-10-03/matrix.csv";
  *         entry crosswalk, `cliref_field_inspect_links` computed view; adds
  *         `schema_nodes.inspect_type` preserving the raw path/dir/cmd/arg class that
  *         `type` normalizes (path→dir).
+ *   v12 — per-version CLI Reference (#188): `cliref_trees` (one row per served manual
+ *         tree, keyed by the version its llms.txt declares, `is_default` marking the
+ *         site's default tree); `cliref_pages` gains `manual_version`, and its slug and
+ *         source_order are unique per tree instead of globally. initDb() drops a pre-v12
+ *         overlay; extract-cliref rebuilds it.
  */
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 
 /**
  * Resolve the version string.
