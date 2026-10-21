@@ -225,8 +225,9 @@ export const MATRIX_CSV_RELATIVE_PATH = "matrix/2026-10-03/matrix.csv";
  *         site's default tree); `cliref_pages` gains `manual_version`, and its slug and
  *         source_order are unique per tree instead of globally. Each tree also keeps its
  *         CLI Reference landing page (`landing_markdown`), whose four fact sections parse
- *         into `cliref_standard` (#193). initDb() drops a pre-v12 overlay, including an
- *         unreleased v12 one without the landing page; extract-cliref rebuilds it.
+ *         into `cliref_standard` (#193), and records its `cli_compare_mismatches`. initDb()
+ *         drops a pre-v12 overlay, including an unreleased v12 one without the landing
+ *         page or that count; extract-cliref rebuilds it.
  */
 export const SCHEMA_VERSION = 12;
 

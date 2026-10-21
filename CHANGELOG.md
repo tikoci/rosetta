@@ -30,8 +30,8 @@ uses [Semantic Versioning](https://semver.org/).
   modifiers and address flags. Each tree keeps the page verbatim in `cliref_trees`.
   Its four sections are parsed into `cliref_standard`, one row per item, with
   descriptions kept word for word. A tree that's served without the page, or whose
-  sections change shape, fails extraction. Not yet surfaced in MCP answers or the
-  export (#193; #188 slice 2).
+  sections change shape, fails extraction. The export writes them to
+  `cli-reference/standard.tsv`; MCP answers don't use them yet (#193; #188 slice 2).
 
 - **The DB holds the CLI Reference for every manual version MikroTik serves.** It
   stores the 7.24 and 7.25 trees plus the default tree (7.26 today), each under the
@@ -39,14 +39,13 @@ uses [Semantic Versioning](https://semver.org/).
   gains `manual_version` (schema 12). The tree list comes from MikroTik's
   `cli-compare.json`. A tree MikroTik stops serving is skipped with a warning, while
   a served tree that's incomplete or declares the wrong version fails the build.
-  MCP and TUI answers and `rosetta export` read the default tree only, so their
-  output is unchanged. This is slice 1 of #188, and it adds no per-version answers
-  or export format yet.
+  MCP and TUI answers read the default tree only, so they are unchanged. This is
+  slice 1 of #188, and it adds no per-version answers.
 - **Each build checks the CLI Reference against MikroTik's own version diffs.** It
   compares the changes between trees it computes from its own rows with
   `cli-compare.json` and writes `cli-compare-reconcile.tsv`. A mismatch doesn't fail
   the release: it opens or updates one tracking issue, and the first clean release
-  closes it.
+  closes it. Each tree's count is stored in `cliref_trees.cli_compare_mismatches`.
 - **`routeros_stats` names the manual version the docs came from.** A new
   `manual_version` block (`docs`, `cli_reference`) reports the version each
   manual.mikrotik.com tree declares in its `llms.txt` header. The browse TUI's
@@ -58,6 +57,18 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **`rosetta export` format 2 carries every CLI Reference tree (breaking for
+  `cli-reference/` readers).** Every `cli-reference/*.tsv` gains a leading
+  `manual_version` column and rows for each stored tree, oldest first. New
+  `trees.tsv` lists the trees, each with a `rows_digest` that ignores row ids and
+  the inspect crosswalk, so a new release with unchanged content keeps its digest.
+  New `standard.tsv` holds the landing-page facts. Raw source moves to
+  `source/<manual_version>/<slug>.md`, next to each tree's `_llms.txt` and landing
+  page `cli-reference.md`. A new `cli-reference/manifest.toml` describes that
+  directory on its own: provenance, contract, a `[[trees]]` table with counts and
+  `cli_compare_mismatches`, and the dataset's six contract properties.
+  `format_version` is 2 in both manifests; the other datasets are unchanged
+  (#188 slice 3).
 - **The CLI Reference cache has one directory per manual version.** Each tree is cached
   in `manual/cli-reference/<version>/`, with a `_tree.json` that lets `--from-cache`
   rebuild it. A complete live run removes pre-#188 flat-layout pages and any tree no
@@ -66,6 +77,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Version ordering understands `alpha` prereleases.** `compareVersions` handled
+  only `beta` and `rc`, so a label like `7.26alpha1` compared as `NaN` and kept
+  whatever position it arrived in. It now sorts `alpha` < `beta` < `rc` < release.
+  The CLI Reference extractor accepts `alpha` tree labels, so the export's tree
+  order depends on it.
 - **CLI Reference extraction skips MikroTik's new CLI-compare tool page.** On
   2026-10-20 the site added `/docs/cli-reference/compare-versions`, listed in
   `llms.txt` and in the sitemap (with a trailing slash). It documents no CLI

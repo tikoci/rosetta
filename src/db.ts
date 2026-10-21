@@ -561,13 +561,14 @@ export function initDb() {
   // A tree is identified by the RouterOS version its llms.txt declares (`7.24`), never by
   // URL: the default /docs/ tree is one of them, flagged is_default, and that flag can
   // move between trees without changing any row's identity. Pre-v12 cliref_pages had no
-  // tree key, and an early (unreleased) v12 cliref_trees had no landing page; the overlay is
-  // rebuilt by every extract-cliref run, so dropping either shape loses nothing.
+  // tree key, and early (unreleased) v12 cliref_trees had no landing page or cli-compare
+  // count; the overlay is rebuilt by every extract-cliref run, so dropping these loses nothing.
   const clirefPageCols = db.prepare("PRAGMA table_info(cliref_pages)").all() as Array<{ name: string }>;
   const clirefTreeCols = db.prepare("PRAGMA table_info(cliref_trees)").all() as Array<{ name: string }>;
   if (
     (clirefPageCols.length > 0 && !clirefPageCols.some((c) => c.name === "manual_version")) ||
-    (clirefTreeCols.length > 0 && !clirefTreeCols.some((c) => c.name === "landing_markdown"))
+    (clirefTreeCols.length > 0 &&
+      !(clirefTreeCols.some((c) => c.name === "landing_markdown") && clirefTreeCols.some((c) => c.name === "cli_compare_mismatches")))
   ) {
     db.run("DROP VIEW IF EXISTS cliref_field_inspect_links;");
     db.run("DROP TABLE IF EXISTS cliref_entry_schema_links;");
@@ -590,7 +591,11 @@ export function initDb() {
     -- The tree's CLI Reference landing page (/docs/[<v>/]cli-reference.md, #193): the
     -- facts every menu page leaves out on purpose. It belongs to the tree, not to a menu.
     landing_markdown TEXT NOT NULL,
-    landing_sha256   TEXT NOT NULL
+    landing_sha256   TEXT NOT NULL,
+    -- Rows of MikroTik's cli-compare.json that disagreed with this tree's rows, over every
+    -- compared pair naming this tree. NULL: no pair was compared (file absent, or this
+    -- tree is in no pair). Stored so the DB-only export can state it per tree (#188).
+    cli_compare_mismatches INTEGER CHECK (cli_compare_mismatches >= 0)
   );`);
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_cliref_trees_one_default ON cliref_trees(is_default) WHERE is_default = 1;`);
 

@@ -21,6 +21,7 @@ const {
   reconcileCliCompare,
   reconcileTrailingDirs,
   reconcileTsv,
+  treeMismatchCounts,
 } = await import("./extract-cliref.ts");
 
 const FIXTURE = readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", "sample.md"), "utf8");
@@ -138,6 +139,17 @@ describe("versioned trees (#188)", () => {
       { pair: "7.24->7.25", kind: "param-added", path: "ip/a", name: "z", only_in: "cli-compare" },
     ]);
     expect(reconcileTsv(rows).split("\n")[1]).toBe("7.24->7.25\tcommand-added\tip/c\t\tcli-compare");
+  });
+
+  test("treeMismatchCounts charges each pair's rows to both trees, and null when nothing was compared", () => {
+    const row = (pair: string) => ({ pair, kind: "param-added" as const, path: "ip/a", name: "z", only_in: "cli-compare" as const });
+    const pairs = { changedCommands: [], addedCommands: [], removedCommands: [] };
+    const compare = { versions: ["7.24", "7.25", "7.26"], pairs: { "7.24->7.25": pairs, "7.25->7.26": pairs, "7.24->7.26": pairs } };
+    const counts = treeMismatchCounts([row("7.24->7.25"), row("7.24->7.25"), row("7.25->7.26")], compare, ["7.24", "7.25", "7.26"]);
+    expect(Object.fromEntries(counts)).toEqual({ "7.24": 2, "7.25": 3, "7.26": 1 });
+    // A tree in no compared pair, or no cli-compare.json at all, is "not checked", never 0.
+    expect(Object.fromEntries(treeMismatchCounts([], compare, ["7.25", "7.26", "7.27"]))).toEqual({ "7.25": 0, "7.26": 0, "7.27": null });
+    expect(Object.fromEntries(treeMismatchCounts([], null, ["7.26"]))).toEqual({ "7.26": null });
   });
 });
 
@@ -528,6 +540,11 @@ globalThis.fetch = async (input) => {
       expect(readdirSync(cache).sort()).toEqual(["7.24", "7.26", "_cli-compare.json", "cli-compare-reconcile.tsv"]);
       // The two sides agree once the Headings artifact is set aside: a header-only report.
       expect(readFileSync(join(cache, "cli-compare-reconcile.tsv"), "utf8")).toBe("pair\tkind\tpath\tname\tonly_in\n");
+      // ...and each compared tree records that it was checked and agreed, for the export manifest.
+      expect(query(join(dir, "live.db"), "SELECT manual_version, cli_compare_mismatches FROM cliref_trees ORDER BY manual_version")).toEqual([
+        { manual_version: "7.24", cli_compare_mismatches: 0 },
+        { manual_version: "7.26", cli_compare_mismatches: 0 },
+      ]);
 
       extract(dir, "cached.db", "--from-cache");
       expect(query(join(dir, "cached.db"), COUNTS)).toEqual(query(join(dir, "live.db"), COUNTS));
