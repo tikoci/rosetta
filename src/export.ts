@@ -152,6 +152,7 @@ function emitToml(sections: {
   root: TomlTable;
   provenance: TomlTable;
   contract: TomlTable;
+  trees?: TomlTable[];
   files: TomlTable[];
   disclosures: TomlTable[];
 }): string {
@@ -164,6 +165,10 @@ function emitToml(sections: {
   table(sections.provenance);
   out.push("", "[contract]");
   table(sections.contract);
+  for (const t of sections.trees ?? []) {
+    out.push("", "[[trees]]");
+    table(t);
+  }
   for (const f of sections.files) {
     out.push("", "[[files]]");
     table(f);
@@ -445,23 +450,37 @@ function readPages(database: Database): Dataset {
   return { name: "pages.tsv", source_table: "pages", columns, order_by: "page_id", rows };
 }
 
-// ── CLI-Reference overlay datasets (issue #124) ───────────────────────────────
+// ── CLI-Reference overlay datasets (issue #124; format 2, #188) ──────────────
 //
-// Six TSVs under cli-reference/ plus byte-exact source/<slug>.md files. Entries own a
-// source path; fields own a name and zero-to-many inspect coordinates (never a path).
-// All counts are derived here, never stored redundantly on the rows.
+// Eight TSVs under cli-reference/ (every served manual tree, each row led by its
+// manual_version), the per-tree raw source, and a scoped cli-reference/manifest.toml that
+// lets the directory ship on its own. Entries own a source path; fields own a name and
+// zero-to-many inspect coordinates (never a path). All counts are derived here, never
+// stored redundantly on the rows.
 
-// Format 1 is single-tree: since the DB holds every served manual tree (#188), every query
-// below reads the default tree only, so the output stays what one tree produced. Format 2
-// (#188 slice 3) adds the manual_version column and the other trees.
-const DEFAULT_TREE = "(SELECT manual_version FROM cliref_trees WHERE is_default = 1)";
+type CliRefTree = {
+  manual_version: string;
+  base_url: string;
+  is_default: number;
+  fetched_at: string;
+  retained: number;
+  llms_txt: string;
+  llms_sha256: string;
+  landing_markdown: string;
+  landing_sha256: string;
+  cli_compare_mismatches: number | null;
+};
 
-/** True only when the CLI-Reference overlay is present AND populated — an empty overlay
- * (fresh schema, no extract-cliref run yet) emits no cli-reference/ output at all. */
-function hasCliRef(database: Database): boolean {
+/** Every tree with at least one page, oldest version first. Empty when the overlay is
+ * absent or unpopulated (fresh schema, no extract-cliref run yet), which exports no
+ * cli-reference/ output at all. */
+function readCliRefTrees(database: Database): CliRefTree[] {
   const table = database.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cliref_trees'").get();
-  if (!table) return false;
-  return !!database.prepare(`SELECT 1 FROM cliref_pages WHERE manual_version = ${DEFAULT_TREE} LIMIT 1`).get();
+  if (!table) return [];
+  const trees = database
+    .prepare("SELECT * FROM cliref_trees t WHERE EXISTS (SELECT 1 FROM cliref_pages p WHERE p.manual_version = t.manual_version)")
+    .all() as CliRefTree[];
+  return trees.sort((a, b) => compareVersions(a.manual_version, b.manual_version));
 }
 
 /** field_id → number of inspect-arg links, from the computed view (materialized once). */
@@ -481,139 +500,167 @@ function childCounts(database: Database, table: string): Map<number, number> {
   return m;
 }
 
-/** The six cli-reference/*.tsv datasets. Empty array when the overlay is absent. */
-function readCliRefDatasets(database: Database): Dataset[] {
-  if (!hasCliRef(database)) return [];
+// rows_digest leaves out the columns that can change while the tree's content does not:
+// surrogate ids (assigned in insertion order, so they shift when another tree changes)
+// and the inspect crosswalk (it follows schema_nodes, not the manual). manual_version is
+// constant within a digest, so two trees with the same content share one.
+const DIGEST_EXCLUDED_COLUMNS = new Set(["manual_version", "entry_id", "field_id", "flag_id", "source_parent_id", "match_kind", "inspect_path", "inspect_link_count"]);
+const DIGEST_FILES = ["entries.tsv", "fields.tsv", "flags.tsv", "standard.tsv"];
+const ROWS_DIGEST_RULE =
+  "sha256 over entries.tsv, fields.tsv, flags.tsv, standard.tsv in that order: for each, the line '# <file>' then that file's header and this tree's rows in file order, serialized by this contract, with the columns manual_version, entry_id, field_id, flag_id, source_parent_id, match_kind, inspect_path and inspect_link_count left out (ids shift with insertion order, the crosswalk follows the inspect snapshot rather than the manual, and two trees with the same content share a digest).";
+
+/** One tree's rows_digest; `parts` holds that tree's rows of each DIGEST_FILES file. */
+function rowsDigest(parts: Map<string, { columns: string[]; rows: TsvScalar[][] }>): string {
+  const hasher = new Bun.CryptoHasher("sha256");
+  for (const file of DIGEST_FILES) {
+    const part = parts.get(file);
+    if (part === undefined) throw new Error(`rowsDigest: no ${file} rows`);
+    const keep = part.columns.flatMap((c, i) => (DIGEST_EXCLUDED_COLUMNS.has(c) ? [] : [i]));
+    hasher.update(`# ${file}\n`);
+    hasher.update(toTsv(keep.map((i) => part.columns[i]), part.rows.map((r) => keep.map((i) => r[i]))));
+  }
+  return hasher.digest("hex");
+}
+
+type CliRefExport = { trees: CliRefTree[]; datasets: Dataset[]; digests: Map<string, string>; counts: Map<string, Record<string, number>> };
+
+/** The eight cli-reference/*.tsv datasets, every tree, oldest first. */
+function readCliRefDatasets(database: Database, trees: CliRefTree[]): CliRefExport {
   const fieldCount = childCounts(database, "cliref_fields");
   const flagCount = childCounts(database, "cliref_flags");
   const linkCount = fieldLinkCounts(database);
-
-  // pages.tsv — page metadata + source byte size + derived entry count. The raw
-  // Markdown itself lives in source/<slug>.md, hashed by source_sha256.
-  const pageCols = ["page_id", "slug", "url", "toc_name", "toc_group", "source_title", "source_order", "source_bytes", "source_sha256", "entry_count"];
   const entryByPage = new Map<number, number>();
   for (const r of database.prepare("SELECT page_id, COUNT(*) AS c FROM cliref_entries GROUP BY page_id").all() as Array<{ page_id: number; c: number }>) entryByPage.set(r.page_id, r.c);
-  // source_bytes is computed in SQLite (length of the UTF-8 BLOB) so pages.tsv never loads
-  // the full source_markdown into memory — cliRefSourceFiles() reads it separately to write
-  // source/<slug>.md, and loading it twice doubled the large-text reads for nothing.
-  const pages = database.prepare(`SELECT id, slug, url, toc_name, toc_group, source_title, source_order, length(CAST(source_markdown AS BLOB)) AS source_bytes, source_sha256 FROM cliref_pages WHERE manual_version = ${DEFAULT_TREE} ORDER BY source_order`).all() as Array<Record<string, TsvScalar> & { id: number; source_bytes: number }>;
-  const pagesDs: Dataset = {
-    name: "cli-reference/pages.tsv",
-    source_table: "cliref_pages",
-    columns: pageCols,
-    order_by: "source_order",
-    rows: pages.map((p) => [p.id, p.slug, p.url, p.toc_name, p.toc_group, p.source_title, p.source_order, p.source_bytes, p.source_sha256, entryByPage.get(p.id) ?? 0]),
-  };
 
-  // entries.tsv — the entry inventory with its exact/alias/manual-only match status,
-  // resolved inspect path, and derived field/flag counts. Long description last.
-  const entryCols = ["entry_id", "page_slug", "source_path", "source_heading", "source_type", "heading_level", "package", "conditions", "syscap", "source_parent_id", "match_kind", "inspect_path", "field_count", "flag_count", "source_order", "source_line", "source_end_line", "description_markdown"];
-  const entries = database.prepare(`
-    SELECT e.id, p.slug AS page_slug, e.source_path, e.source_heading, e.source_type, e.heading_level,
-           e.package, e.conditions, e.syscap, e.source_parent_id,
-           l.match_kind, sn.path AS inspect_path,
+  const pageCols = ["manual_version", "page_id", "slug", "url", "toc_name", "toc_group", "source_title", "source_order", "source_bytes", "source_sha256", "entry_count"];
+  const entryCols = ["manual_version", "entry_id", "page_slug", "source_path", "source_heading", "source_type", "heading_level", "package", "conditions", "syscap", "source_parent_id", "match_kind", "inspect_path", "field_count", "flag_count", "source_order", "source_line", "source_end_line", "description_markdown"];
+  const fieldCols = ["manual_version", "field_id", "entry_id", "entry_source_path", "field_kind", "name", "raw_type", "mandatory", "unsettable", "syscap", "inspect_link_count", "source_order", "source_line", "description_markdown"];
+  const flagCols = ["manual_version", "flag_id", "entry_id", "entry_source_path", "flag", "name", "source_order", "source_line", "description_markdown"];
+  const standardCols = ["manual_version", "section", "name", "source_order", "source_line", "description_markdown"];
+  const entryLinkCols = ["manual_version", "entry_id", "entry_source_path", "match_kind", "match_detail", "schema_node_id", "inspect_path", "inspect_type"];
+  const fieldLinkCols = ["manual_version", "field_id", "entry_source_path", "field_name", "schema_node_id", "inspect_path"];
+
+  // Within a tree, rows follow the manual's own order (page source_order, then the row's
+  // occurrence order), so a tree's rows come out the same whatever ids it was stored under.
+  const pagesQ = database.prepare(`
+    SELECT manual_version, id AS page_id, slug, url, toc_name, toc_group, source_title, source_order,
+           length(CAST(source_markdown AS BLOB)) AS source_bytes, source_sha256
+    FROM cliref_pages WHERE manual_version = ? ORDER BY source_order`);
+  const entriesQ = database.prepare(`
+    SELECT p.manual_version, e.id AS entry_id, p.slug AS page_slug, e.source_path, e.source_heading, e.source_type, e.heading_level,
+           e.package, e.conditions, e.syscap, e.source_parent_id, l.match_kind, sn.path AS inspect_path,
            e.source_order, e.source_line, e.source_end_line, e.description_markdown
     FROM cliref_entries e
     JOIN cliref_pages p ON p.id = e.page_id
     LEFT JOIN cliref_entry_schema_links l ON l.entry_id = e.id
     LEFT JOIN schema_nodes sn ON sn.id = l.schema_node_id
-    WHERE p.manual_version = ${DEFAULT_TREE}
-    ORDER BY e.page_id, e.source_order`).all() as Array<Record<string, TsvScalar> & { id: number }>;
-  const entriesDs: Dataset = {
-    name: "cli-reference/entries.tsv",
-    source_table: "cliref_entries",
-    columns: entryCols,
-    order_by: "page_id, source_order",
-    rows: entries.map((e) => [e.id, e.page_slug, e.source_path, e.source_heading, e.source_type, e.heading_level, e.package, e.conditions, e.syscap, e.source_parent_id, e.match_kind, e.inspect_path, fieldCount.get(e.id) ?? 0, flagCount.get(e.id) ?? 0, e.source_order, e.source_line, e.source_end_line, e.description_markdown]),
-  };
-
-  // fields.tsv — fields by their owning entry's source path (entry_source_path, NEVER a
-  // field_path) plus a derived inspect_link_count. The zero-to-many coordinates live in
-  // field-inspect-links.tsv. Long description last.
-  const fieldCols = ["field_id", "entry_id", "entry_source_path", "field_kind", "name", "raw_type", "mandatory", "unsettable", "syscap", "inspect_link_count", "source_order", "source_line", "description_markdown"];
-  const fields = database.prepare(`
-    SELECT f.id, f.entry_id, e.source_path AS entry_source_path, f.field_kind, f.name, f.raw_type,
+    WHERE p.manual_version = ? ORDER BY p.source_order, e.source_order`);
+  const fieldsQ = database.prepare(`
+    SELECT p.manual_version, f.id AS field_id, f.entry_id, e.source_path AS entry_source_path, f.field_kind, f.name, f.raw_type,
            f.mandatory, f.unsettable, f.syscap, f.source_order, f.source_line, f.description_markdown
     FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id JOIN cliref_pages p ON p.id = e.page_id
-    WHERE p.manual_version = ${DEFAULT_TREE}
-    ORDER BY f.entry_id, f.source_order`).all() as Array<Record<string, TsvScalar> & { id: number }>;
-  const fieldsDs: Dataset = {
-    name: "cli-reference/fields.tsv",
-    source_table: "cliref_fields",
-    columns: fieldCols,
-    order_by: "entry_id, source_order",
-    rows: fields.map((f) => [f.id, f.entry_id, f.entry_source_path, f.field_kind, f.name, f.raw_type, f.mandatory, f.unsettable, f.syscap, linkCount.get(f.id) ?? 0, f.source_order, f.source_line, f.description_markdown]),
-  };
-
-  // flags.tsv — print-output flag letters, kept apart from fields. Long description last.
-  const flagCols = ["flag_id", "entry_id", "entry_source_path", "flag", "name", "source_order", "source_line", "description_markdown"];
-  const flags = database.prepare(`
-    SELECT fl.id, fl.entry_id, e.source_path AS entry_source_path, fl.flag, fl.name, fl.source_order, fl.source_line, fl.description_markdown
+    WHERE p.manual_version = ? ORDER BY p.source_order, e.source_order, f.source_order`);
+  const flagsQ = database.prepare(`
+    SELECT p.manual_version, fl.id AS flag_id, fl.entry_id, e.source_path AS entry_source_path, fl.flag, fl.name,
+           fl.source_order, fl.source_line, fl.description_markdown
     FROM cliref_flags fl JOIN cliref_entries e ON e.id = fl.entry_id JOIN cliref_pages p ON p.id = e.page_id
-    WHERE p.manual_version = ${DEFAULT_TREE}
-    ORDER BY fl.entry_id, fl.source_order`).all() as Array<Record<string, TsvScalar> & { id: number }>;
-  const flagsDs: Dataset = {
-    name: "cli-reference/flags.tsv",
-    source_table: "cliref_flags",
-    columns: flagCols,
-    order_by: "entry_id, source_order",
-    rows: flags.map((fl) => [fl.id, fl.entry_id, fl.entry_source_path, fl.flag, fl.name, fl.source_order, fl.source_line, fl.description_markdown]),
-  };
-
-  // entry-inspect-links.tsv — the STORED entry crosswalk with its exact/alias detail.
-  const entryLinkCols = ["entry_id", "entry_source_path", "match_kind", "match_detail", "schema_node_id", "inspect_path", "inspect_type"];
-  const entryLinks = database.prepare(`
-    SELECT l.entry_id, e.source_path AS entry_source_path, l.match_kind, l.match_detail,
+    WHERE p.manual_version = ? ORDER BY p.source_order, e.source_order, fl.source_order`);
+  const standardQ = database.prepare(`
+    SELECT ${standardCols.join(", ")} FROM cliref_standard WHERE manual_version = ? ORDER BY source_line, section, name`);
+  const entryLinksQ = database.prepare(`
+    SELECT p.manual_version, l.entry_id, e.source_path AS entry_source_path, l.match_kind, l.match_detail,
            l.schema_node_id, sn.path AS inspect_path, COALESCE(sn.inspect_type, sn.type) AS inspect_type
     FROM cliref_entry_schema_links l
     JOIN cliref_entries e ON e.id = l.entry_id
     JOIN cliref_pages p ON p.id = e.page_id
     JOIN schema_nodes sn ON sn.id = l.schema_node_id
-    WHERE p.manual_version = ${DEFAULT_TREE}
-    ORDER BY l.entry_id`).all() as Array<Record<string, TsvScalar>>;
-  const entryLinksDs: Dataset = {
-    name: "cli-reference/entry-inspect-links.tsv",
-    source_table: "cliref_entry_schema_links",
-    columns: entryLinkCols,
-    order_by: "entry_id",
-    rows: entryLinks.map((r) => entryLinkCols.map((c) => r[c])),
-  };
-
-  // field-inspect-links.tsv — the COMPUTED view: one row per (field, inspect arg node),
-  // exposing the actual zero-to-many cardinality explicitly.
-  const fieldLinkCols = ["field_id", "entry_source_path", "field_name", "schema_node_id", "inspect_path"];
-  const fieldLinks = database.prepare(`
-    SELECT v.field_id, e.source_path AS entry_source_path, f.name AS field_name, v.schema_node_id, sn.path AS inspect_path
+    WHERE p.manual_version = ? ORDER BY p.source_order, e.source_order`);
+  const fieldLinksQ = database.prepare(`
+    SELECT p.manual_version, v.field_id, e.source_path AS entry_source_path, f.name AS field_name, v.schema_node_id, sn.path AS inspect_path
     FROM cliref_field_inspect_links v
     JOIN cliref_fields f ON f.id = v.field_id
     JOIN cliref_entries e ON e.id = f.entry_id
     JOIN cliref_pages p ON p.id = e.page_id
     JOIN schema_nodes sn ON sn.id = v.schema_node_id
-    WHERE p.manual_version = ${DEFAULT_TREE}
-    ORDER BY v.field_id, sn.path`).all() as Array<Record<string, TsvScalar>>;
-  const fieldLinksDs: Dataset = {
-    name: "cli-reference/field-inspect-links.tsv",
-    source_table: "cliref_field_inspect_links",
-    columns: fieldLinkCols,
-    order_by: "field_id, inspect_path",
-    rows: fieldLinks.map((r) => fieldLinkCols.map((c) => r[c])),
-  };
+    WHERE p.manual_version = ? ORDER BY p.source_order, e.source_order, f.source_order, sn.path`);
 
-  return [pagesDs, entriesDs, fieldsDs, flagsDs, entryLinksDs, fieldLinksDs];
+  type Row = Record<string, TsvScalar>;
+  const pick = (columns: string[], derive: (r: Row) => Row = (r) => r) => (r: Row) => {
+    const d = derive(r);
+    return columns.map((c) => d[c]);
+  };
+  const out = { pages: [] as TsvScalar[][], entries: [] as TsvScalar[][], fields: [] as TsvScalar[][], flags: [] as TsvScalar[][], standard: [] as TsvScalar[][], entryLinks: [] as TsvScalar[][], fieldLinks: [] as TsvScalar[][] };
+  const digests = new Map<string, string>();
+  const counts = new Map<string, Record<string, number>>();
+  for (const { manual_version: v } of trees) {
+    const pages = (pagesQ.all(v) as Row[]).map(pick(pageCols, (p) => ({ ...p, entry_count: entryByPage.get(Number(p.page_id)) ?? 0 })));
+    const entries = (entriesQ.all(v) as Row[]).map(pick(entryCols, (e) => ({ ...e, field_count: fieldCount.get(Number(e.entry_id)) ?? 0, flag_count: flagCount.get(Number(e.entry_id)) ?? 0 })));
+    const fields = (fieldsQ.all(v) as Row[]).map(pick(fieldCols, (f) => ({ ...f, inspect_link_count: linkCount.get(Number(f.field_id)) ?? 0 })));
+    const flags = (flagsQ.all(v) as Row[]).map(pick(flagCols));
+    const standard = (standardQ.all(v) as Row[]).map(pick(standardCols));
+    digests.set(v, rowsDigest(new Map([
+      ["entries.tsv", { columns: entryCols, rows: entries }],
+      ["fields.tsv", { columns: fieldCols, rows: fields }],
+      ["flags.tsv", { columns: flagCols, rows: flags }],
+      ["standard.tsv", { columns: standardCols, rows: standard }],
+    ])));
+    counts.set(v, { pages: pages.length, entries: entries.length, fields: fields.length, flags: flags.length, standard: standard.length });
+    out.pages.push(...pages);
+    out.entries.push(...entries);
+    out.fields.push(...fields);
+    out.flags.push(...flags);
+    out.standard.push(...standard);
+    out.entryLinks.push(...(entryLinksQ.all(v) as Row[]).map(pick(entryLinkCols)));
+    out.fieldLinks.push(...(fieldLinksQ.all(v) as Row[]).map(pick(fieldLinkCols)));
+  }
+
+  const treeCols = ["manual_version", "base_url", "is_default", "fetched_at", "retained", "rows_digest"];
+  const byTree = "manual_version (numeric comparator, oldest first)";
+  const datasets: Dataset[] = [
+    // trees.tsv — one row per stored manual tree, keyed by the version its llms.txt declares.
+    { name: "cli-reference/trees.tsv", source_table: "cliref_trees", columns: treeCols, order_by: byTree, rows: trees.map((t) => [t.manual_version, t.base_url, t.is_default, t.fetched_at, t.retained, digests.get(t.manual_version) ?? null]) },
+    // pages.tsv — page metadata + source byte size + derived entry count. The raw Markdown
+    // lives in source/<manual_version>/<slug>.md, hashed by source_sha256. source_bytes is
+    // computed in SQLite so this never loads source_markdown (cliRefSourceFiles reads it).
+    { name: "cli-reference/pages.tsv", source_table: "cliref_pages", columns: pageCols, order_by: `${byTree}, source_order`, rows: out.pages },
+    // entries.tsv — the entry inventory with its exact/alias/manual-only match status,
+    // resolved inspect path, and derived field/flag counts. Long description last.
+    { name: "cli-reference/entries.tsv", source_table: "cliref_entries", columns: entryCols, order_by: `${byTree}, page source_order, source_order`, rows: out.entries },
+    // fields.tsv — fields by their owning entry's source path (entry_source_path, NEVER a
+    // field_path) plus a derived inspect_link_count; the coordinates are field-inspect-links.tsv.
+    { name: "cli-reference/fields.tsv", source_table: "cliref_fields", columns: fieldCols, order_by: `${byTree}, page source_order, entry source_order, source_order`, rows: out.fields },
+    // flags.tsv — print-output flag letters, kept apart from fields.
+    { name: "cli-reference/flags.tsv", source_table: "cliref_flags", columns: flagCols, order_by: `${byTree}, page source_order, entry source_order, source_order`, rows: out.flags },
+    // standard.tsv — the landing page's four fact sections (#193), descriptions verbatim.
+    { name: "cli-reference/standard.tsv", source_table: "cliref_standard", columns: standardCols, order_by: `${byTree}, source_line`, rows: out.standard },
+    // entry-inspect-links.tsv — the STORED entry crosswalk with its exact/alias detail.
+    { name: "cli-reference/entry-inspect-links.tsv", source_table: "cliref_entry_schema_links", columns: entryLinkCols, order_by: `${byTree}, page source_order, entry source_order`, rows: out.entryLinks },
+    // field-inspect-links.tsv — the COMPUTED view: one row per (field, inspect arg node).
+    { name: "cli-reference/field-inspect-links.tsv", source_table: "cliref_field_inspect_links", columns: fieldLinkCols, order_by: `${byTree}, page source_order, entry source_order, field source_order, inspect_path`, rows: out.fieldLinks },
+  ];
+  return { trees, datasets, digests, counts };
 }
 
-/** Byte-exact source/<slug>.md files, reconstructed from cliref_pages.source_markdown. */
-function cliRefSourceFiles(database: Database): Array<{ name: string; content: string; bytes: number; sha256: string }> {
-  if (!hasCliRef(database)) return [];
-  const pages = database.prepare(`SELECT slug, source_markdown, source_sha256 FROM cliref_pages WHERE manual_version = ${DEFAULT_TREE} ORDER BY source_order`).all() as Array<{ slug: string; source_markdown: string; source_sha256: string }>;
-  return pages.map((p) => ({
-    // Slugs are lowercase [a-z0-9-] segments joined by "/", so they are filesystem-safe
-    // as a relative path; containedTarget() still guards traversal defensively.
-    name: `cli-reference/source/${p.slug}.md`,
-    content: p.source_markdown,
-    bytes: utf8Bytes(p.source_markdown),
-    sha256: p.source_sha256,
-  }));
+type RawFile = { name: string; source_table: string; content: string; bytes: number; sha256: string };
+
+/** Each tree's raw source under source/<manual_version>/: every page byte-exact, plus the
+ * tree's llms.txt and landing page, so the directory alone can re-parse a tree. */
+function cliRefSourceFiles(database: Database, trees: CliRefTree[]): RawFile[] {
+  const files: RawFile[] = [];
+  const pagesQ = database.prepare("SELECT slug, source_markdown, source_sha256 FROM cliref_pages WHERE manual_version = ? ORDER BY source_order");
+  for (const t of trees) {
+    const dir = `cli-reference/source/${t.manual_version}`;
+    files.push({ name: `${dir}/_llms.txt`, source_table: "cliref_trees", content: t.llms_txt, bytes: utf8Bytes(t.llms_txt), sha256: t.llms_sha256 });
+    files.push({ name: `${dir}/cli-reference.md`, source_table: "cliref_trees", content: t.landing_markdown, bytes: utf8Bytes(t.landing_markdown), sha256: t.landing_sha256 });
+    for (const p of pagesQ.all(t.manual_version) as Array<{ slug: string; source_markdown: string; source_sha256: string }>) {
+      // Slugs are lowercase [a-z0-9-] segments joined by "/", so they are filesystem-safe as a
+      // relative path; containedTarget() still guards traversal. A menu page named like the
+      // landing page would overwrite it: fail rather than ship one in place of the other.
+      if (p.slug === "cli-reference") throw new Error(`export: tree ${t.manual_version} has a page slug "cli-reference", which collides with its landing page`);
+      files.push({ name: `${dir}/${p.slug}.md`, source_table: "cliref_pages", content: p.source_markdown, bytes: utf8Bytes(p.source_markdown), sha256: p.source_sha256 });
+    }
+  }
+  return files;
 }
 
 function readMeta(database: Database, key: string): string | null {
@@ -630,6 +677,20 @@ function readMeta(database: Database, key: string): string | null {
 }
 
 // ── The command ───────────────────────────────────────────────────────────────
+
+const CONTRACT: TomlTable = {
+  file_format: "tsv",
+  encoding: "utf-8",
+  line_ending: "lf",
+  column_separator: "tab",
+  null: TSV_NULL,
+  escape: TSV_ESCAPE,
+  word_count: WORD_COUNT_RULE,
+  byte_count: "UTF-8 byte length of the stored text (Buffer.byteLength(text, 'utf8')).",
+  filesystem_name: "Percent-encode any byte outside [A-Za-z0-9._-]; raw value stays in a column and the encoded name is emitted as its own column.",
+};
+
+const CLIREF_DIR = "cli-reference/";
 
 export type ExportedFile = { name: string; source_table: string; rows: number; columns: string[]; order_by: string };
 export type ExportedSourceFile = { name: string; bytes: number; sha256: string };
@@ -649,6 +710,9 @@ export type ExportOptions = {
 
 const MANIFEST_NAME = "manifest.toml";
 const EXPORT_FORMAT = "rosetta-datasets";
+// 2 (#188): every CLI-Reference tree, a leading manual_version column, trees.tsv and
+// standard.tsv, source/<manual_version>/, and the scoped cli-reference/manifest.toml.
+const FORMAT_VERSION = 2;
 
 /**
  * The file list a prior `rosetta export` recorded in its manifest — the ownership
@@ -759,7 +823,44 @@ const CLIREF_DISCLOSURES = [
   },
   {
     subject: "cli-reference source fidelity and raw_type",
-    note: "source/<slug>.md is the byte-exact fetched Markdown (hashes to pages.tsv.source_sha256); entry/field/flag description_markdown columns are verbatim (no whitespace flattening). raw_type is stored unparsed — enums (enum (a | b)), ranges (num { 0..7 }), and composites are a deferred pass. The CLI-Reference section-landing argument-type glossary (/docs/cli-reference/) is not ingested here (prose, no command entries).",
+    note: "source/<manual_version>/<slug>.md is the byte-exact fetched Markdown (hashes to pages.tsv.source_sha256); source/<manual_version>/_llms.txt and cli-reference.md are the tree's llms.txt and landing page as fetched. entry/field/flag/standard description_markdown columns are verbatim (no whitespace flattening). raw_type is stored unparsed — enums (enum (a | b)), ranges (num { 0..7 }), and composites are a deferred pass.",
+  },
+];
+
+// The dataset's contract with a consumer that pins it (#188), stated in the scoped
+// cli-reference/manifest.toml so it travels with the directory.
+const CLIREF_CONTRACT_DISCLOSURES = [
+  {
+    subject: "1. Positive evidence only",
+    note: "A page or row is evidence for its tree. An absence decides nothing: /ip/ipsec/key has existed on devices since 7.9, yet the 7.24 tree has no page for it. Version history comes from /console/inspect, not from these trees.",
+  },
+  {
+    subject: "2. Trees are minor-granular and labeled as declared",
+    note: "manual_version is exactly the version the tree's llms.txt header declares (7.24, never 7.24.5). Mapping a device version to a tree is the consumer's job.",
+  },
+  {
+    subject: "3. Identity is the declared version, never the URL",
+    note: "is_default marks the tree served at /docs/, and it can move to another tree between releases without changing any row's identity. A version served at two URLs is stored once.",
+  },
+  {
+    subject: "4. Rows are verbatim",
+    note: "Names and descriptions are kept as the manual prints them, including dotted parameter names (state.querier) and empty descriptions. Nothing is corrected on the way in.",
+  },
+  {
+    subject: "5. Freshness is rosetta's release cadence",
+    note: "fetched_at says when each tree was read. MikroTik edits trees in place, and a re-fetch overwrites a tree; a consumer that needs fresher data needs a newer rosetta release, not a moving URL.",
+  },
+  {
+    subject: "6. Pin the release tag and the digest",
+    note: "Rosetta never deletes a release asset, but an asset can be replaced under the same tag, so pin the tag and the asset's sha256. rows_digest per tree tells a new tag with the same content from a real change.",
+  },
+  {
+    subject: "cli_compare_mismatches",
+    note: "Rows of MikroTik's cli-compare.json that disagreed with rosetta's rows, summed over every compared version pair that names the tree (a disagreement counts against both of its trees). A mismatch is reported, never fatal. cli_compare_checked = false means no pair naming the tree was compared, and the count is then omitted.",
+  },
+  {
+    subject: "retained",
+    note: "retained = true marks a tree MikroTik no longer serves, re-parsed from an earlier release's archived source and keeping its original fetched_at. No tree is retained until carry-forward ships (#188 slice 4).",
   },
 ];
 
@@ -802,8 +903,61 @@ export async function runExport(outDir: string, database: Database, opts: Export
   // expectation), rather than leaning on Bun.write's implicit parent creation.
   mkdirSync(resolved, { recursive: true });
 
-  const datasets = [...DATASET_READERS.map((read) => read(database)), ...readCliRefDatasets(database)];
-  const rawFiles = cliRefSourceFiles(database);
+  const trees = readCliRefTrees(database);
+  const cliref = trees.length > 0 ? readCliRefDatasets(database, trees) : null;
+  const datasets = [...DATASET_READERS.map((read) => read(database)), ...(cliref?.datasets ?? [])];
+  const rawFiles = cliref ? cliRefSourceFiles(database, trees) : [];
+
+  const provenance: TomlTable = {
+    // From db_meta — the whole point is a directory whose origin is knowable.
+    // schema_version falls back to PRAGMA user_version so a fixture without the
+    // stamped key still gets a real number rather than a hole.
+    release_tag: readMeta(database, "release_tag") ?? "(unstamped)",
+    schema_version: readMeta(database, "schema_version") ?? String((database.prepare("PRAGMA user_version").get() as { user_version: number }).user_version),
+    source_commit: readMeta(database, "source_commit") ?? "(unstamped)",
+    built_at: readMeta(database, "built_at") ?? "(unstamped)",
+    // The manual tree each docs store was read from (#187); not the RouterOS stable release.
+    docs_manual_version: readMeta(database, "docs_manual_version") ?? "(unstamped)",
+    cliref_manual_version: readMeta(database, "cliref_manual_version") ?? "(unstamped)",
+  };
+  const datasetEntry = (d: Dataset, name = d.name): TomlTable => ({ name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by });
+  const rawEntry = (f: RawFile, name = f.name): TomlTable => ({ name, source_table: f.source_table, bytes: f.bytes, sha256: f.sha256 });
+
+  // The scoped manifest describes cli-reference/ on its own, with paths relative to it, so
+  // that directory can ship as a self-contained asset (#188). It names no other dataset.
+  let scoped: RawFile | null = null;
+  if (cliref) {
+    const local = (name: string) => name.slice(CLIREF_DIR.length);
+    const content = emitToml({
+      header: [
+        "manifest.toml — generated by `rosetta export`. Do not edit by hand.",
+        "The CLI Reference of every stored manual.mikrotik.com tree: provenance, serialization contract, trees, and files (issue #188).",
+        "File names are relative to this directory, which is self-contained: the raw source of every tree is under source/.",
+      ],
+      root: { format: "rosetta-cli-reference", format_version: FORMAT_VERSION, generator: "@tikoci/rosetta" },
+      provenance,
+      contract: { ...CONTRACT, rows_digest: ROWS_DIGEST_RULE },
+      trees: trees.map((t) => {
+        const row: TomlTable = {
+          manual_version: t.manual_version,
+          base_url: t.base_url,
+          is_default: t.is_default === 1,
+          fetched_at: t.fetched_at,
+          retained: t.retained === 1,
+          rows_digest: cliref.digests.get(t.manual_version) ?? "",
+          ...cliref.counts.get(t.manual_version),
+          cli_compare_checked: t.cli_compare_mismatches !== null,
+        };
+        if (t.cli_compare_mismatches !== null) row.cli_compare_mismatches = t.cli_compare_mismatches;
+        return row;
+      }),
+      files: [...cliref.datasets.map((d) => datasetEntry(d, local(d.name))), ...rawFiles.map((f) => rawEntry(f, local(f.name)))],
+      disclosures: [...CLIREF_CONTRACT_DISCLOSURES, ...CLIREF_DISCLOSURES],
+    });
+    const sha256 = new Bun.CryptoHasher("sha256").update(content).digest("hex");
+    scoped = { name: `${CLIREF_DIR}${MANIFEST_NAME}`, source_table: "(manifest)", content, bytes: utf8Bytes(content), sha256 };
+  }
+  const extraFiles = scoped ? [...rawFiles, scoped] : rawFiles;
 
   const manifest = emitToml({
     header: [
@@ -811,35 +965,11 @@ export async function runExport(outDir: string, database: Database, opts: Export
       "Provenance + serialization contract for a rosetta dataset directory (B-0022 / issue #101).",
       "Every value here is derived from the SQLite DB alone, so a rebuild on the same DB is a no-op.",
     ],
-    root: { format: "rosetta-datasets", format_version: 1, generator: "@tikoci/rosetta" },
-    provenance: {
-      // From db_meta — the whole point is a directory whose origin is knowable.
-      // schema_version falls back to PRAGMA user_version so a fixture without the
-      // stamped key still gets a real number rather than a hole.
-      release_tag: readMeta(database, "release_tag") ?? "(unstamped)",
-      schema_version: readMeta(database, "schema_version") ?? String((database.prepare("PRAGMA user_version").get() as { user_version: number }).user_version),
-      source_commit: readMeta(database, "source_commit") ?? "(unstamped)",
-      built_at: readMeta(database, "built_at") ?? "(unstamped)",
-      // The manual tree each docs store was read from (#187); not the RouterOS stable release.
-      docs_manual_version: readMeta(database, "docs_manual_version") ?? "(unstamped)",
-      cliref_manual_version: readMeta(database, "cliref_manual_version") ?? "(unstamped)",
-    },
-    contract: {
-      file_format: "tsv",
-      encoding: "utf-8",
-      line_ending: "lf",
-      column_separator: "tab",
-      null: TSV_NULL,
-      escape: TSV_ESCAPE,
-      word_count: WORD_COUNT_RULE,
-      byte_count: "UTF-8 byte length of the stored text (Buffer.byteLength(text, 'utf8')).",
-      filesystem_name: "Percent-encode any byte outside [A-Za-z0-9._-]; raw value stays in a column and the encoded name is emitted as its own column.",
-    },
-    files: [
-      ...datasets.map((d) => ({ name: d.name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by })),
-      ...rawFiles.map((f) => ({ name: f.name, source_table: "cliref_pages", bytes: f.bytes, sha256: f.sha256 })),
-    ],
-    disclosures: [...DISCLOSURES, ...(rawFiles.length > 0 ? CLIREF_DISCLOSURES : [])],
+    root: { format: EXPORT_FORMAT, format_version: FORMAT_VERSION, generator: "@tikoci/rosetta" },
+    provenance,
+    contract: CONTRACT,
+    files: [...datasets.map((d) => datasetEntry(d)), ...extraFiles.map((f) => rawEntry(f))],
+    disclosures: [...DISCLOSURES, ...(cliref ? CLIREF_DISCLOSURES : [])],
   });
 
   // Publish in three ordered steps: (1) prune the PRIOR manifest's stale files,
@@ -853,7 +983,7 @@ export async function runExport(outDir: string, database: Database, opts: Export
   // re-prunes rather than orphaning stale files. (A crash can still leave individual
   // dataset files a mix of the prior and current run; the directory is a regenerable
   // audit surface healed by the next successful export, not a transactional store.)
-  const produced = new Set([...datasets.map((d) => d.name), ...rawFiles.map((f) => f.name)]);
+  const produced = new Set([...datasets.map((d) => d.name), ...extraFiles.map((f) => f.name)]);
   for (const stale of ownedBefore) {
     if (produced.has(stale) || stale === MANIFEST_NAME) continue;
     const target = containedTarget(resolved, stale); // lexical + symlink containment
@@ -866,7 +996,7 @@ export async function runExport(outDir: string, database: Database, opts: Export
     if (target === null) throw new Error(`export: refusing to write ${d.name} — it resolves outside ${resolved} (traversal or symlink)`);
     await Bun.write(target, toTsv(d.columns, d.rows));
   }
-  for (const f of rawFiles) {
+  for (const f of extraFiles) {
     const target = containedTarget(resolved, f.name);
     if (target === null) throw new Error(`export: refusing to write ${f.name} — it resolves outside ${resolved} (traversal or symlink)`);
     await Bun.write(target, f.content);
@@ -876,6 +1006,6 @@ export async function runExport(outDir: string, database: Database, opts: Export
   return {
     outDir: resolved,
     files: datasets.map((d) => ({ name: d.name, source_table: d.source_table, rows: d.rows.length, columns: d.columns, order_by: d.order_by })),
-    sourceFiles: rawFiles.map((f) => ({ name: f.name, bytes: f.bytes, sha256: f.sha256 })),
+    sourceFiles: extraFiles.map((f) => ({ name: f.name, bytes: f.bytes, sha256: f.sha256 })),
   };
 }

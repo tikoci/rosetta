@@ -953,6 +953,27 @@ export function reconcileTsv(rows: ReconcileRow[]): string {
 }
 
 /**
+ * Per tree, the reconcile rows of every compared pair that names it; null when no pair
+ * naming it was compared. A pair's rows count against both of its trees, because a
+ * disagreement can't say which side is wrong. Stored on cliref_trees for the export (#188).
+ */
+export function treeMismatchCounts(
+  rows: ReconcileRow[],
+  compare: CliCompare | null,
+  extracted: readonly string[],
+): Map<string, number | null> {
+  const out = new Map<string, number | null>(extracted.map((v) => [v, null]));
+  if (compare === null) return out;
+  for (const pair of Object.keys(compare.pairs)) {
+    const [from, to] = pair.split("->");
+    if (!out.has(from) || !out.has(to)) continue;
+    const n = rows.filter((r) => r.pair === pair).length;
+    for (const v of [from, to]) out.set(v, (out.get(v) ?? 0) + n);
+  }
+  return out;
+}
+
+/**
  * Report, never fail (maintainer decision on #188, 2026-10-21): write the TSV, log per-pair
  * counts, and add them to the GitHub job summary. release.yml turns a non-empty report into
  * a tracking issue, so a mismatch reaches a person instead of a log.
@@ -990,10 +1011,10 @@ interface TreeResult {
   keep: string[];
 }
 
-function store(results: TreeResult[]): void {
+function store(results: TreeResult[], mismatches: ReadonlyMap<string, number | null>): void {
   const insTree = db.prepare(
-    `INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256)
-     VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+    `INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256, cli_compare_mismatches)
+     VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
   );
   const insStandard = db.prepare(
     `INSERT INTO cliref_standard (manual_version, section, name, description_markdown, source_order, source_line)
@@ -1030,6 +1051,7 @@ function store(results: TreeResult[]): void {
         new Bun.CryptoHasher("sha256").update(tree.llmsTxt).digest("hex"),
         landingMarkdown,
         new Bun.CryptoHasher("sha256").update(landingMarkdown).digest("hex"),
+        mismatches.get(tree.label) ?? null,
       );
       for (const r of landingRows) {
         insStandard.run(tree.label, r.section, r.name, r.descriptionMarkdown, r.sourceOrder, r.sourceLine);
@@ -1192,10 +1214,10 @@ async function main(): Promise<void> {
   const results: TreeResult[] = [];
   for (const tree of trees) results.push(await extractTree(tree));
 
-  if (compare !== null) {
-    const treePages = new Map(results.map((r) => [r.tree.label, r.pages]));
-    reportReconciliation(reconcileCliCompare(treePages, compare), compare, new Set(treePages.keys()));
-  }
+  const treePages = new Map(results.map((r) => [r.tree.label, r.pages]));
+  const reconciled = compare === null ? [] : reconcileCliCompare(treePages, compare);
+  if (compare !== null) reportReconciliation(reconciled, compare, new Set(treePages.keys()));
+  const mismatches = treeMismatchCounts(reconciled, compare, [...treePages.keys()]);
 
   initDb();
   // extract-docusaurus runs first in both `make extract` and release.yml, and reads the
@@ -1213,7 +1235,7 @@ async function main(): Promise<void> {
   db.run("DELETE FROM cliref_pages;");
   db.run("DELETE FROM cliref_standard;");
   db.run("DELETE FROM cliref_trees;");
-  store(results);
+  store(results, mismatches);
   setDbMeta(CLIREF_MANUAL_VERSION_KEY, defaultTree.label);
   console.log(`Stored ${results.length} tree(s) into ${process.env.DB_PATH ?? "ros-help.db"}`);
 

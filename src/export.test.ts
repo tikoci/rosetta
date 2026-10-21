@@ -554,68 +554,169 @@ describe("DB-only hard boundary", () => {
 // (afterAll) rather than leaning on run order — the exact-file-set assertions above
 // expect no cli-reference/* output. Uses unique paths/names so the name-based field
 // view stays deterministic against other files' rows while it is populated.
-describe("runExport — cli-reference overlay (issue #124)", () => {
-  const CE = 990100; // entry/page id base, collision-proof
+describe("runExport — cli-reference format 2 (issues #124, #188)", () => {
+  const CE = 990100; // entry/page/field/flag id base, collision-proof
+  const md = "# Ztcert\n\n## ztcert\n\n**Type:** Directory\n\nprose\n";
+  const sha = (s: string) => new Bun.CryptoHasher("sha256").update(s).digest("hex");
+  const LLMS = "# Index of the RouterOS 7.24 manual\n";
+  const LANDING = "# CLI Reference\n\n## Standard list entry properties\n";
 
-  afterAll(() => {
-    // Undo the overlay rows this block inserts so no later test sees a populated overlay.
-    db.run(`DELETE FROM cliref_entry_schema_links WHERE entry_id = ${CE}`);
-    db.run(`DELETE FROM cliref_flags WHERE entry_id = ${CE}`);
-    db.run(`DELETE FROM cliref_fields WHERE entry_id = ${CE}`);
-    db.run(`DELETE FROM cliref_entries WHERE id = ${CE}`);
-    db.run(`DELETE FROM cliref_pages WHERE id IN (${CE}, ${CE + 1})`);
-    db.run("DELETE FROM cliref_trees WHERE manual_version IN ('7.24', '7.26')");
-    db.run("DELETE FROM schema_nodes WHERE path IN ('/ztcert','/ztcert/add','/ztcert/add/ztname')");
-  });
+  // Two trees with the same content stored under different ids: 7.24 (older, versioned
+  // URL) and 7.26 (default). A third, empty tree has no pages and must not be exported.
+  function insertTree(v: string, base: number, isDefault: number, mismatches: number | null): void {
+    db.run(
+      `INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256, cli_compare_mismatches)
+       VALUES (?, ?, ?, '2026-10-21T00:00:00Z', 0, ?, ?, ?, ?, ?)`,
+      [v, `https://manual.mikrotik.com/docs/${isDefault ? "" : `${v}/`}`, isDefault, LLMS, sha(LLMS), LANDING, sha(LANDING), mismatches],
+    );
+    db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${base},?,'ztcert',?,'Ztcert','','Ztcert',?,?,0)`, [v, `u-${v}`, md, sha(md)]);
+    db.run(`INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (${base},${base},'ztcert','ztcert','Directory',2,'prose',0,3,7)`);
+    db.run(`INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line) VALUES (${base},${base},'Argument','ztname','string',0,0,'The name',0,5)`);
+    db.run(`INSERT INTO cliref_flags (id,entry_id,flag,name,description_markdown,source_order,source_line) VALUES (${base},${base},'X','disabled','is disabled',0,4)`);
+    db.run(`INSERT INTO cliref_standard (manual_version,section,name,description_markdown,source_order,source_line) VALUES (?, 'Standard list entry properties', 'comment', 'a note', 0, 3)`, [v]);
+  }
 
-  test("emits six TSVs + byte-exact source md, with entry_source_path not field_path", async () => {
+  beforeAll(() => {
     db.run(
       "INSERT INTO schema_nodes (path,name,type,inspect_type,parent_path) VALUES " +
         "('/ztcert','ztcert','dir','dir','/'),('/ztcert/add','add','cmd','cmd','/ztcert'),('/ztcert/add/ztname','ztname','arg','arg','/ztcert/add')",
     );
-    const md = "# Ztcert\n\n## ztcert\n\n**Type:** Directory\n\nprose\n";
-    const sha = new Bun.CryptoHasher("sha256").update(md).digest("hex");
-    // Format 1 exports the default tree only (#188): the 7.24 page below must not appear.
+    insertTree("7.26", CE, 1, 0);
+    insertTree("7.24", CE + 1, 0, null);
     db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256)
-      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', '', '', ''), ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '', '', '')`);
-    db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE},'7.26','ztcert','u','Ztcert','','Ztcert',?,?,990000)`, [md, sha]);
-    db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE + 1},'7.24','old-ztcert','u724','Old Ztcert','','Old Ztcert','old','old',0)`);
-    db.run(`INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (${CE},${CE},'ztcert','ztcert','Directory',2,'prose',0,3,7)`);
-    db.run(`INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line) VALUES (${CE},${CE},'Argument','ztname','string',0,0,'The name',0,5)`);
-    db.run(`INSERT INTO cliref_flags (id,entry_id,flag,name,description_markdown,source_order,source_line) VALUES (${CE},${CE},'X','disabled','is disabled',0,4)`);
+      VALUES ('7.25', 'https://manual.mikrotik.com/docs/7.25/', 0, 'x', 0, '', '', '', '')`);
     const nodeId = (db.prepare("SELECT id FROM schema_nodes WHERE path='/ztcert'").get() as { id: number }).id;
+    // Only the default tree is linked: the crosswalk differs while the content does not.
     db.run(`INSERT INTO cliref_entry_schema_links (entry_id,schema_node_id,match_kind,match_detail) VALUES (${CE},${nodeId},'exact',NULL)`);
+  });
 
+  afterAll(() => {
+    // Undo the overlay rows this block inserts so no later test sees a populated overlay.
+    const ids = `${CE}, ${CE + 1}, ${CE + 2}`;
+    db.run(`DELETE FROM cliref_entry_schema_links WHERE entry_id IN (${ids})`);
+    db.run(`DELETE FROM cliref_flags WHERE entry_id IN (${ids})`);
+    db.run(`DELETE FROM cliref_fields WHERE entry_id IN (${ids})`);
+    db.run(`DELETE FROM cliref_entries WHERE id IN (${ids})`);
+    db.run(`DELETE FROM cliref_pages WHERE id IN (${ids})`);
+    db.run("DELETE FROM cliref_standard WHERE manual_version IN ('7.24', '7.25', '7.26')");
+    db.run("DELETE FROM cliref_trees WHERE manual_version IN ('7.24', '7.25', '7.26')");
+    db.run("DELETE FROM schema_nodes WHERE path IN ('/ztcert','/ztcert/add','/ztcert/add/ztname')");
+  });
+
+  const read = (dir: string, name: string) => parseTsv(readFileSync(path.join(dir, name), "utf-8"));
+  const col = (t: ReturnType<typeof parseTsv>, name: string) => t.rows.map((r) => r[t.columns.indexOf(name)]);
+
+  test("emits eight TSVs led by manual_version, every tree with pages, oldest first", async () => {
     const dir = exportToTmp();
     const summary = await runExport(dir, db);
-    const cli = summary.files.filter((f) => f.name.startsWith("cli-reference/")).map((f) => f.name).sort();
-    expect(cli).toEqual([
+    expect(summary.files.filter((f) => f.name.startsWith("cli-reference/")).map((f) => f.name).sort()).toEqual([
       "cli-reference/entries.tsv",
       "cli-reference/entry-inspect-links.tsv",
       "cli-reference/field-inspect-links.tsv",
       "cli-reference/fields.tsv",
       "cli-reference/flags.tsv",
       "cli-reference/pages.tsv",
+      "cli-reference/standard.tsv",
+      "cli-reference/trees.tsv",
     ]);
+    for (const f of summary.files.filter((x) => x.name.startsWith("cli-reference/") && x.name !== "cli-reference/trees.tsv")) {
+      expect(f.columns[0]).toBe("manual_version");
+    }
+    expect(col(read(dir, "cli-reference/trees.tsv"), "manual_version")).toEqual(["7.24", "7.26"]);
+    expect(col(read(dir, "cli-reference/trees.tsv"), "is_default")).toEqual(["0", "1"]);
+    expect(col(read(dir, "cli-reference/entries.tsv"), "manual_version")).toEqual(["7.24", "7.26"]);
+    expect(col(read(dir, "cli-reference/standard.tsv"), "name")).toEqual(["comment", "comment"]);
 
-    const fields = parseTsv(readFileSync(path.join(dir, "cli-reference/fields.tsv"), "utf-8"));
+    const fields = read(dir, "cli-reference/fields.tsv");
     expect(fields.columns).toContain("entry_source_path");
     expect(fields.columns).not.toContain("field_path");
 
-    // The field view derives ztname -> /ztcert/add/ztname (unique, so exactly one row).
-    const flinks = parseTsv(readFileSync(path.join(dir, "cli-reference/field-inspect-links.tsv"), "utf-8"));
-    const mine = flinks.rows.filter((r) => r[flinks.columns.indexOf("field_name")] === "ztname");
-    expect(mine.map((r) => r[flinks.columns.indexOf("inspect_path")])).toEqual(["/ztcert/add/ztname"]);
+    // The field view derives ztname -> /ztcert/add/ztname from the default tree's link only.
+    const flinks = read(dir, "cli-reference/field-inspect-links.tsv");
+    expect(flinks.rows.filter((r) => r[flinks.columns.indexOf("field_name")] === "ztname").map((r) => [r[0], r[flinks.columns.indexOf("inspect_path")]])).toEqual([
+      ["7.26", "/ztcert/add/ztname"],
+    ]);
+  });
 
-    // the returned summary reports the source md file (not just the TSV datasets).
-    expect(summary.sourceFiles.map((f) => f.name)).toEqual(["cli-reference/source/ztcert.md"]);
-    expect(summary.sourceFiles[0].bytes).toBe(Buffer.byteLength(md, "utf8"));
+  test("rows_digest ignores ids and the crosswalk, and changes with the content", async () => {
+    const digests = async () => {
+      const dir = exportToTmp();
+      await runExport(dir, db);
+      const trees = read(dir, "cli-reference/trees.tsv");
+      return Object.fromEntries(trees.rows.map((r) => [r[0], r[trees.columns.indexOf("rows_digest")]]));
+    };
+    const before = await digests();
+    // Same rows under different ids, and only 7.26 linked to inspect: one digest.
+    expect(before["7.24"]).toMatch(/^[0-9a-f]{64}$/);
+    expect(before["7.24"]).toBe(before["7.26"]);
 
-    // source md round-trips byte-for-byte to its manifest sha256.
-    const src = readFileSync(path.join(dir, "cli-reference/source/ztcert.md"));
-    const hash = new Bun.CryptoHasher("sha256").update(src).digest("hex");
-    const manifest = readFileSync(path.join(dir, "manifest.toml"), "utf-8");
-    expect(manifest).toContain(`sha256 = "${hash}"`);
-    expect(manifest).toContain('name = "cli-reference/source/ztcert.md"');
+    db.run(`UPDATE cliref_fields SET description_markdown = 'The new name' WHERE id = ${CE + 1}`);
+    try {
+      const after = await digests();
+      expect(after["7.24"]).not.toBe(before["7.24"]);
+      expect(after["7.26"]).toBe(before["7.26"]);
+    } finally {
+      db.run(`UPDATE cliref_fields SET description_markdown = 'The name' WHERE id = ${CE + 1}`);
+    }
+  });
+
+  test("writes each tree's raw source under source/<manual_version>/, byte-exact", async () => {
+    const dir = exportToTmp();
+    const summary = await runExport(dir, db);
+    const names = summary.sourceFiles.map((f) => f.name);
+    expect(names).toEqual([
+      "cli-reference/source/7.24/_llms.txt",
+      "cli-reference/source/7.24/cli-reference.md",
+      "cli-reference/source/7.24/ztcert.md",
+      "cli-reference/source/7.26/_llms.txt",
+      "cli-reference/source/7.26/cli-reference.md",
+      "cli-reference/source/7.26/ztcert.md",
+      "cli-reference/manifest.toml",
+    ]);
+    const root = readFileSync(path.join(dir, "manifest.toml"), "utf-8");
+    for (const f of summary.sourceFiles) {
+      const bytes = readFileSync(path.join(dir, f.name));
+      expect(bytes.length).toBe(f.bytes);
+      // Every file hashes to the sha256 the root manifest records for it.
+      expect(root).toContain(`name = "${f.name}"\nsource_table = "${f.name.endsWith("manifest.toml") ? "(manifest)" : f.name.endsWith(".md") && !f.name.endsWith("/cli-reference.md") ? "cliref_pages" : "cliref_trees"}"\nbytes = ${f.bytes}\nsha256 = "${sha(bytes.toString("utf-8"))}"`);
+    }
+    expect(readFileSync(path.join(dir, "cli-reference/source/7.24/_llms.txt"), "utf-8")).toBe(LLMS);
+    expect(readFileSync(path.join(dir, "cli-reference/source/7.26/cli-reference.md"), "utf-8")).toBe(LANDING);
+    expect(root).toContain("format_version = 2");
+  });
+
+  test("the scoped manifest is self-contained: relative names, [[trees]], contract disclosures", async () => {
+    const dir = exportToTmp();
+    await runExport(dir, db);
+    const scoped = readFileSync(path.join(dir, "cli-reference/manifest.toml"), "utf-8");
+    expect(scoped).toContain('format = "rosetta-cli-reference"\nformat_version = 2');
+    expect(scoped).toContain('name = "entries.tsv"');
+    expect(scoped).toContain('name = "source/7.24/ztcert.md"');
+    expect(scoped).not.toContain('name = "cli-reference/');
+    expect(scoped).not.toContain('name = "changelog.tsv"');
+    expect(scoped).toContain("rows_digest = \"sha256 over entries.tsv");
+
+    const trees = scoped.split("[[trees]]").slice(1).map((t) => t.split("\n\n[[")[0]);
+    expect(trees).toHaveLength(2);
+    expect(trees[0]).toContain('manual_version = "7.24"\nbase_url = "https://manual.mikrotik.com/docs/7.24/"\nis_default = false');
+    expect(trees[0]).toContain("retained = false");
+    expect(trees[0]).toContain("pages = 1\nentries = 1\nfields = 1\nflags = 1\nstandard = 1");
+    // Not compared: the count is omitted rather than reported as 0.
+    expect(trees[0]).toContain("cli_compare_checked = false");
+    expect(trees[0]).not.toContain("cli_compare_mismatches");
+    expect(trees[1]).toContain("is_default = true");
+    expect(trees[1]).toContain("cli_compare_checked = true\ncli_compare_mismatches = 0");
+
+    for (const n of [1, 2, 3, 4, 5, 6]) expect(scoped).toContain(`subject = "${n}. `);
+    expect(scoped).toContain("Positive evidence only");
+  });
+
+  test("a page slug that would overwrite the landing page fails the export", async () => {
+    db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE + 2},'7.26','cli-reference','u-clash','X','','X','x','x',1)`);
+    try {
+      await expect(runExport(exportToTmp(), db)).rejects.toThrow('page slug "cli-reference"');
+    } finally {
+      db.run(`DELETE FROM cliref_pages WHERE id = ${CE + 2}`);
+    }
   });
 });
