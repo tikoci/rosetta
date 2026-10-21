@@ -510,6 +510,18 @@ globalThis.fetch = async (input) => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+  test("--from-cache refuses a _tree.json whose prefix is not its own directory's", () => {
+    const dir = setup("rosetta-cliref-tampered-");
+    try {
+      extract(dir, "live.db");
+      const meta = join(dir, "cache", "7.24", "_tree.json");
+      writeFileSync(meta, readFileSync(meta, "utf8").replace("/docs/7.24/", "/docs/elsewhere/"));
+      expect(extractExpecting(1, dir, "cached.db", "--from-cache")).toContain('has docsPrefix "/docs/elsewhere/", expected /docs/7.24/');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test("a listed tree that returns 404 is skipped with a warning, not a failure (#188)", () => {
     const routes = {
       ...ROUTES,

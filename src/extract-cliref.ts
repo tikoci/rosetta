@@ -292,7 +292,17 @@ function readCachedTrees(): { trees: CliRefTree[]; compare: CliCompare | null } 
       continue; // not a tree directory this extractor wrote
     }
     if (meta.label !== d) throw new Error(`${dir}/_tree.json names tree ${meta.label}`);
-    trees.push({ ...meta, llmsTxt: readFileSync(join(dir, "_llms.txt"), "utf8") });
+    // Rebuild the prefix from the validated directory name rather than trusting the file's
+    // string: a cached tree is either the default /docs/ tree or /docs/<its own label>/.
+    const docsPrefix = meta.docsPrefix === DEFAULT_DOCS_PREFIX ? DEFAULT_DOCS_PREFIX : `${DEFAULT_DOCS_PREFIX}${d}/`;
+    if (meta.docsPrefix !== docsPrefix) throw new Error(`${dir}/_tree.json has docsPrefix ${JSON.stringify(meta.docsPrefix)}, expected ${docsPrefix}`);
+    trees.push({
+      label: d,
+      docsPrefix,
+      isDefault: meta.isDefault === true,
+      fetchedAt: String(meta.fetchedAt),
+      llmsTxt: readFileSync(join(dir, "_llms.txt"), "utf8"),
+    });
   }
   if (trees.length === 0) {
     throw new Error(`--from-cache set but no cached trees (<version>/_tree.json) under ${CACHE_DIR} — run one live extract first (#188)`);
