@@ -549,23 +549,54 @@ export function initDb() {
 
   // -- CLI-Reference overlay (manual.mikrotik.com/docs/cli-reference/*) --
   //
-  // A source-faithful, version-less overlay of the official CLI Reference, kept
-  // structurally separate from the inspect.json-derived schema_nodes tree. An entry
+  // A source-faithful overlay of the official CLI Reference, one row set per served
+  // manual tree (#188), kept structurally separate from the inspect.json-derived
+  // schema_nodes tree. An entry
   // (a heading path) is one of Directory/Settings Directory/Command; its fields are
   // named Argument/Read-only Argument rows; its flags are print-output markers. A
   // field has NO path — it maps to zero-to-many inspect coordinates. See #124 and
   // briefings/B-0016-cli-reference-overlay-design.md for the identity rationale.
 
+  //
+  // A tree is identified by the RouterOS version its llms.txt declares (`7.24`), never by
+  // URL: the default /docs/ tree is one of them, flagged is_default, and that flag can
+  // move between trees without changing any row's identity. Pre-v12 cliref_pages had no
+  // tree key; the overlay is rebuilt by every extract-cliref run, so dropping it loses
+  // nothing.
+  const clirefPageCols = db.prepare("PRAGMA table_info(cliref_pages)").all() as Array<{ name: string }>;
+  if (clirefPageCols.length > 0 && !clirefPageCols.some((c) => c.name === "manual_version")) {
+    db.run("DROP VIEW IF EXISTS cliref_field_inspect_links;");
+    db.run("DROP TABLE IF EXISTS cliref_entry_schema_links;");
+    db.run("DROP TABLE IF EXISTS cliref_flags;");
+    db.run("DROP TABLE IF EXISTS cliref_fields;");
+    db.run("DROP TABLE IF EXISTS cliref_entries;");
+    db.run("DROP TABLE IF EXISTS cliref_pages;");
+  }
+
+  db.run(`CREATE TABLE IF NOT EXISTS cliref_trees (
+    manual_version TEXT PRIMARY KEY,
+    base_url       TEXT NOT NULL UNIQUE,
+    is_default     INTEGER NOT NULL CHECK (is_default IN (0, 1)),
+    fetched_at     TEXT NOT NULL,
+    retained       INTEGER NOT NULL CHECK (retained IN (0, 1)),
+    llms_txt       TEXT NOT NULL,
+    llms_sha256    TEXT NOT NULL
+  );`);
+  db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_cliref_trees_one_default ON cliref_trees(is_default) WHERE is_default = 1;`);
+
   db.run(`CREATE TABLE IF NOT EXISTS cliref_pages (
     id              INTEGER PRIMARY KEY,
-    slug            TEXT NOT NULL UNIQUE,
+    manual_version  TEXT NOT NULL REFERENCES cliref_trees(manual_version),
+    slug            TEXT NOT NULL,
     url             TEXT NOT NULL UNIQUE,
     toc_name        TEXT NOT NULL,
     toc_group       TEXT NOT NULL,
     source_title    TEXT,
     source_markdown TEXT NOT NULL,
     source_sha256   TEXT NOT NULL,
-    source_order    INTEGER NOT NULL UNIQUE CHECK (source_order >= 0)
+    source_order    INTEGER NOT NULL CHECK (source_order >= 0),
+    UNIQUE (manual_version, slug),
+    UNIQUE (manual_version, source_order)
   );`);
 
   db.run(`CREATE TABLE IF NOT EXISTS cliref_entries (

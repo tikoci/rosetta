@@ -451,12 +451,17 @@ function readPages(database: Database): Dataset {
 // source path; fields own a name and zero-to-many inspect coordinates (never a path).
 // All counts are derived here, never stored redundantly on the rows.
 
+// Format 1 is single-tree: since the DB holds every served manual tree (#188), every query
+// below reads the default tree only, so the output stays what one tree produced. Format 2
+// (#188 slice 3) adds the manual_version column and the other trees.
+const DEFAULT_TREE = "(SELECT manual_version FROM cliref_trees WHERE is_default = 1)";
+
 /** True only when the CLI-Reference overlay is present AND populated — an empty overlay
  * (fresh schema, no extract-cliref run yet) emits no cli-reference/ output at all. */
 function hasCliRef(database: Database): boolean {
-  const table = database.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cliref_pages'").get();
+  const table = database.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cliref_trees'").get();
   if (!table) return false;
-  return !!database.prepare("SELECT 1 FROM cliref_pages LIMIT 1").get();
+  return !!database.prepare(`SELECT 1 FROM cliref_pages WHERE manual_version = ${DEFAULT_TREE} LIMIT 1`).get();
 }
 
 /** field_id → number of inspect-arg links, from the computed view (materialized once). */
@@ -491,7 +496,7 @@ function readCliRefDatasets(database: Database): Dataset[] {
   // source_bytes is computed in SQLite (length of the UTF-8 BLOB) so pages.tsv never loads
   // the full source_markdown into memory — cliRefSourceFiles() reads it separately to write
   // source/<slug>.md, and loading it twice doubled the large-text reads for nothing.
-  const pages = database.prepare("SELECT id, slug, url, toc_name, toc_group, source_title, source_order, length(CAST(source_markdown AS BLOB)) AS source_bytes, source_sha256 FROM cliref_pages ORDER BY source_order").all() as Array<Record<string, TsvScalar> & { id: number; source_bytes: number }>;
+  const pages = database.prepare(`SELECT id, slug, url, toc_name, toc_group, source_title, source_order, length(CAST(source_markdown AS BLOB)) AS source_bytes, source_sha256 FROM cliref_pages WHERE manual_version = ${DEFAULT_TREE} ORDER BY source_order`).all() as Array<Record<string, TsvScalar> & { id: number; source_bytes: number }>;
   const pagesDs: Dataset = {
     name: "cli-reference/pages.tsv",
     source_table: "cliref_pages",
@@ -512,6 +517,7 @@ function readCliRefDatasets(database: Database): Dataset[] {
     JOIN cliref_pages p ON p.id = e.page_id
     LEFT JOIN cliref_entry_schema_links l ON l.entry_id = e.id
     LEFT JOIN schema_nodes sn ON sn.id = l.schema_node_id
+    WHERE p.manual_version = ${DEFAULT_TREE}
     ORDER BY e.page_id, e.source_order`).all() as Array<Record<string, TsvScalar> & { id: number }>;
   const entriesDs: Dataset = {
     name: "cli-reference/entries.tsv",
@@ -528,7 +534,8 @@ function readCliRefDatasets(database: Database): Dataset[] {
   const fields = database.prepare(`
     SELECT f.id, f.entry_id, e.source_path AS entry_source_path, f.field_kind, f.name, f.raw_type,
            f.mandatory, f.unsettable, f.syscap, f.source_order, f.source_line, f.description_markdown
-    FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
+    FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id JOIN cliref_pages p ON p.id = e.page_id
+    WHERE p.manual_version = ${DEFAULT_TREE}
     ORDER BY f.entry_id, f.source_order`).all() as Array<Record<string, TsvScalar> & { id: number }>;
   const fieldsDs: Dataset = {
     name: "cli-reference/fields.tsv",
@@ -542,7 +549,8 @@ function readCliRefDatasets(database: Database): Dataset[] {
   const flagCols = ["flag_id", "entry_id", "entry_source_path", "flag", "name", "source_order", "source_line", "description_markdown"];
   const flags = database.prepare(`
     SELECT fl.id, fl.entry_id, e.source_path AS entry_source_path, fl.flag, fl.name, fl.source_order, fl.source_line, fl.description_markdown
-    FROM cliref_flags fl JOIN cliref_entries e ON e.id = fl.entry_id
+    FROM cliref_flags fl JOIN cliref_entries e ON e.id = fl.entry_id JOIN cliref_pages p ON p.id = e.page_id
+    WHERE p.manual_version = ${DEFAULT_TREE}
     ORDER BY fl.entry_id, fl.source_order`).all() as Array<Record<string, TsvScalar> & { id: number }>;
   const flagsDs: Dataset = {
     name: "cli-reference/flags.tsv",
@@ -559,7 +567,9 @@ function readCliRefDatasets(database: Database): Dataset[] {
            l.schema_node_id, sn.path AS inspect_path, COALESCE(sn.inspect_type, sn.type) AS inspect_type
     FROM cliref_entry_schema_links l
     JOIN cliref_entries e ON e.id = l.entry_id
+    JOIN cliref_pages p ON p.id = e.page_id
     JOIN schema_nodes sn ON sn.id = l.schema_node_id
+    WHERE p.manual_version = ${DEFAULT_TREE}
     ORDER BY l.entry_id`).all() as Array<Record<string, TsvScalar>>;
   const entryLinksDs: Dataset = {
     name: "cli-reference/entry-inspect-links.tsv",
@@ -577,7 +587,9 @@ function readCliRefDatasets(database: Database): Dataset[] {
     FROM cliref_field_inspect_links v
     JOIN cliref_fields f ON f.id = v.field_id
     JOIN cliref_entries e ON e.id = f.entry_id
+    JOIN cliref_pages p ON p.id = e.page_id
     JOIN schema_nodes sn ON sn.id = v.schema_node_id
+    WHERE p.manual_version = ${DEFAULT_TREE}
     ORDER BY v.field_id, sn.path`).all() as Array<Record<string, TsvScalar>>;
   const fieldLinksDs: Dataset = {
     name: "cli-reference/field-inspect-links.tsv",
@@ -593,7 +605,7 @@ function readCliRefDatasets(database: Database): Dataset[] {
 /** Byte-exact source/<slug>.md files, reconstructed from cliref_pages.source_markdown. */
 function cliRefSourceFiles(database: Database): Array<{ name: string; content: string; bytes: number; sha256: string }> {
   if (!hasCliRef(database)) return [];
-  const pages = database.prepare("SELECT slug, source_markdown, source_sha256 FROM cliref_pages ORDER BY source_order").all() as Array<{ slug: string; source_markdown: string; source_sha256: string }>;
+  const pages = database.prepare(`SELECT slug, source_markdown, source_sha256 FROM cliref_pages WHERE manual_version = ${DEFAULT_TREE} ORDER BY source_order`).all() as Array<{ slug: string; source_markdown: string; source_sha256: string }>;
   return pages.map((p) => ({
     // Slugs are lowercase [a-z0-9-] segments joined by "/", so they are filesystem-safe
     // as a relative path; containedTarget() still guards traversal defensively.

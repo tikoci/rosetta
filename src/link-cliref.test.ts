@@ -163,21 +163,24 @@ describe("link drift baseline (buildBaselineTsv / auditAliasSegments)", () => {
   // The seed writes into the shared :memory: db.ts singleton; clean up so no later test
   // file sees these rows (they'd collide with export.test.ts's own overlay fixture).
   afterAll(() => {
-    for (const t of ["cliref_entry_schema_links", "cliref_entries", "schema_nodes", "cliref_pages"]) {
+    for (const t of ["cliref_entry_schema_links", "cliref_entries", "schema_nodes", "cliref_pages", "cliref_trees"]) {
       db.run(`DELETE FROM ${t}`);
     }
   });
 
   function seedSingleton(): void {
     initDb();
-    for (const t of ["cliref_entry_schema_links", "cliref_entries", "schema_nodes", "cliref_pages"]) {
+    for (const t of ["cliref_entry_schema_links", "cliref_entries", "schema_nodes", "cliref_pages", "cliref_trees"]) {
       db.run(`DELETE FROM ${t}`);
     }
     db.run(
       "INSERT INTO schema_nodes (id,path,name,type,inspect_type,parent_path) VALUES " +
         "(1,'/ip/address','address','dir','dir','/ip'),(2,'/caps-man/access-list','access-list','dir','dir','/caps-man')",
     );
-    db.run("INSERT INTO cliref_pages (id,slug,url,toc_name,toc_group,source_markdown,source_sha256,source_order) VALUES (1,'p','u','P','','md','sha',0)");
+    db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256)
+      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', ''), ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '')`);
+    db.run("INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_markdown,source_sha256,source_order) VALUES (1,'7.26','p','u','P','','md','sha',0)");
+    db.run("INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_markdown,source_sha256,source_order) VALUES (2,'7.24','p','u724','P','','md','sha',0)");
     // exact, alias (drops internal "acl"), manual-only (no node).
     const ins = db.prepare(
       "INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (?,1,?,?,?,2,'d',?,1,1)",
@@ -185,15 +188,20 @@ describe("link drift baseline (buildBaselineTsv / auditAliasSegments)", () => {
     ins.run(1, "address", "ip/address", "Directory", 0);
     ins.run(2, "access-list", "caps-man/acl/access-list", "Directory", 1);
     ins.run(3, "ghost", "no/such/menu", "Directory", 2);
+    // An older tree (#188) links by path the same way and gets its own counts line.
+    db.run(
+      "INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (4,2,'address','ip/address','Directory',2,'d',0,1,1)",
+    );
   }
 
   test("baseline lists alias + manual-only rows with a counts header pinning exact/entries", () => {
     seedSingleton();
-    expect(linkEntries()).toEqual({ exact: 1, alias: 1, manual: 1 });
+    expect(linkEntries()).toEqual({ exact: 2, alias: 1, manual: 1 });
     const tsv = buildBaselineTsv();
-    expect(tsv).toContain("# counts\texact=1\talias=1\tmanual-only=1\tentries=3");
-    expect(tsv).toContain('caps-man/acl/access-list\tDirectory\talias\tdropped segment "acl"');
-    expect(tsv).toContain("no/such/menu\tDirectory\tmanual-only\t");
+    expect(tsv).toContain("# counts 7.24\texact=1\talias=0\tmanual-only=0\tentries=1");
+    expect(tsv).toContain("# counts 7.26\texact=1\talias=1\tmanual-only=1\tentries=3");
+    expect(tsv).toContain('7.26\tcaps-man/acl/access-list\tDirectory\talias\tdropped segment "acl"');
+    expect(tsv).toContain("7.26\tno/such/menu\tDirectory\tmanual-only\t");
     // The exact entry is NOT listed in the body (only alias + manual-only are audit-worthy).
     expect(tsv).not.toContain("ip/address\tDirectory\texact");
     expect(auditAliasSegments()).toEqual([]);

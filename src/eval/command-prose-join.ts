@@ -433,11 +433,13 @@ for (const s of sections) {
 // rather than crashing a census that is otherwise still valid.
 const hasOverlay =
   rows<{ n: number }>(
-    "SELECT count(*) n FROM sqlite_master WHERE type = 'table' AND name IN ('cliref_fields', 'cliref_entries')",
-  )[0].n === 2;
+    "SELECT count(*) n FROM sqlite_master WHERE type = 'table' AND name IN ('cliref_fields', 'cliref_entries', 'cliref_trees')",
+  )[0].n === 3;
 const clirefFieldKind = hasOverlay
   ? db.prepare(
       `SELECT 1 FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
+       JOIN cliref_pages p ON p.id = e.page_id
+       JOIN cliref_trees t ON t.manual_version = p.manual_version AND t.is_default = 1
        WHERE e.source_path = ? AND f.name = ? COLLATE NOCASE AND f.field_kind = ? LIMIT 1`,
     )
   : null;

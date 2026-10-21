@@ -563,7 +563,8 @@ describe("runExport — cli-reference overlay (issue #124)", () => {
     db.run(`DELETE FROM cliref_flags WHERE entry_id = ${CE}`);
     db.run(`DELETE FROM cliref_fields WHERE entry_id = ${CE}`);
     db.run(`DELETE FROM cliref_entries WHERE id = ${CE}`);
-    db.run(`DELETE FROM cliref_pages WHERE id = ${CE}`);
+    db.run(`DELETE FROM cliref_pages WHERE id IN (${CE}, ${CE + 1})`);
+    db.run("DELETE FROM cliref_trees WHERE manual_version IN ('7.24', '7.26')");
     db.run("DELETE FROM schema_nodes WHERE path IN ('/ztcert','/ztcert/add','/ztcert/add/ztname')");
   });
 
@@ -574,7 +575,11 @@ describe("runExport — cli-reference overlay (issue #124)", () => {
     );
     const md = "# Ztcert\n\n## ztcert\n\n**Type:** Directory\n\nprose\n";
     const sha = new Bun.CryptoHasher("sha256").update(md).digest("hex");
-    db.run(`INSERT INTO cliref_pages (id,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE},'ztcert','u','Ztcert','','Ztcert',?,?,990000)`, [md, sha]);
+    // Format 1 exports the default tree only (#188): the 7.24 page below must not appear.
+    db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256)
+      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', ''), ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '')`);
+    db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE},'7.26','ztcert','u','Ztcert','','Ztcert',?,?,990000)`, [md, sha]);
+    db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE + 1},'7.24','old-ztcert','u724','Old Ztcert','','Old Ztcert','old','old',0)`);
     db.run(`INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (${CE},${CE},'ztcert','ztcert','Directory',2,'prose',0,3,7)`);
     db.run(`INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line) VALUES (${CE},${CE},'Argument','ztname','string',0,0,'The name',0,5)`);
     db.run(`INSERT INTO cliref_flags (id,entry_id,flag,name,description_markdown,source_order,source_line) VALUES (${CE},${CE},'X','disabled','is disabled',0,4)`);

@@ -9,12 +9,100 @@ import { join } from "node:path";
 // Bun's static-import hoisting — otherwise this file opening db.ts against the real
 // on-disk path would trip query.test.ts's singleton guard (order-dependent flake).
 process.env.DB_PATH = ":memory:";
-const { assertNonCliPage, cliRefSlug, countStructuralMarkers, nonCliPageSlug, parsePage, reconcileTrailingDirs } = await import(
-  "./extract-cliref.ts"
-);
+const {
+  assertNonCliPage,
+  cliRefSlug,
+  countStructuralMarkers,
+  nonCliPageSlug,
+  parseCliCompare,
+  parseLlmsToc,
+  parsePage,
+  reconcileCliCompare,
+  reconcileTrailingDirs,
+  reconcileTsv,
+} = await import("./extract-cliref.ts");
 
 const FIXTURE = readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", "sample.md"), "utf8");
 const page = parsePage("sample", FIXTURE, "Sample");
+
+describe("versioned trees (#188)", () => {
+  test("parseLlmsToc reads a versioned tree's pages under its own prefix only", () => {
+    const txt =
+      "- [/address](https://manual.mikrotik.com/docs/7.24/cli-reference/ip/address.md)\n" +
+      "- [/route](https://manual.mikrotik.com/docs/cli-reference/ip/route.md)\n";
+    expect([...parseLlmsToc(txt, "/docs/7.24/cli-reference/").names.keys()]).toEqual(["ip/address"]);
+    expect([...parseLlmsToc(txt).names.keys()]).toEqual(["ip/route"]);
+  });
+
+  test("parseCliCompare accepts the live shape and rejects a malformed one", () => {
+    const ok = parseCliCompare(
+      JSON.stringify({
+        versions: ["7.24", "7.25"],
+        commands: { "7.24": 1, "7.25": 1 },
+        pairs: { "7.24->7.25": { changedCommands: [{ path: "ip/a", added: { params: ["x"], flags: [] }, removed: { params: [], flags: [] } }], addedCommands: [], removedCommands: [] } },
+      }),
+    );
+    expect(ok.versions).toEqual(["7.24", "7.25"]);
+    expect(ok.pairs["7.24->7.25"].changedCommands[0].added.params).toEqual(["x"]);
+    expect(() => parseCliCompare("<html>")).toThrow("not JSON");
+    expect(() => parseCliCompare(JSON.stringify({ versions: ["../x"], pairs: {} }))).toThrow("version");
+    expect(() => parseCliCompare(JSON.stringify({ versions: ["7.24"], pairs: { "a->b": { addedCommands: [] } } }))).toThrow("pair a->b");
+  });
+
+  const pageWith = (slug: string, fields: string[], flags: string[] = []): ReturnType<typeof parsePage> => ({
+    ...parsePage(slug, `# T\n\n## ${slug}\n\n**Type:** Directory\n`, slug),
+    entries: [
+      {
+        ...parsePage(slug, `# T\n\n## ${slug}\n\n**Type:** Directory\n`, slug).entries[0],
+        fields: fields.map((name, i) => ({ fieldKind: "Argument", name, rawType: "str", mandatory: false, unsettable: false, syscap: null, descriptionMarkdown: "", sourceOrder: i, sourceLine: 1 })),
+        flags: flags.map((flag, i) => ({ flag, name: flag, descriptionMarkdown: "", sourceOrder: i, sourceLine: 1 })),
+      },
+    ],
+  });
+
+  test("reconcileCliCompare is empty when both sides agree, ignoring the Headings artifact", () => {
+    const trees = new Map([
+      ["7.24", [pageWith("ip/a", ["x"])]],
+      ["7.25", [pageWith("ip/a", ["x", "y"], ["X"]), pageWith("ip/b", [])]],
+    ]);
+    const compare = {
+      versions: ["7.24", "7.25"],
+      pairs: {
+        "7.24->7.25": {
+          changedCommands: [{ path: "ip/a", added: { params: ["y"], flags: ["X"] }, removed: { params: [], flags: [] } }],
+          addedCommands: ["ip/b"],
+          removedCommands: ["Headings"],
+        },
+      },
+    };
+    expect(reconcileCliCompare(trees, compare)).toEqual([]);
+  });
+
+  test("reconcileCliCompare names each disagreement and the side that has it", () => {
+    const trees = new Map([
+      ["7.24", [pageWith("ip/a", ["x"])]],
+      ["7.25", [pageWith("ip/a", ["x", "y"])]],
+    ]);
+    const compare = {
+      versions: ["7.24", "7.25"],
+      pairs: {
+        "7.24->7.25": {
+          changedCommands: [{ path: "ip/a", added: { params: ["z"], flags: [] }, removed: { params: [], flags: [] } }],
+          addedCommands: ["ip/c"],
+          removedCommands: [],
+        },
+        "7.23->7.25": { changedCommands: [], addedCommands: ["ip/never"], removedCommands: [] },
+      },
+    };
+    const rows = reconcileCliCompare(trees, compare);
+    expect(rows).toEqual([
+      { pair: "7.24->7.25", kind: "command-added", path: "ip/c", name: "", only_in: "cli-compare" },
+      { pair: "7.24->7.25", kind: "param-added", path: "ip/a", name: "y", only_in: "rosetta" },
+      { pair: "7.24->7.25", kind: "param-added", path: "ip/a", name: "z", only_in: "cli-compare" },
+    ]);
+    expect(reconcileTsv(rows).split("\n")[1]).toBe("7.24->7.25\tcommand-added\tip/c\t\tcli-compare");
+  });
+});
 
 describe("assertNonCliPage (#194)", () => {
   // The live compare-versions page as served 2026-10-20: prose plus a widget, no entries.
@@ -258,19 +346,37 @@ describe("live run vs cache (#160)", () => {
   const STALE_ADDRESS = `${PREAMBLE}## ip/address/stale-rule\n\n**Type:** Directory\n\nRemoved upstream.\n`;
   const SITEMAP = `<urlset>${["ip/address", "ip/route"].map((s) => `<url><loc>${BASE}/docs/cli-reference/${s}</loc></url>`).join("")}</urlset>`;
 
+  const llms = (version: string, prefix: string, pages: string[]) =>
+    `# MikroTik RouterOS Manual\n\nIndex of the RouterOS ${version} manual, in documentation menu order.\n\n${pages
+      .map((s) => `- [/${s}](${BASE}${prefix}cli-reference/${s}.md)`)
+      .join("\n")}\n`;
+  // MikroTik's version list and diff for the two trees below: 7.26 adds ip/route. `Headings`
+  // is the 7.24 landing-page artifact the reconciler must ignore.
+  const CLI_COMPARE = {
+    versions: ["7.24", "7.26"],
+    pairs: { "7.24->7.26": { changedCommands: [], addedCommands: ["ip/route"], removedCommands: ["Headings"] } },
+  };
+
   // "Live" manual.mikrotik.com, served to the extractor subprocess by a preloaded fetch stub.
-  const ROUTES: Record<string, string> = {
+  // A null route is an expected 404; a URL with no route at all is a test bug.
+  const ROUTES: Record<string, string | null> = {
     [`${BASE}/sitemap.xml`]: SITEMAP,
+    [`${BASE}/cli-compare.json`]: JSON.stringify(CLI_COMPARE),
+    // The default tree (7.26): its own versioned URL is not served, so /docs/ covers it.
+    [`${BASE}/llms.txt`]: llms("7.26", "/docs/", ["compare-versions", "ip/address", "ip/route"]),
+    [`${BASE}/docs/7.26/llms.txt`]: null,
     [`${BASE}/docs/cli-reference/compare-versions.md`]: "# /compare-versions\n\n<CliCompare />\n\n## How the comparison works\n\nProse.\n",
-    [`${BASE}/llms.txt`]: `# MikroTik RouterOS Manual\n\nIndex of the RouterOS 7.26 manual, in documentation menu order.\n\n- [/compare-versions](${BASE}/docs/cli-reference/compare-versions.md)\n- [Address](${BASE}/docs/cli-reference/ip/address.md)\n- [Route](${BASE}/docs/cli-reference/ip/route.md)\n`,
     [`${BASE}/docs/cli-reference/ip/address.md`]: FIXTURE,
     [`${BASE}/docs/cli-reference/ip/route.md`]: ROUTE,
+    // A versioned tree (7.24): llms.txt is its whole inventory.
+    [`${BASE}/docs/7.24/llms.txt`]: llms("7.24", "/docs/7.24/", ["ip/address"]),
+    [`${BASE}/docs/7.24/cli-reference/ip/address.md`]: FIXTURE,
   };
   const MOCK_FETCH = `const routes = await Bun.file(process.env.MOCK_FETCH_ROUTES).json();
 globalThis.fetch = async (input) => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
   if (!(url in routes)) console.error("mock fetch: no route for " + url);
-  return url in routes ? new Response(routes[url]) : new Response("not found", { status: 404 });
+  return url in routes && routes[url] !== null ? new Response(routes[url]) : new Response("not found", { status: 404 });
 };
 `;
 
@@ -312,35 +418,69 @@ globalThis.fetch = async (input) => {
   const COUNTS = `SELECT (SELECT COUNT(*) FROM cliref_pages) AS pages, (SELECT COUNT(*) FROM cliref_entries) AS entries,
                          (SELECT COUNT(*) FROM cliref_fields) AS fields, (SELECT COUNT(*) FROM cliref_flags) AS flags`;
 
+  function setup(prefix: string, routes: Record<string, string | null> = ROUTES): string {
+    const dir = mkdtempSync(join(tmpdir(), prefix));
+    writeFileSync(join(dir, "mock-fetch.js"), MOCK_FETCH);
+    writeFileSync(join(dir, "routes.json"), JSON.stringify(routes));
+    return dir;
+  }
+
+  const TREES = "SELECT manual_version, base_url, is_default, retained FROM cliref_trees ORDER BY manual_version";
+
   test("a live run re-fetches a stale cached page, prunes undiscovered ones, and --from-cache reproduces it", () => {
-    const dir = mkdtempSync(join(tmpdir(), "rosetta-cliref-live-"));
+    const dir = setup("rosetta-cliref-live-");
     try {
-      writeFileSync(join(dir, "mock-fetch.js"), MOCK_FETCH);
-      writeFileSync(join(dir, "routes.json"), JSON.stringify(ROUTES));
       const cache = join(dir, "cache");
-      mkdirSync(cache);
+      const tree = join(cache, "7.26");
+      mkdirSync(tree, { recursive: true });
+      writeFileSync(join(tree, "ip__address.md"), STALE_ADDRESS);
+      writeFileSync(join(tree, "gone__page.md"), `${PREAMBLE}## gone/page\n\n**Type:** Directory\n`);
+      writeFileSync(join(tree, "_sitemap.txt"), `<urlset><url><loc>${BASE}/docs/cli-reference/gone/page</loc></url></urlset>`);
+      // Leftovers this run must clear: a pre-#188 flat-layout page, and a tree no longer served.
       writeFileSync(join(cache, "ip__address.md"), STALE_ADDRESS);
-      writeFileSync(join(cache, "gone__page.md"), `${PREAMBLE}## gone/page\n\n**Type:** Directory\n`);
-      writeFileSync(join(cache, "_sitemap.txt"), `<urlset><url><loc>${BASE}/docs/cli-reference/gone/page</loc></url></urlset>`);
+      mkdirSync(join(cache, "7.23"));
+      writeFileSync(join(cache, "7.23", "_tree.json"), JSON.stringify({ label: "7.23", docsPrefix: "/docs/7.23/", isDefault: false, fetchedAt: "x" }));
 
-      extract(dir, "live.db");
+      const output = extract(dir, "live.db");
+      expect(output).not.toContain("::warning::"); // 7.26's own 404 is the normal state: silent
 
-      const paths = query<{ source_path: string }>(join(dir, "live.db"), "SELECT source_path FROM cliref_entries").map(
-        (r) => r.source_path,
-      );
+      const paths = query<{ source_path: string }>(
+        join(dir, "live.db"),
+        "SELECT e.source_path FROM cliref_entries e JOIN cliref_pages p ON p.id = e.page_id WHERE p.manual_version = '7.26'",
+      ).map((r) => r.source_path);
       expect(paths).toContain("ip/address");
       expect(paths).toContain("ip/route");
       expect(paths).not.toContain("ip/address/stale-rule");
       expect(paths).not.toContain("gone/page");
 
-      // The cache now holds exactly this run: live page bodies plus the index files it wrote.
-      expect(readFileSync(join(cache, "ip__address.md"), "utf8")).toBe(FIXTURE);
-      expect(readFileSync(join(cache, "_sitemap.txt"), "utf8")).toBe(SITEMAP);
+      // #188: one row per tree, keyed by declared version; the default tree read from /docs/.
+      expect(query(join(dir, "live.db"), TREES)).toEqual([
+        { manual_version: "7.24", base_url: `${BASE}/docs/7.24/`, is_default: 0, retained: 0 },
+        { manual_version: "7.26", base_url: `${BASE}/docs/`, is_default: 1, retained: 0 },
+      ]);
+      expect(
+        query(join(dir, "live.db"), "SELECT manual_version, slug FROM cliref_pages ORDER BY manual_version, source_order"),
+      ).toEqual([
+        { manual_version: "7.24", slug: "ip/address" },
+        { manual_version: "7.26", slug: "ip/address" },
+        { manual_version: "7.26", slug: "ip/route" },
+      ]);
+      // The default tree is stored first, so its ids match a single-tree build.
+      expect(query(join(dir, "live.db"), "SELECT MIN(id) AS id FROM cliref_pages WHERE manual_version = '7.26'")).toEqual([{ id: 1 }]);
+
+      // The cache now holds exactly this run, one directory per tree.
+      expect(readFileSync(join(tree, "ip__address.md"), "utf8")).toBe(FIXTURE);
+      expect(readFileSync(join(tree, "_sitemap.txt"), "utf8")).toBe(SITEMAP);
       // compare-versions is listed in llms.txt: fetched and kept only to re-check it is still non-CLI (#194).
-      expect(readdirSync(cache).sort()).toEqual(["_llms.txt", "_sitemap.txt", "compare-versions.md", "ip__address.md", "ip__route.md"]);
+      expect(readdirSync(tree).sort()).toEqual(["_llms.txt", "_sitemap.txt", "_tree.json", "compare-versions.md", "ip__address.md", "ip__route.md"]);
+      expect(readdirSync(join(cache, "7.24")).sort()).toEqual(["_llms.txt", "_tree.json", "ip__address.md"]);
+      expect(readdirSync(cache).sort()).toEqual(["7.24", "7.26", "_cli-compare.json", "cli-compare-reconcile.tsv"]);
+      // The two sides agree once the Headings artifact is set aside: a header-only report.
+      expect(readFileSync(join(cache, "cli-compare-reconcile.tsv"), "utf8")).toBe("pair\tkind\tpath\tname\tonly_in\n");
 
       extract(dir, "cached.db", "--from-cache");
       expect(query(join(dir, "cached.db"), COUNTS)).toEqual(query(join(dir, "live.db"), COUNTS));
+      expect(query(join(dir, "cached.db"), TREES)).toEqual(query(join(dir, "live.db"), TREES));
 
       // #187: both runs stamp the version the cached/live llms.txt header declares.
       for (const name of ["live.db", "cached.db"]) {
@@ -366,6 +506,81 @@ globalThis.fetch = async (input) => {
       const output = extractExpecting(1, dir, "mixed.db");
       expect(output).toContain("cliref_manual_version=7.26 but docs_manual_version=7.24");
       expect(query(join(dir, "mixed.db"), "SELECT COUNT(*) AS n FROM cliref_pages")).toEqual([{ n: 0 }]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+  test("--from-cache refuses a _tree.json whose prefix is not its own directory's", () => {
+    const dir = setup("rosetta-cliref-tampered-");
+    try {
+      extract(dir, "live.db");
+      const meta = join(dir, "cache", "7.24", "_tree.json");
+      const original = readFileSync(meta, "utf8");
+      writeFileSync(meta, original.replace("/docs/7.24/", "/docs/elsewhere/"));
+      expect(extractExpecting(1, dir, "cached.db", "--from-cache")).toContain('has docsPrefix "/docs/elsewhere/", expected /docs/7.24/');
+      // Only the default tree may claim /docs/: a non-default one doing so is a cache error,
+      // not a duplicate base_url for SQLite to reject.
+      writeFileSync(meta, original.replace("/docs/7.24/", "/docs/"));
+      expect(extractExpecting(1, dir, "cached.db", "--from-cache")).toContain('has docsPrefix "/docs/", expected /docs/7.24/');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("a listed tree that returns 404 is skipped with a warning, not a failure (#188)", () => {
+    const routes = {
+      ...ROUTES,
+      [`${BASE}/cli-compare.json`]: JSON.stringify({ ...CLI_COMPARE, versions: ["7.24", "7.25", "7.26"] }),
+      [`${BASE}/docs/7.25/llms.txt`]: null,
+    };
+    const dir = setup("rosetta-cliref-gone-", routes);
+    try {
+      const output = extract(dir, "gone.db");
+      expect(output).toContain("::warning::cli-compare.json lists 7.25, but /docs/7.25/llms.txt returned 404");
+      expect(query<{ manual_version: string }>(join(dir, "gone.db"), TREES).map((t) => t.manual_version)).toEqual(["7.24", "7.26"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("a served tree whose llms.txt declares another version fails the build (#188)", () => {
+    const dir = setup("rosetta-cliref-broken-", { ...ROUTES, [`${BASE}/docs/7.24/llms.txt`]: llms("7.25", "/docs/7.24/", ["ip/address"]) });
+    try {
+      expect(extractExpecting(1, dir, "broken.db")).toContain("/docs/7.24/llms.txt declares 7.25, not 7.24");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("the default's own versioned URL, when served, replaces /docs/ as one tree (#188 dedupe)", () => {
+    const dir = setup("rosetta-cliref-dedupe-", {
+      ...ROUTES,
+      [`${BASE}/docs/7.26/llms.txt`]: llms("7.26", "/docs/7.26/", ["ip/address", "ip/route"]),
+      [`${BASE}/docs/7.26/cli-reference/ip/address.md`]: FIXTURE,
+      [`${BASE}/docs/7.26/cli-reference/ip/route.md`]: ROUTE,
+    });
+    try {
+      extract(dir, "dedupe.db");
+      expect(query(join(dir, "dedupe.db"), TREES)).toEqual([
+        { manual_version: "7.24", base_url: `${BASE}/docs/7.24/`, is_default: 0, retained: 0 },
+        { manual_version: "7.26", base_url: `${BASE}/docs/7.26/`, is_default: 1, retained: 0 },
+      ]);
+      // Still the default tree's sitemap ∪ llms.txt inventory, cached for --from-cache.
+      expect(readdirSync(join(dir, "cache", "7.26"))).toContain("_sitemap.txt");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("the #137 discovery gate still guards the default tree when it is read from /docs/<v>/", () => {
+    const orphan = `<urlset><url><loc>${BASE}/docs/cli-reference/orphan/</loc></url></urlset>`;
+    const dir = setup("rosetta-cliref-dedupe-gate-", {
+      ...ROUTES,
+      [`${BASE}/sitemap.xml`]: orphan,
+      [`${BASE}/docs/7.26/llms.txt`]: llms("7.26", "/docs/7.26/", ["ip/address"]),
+    });
+    try {
+      expect(extractExpecting(1, dir, "gate.db")).toContain("Discovery shape drift");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

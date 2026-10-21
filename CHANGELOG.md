@@ -24,6 +24,20 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The DB holds the CLI Reference for every manual version MikroTik serves.** It
+  stores the 7.24 and 7.25 trees plus the default tree (7.26 today), each under the
+  version its `llms.txt` declares, in a new `cliref_trees` table. `cliref_pages`
+  gains `manual_version` (schema 12). The tree list comes from MikroTik's
+  `cli-compare.json`. A tree MikroTik stops serving is skipped with a warning, while
+  a served tree that's incomplete or declares the wrong version fails the build.
+  MCP and TUI answers and `rosetta export` read the default tree only, so their
+  output is unchanged. This is slice 1 of #188, and it adds no per-version answers
+  or export format yet.
+- **Each build checks the CLI Reference against MikroTik's own version diffs.** It
+  compares the changes between trees it computes from its own rows with
+  `cli-compare.json` and writes `cli-compare-reconcile.tsv`. A mismatch doesn't fail
+  the release: it opens or updates one tracking issue, and the first clean release
+  closes it.
 - **`routeros_stats` names the manual version the docs came from.** A new
   `manual_version` block (`docs`, `cli_reference`) reports the version each
   manual.mikrotik.com tree declares in its `llms.txt` header. The browse TUI's
@@ -32,6 +46,14 @@ uses [Semantic Versioning](https://semver.org/).
   was 7.24.5), so treat this, not the stable channel, as the docs' version.
   Extraction now fails when the header is missing, or when the prose and CLI
   Reference were read from different trees.
+
+### Changed
+
+- **The CLI Reference cache has one directory per manual version.** Each tree is cached
+  in `manual/cli-reference/<version>/`, with a `_tree.json` that lets `--from-cache`
+  rebuild it. A complete live run removes pre-#188 flat-layout pages and any tree no
+  longer served. The release build's CLI-Reference step fetches about three times as
+  many pages.
 
 ### Fixed
 
