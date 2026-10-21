@@ -18,6 +18,7 @@ const {
   parseLandingPage,
   parseLlmsToc,
   parsePage,
+  readArchive,
   reconcileCliCompare,
   reconcileTrailingDirs,
   reconcileTsv,
@@ -150,6 +151,35 @@ describe("versioned trees (#188)", () => {
     // A tree in no compared pair, or no cli-compare.json at all, is "not checked", never 0.
     expect(Object.fromEntries(treeMismatchCounts([], compare, ["7.25", "7.26", "7.27"]))).toEqual({ "7.25": 0, "7.26": 0, "7.27": null });
     expect(Object.fromEntries(treeMismatchCounts([], null, ["7.26"]))).toEqual({ "7.26": null });
+  });
+});
+
+describe("readArchive (#188 retention)", () => {
+  const archive = (baseUrl: string) => {
+    const dir = mkdtempSync(join(tmpdir(), "rosetta-archive-"));
+    writeFileSync(join(dir, "manifest.toml"), 'format = "rosetta-cli-reference"\nformat_version = 2\n');
+    writeFileSync(join(dir, "trees.tsv"), `manual_version\tbase_url\tfetched_at\n7.24\t${baseUrl}\t2026-10-21T00:00:00Z\n`);
+    return dir;
+  };
+
+  test("reads each tree's archived prefix from its base_url", () => {
+    const dir = archive("https://manual.mikrotik.com/docs/");
+    try {
+      expect(readArchive(dir).get("7.24")).toMatchObject({ docsPrefix: "/docs/", fetchedAt: "2026-10-21T00:00:00Z" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects a base_url on any other origin, including a lookalike host", () => {
+    for (const bad of ["https://manual.mikrotik.com.evil/docs/", "https://evil/docs/", "/docs/", "https://manual.mikrotik.com/docs/?x=1"]) {
+      const dir = archive(bad);
+      try {
+        expect(() => readArchive(dir)).toThrow("has base_url");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
   });
 });
 
@@ -621,7 +651,7 @@ globalThis.fetch = async (input) => {
     const pack = async (dbName: string, out: string) => {
       const { tarball, sha256 } = await buildCliRefAsset(join(dir, dbName), join(dir, out));
       expect(readFileSync(`${tarball}.sha256`, "utf8")).toBe(`${sha256}  ${ASSET_NAME}\n`);
-      expect(Bun.spawnSync(["tar", "-xzf", tarball, "-C", join(dir, out)]).exitCode).toBe(0);
+      expect(Bun.spawnSync(["tar", "-x", "-z", "-f", tarball, "-C", join(dir, out)]).exitCode).toBe(0);
       return join(dir, out, "cli-reference");
     };
     const digest = async (dbName: string, v: string) => {
@@ -677,7 +707,7 @@ globalThis.fetch = async (input) => {
     try {
       extract(dir, "live.db");
       const { tarball } = await buildCliRefAsset(join(dir, "live.db"), join(dir, "prev"));
-      expect(Bun.spawnSync(["tar", "-xzf", tarball, "-C", join(dir, "prev")]).exitCode).toBe(0);
+      expect(Bun.spawnSync(["tar", "-x", "-z", "-f", tarball, "-C", join(dir, "prev")]).exitCode).toBe(0);
 
       const moved: Record<string, string | null> = {
         ...ROUTES,

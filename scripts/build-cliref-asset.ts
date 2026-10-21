@@ -32,7 +32,7 @@ export async function buildCliRefAsset(dbPath: string, outDir: string): Promise<
     }
     const tarball = path.join(path.resolve(outDir), ASSET_NAME);
     await Bun.$`mkdir -p ${path.dirname(tarball)}`;
-    await Bun.$`tar -czf ${tarball} -C ${work} cli-reference`;
+    await Bun.$`tar -c -z -f ${tarball} -C ${work} cli-reference`;
     const sha256 = new Bun.CryptoHasher("sha256").update(await Bun.file(tarball).arrayBuffer()).digest("hex");
     writeFileSync(`${tarball}.sha256`, `${sha256}  ${ASSET_NAME}\n`);
     return { tarball, sha256 };

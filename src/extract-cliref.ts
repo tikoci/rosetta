@@ -277,7 +277,9 @@ export function readArchive(dir: string): Map<string, ArchivedTree> {
     const label = r[labelCol] ?? "";
     if (!TREE_LABEL.test(label)) throw new Error(`${dir}/trees.tsv names tree ${JSON.stringify(label)}`);
     const baseUrl = r[baseCol] ?? "";
-    const docsPrefix = baseUrl.startsWith(BASE) ? baseUrl.slice(BASE.length) : "";
+    // Compare the parsed origin, not a string prefix: https://manual.mikrotik.com.evil/ must not pass.
+    const parsed = URL.canParse(baseUrl) ? new URL(baseUrl) : null;
+    const docsPrefix = parsed?.origin === BASE && parsed.search === "" && parsed.hash === "" ? parsed.pathname : "";
     if (!validListedPrefix(label, docsPrefix)) throw new Error(`${dir}/trees.tsv has base_url ${JSON.stringify(baseUrl)} for ${label}`);
     out.set(label, { label, fetchedAt: r[fetchedCol] ?? "", docsPrefix, sourceDir: safeCachePath(join(dir, "source"), label) });
   }

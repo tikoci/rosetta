@@ -402,7 +402,7 @@ jobs:
           mkdir -p cliref-archive
           gh release download "$TAG" --pattern "$ASSET" --pattern "$ASSET.sha256" --dir cliref-archive
           (cd cliref-archive && sha256sum -c "$ASSET.sha256")
-          tar -xzf "cliref-archive/$ASSET" -C cliref-archive
+          tar -x -z -f "cliref-archive/$ASSET" -C cliref-archive
           echo "dir=cliref-archive/cli-reference" >> "$GITHUB_OUTPUT"
           echo "Retention archive: $ASSET from $TAG"
 
@@ -688,7 +688,7 @@ jobs:
       - name: Build release artifacts
         run: bun run scripts/build-release.ts ${{ needs.build.outputs.version }}
 
-      # The CLI-Reference dataset as its own pinnable asset (#188): export format 2's
+      # The CLI-Reference dataset as its own release asset, pinned by tag + sha256 (#188): export format 2's
       # cli-reference/ directory plus a sha256. It is also the next release's retention archive.
       - name: Build CLI-Reference asset
         run: bun run scripts/build-cliref-asset.ts ros-help.db dist
