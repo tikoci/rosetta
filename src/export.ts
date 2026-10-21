@@ -478,7 +478,7 @@ function readCliRefTrees(database: Database): CliRefTree[] {
   const table = database.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='cliref_trees'").get();
   if (!table) return [];
   const trees = database
-    .prepare("SELECT * FROM cliref_trees t WHERE EXISTS (SELECT 1 FROM cliref_pages p WHERE p.manual_version = t.manual_version)")
+    .prepare("SELECT * FROM cliref_trees t WHERE EXISTS (SELECT 1 FROM cliref_pages p WHERE p.manual_version = t.manual_version) ORDER BY manual_version")
     .all() as CliRefTree[];
   return trees.sort((a, b) => compareVersions(a.manual_version, b.manual_version));
 }

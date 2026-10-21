@@ -28,6 +28,14 @@ test("channel precedence: beta < rc < release for one base", () => {
   expect(sign(compareVersions("7.24rc9", "7.24"))).toBe(-1); // any rc below final
 });
 
+test("alpha sorts below beta and orders like the other channels", () => {
+  // extract-cliref's TREE_LABEL accepts alpha; before this it compared as NaN.
+  expect(sign(compareVersions("7.26alpha9", "7.26beta1"))).toBe(-1);
+  expect(sign(compareVersions("7.26alpha1", "7.26alpha2"))).toBe(-1);
+  expect(sign(compareVersions("7.26alpha1", "7.25"))).toBe(1);
+  expect(["7.26", "7.26alpha1", "7.24", "7.26beta1"].sort(compareVersions)).toEqual(["7.24", "7.26alpha1", "7.26beta1", "7.26"]);
+});
+
 test("a bare channel marker sorts below its numbered siblings", () => {
   expect(sign(compareVersions("7.24beta", "7.24beta1"))).toBe(-1);
   expect(sign(compareVersions("7.24rc", "7.24rc1"))).toBe(-1);

@@ -77,6 +77,11 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Version ordering understands `alpha` prereleases.** `compareVersions` handled
+  only `beta` and `rc`, so a label like `7.26alpha1` compared as `NaN` and kept
+  whatever position it arrived in. It now sorts `alpha` < `beta` < `rc` < release.
+  The CLI Reference extractor accepts `alpha` tree labels, so the export's tree
+  order depends on it.
 - **CLI Reference extraction skips MikroTik's new CLI-compare tool page.** On
   2026-10-20 the site added `/docs/cli-reference/compare-versions`, listed in
   `llms.txt` and in the sitemap (with a trailing slash). It documents no CLI
