@@ -1247,6 +1247,8 @@ function lookupCliRefProperty(name: string, commandPath?: string): PropertyLooku
        FROM cliref_fields f
        JOIN cliref_entries e ON e.id = f.entry_id
        JOIN cliref_pages cp ON cp.id = e.page_id
+       -- One tree answers: the site's default, the same manual the prose came from (#188).
+       JOIN cliref_trees t ON t.manual_version = cp.manual_version AND t.is_default = 1
        WHERE f.name = ? COLLATE NOCASE${sourcePath === undefined ? "" : " AND e.source_path = ?"}
        ORDER BY e.source_path, f.field_kind = 'Read-only Argument',
                 trim(f.description_markdown, char(32, 9, 10, 13)) = '',

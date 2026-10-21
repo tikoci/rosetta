@@ -48,18 +48,23 @@ say(
 const ARG_NAMES = "SELECT DISTINCT lower(name) n FROM commands WHERE type = 'arg'";
 const PROP_NAMES = "SELECT DISTINCT lower(name) n FROM properties";
 /** Every distinct field name the overlay knows, with the kinds it appears as. */
-const CLIREF_KINDS = "SELECT lower(name) n, group_concat(DISTINCT field_kind) k FROM cliref_fields GROUP BY lower(name)";
+/** The default manual tree's fields only: the overlay holds one row set per served tree (#188). */
+const CLIREF_FIELDS = `(SELECT f.* FROM cliref_fields f
+  JOIN cliref_entries e ON e.id = f.entry_id
+  JOIN cliref_pages p ON p.id = e.page_id
+  JOIN cliref_trees t ON t.manual_version = p.manual_version AND t.is_default = 1)`;
+const CLIREF_KINDS = `SELECT lower(name) n, group_concat(DISTINCT field_kind) k FROM ${CLIREF_FIELDS} GROUP BY lower(name)`;
 
 // The overlay arrived in schema 11 and is this census's referee, not a decoration: without it a
 // row absent from inspect cannot be classified as read-only, missing-on-this-arch, or unknown.
 // Sections 2 and 3 stand on their own, so run them and say plainly what is missing.
 const hasOverlay =
   one<{ n: number }>(
-    "SELECT count(*) n FROM sqlite_master WHERE type = 'table' AND name IN ('cliref_fields', 'cliref_entries')",
-  ).n === 2;
+    "SELECT count(*) n FROM sqlite_master WHERE type = 'table' AND name IN ('cliref_fields', 'cliref_entries', 'cliref_trees')",
+  ).n === 3;
 if (!hasOverlay) {
   say(
-    "\n> **The CLI-Reference overlay is absent from this DB (schema 11+ only).** Section 1 needs it as its" +
+    "\n> **The CLI-Reference overlay is absent from this DB (schema 12+ only: the per-tree overlay, #188).** Section 1 needs it as its" +
       " referee and is skipped; sections 2 and 3 do not and still run. Fetch a current artifact with" +
       " `make db-sync`.",
   );
@@ -168,7 +173,7 @@ const leafExplains = one<{ rows: number }>(
 );
 const clirefDotted = hasOverlay
   ? one<{ cliref: number; shared: number }>(
-      `WITH cd AS (SELECT DISTINCT lower(name) n FROM cliref_fields WHERE name LIKE '%.%'),
+      `WITH cd AS (SELECT DISTINCT lower(name) n FROM ${CLIREF_FIELDS} WHERE name LIKE '%.%'),
             id AS (SELECT DISTINCT lower(name) n FROM commands WHERE type = 'arg' AND name LIKE '%.%')
        SELECT (SELECT count(*) FROM cd) cliref, (SELECT count(*) FROM cd WHERE n IN (SELECT n FROM id)) shared`,
     )

@@ -1262,10 +1262,21 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
              (${CR + 3}, '/system/note/look', 'look', 'dir', '/system/note', 2, 'Look', '7.22'),
              (${CR + 1}, '/tool/fetch', 'fetch', 'cmd', '/tool', NULL, 'Fetch', '7.22'),
              (${CR + 2}, '/ping', 'ping', 'cmd', '/', NULL, 'Ping', '7.22')`);
+    // Two trees (#188): every fixture page lives in the default 7.26 tree, and a 7.24 copy of
+    // system/note carries an older show-at-login that no lookup may return.
+    db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256)
+      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', ''),
+             ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '')`);
+    db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order)
+      VALUES (${CR + 50}, '7.24', 'system/note', 'https://manual.mikrotik.com/docs/7.24/cli-reference/system/note', 'system/note', '', '', '', '', 0)`);
+    db.run(`INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line)
+      VALUES (${CR + 50}, ${CR + 50}, 'system/note', 'system/note', 'Settings Directory', 1, '', 0, 1, 1)`);
+    db.run(`INSERT INTO cliref_fields (id,entry_id,field_kind,name,raw_type,mandatory,unsettable,description_markdown,source_order,source_line)
+      VALUES (${CR + 50}, ${CR + 50}, 'Argument', 'show-at-login', 'bool', 0, 0, 'Older 7.24 wording.', 0, 1)`);
     for (const [id, path, type] of entries) {
       db.run(
-        `INSERT INTO cliref_pages (id,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order)
-         VALUES (?,?,?,?,'','', '', '', ?)`,
+        `INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order)
+         VALUES (?,'7.26',?,?,?,'','', '', '', ?)`,
         [id, path, `https://manual.mikrotik.com/docs/cli-reference/${path}`, path, id],
       );
       db.run(
@@ -1287,6 +1298,7 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
     db.run(`DELETE FROM cliref_fields WHERE id BETWEEN ${CR} AND ${CR + 99}`);
     db.run(`DELETE FROM cliref_entries WHERE id BETWEEN ${CR} AND ${CR + 99}`);
     db.run(`DELETE FROM cliref_pages WHERE id BETWEEN ${CR} AND ${CR + 99}`);
+    db.run("DELETE FROM cliref_trees WHERE manual_version IN ('7.24', '7.26')");
     db.run(`DELETE FROM commands WHERE id IN (${CR}, ${CR + 1}, ${CR + 2}, ${CR + 3})`);
     db.run(`DELETE FROM properties WHERE id = ${CR}`);
   });

@@ -39,13 +39,19 @@ say(
     `\`source_commit\` \`${(meta.get("source_commit") ?? "?").slice(0, 7)}\`, built ${meta.get("built_at") ?? "?"}).\n`,
 );
 
+/** The default manual tree's fields only: the overlay holds one row set per served tree (#188). */
+const CLIREF_FIELDS = `(SELECT f.* FROM cliref_fields f
+  JOIN cliref_entries e ON e.id = f.entry_id
+  JOIN cliref_pages p ON p.id = e.page_id
+  JOIN cliref_trees t ON t.manual_version = p.manual_version AND t.is_default = 1)`;
+
 // ── 1. overlay description coverage ─────────────────────────────────────────
 say("## 1. CLI-Reference fields with a description\n");
 say("| field_kind | fields | described |");
 say("|---|---:|---:|");
 for (const r of rows<{ kind: string; n: number; described: number }>(
   `SELECT field_kind kind, COUNT(*) n, SUM(trim(description_markdown, char(32, 9, 10, 13)) <> '') described
-   FROM cliref_fields GROUP BY field_kind ORDER BY field_kind`,
+   FROM ${CLIREF_FIELDS} GROUP BY field_kind ORDER BY field_kind`,
 )) {
   say(`| ${r.kind} | ${r.n} | ${r.described} (${pct(r.described, r.n)}) |`);
 }
@@ -55,7 +61,7 @@ say("|---|---:|---:|");
 for (const r of rows<{ top: string; n: number; described: number }>(
   `SELECT substr(e.source_path, 1, instr(e.source_path || '/', '/') - 1) top,
           COUNT(*) n, SUM(trim(f.description_markdown, char(32, 9, 10, 13)) <> '') described
-   FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
+   FROM ${CLIREF_FIELDS} f JOIN cliref_entries e ON e.id = f.entry_id
    WHERE f.field_kind = 'Argument'
    GROUP BY top HAVING n >= 100 ORDER BY n DESC`,
 )) {
@@ -67,7 +73,7 @@ for (const r of rows<{ top: string; n: number; described: number }>(
 // not by a menu-scoped lookupProperty — so only Directory/Settings Directory menus are counted.
 const pairs = rows<{ path: string; name: string; described: number }>(
   `SELECT '/' || e.source_path path, f.name, MAX(trim(f.description_markdown, char(32, 9, 10, 13)) <> '') described
-   FROM cliref_fields f JOIN cliref_entries e ON e.id = f.entry_id
+   FROM ${CLIREF_FIELDS} f JOIN cliref_entries e ON e.id = f.entry_id
    WHERE f.field_kind = 'Argument' AND e.source_type <> 'Command'
    GROUP BY e.source_path, f.name`,
 );
