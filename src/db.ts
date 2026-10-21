@@ -1242,6 +1242,25 @@ export function getCommandVersionRange(): { min: string | null; max: string | nu
   return { min, max };
 }
 
+/**
+ * Which arches each command-data version was extracted from (#91), arches sorted. command_versions
+ * has no arch column: a version's rows are the union of these arches' paths, so a version with
+ * fewer arches than the corpus (legacy x86-only inspect.json) lacks every path that exists only on
+ * the missing arch — an absence there is not a removal.
+ */
+export function getCommandVersionArches(): Map<string, string[]> {
+  const rows = db
+    .prepare(
+      `SELECT version, arch FROM ros_versions
+       WHERE version IN (SELECT DISTINCT ros_version FROM command_versions)
+       ORDER BY arch`,
+    )
+    .all() as Array<{ version: string; arch: string }>;
+  const arches = new Map<string, string[]>();
+  for (const r of rows) arches.set(r.version, [...(arches.get(r.version) ?? []), r.arch]);
+  return arches;
+}
+
 export function getDbStats() {
   const count = (sql: string) =>
     Number((db.prepare(sql).get() as { c: number }).c ?? 0);
@@ -1324,6 +1343,17 @@ export function getDbStats() {
     ...(() => {
       const [min, max] = versionRange("SELECT DISTINCT version FROM ros_versions");
       return { ros_version_min: min, ros_version_max: max };
+    })(),
+    // Command-data versions grouped by the arches they were extracted from (#91), e.g.
+    // { "arm64+x86": [...], "x86": [...] }: an x86-only version lacks every arm64-only path.
+    command_version_arches: (() => {
+      const groups: Record<string, string[]> = {};
+      for (const [version, arches] of getCommandVersionArches()) {
+        const key = arches.join("+");
+        groups[key] = [...(groups[key] ?? []), version];
+      }
+      for (const versions of Object.values(groups)) versions.sort(compareVersions);
+      return groups;
     })(),
     // The manual tree each docs store came from (#187). Not the command-tree range above:
     // manual.mikrotik.com's default tree can be a development manual (7.26 while stable

@@ -81,7 +81,11 @@ function commands(): void {
   const dual = one<number>(
     "SELECT COUNT(*) FROM (SELECT version FROM ros_versions GROUP BY version HAVING COUNT(DISTINCT arch) > 1)",
   );
-  console.log(`  ${String(dual).padStart(6)}  versions present for BOTH arches → last-writer-wins in command_versions`);
+  console.log(`  ${String(dual).padStart(6)}  versions present for BOTH arches → command_versions holds the union of their paths`);
+  const single = one<number>(
+    "SELECT COUNT(*) FROM (SELECT version FROM ros_versions WHERE version IN (SELECT DISTINCT ros_version FROM command_versions) GROUP BY version HAVING COUNT(DISTINCT arch) = 1)",
+  );
+  console.log(`  ${String(single).padStart(6)}  command-data versions from ONE arch → they lack every path only the other arch has`);
   console.log(`  ${String(one<number>("SELECT COUNT(DISTINCT version) FROM schema_node_presence")).padStart(6)}  distinct versions in schema_node_presence (release-pruned active head — by design)`);
   console.log("    note: never order versions lexically — '7.9.2' > '7.24rc1' as a string.");
 }

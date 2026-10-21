@@ -1815,6 +1815,76 @@ describe("diffCommandVersions", () => {
 });
 
 // ---------------------------------------------------------------------------
+// DB integration: arch coverage of command_versions (#91)
+// ---------------------------------------------------------------------------
+
+describe("command-version arch coverage (#91)", () => {
+  // 9.2 and 9.4 are extracted for both arches, 9.3 for x86 only (a legacy inspect.json), like
+  // 7.24rc3 between two dual-arch builds. The switch menu is arm64-only in the current tree.
+  beforeAll(() => {
+    db.run(`INSERT INTO ros_versions (version, arch, channel, extra_packages, extracted_at) VALUES
+      ('9.2', 'x86', 'stable', 0, 'now'), ('9.2', 'arm64', 'stable', 0, 'now'),
+      ('9.3', 'x86', 'stable', 0, 'now'),
+      ('9.4', 'x86', 'stable', 0, 'now'), ('9.4', 'arm64', 'stable', 0, 'now')`);
+    db.run(`INSERT INTO command_versions (command_path, ros_version) VALUES
+      ('/interface/ethernet/switch', '9.2'), ('/interface/ethernet/switch', '9.4'),
+      ('/system/gap-fixture', '9.2'), ('/system/gap-fixture', '9.4'),
+      ('/system/identity-fixture', '9.2'), ('/system/identity-fixture', '9.3'), ('/system/identity-fixture', '9.4')`);
+    db.run(`INSERT INTO schema_nodes (path, name, type, parent_path, dir_role, _arch)
+      VALUES ('/interface/ethernet/switch', 'switch', 'dir', '/interface/ethernet', 'list', 'arm64')`);
+  });
+  afterAll(() => {
+    db.run(`DELETE FROM command_versions WHERE ros_version IN ('9.2', '9.3', '9.4')`);
+    db.run(`DELETE FROM ros_versions WHERE version IN ('9.2', '9.3', '9.4')`);
+    db.run(`DELETE FROM schema_nodes WHERE path = '/interface/ethernet/switch'`);
+  });
+
+  test("version check lists single-arch versions where an arm64-only path's absence proves nothing", () => {
+    const res = checkCommandVersions("/interface/ethernet/switch");
+    expect(res.versions).toEqual(["9.2", "9.4"]);
+    // Before first_seen too: x86-only versions can never show an arm64-only path.
+    expect(res.absent_in_single_arch_versions).toEqual(["7.9", "7.10.2", "7.22", "9.3"]);
+    expect(res.note).toContain("on arm64 only");
+    expect(res.note).toContain("Absent from 4 version(s) extracted for x86 only");
+  });
+
+  test("version check counts a single-arch gap inside the seen span for a path with no arch mark", () => {
+    const res = checkCommandVersions("/system/gap-fixture");
+    expect(res.absent_in_single_arch_versions).toEqual(["9.3"]);
+    expect(res.note).toContain("extracted for x86 only (9.3)");
+    expect(res.note).not.toContain("only, so versions");
+  });
+
+  test("version check stays quiet when the path has no single-arch gap", () => {
+    const res = checkCommandVersions("/system/identity-fixture");
+    expect(res.absent_in_single_arch_versions).toEqual([]);
+    expect(res.note).toBeNull();
+  });
+
+  test("diff reports each side's arches and warns when they differ", () => {
+    const res = diffCommandVersions("9.3", "9.4");
+    expect(res.from_arches).toEqual(["x86"]);
+    expect(res.to_arches).toEqual(["arm64", "x86"]);
+    expect(res.added).toContain("/interface/ethernet/switch");
+    expect(res.note).toContain("9.3 was extracted for x86 and 9.4 for arm64+x86");
+    expect(res.note).toContain("Pass arch");
+  });
+
+  test("diff adds no arch note when both sides cover the same arches", () => {
+    const res = diffCommandVersions("9.2", "9.4");
+    expect(res.to_arches).toEqual(res.from_arches);
+    expect(res.note).toBeNull();
+  });
+
+  test("stats group command-data versions by arch coverage", () => {
+    expect(getDbStats().command_version_arches).toEqual({
+      x86: ["7.9", "7.10.2", "7.22", "9.3"],
+      "arm64+x86": ["9.2", "9.4"],
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // DB integration: searchDevices
 // ---------------------------------------------------------------------------
 

@@ -15,7 +15,7 @@
 import { Database } from "bun:sqlite";
 import { beforeAll, describe, expect, test } from "bun:test";
 import type { FlatNode } from "./extract-schema.ts";
-import { importSchemaNodes, mergeArchNodes, parseDesc, walk } from "./extract-schema.ts";
+import { importSchemaNodes, mergeArchNodes, parseDesc, walk, writeCommandVersions } from "./extract-schema.ts";
 
 // ---------------------------------------------------------------------------
 // In-memory DB with schema_nodes tables — mirrors initDb() schema
@@ -392,5 +392,38 @@ describe("schema_node_presence", () => {
     expect(wifiQcom[0].version).toBe("7.99-fixture");
 
     testDb.close();
+  });
+});
+
+describe("writeCommandVersions across runs (#91)", () => {
+  const register = (db: Database, arch: string) =>
+    db.run("INSERT OR REPLACE INTO ros_versions (version, arch, extracted_at) VALUES ('7.99', ?, 'now')", [arch]);
+  const paths = (db: Database) =>
+    (db.prepare("SELECT command_path FROM command_versions WHERE ros_version = '7.99' ORDER BY command_path").all() as Array<{ command_path: string }>)
+      .map((r) => r.command_path);
+
+  test("a second arch extracted in its own run adds its paths instead of replacing the first arch's", () => {
+    const db = createTestDb();
+    register(db, "x86");
+    writeCommandVersions(db, "7.99", ["x86"], ["/ip", "/ip/x86-only"]);
+    register(db, "arm64");
+    writeCommandVersions(db, "7.99", ["arm64"], ["/ip", "/interface/ethernet/switch"]);
+    expect(paths(db)).toEqual(["/interface/ethernet/switch", "/ip", "/ip/x86-only"]);
+    // Rerunning either arch alone keeps the other arch's paths.
+    writeCommandVersions(db, "7.99", ["x86"], ["/ip", "/ip/x86-only"]);
+    expect(paths(db)).toEqual(["/interface/ethernet/switch", "/ip", "/ip/x86-only"]);
+    db.close();
+  });
+
+  test("a run covering every recorded arch rebuilds the version's rows", () => {
+    const db = createTestDb();
+    register(db, "x86");
+    writeCommandVersions(db, "7.99", ["x86"], ["/ip", "/ip/dropped-upstream"]);
+    writeCommandVersions(db, "7.99", ["x86"], ["/ip"]);
+    expect(paths(db)).toEqual(["/ip"]);
+    register(db, "arm64");
+    writeCommandVersions(db, "7.99", ["x86", "arm64"], ["/ip", "/interface/ethernet/switch"]);
+    expect(paths(db)).toEqual(["/interface/ethernet/switch", "/ip"]);
+    db.close();
   });
 });

@@ -302,6 +302,48 @@ function deriveChannel(version: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// command_versions writer (shared with extract-commands.ts)
+// ---------------------------------------------------------------------------
+
+/**
+ * Write one version's command_versions rows from this run's paths (#91). command_versions has
+ * no arch column, so a run that covers every arch ros_versions records for the version rebuilds
+ * its rows, and a run that covers fewer (one arch extracted per run) adds to them instead: a
+ * replace would silently drop the other arch's paths while its ros_versions row still claims
+ * them. Call after this run's arches are registered in ros_versions.
+ */
+export function writeCommandVersions(
+  // biome-ignore lint/suspicious/noExplicitAny: duck-typed to accept bun:sqlite Database or test stubs
+  db: any,
+  version: string,
+  runArches: string[],
+  paths: Iterable<string>,
+): void {
+  const recorded = (db.prepare("SELECT arch FROM ros_versions WHERE version = ?").all(version) as Array<{ arch: string }>)
+    .map((r) => r.arch);
+  const missing = recorded.filter((a) => !runArches.includes(a));
+  if (missing.length === 0) {
+    db.run("DELETE FROM command_versions WHERE ros_version = ?", [version]);
+  } else {
+    console.log(`  ${version}: ros_versions also records ${missing.join(", ")}; merging ${runArches.join(", ")} paths into the stored set`);
+  }
+
+  const insertVersion = db.prepare(`
+    INSERT OR IGNORE INTO command_versions (command_path, ros_version)
+    VALUES (?, ?)
+  `);
+  const insertVersions = db.transaction(() => {
+    for (const path of paths) insertVersion.run(path, version);
+  });
+  insertVersions();
+
+  const versionCount = (
+    db.prepare("SELECT COUNT(*) as c FROM command_versions WHERE ros_version = ?").get(version) as { c: number }
+  ).c;
+  console.log(`Recorded ${versionCount} command_versions entries for ${version}`);
+}
+
+// ---------------------------------------------------------------------------
 // Import function — used by CLI and tests
 // ---------------------------------------------------------------------------
 
@@ -496,24 +538,8 @@ export function importSchemaNodes(
 
   {
     // command_versions (compat)
-    db.run("DELETE FROM command_versions WHERE ros_version = ?", [version]);
-
-    const insertVersion = db.prepare(`
-      INSERT OR IGNORE INTO command_versions (command_path, ros_version)
-      VALUES (?, ?)
-    `);
-
-    const insertVersions = db.transaction(() => {
-      for (const node of mergedNodes) {
-        insertVersion.run(node.path, version);
-      }
-    });
-    insertVersions();
-
-    const versionCount = (
-      db.prepare("SELECT COUNT(*) as c FROM command_versions WHERE ros_version = ?").get(version) as { c: number }
-    ).c;
-    console.log(`Recorded ${versionCount} command_versions entries for ${version}`);
+    const runArches = [...(x86Source ? ["x86"] : []), ...(arm64Source ? ["arm64"] : [])];
+    writeCommandVersions(db, version, runArches, mergedNodes.map((n) => n.path));
   }
 
   const totalVersions = (
