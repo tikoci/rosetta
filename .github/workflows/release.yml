@@ -393,8 +393,10 @@ jobs:
         run: |
           set -euo pipefail
           ASSET=rosetta-cli-reference.tar.gz
-          TAG=$(gh api "repos/${{ github.repository }}/releases?per_page=100" \
-            --jq "[.[] | select(.draft | not) | select(any(.assets[]; .name == \"$ASSET\"))] | sort_by(.created_at) | reverse | .[0].tag_name // empty")
+          # Every page, newest by created_at across all of them (one line per matching release).
+          TAG=$(gh api --paginate "repos/${{ github.repository }}/releases?per_page=100" \
+            --jq ".[] | select(.draft | not) | select(any(.assets[]; .name == \"$ASSET\")) | [.created_at, .tag_name] | @tsv" \
+            | sort -r | awk -F '\t' 'NR == 1 { print $2 }')
           if [ -z "$TAG" ]; then
             echo "No earlier release carries $ASSET — nothing to retain from this run."
             exit 0
