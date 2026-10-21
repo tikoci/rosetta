@@ -54,6 +54,10 @@ describe("parseLandingPage (#193)", () => {
     expect(() => parseLandingPage(md.replace("## Standard print modifiers", "## Print modifiers"))).toThrow('section "Standard print modifiers" is missing');
     expect(() => parseLandingPage(md.replace("- **`detail`** — prints", "- `detail`: prints"))).toThrow("does not match");
     expect(() => parseLandingPage(md.replace("| Flag | Meaning |", "| Flag | Description |"))).toThrow("table header");
+    // A repeated header is a row off the one-character-flag shape, never a flag "F".
+    expect(() => parseLandingPage(md.replace("| m    | multicast address |", "| m    | multicast address |\n| Flag | Meaning |"))).toThrow(
+      'row does not match "| flag | meaning |": "| Flag | Meaning |"',
+    );
     expect(() => parseLandingPage(md.replace("- **`as-value`**", "- **`detail`**"))).toThrow('"detail" repeats');
   });
 });
