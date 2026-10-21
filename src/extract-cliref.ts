@@ -42,7 +42,15 @@ const LLMS_TXT_URL = `${BASE}/llms.txt`;
 const SITEMAP_URL = `${BASE}/sitemap.xml`;
 const CLI_PREFIX = "/docs/cli-reference/";
 const CLI_SLUG = /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/;
-const SECTION_INDEX_SLUG = "index";
+/**
+ * Pages under /docs/cli-reference/ that llms.txt lists but that document no CLI path:
+ * - `index`: the old section landing page (the argument-type glossary), now /docs/cli-reference.md.
+ * - `compare-versions`: MikroTik's CLI-compare tool page (prose + `<CliCompare />`), added
+ *   2026-10-20 (#194).
+ * A listed one is still fetched and must carry zero **Type:** entries (assertNonCliPage), so
+ * MikroTik turning one into a real menu page fails the build instead of dropping it.
+ */
+export const NON_CLI_PAGES: ReadonlySet<string> = new Set(["index", "compare-versions"]);
 const PROJECT_ROOT = join(import.meta.dirname, "..");
 const DEFAULT_CACHE_DIR = join(PROJECT_ROOT, "manual", "cli-reference");
 const FETCH_DELAY_MS = 100;
@@ -61,6 +69,28 @@ const CACHE_DIR = cacheDirArg ? cacheDirArg.slice("--cache-dir=".length) : DEFAU
 
 /** CLI-Reference slug for a URL, or null when the URL is out of scope / not a CLI page. */
 export function cliRefSlug(urlOrPath: string): string | null {
+  const slug = cliRefPathSlug(urlOrPath);
+  return slug === null || NON_CLI_PAGES.has(slug) ? null : slug;
+}
+
+/** A NON_CLI_PAGES slug when `urlOrPath` addresses one, else null. */
+export function nonCliPageSlug(urlOrPath: string): string | null {
+  const slug = cliRefPathSlug(urlOrPath);
+  return slug !== null && NON_CLI_PAGES.has(slug) ? slug : null;
+}
+
+/** Fail when a page excluded as non-CLI has gained **Type:** entries (#194). */
+export function assertNonCliPage(slug: string, md: string): void {
+  const { entries } = countStructuralMarkers(md);
+  if (entries > 0) {
+    throw new Error(
+      `${slug} is excluded as a non-CLI page but now has **Type:** entries (${entries}) — ` +
+        "MikroTik made it a real CLI page; remove it from NON_CLI_PAGES so it is extracted (#194).",
+    );
+  }
+}
+
+function cliRefPathSlug(urlOrPath: string): string | null {
   let path: string;
   try {
     path = new URL(urlOrPath).pathname;
@@ -74,9 +104,6 @@ export function cliRefSlug(urlOrPath: string): string | null {
   // `<dir>.md` (`app/` -> `app.md`; it was `app/app.md` until 2026-10-06). That page
   // arrives through llms.txt (see loadCliRefSlugs), so the category URL stays excluded here.
   if (slug === "" || path.endsWith("/") || !CLI_SLUG.test(slug)) return null;
-  // `index` is the section landing page's .md — the argument-type glossary prose, with no
-  // **Type:** entry of its own. It is listed in llms.txt but is not a CLI path.
-  if (slug === SECTION_INDEX_SLUG) return null;
   return slug;
 }
 
@@ -169,6 +196,9 @@ export function reconcileTrailingDirs(locs: string[], discovered: ReadonlySet<st
     if (!path.startsWith(CLI_PREFIX) || !path.endsWith("/")) continue;
     const dir = path.slice(CLI_PREFIX.length).replace(/\/$/, "");
     if (dir === "" || !CLI_SLUG.test(dir)) continue; // the section root itself
+    // The sitemap serves a non-CLI page as a trailing-slash URL too (`compare-versions/`,
+    // #194). It is not a menu, so it owns no Directory leaf.
+    if (NON_CLI_PAGES.has(dir)) continue;
     if (!discovered.has(dir) && !discovered.has(`${dir}/${dir.split("/").pop()}`)) orphans.push(dir);
   }
   if (orphans.length > 0) {
@@ -185,7 +215,7 @@ export function reconcileTrailingDirs(locs: string[], discovered: ReadonlySet<st
  * llms.txt's published-.md list: slug -> sidebar label. The label is not derivable from the
  * slug ("caps-man" -> "Caps Man"); the key set is also half of discovery (loadCliRefSlugs).
  */
-async function loadTocNames(): Promise<{ names: Map<string, string>; manualVersion: string }> {
+async function loadTocNames(): Promise<{ names: Map<string, string>; nonCliPages: string[]; manualVersion: string }> {
   const cached = safeCachePath("_llms.txt");
   let txt: string;
   if (FROM_CACHE) {
@@ -203,11 +233,15 @@ async function loadTocNames(): Promise<{ names: Map<string, string>; manualVersi
     writeFileSync(cached, txt);
   }
   const names = new Map<string, string>();
+  const nonCliPages: string[] = [];
   for (const m of txt.matchAll(/^- \[([^\]]*)\]\((https:\/\/[^)]*)\)/gm)) {
-    const slug = cliRefSlug(m[2].replace(/\.md$/, ""));
+    const url = m[2].replace(/\.md$/, "");
+    const slug = cliRefSlug(url);
     if (slug !== null) names.set(slug, m[1]);
+    const nonCli = nonCliPageSlug(url);
+    if (nonCli !== null) nonCliPages.push(nonCli);
   }
-  return { names, manualVersion: parseManualVersion(txt) };
+  return { names, nonCliPages, manualVersion: parseManualVersion(txt) };
 }
 
 async function fetchPage(slug: string): Promise<string | null> {
@@ -601,7 +635,7 @@ function store(pages: CliRefPage[]): void {
 // ── Main ──
 
 async function main(): Promise<void> {
-  const { names: tocNames, manualVersion } = await loadTocNames();
+  const { names: tocNames, nonCliPages, manualVersion } = await loadTocNames();
   console.log(`Manual tree: RouterOS ${manualVersion} (llms.txt header)`);
   let slugs = await loadCliRefSlugs(tocNames);
   if (FROM_CACHE) console.log(`Discovering pages from cache: ${CACHE_DIR}`);
@@ -621,6 +655,17 @@ async function main(): Promise<void> {
     if (tocName === undefined) throw new Error(`No llms.txt toc_name for slug ${JSON.stringify(slug)}`);
     pages.push(parsePage(slug, md, tocName));
   }
+
+  // Listed non-CLI pages are fetched (and cached, for --from-cache) only to prove they still
+  // are. A missing one is fine: nothing would have been extracted from it anyway.
+  const checkedNonCli: string[] = [];
+  for (const slug of nonCliPages) {
+    const md = await fetchPage(slug);
+    if (md === null) continue;
+    assertNonCliPage(slug, md);
+    checkedNonCli.push(slug);
+  }
+  if (checkedNonCli.length > 0) console.log(`Non-CLI pages checked (no **Type:** entries): ${checkedNonCli.join(", ")}`);
 
   const entries = pages.flatMap((p) => p.entries);
   const fields = entries.flatMap((e) => e.fields);
@@ -675,7 +720,7 @@ async function main(): Promise<void> {
   // A full live run that got here fetched every discovered page (a missing one threw above);
   // a --limit run is partial on purpose and must not prune the pages it skipped.
   if (!FROM_CACHE) {
-    if (LIMIT === undefined) pruneCache(CACHE_DIR, slugs.map(cacheName), ".md");
+    if (LIMIT === undefined) pruneCache(CACHE_DIR, [...slugs, ...checkedNonCli].map(cacheName), ".md");
     else console.log("Cache not pruned: a --limit run is partial");
   }
 }
