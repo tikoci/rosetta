@@ -1,5 +1,5 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
-# counts	exact=962	alias=0	manual-only=132	entries=1094
+# counts	exact=963	alias=0	manual-only=143	entries=1106
 source_path	source_type	match_kind	match_detail
 cmr	Settings Directory	manual-only	
 cmr/alert	Directory	manual-only	
@@ -38,6 +38,7 @@ interface/ethernet/poe/monitor	Command	manual-only
 interface/ethernet/poe/power-cycle	Command	manual-only	
 interface/ethernet/poe/settings	Settings Directory	manual-only	
 interface/ethernet/pon	Directory	manual-only	
+interface/ethernet/pon/monitor	Command	manual-only	
 interface/ethernet/switch/acl	Directory	manual-only	
 interface/ethernet/switch/acl/policer	Directory	manual-only	
 interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
@@ -71,6 +72,7 @@ interface/ethernet/switch/qos/tx-manager	Directory	manual-only
 interface/ethernet/switch/qos/tx-manager/queue	Directory	manual-only	
 interface/ethernet/switch/reserved-fdb	Directory	manual-only	
 interface/ethernet/switch/rule/reset-counters	Command	manual-only	
+interface/ethernet/switch/rule/reset-counters-all	Command	manual-only	
 interface/ethernet/switch/shaper	Directory	manual-only	
 interface/ethernet/switch/stats	Settings Directory	manual-only	
 interface/ethernet/switch/trunk	Directory	manual-only	
@@ -93,6 +95,10 @@ interface/w60g/reset-configuration	Command	manual-only
 interface/w60g/scan	Command	manual-only	
 interface/w60g/station	Directory	manual-only	
 interface/w60g/station/monitor	Command	manual-only	
+interface/wifi/dashboard/settings	Settings Directory	manual-only	
+interface/wifi/dashboard/show	Command	manual-only	
+interface/wifi/dashboard/show-clients	Command	manual-only	
+interface/wifi/dashboard/show-logs	Command	manual-only	
 interface/wifi/trigger-radar	Command	manual-only	
 interface/xfrm	Directory	manual-only	
 iot/gpio	Directory	manual-only	
@@ -119,6 +125,8 @@ partitions/restore-config-from	Command	manual-only
 partitions/save-config-to	Command	manual-only	
 root/terminal	Directory	manual-only	
 routing/bfd/authentication	Directory	manual-only	
+system/dashboard/settings	Settings Directory	manual-only	
+system/dashboard/show	Command	manual-only	
 system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
 system/license/output	Command	manual-only	
 system/ptp	Directory	manual-only	
@@ -126,10 +134,13 @@ system/ptp/monitor	Command	manual-only
 system/ptp/port	Directory	manual-only	
 system/ptp/status	Directory	manual-only	
 system/resource/irq/rps	Directory	manual-only	
-system/routerboard/settings/keep-frequency	Command	manual-only	
 system/swos	Settings Directory	manual-only	
 system/swos/load-config	Command	manual-only	
 system/swos/password	Command	manual-only	
 system/swos/reset-config	Command	manual-only	
 system/swos/save-config	Command	manual-only	
 system/swos/upgrade	Command	manual-only	
+tool/apptraffic	Settings Directory	manual-only	
+tool/apptraffic/stats	Directory	manual-only	
+tool/apptraffic/stats/categories	Directory	manual-only	
+tool/apptraffic/stats/clear	Command	manual-only	
