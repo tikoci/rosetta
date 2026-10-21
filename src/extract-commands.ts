@@ -22,6 +22,7 @@
  */
 
 import { db, initDb } from "./db.ts";
+import { writeCommandVersions } from "./extract-schema.ts";
 import { loadJson, RESTRAML_PAGES_URL } from "./restraml.ts";
 
 function deriveArch(filepath: string, flag: string | undefined): "x86" | "arm64" {
@@ -177,25 +178,8 @@ async function main() {
     console.log(`\nInserted ${total} commands into database (primary: ${version})`);
   }
 
-  // Always populate command_versions for this version
-  db.run("DELETE FROM command_versions WHERE ros_version = ?", [version]);
-
-  const insertVersion = db.prepare(`
-    INSERT OR IGNORE INTO command_versions (command_path, ros_version)
-    VALUES (?, ?)
-  `);
-
-  const insertVersions = db.transaction(() => {
-    for (const r of rows) {
-      insertVersion.run(r.path, version);
-    }
-  });
-  insertVersions();
-
-  const versionCount = (
-    db.prepare("SELECT COUNT(*) as c FROM command_versions WHERE ros_version = ?").get(version) as { c: number }
-  ).c;
-  console.log(`Recorded ${versionCount} command_versions entries for ${version}`);
+  // Always populate command_versions for this version (merging when another arch is recorded, #91)
+  writeCommandVersions(db, version, [arch], rows.map((r) => r.path));
 
   const totalVersions = (db.prepare("SELECT COUNT(DISTINCT ros_version) as c FROM command_versions").get() as { c: number }).c;
   console.log(`Total versions tracked: ${totalVersions}`);

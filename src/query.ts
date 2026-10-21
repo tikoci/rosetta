@@ -8,7 +8,7 @@
 import { type CanonicalCommand, canonicalize } from "./canonicalize.ts";
 import { makeDbVerbResolver } from "./canonicalize-resolver.ts";
 import { classifyQuery, type QueryClassification } from "./classify.ts";
-import { db } from "./db.ts";
+import { db, getCommandVersionArches, getCommandVersionRange } from "./db.ts";
 import {
   gradeRows,
   type PropertyLookupConfidence,
@@ -1609,6 +1609,9 @@ export type CommandDiffResult = {
   removed: string[];
   added_count: number;
   removed_count: number;
+  /** Arches each side's command data was extracted from (#91); empty when the version has none. */
+  from_arches: string[];
+  to_arches: string[];
   note: string | null;
 };
 
@@ -1677,6 +1680,15 @@ export function diffCommandVersions(
     notes.push(`Filtered to ${arch} architecture (excluding ${otherArch}-only paths).`);
   }
 
+  const versionArches = getCommandVersionArches();
+  const fromArches = versionArches.get(fromVersion) ?? [];
+  const toArches = versionArches.get(toVersion) ?? [];
+  if (fromArches.length > 0 && toArches.length > 0 && fromArches.join("+") !== toArches.join("+")) {
+    notes.push(
+      `${fromVersion} was extracted for ${fromArches.join("+")} and ${toVersion} for ${toArches.join("+")}, so paths that exist on only one arch show as added or removed without having changed.${arch ? "" : " Pass arch to compare one arch's paths."}`,
+    );
+  }
+
   return {
     from_version: fromVersion,
     to_version: toVersion,
@@ -1685,6 +1697,8 @@ export function diffCommandVersions(
     removed: removedRows.map((r) => r.command_path),
     added_count: addedRows.length,
     removed_count: removedRows.length,
+    from_arches: fromArches,
+    to_arches: toArches,
     note: notes.length > 0 ? notes.join(" ") : null,
   };
 }
@@ -1697,6 +1711,8 @@ export function checkCommandVersions(
   versions: string[];
   first_seen: string | null;
   last_seen: string | null;
+  /** Versions extracted for fewer arches than the corpus that lack this path, where that absence proves nothing (#91). */
+  absent_in_single_arch_versions: string[];
   note: string | null;
 } {
   const rows = db
@@ -1707,21 +1723,48 @@ export function checkCommandVersions(
     .all(commandPath) as Array<{ ros_version: string }>;
   const versions = rows.map((r) => r.ros_version).sort(compareVersions);
 
-  const allVersionRows = db
-    .prepare("SELECT DISTINCT version FROM ros_versions")
-    .all() as Array<{ version: string }>;
-  const allVersions = allVersionRows.map((r) => r.version).sort(compareVersions);
-  const minTracked = allVersions[0] ?? null;
+  // ros_versions also holds metadata-only rows (7.1.1, 7.8); only command-data versions bound the range.
+  const { min: minTracked, max: maxTracked } = getCommandVersionRange();
 
   const firstSeen = versions[0] ?? null;
   const lastSeen = versions[versions.length - 1] ?? null;
 
+  const notes: string[] = [];
   // If first_seen equals our earliest tracked version, the command may predate our data
-  let note: string | null = null;
   if (firstSeen && minTracked && firstSeen === minTracked) {
-    note = `Command exists in our earliest tracked version (${minTracked}). It likely existed in earlier versions too, but we have no data before ${minTracked}.`;
+    notes.push(`Command exists in our earliest tracked version (${minTracked}). It likely existed in earlier versions too, but we have no data before ${minTracked}.`);
   } else if (versions.length === 0) {
-    note = `No version data found. Our command tree covers ${minTracked ?? "7.9"}–7.23beta2. The command may exist outside this range, or the path may be wrong.`;
+    notes.push(`No version data found. Our command tree covers ${minTracked ?? "?"}–${maxTracked ?? "?"}. The command may exist outside this range, or the path may be wrong.`);
+  }
+
+  // A version extracted for fewer arches lacks every path that exists only on a missing arch.
+  // Count it as a gap inside the seen span, or anywhere when the current tree marks the path
+  // as one arch's only (x86-only versions predate the arm64 data, so first_seen can be late).
+  const absentInSingleArch: string[] = [];
+  if (versions.length > 0) {
+    const versionArches = getCommandVersionArches();
+    const allArches = new Set([...versionArches.values()].flat());
+    const pathArches = (db.prepare("SELECT DISTINCT _arch FROM schema_nodes WHERE path = ?").all(commandPath) as Array<{ _arch: string | null }>)
+      .map((r) => r._arch);
+    const onlyArch = pathArches.length === 1 ? pathArches[0] : null;
+    const present = new Set(versions);
+    const byArches = new Map<string, string[]>();
+    for (const [version, arches] of versionArches) {
+      if (present.has(version) || arches.length >= allArches.size) continue;
+      const inSpan = compareVersions(version, firstSeen as string) > 0 && compareVersions(version, lastSeen as string) < 0;
+      if (!inSpan && !(onlyArch && !arches.includes(onlyArch))) continue;
+      absentInSingleArch.push(version);
+      byArches.set(arches.join("+"), [...(byArches.get(arches.join("+")) ?? []), version]);
+    }
+    absentInSingleArch.sort(compareVersions);
+    if (onlyArch && absentInSingleArch.length > 0) {
+      notes.push(`The current command tree has ${commandPath} on ${onlyArch} only, so versions extracted without ${onlyArch} cannot show it and first_seen can be later than the command really appeared.`);
+    }
+    for (const [arches, list] of byArches) {
+      list.sort(compareVersions);
+      const shown = list.length <= 6 ? list.join(", ") : `${list.slice(0, 3).join(", ")} … ${list.slice(-2).join(", ")}`;
+      notes.push(`Absent from ${list.length} version(s) extracted for ${arches} only (${shown}): that absence is not evidence the command was missing on other arches.`);
+    }
   }
 
   return {
@@ -1729,7 +1772,8 @@ export function checkCommandVersions(
     versions,
     first_seen: firstSeen,
     last_seen: lastSeen,
-    note,
+    absent_in_single_arch_versions: absentInSingleArch,
+    note: notes.length > 0 ? notes.join(" ") : null,
   };
 }
 

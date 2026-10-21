@@ -86,6 +86,16 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Command-version answers say which arches a version's data came from (#91).** 39 of
+  the 68 versions with command data come from x86-only `inspect.json` builds, so they lack
+  every arm64-only path: 7.24rc2 → 7.24rc3 diffed as 1,387 removals that never happened.
+  `routeros_command_diff` now returns `from_arches`/`to_arches` and says when they differ
+  (`arch=x86` gives that diff 0 changes). `routeros_command_version_check` returns
+  `absent_in_single_arch_versions` with a note, and its "earliest tracked version" note
+  now fires, since the range it checks is the one with command data. `routeros_stats`
+  groups versions in `command_version_arches`, and the TUI shows the same. Extracting one
+  version's arches in separate runs now merges their paths instead of keeping only the
+  last run's.
 - **Version ordering understands `alpha` prereleases.** `compareVersions` handled
   only `beta` and `rc`, so a label like `7.26alpha1` compared as `NaN` and kept
   whatever position it arrived in. It now sorts `alpha` < `beta` < `rc` < release.

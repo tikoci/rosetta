@@ -1274,6 +1274,8 @@ server.registerTool(
 Returns the list of versions where the command exists, plus first_seen/last_seen.
 If the command exists in our earliest tracked version, a note warns that it likely
 predates our data — check the documentation page for earlier version references.
+Most older versions were extracted for x86 only; absent_in_single_arch_versions lists the ones
+where a missing path proves nothing (e.g. arm64-only switch-chip menus), and the note says so.
 
 Useful for answering "is /container supported in 7.12?" or "when was /ip/firewall/raw added?".
 
@@ -1309,7 +1311,9 @@ server.registerTool(
 The most common RouterOS support query is "something broke after I upgraded." This tool
 directly answers it by comparing the command tree between any two tracked versions.
 
-Returns added[] (new in to_version) and removed[] (gone from to_version) with counts.
+Returns added[] (new in to_version) and removed[] (gone from to_version) with counts, plus
+from_arches/to_arches: when they differ (an x86-only version against an arm64+x86 one), one-arch
+paths show as added or removed without having changed — pass arch to compare like with like.
 Use path_prefix to scope the diff to a subsystem (e.g., '/ip/firewall' or '/routing/bgp').
 
 Command data covers ${COMMAND_RANGE}. Both versions must be in this range for complete results;

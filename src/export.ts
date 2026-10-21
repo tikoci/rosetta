@@ -798,7 +798,7 @@ const DISCLOSURES = [
   },
   {
     subject: "commands per-version architecture",
-    note: "No per-version path counts are emitted: command_versions is architecture-blind and dual-arch versions are last-writer-wins between x86 and arm64 (issue #91). commands.ros_version is the single stored value only.",
+    note: "No per-version path counts are emitted: command_versions is architecture-blind, a version's rows being the union of the arches it was extracted for, and most versions are x86-only legacy inspect.json, so a count is one arch's wearing the version's label (issue #91). commands.ros_version is the single stored value only.",
   },
   {
     subject: "sections.tsv vs pages.tsv word counts",
