@@ -4,7 +4,7 @@ topic: The command↔prose join — `commands.page_id` is a page-level proxy for
 status: open
 related_tasks: ["#58", "#61", "#131", "#132", "#100", "#25", "B-0001", "B-0011", "B-0016", "B-0023"]
 created: 2026-07-31
-last_revisited: 2026-10-04
+last_revisited: 2026-10-20
 ---
 
 # Question
@@ -718,6 +718,56 @@ is store-side work. The list below is ordered by that, not by issue number.
 4. **Then** B-0001/B-0011 and the MCP tool-surface refactor, which want the answers above.
 
 The cosmetic items (#131 Option C, step 7) are decoupled from all of this and can land whenever.
+
+## Step 8.2 grounding — can the overlay's entry shape stand in for inspect's verbs? (2026-10-20)
+
+The question behind "overlay-as-base" (and behind any eventual retirement of the inspect-derived
+command tree) is whether verbs are recoverable from the CLI Reference itself. The overlay already
+names non-standard operations as `Command` entries; what it lacks is the generic verb set. So the
+measurable question is: **does an entry's type, plus its field kinds, predict which generic verbs
+inspect shows under it?**
+
+Measured on release `v0.12.0-next.121` (built 2026-10-06; CLI Reference from the default tree, which
+declared 7.26). `schema_nodes` there is the union of the 7.24.5 and 7.26beta1 inspect trees, so "inspect
+has the verb" means "in either tree". Only entries with an exact `cliref_entry_schema_links` row
+count: 444 of 502 `Directory`, 109 of 120 `Settings Directory`.
+
+**Settings Directory — derivable.** All 109 have `print`, `get` and `export`; `set` and `edit` 92
+(84.4%); `reset` 87 (79.8%). Only 65 distinct verbs occur under them at all.
+
+**Directory — partly derivable, by field kind.** Entry type alone is weak: `print`/`find`/`get` occur
+under ~97%, but `set` 75.9%, `remove` 73.6%, `add` 68.0%, `enable`/`disable` 55.9%. Splitting on whether
+the entry has at least one settable `Argument` field (not only `Read-only Argument`) sharpens it:
+
+| Directory entries | n | `add` | `set` | `remove` |
+|---|---:|---:|---:|---:|
+| ≥1 settable `Argument` | 343 | 296 (86.3%) | 333 (97.1%) | 303 (88.3%) |
+| read-only fields only | 101 | 7 (6.9%) | 7 (6.9%) | 25 (24.8%) |
+
+**Named operations — already covered.** Under the same linked directories, inspect has 282 `cmd` nodes
+outside the generic set (`print`, `find`, `get`, `set`, `add`, `remove`, `edit`, `reset`, `export`,
+`comment`, `enable`, `disable`, `unset`, `move`, `monitor`, `reset-counters`, `reset-counters-all`).
+265 of them (94.0%) exist as overlay `Command` entries at the same path.
+
+**Reading.** The overlay is not missing verbs in general — it is missing the *generic* verb set, and
+for that set a rule ("settable fields ⇒ `add`/`set`/`remove`") is right 86–97% of the time and wrong
+3–14% of the time per verb, with the read-only-only bucket being the irregular one (`remove` without
+`add` at 25%: lists you can prune but not create). That error rate decides who can use the rule:
+
+- **Rosetta (docs retrieval):** good enough to *describe* likely verbs with a "derived" label —
+  the same advisory posture as #25's arch fallback.
+- **centrs (validation):** not good enough. A wrong `add` is a false accept or false reject; centrs'
+  decision 3 requires missing data to abstain, not guess. Verbs stay inspect-sourced for validation.
+
+So retiring the inspect-derived tree is nearer for rosetta's docs surfaces than for validation, and
+it does not touch version history at all: the versioned manual (#186, #188) covers 7.24+ at
+minor-line granularity for stable/testing/development only, while inspect covers every release from
+7.15 on both architectures. The likely end state is overlay as the base vocabulary, inspect as the
+verb and version-history layer — which is what item 2 above already says; this measurement prices it.
+
+Not measured here: whether the rule's misses cluster by menu family (switch chips, wireless) or are
+spread out, and whether the 58 unlinked `Directory` entries behave the same. Both are one query each
+against the same DB if the question becomes live.
 
 # A sequencing constraint discovered alongside this (#132 → #100)
 
