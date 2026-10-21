@@ -24,6 +24,15 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **The DB stores each manual version's CLI Reference landing page.** That page
+  documents what every menu page leaves out: argument types, standard list entry
+  properties (`comment`, `disabled`, `copy-from`, `place-before`), standard print
+  modifiers and address flags. Each tree keeps the page verbatim in `cliref_trees`.
+  Its four sections are parsed into `cliref_standard`, one row per item, with
+  descriptions kept word for word. A tree that's served without the page, or whose
+  sections change shape, fails extraction. Not yet surfaced in MCP answers or the
+  export (#193; #188 slice 2).
+
 - **The DB holds the CLI Reference for every manual version MikroTik serves.** It
   stores the 7.24 and 7.25 trees plus the default tree (7.26 today), each under the
   version its `llms.txt` declares, in a new `cliref_trees` table. `cliref_pages`

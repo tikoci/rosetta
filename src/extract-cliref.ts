@@ -449,6 +449,30 @@ async function fetchPage(tree: CliRefTree, slug: string): Promise<string | null>
   return body;
 }
 
+/**
+ * The tree's landing page, /docs/[<v>/]cli-reference.md (#193), cached as `_landing.md`. Every
+ * served tree has one; a tree that does not serve it is incomplete, so this throws rather
+ * than storing a tree without its standard properties.
+ */
+async function fetchLanding(tree: CliRefTree): Promise<string> {
+  const cacheDir = treeCacheDir(tree);
+  const file = safeCachePath(cacheDir, "_landing.md");
+  if (FROM_CACHE) {
+    try {
+      return readFileSync(file, "utf8");
+    } catch {
+      throw new Error(`--from-cache set but no cached landing page at ${file} — run one live extract first (#193)`);
+    }
+  }
+  const url = `${BASE}${tree.docsPrefix}cli-reference.md`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`[${tree.label}] Failed to fetch ${url}: HTTP ${res.status} — the tree is served without its landing page (#193)`);
+  const body = await res.text();
+  mkdirSync(cacheDir, { recursive: true });
+  writeFileSync(file, body);
+  return body;
+}
+
 // ── Parsing ──
 
 export interface CliRefField {
@@ -735,6 +759,104 @@ export function countStructuralMarkers(md: string): { entries: number; rows: num
   return { entries, rows };
 }
 
+// ── Landing page (#193) ──
+
+/**
+ * The CLI Reference landing page's fact sections, in page order. Every tree must carry all
+ * four; any other `##` section (7.24's "Grafts and Captures", "Headings") is kept only as raw
+ * source. Each section's rows have exactly one shape, so anything else in a row position
+ * fails extraction instead of being skipped.
+ */
+export const LANDING_SECTIONS = [
+  "Argument types",
+  "Standard list entry properties",
+  "Standard print modifiers",
+  "address-flags",
+] as const;
+
+export type LandingSection = (typeof LANDING_SECTIONS)[number];
+
+export interface LandingRow {
+  section: LandingSection;
+  name: string;
+  descriptionMarkdown: string;
+  sourceOrder: number;
+  sourceLine: number;
+}
+
+// `- **name** — text` (Argument types) or `- **`name`** — text` (the two standard-name lists).
+const LANDING_BULLET = /^- \*\*(`?)([^*`]+)\1\*\* — (.+)$/;
+// `| <flag> | <meaning> |`; a flag may be backslash-escaped (`\+`).
+const FLAG_ROW = /^\|\s*(\\?\S)\s*\|\s*(.+?)\s*\|\s*$/;
+
+/**
+ * Parse the landing page's four fact sections. Throws when a section is missing or
+ * duplicated, when a bullet or table row in one of them does not match its shape, when a
+ * name repeats within a section, or when a section yields no rows. Prose lines between the
+ * rows (intros, the "Argument types can be nested" note) are not rows and are left in the
+ * raw source.
+ */
+export function parseLandingPage(md: string): LandingRow[] {
+  const rows: LandingRow[] = [];
+  const seen = new Map<LandingSection, Set<string>>();
+  let section: LandingSection | null = null;
+  let inFence = false;
+  let tableHeader = false;
+  const fail = (line: number, why: string): never => {
+    throw new Error(`cli-reference landing page line ${line}: ${why} (#193)`);
+  };
+  const lines = md.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const sourceLine = i + 1;
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const heading = /^## (.+?)\s*$/.exec(line);
+    if (heading) {
+      const name = heading[1];
+      section = (LANDING_SECTIONS as readonly string[]).includes(name) ? (name as LandingSection) : null;
+      if (section !== null) {
+        if (seen.has(section)) fail(sourceLine, `section "${section}" appears twice`);
+        seen.set(section, new Set());
+      }
+      tableHeader = false;
+      continue;
+    }
+    if (section === null) continue;
+    const names = seen.get(section) as Set<string>;
+    const push = (name: string, descriptionMarkdown: string) => {
+      if (names.has(name)) fail(sourceLine, `"${name}" repeats in "${section}"`);
+      names.add(name);
+      rows.push({ section: section as LandingSection, name, descriptionMarkdown, sourceOrder: names.size - 1, sourceLine });
+    };
+    if (section === "address-flags") {
+      if (!line.startsWith("|")) continue;
+      if (!tableHeader) {
+        if (!/^\|\s*Flag\s*\|\s*Meaning\s*\|\s*$/.test(line)) fail(sourceLine, `address-flags table header is not "| Flag | Meaning |"`);
+        tableHeader = true;
+        continue;
+      }
+      if (/^\|[\s:|-]+\|\s*$/.test(line)) continue; // the |---|---| separator
+      const m = FLAG_ROW.exec(line);
+      if (!m) fail(sourceLine, `address-flags row does not match "| flag | meaning |": ${JSON.stringify(line)}`);
+      push((m as RegExpExecArray)[1].replace(/^\\/, ""), (m as RegExpExecArray)[2]);
+      continue;
+    }
+    if (!line.startsWith("- ")) continue;
+    const m = LANDING_BULLET.exec(line);
+    if (!m) fail(sourceLine, `bullet in "${section}" does not match "- **name** — description": ${JSON.stringify(line)}`);
+    push((m as RegExpExecArray)[2], (m as RegExpExecArray)[3]);
+  }
+  for (const s of LANDING_SECTIONS) {
+    if (!seen.has(s)) fail(lines.length, `section "${s}" is missing`);
+    if ((seen.get(s) as Set<string>).size === 0) fail(lines.length, `section "${s}" has no rows`);
+  }
+  return rows;
+}
+
 // ── cli-compare.json reconciliation (#188) ──
 
 /**
@@ -862,14 +984,20 @@ function reportReconciliation(rows: ReconcileRow[], compare: CliCompare, extract
 interface TreeResult {
   tree: CliRefTree;
   pages: CliRefPage[];
+  landingMarkdown: string;
+  landingRows: LandingRow[];
   /** Cache filenames (relative to the tree's dir) a complete live run keeps. */
   keep: string[];
 }
 
 function store(results: TreeResult[]): void {
   const insTree = db.prepare(
-    `INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256)
-     VALUES (?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256)
+     VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+  );
+  const insStandard = db.prepare(
+    `INSERT INTO cliref_standard (manual_version, section, name, description_markdown, source_order, source_line)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   );
   const insPage = db.prepare(
     `INSERT INTO cliref_pages (manual_version, slug, url, toc_name, toc_group, source_title, source_markdown, source_sha256, source_order)
@@ -892,7 +1020,7 @@ function store(results: TreeResult[]): void {
   );
 
   db.transaction(() => {
-    for (const { tree, pages } of results) {
+    for (const { tree, pages, landingMarkdown, landingRows } of results) {
       insTree.run(
         tree.label,
         `${BASE}${tree.docsPrefix}`,
@@ -900,7 +1028,12 @@ function store(results: TreeResult[]): void {
         tree.fetchedAt,
         tree.llmsTxt,
         new Bun.CryptoHasher("sha256").update(tree.llmsTxt).digest("hex"),
+        landingMarkdown,
+        new Bun.CryptoHasher("sha256").update(landingMarkdown).digest("hex"),
       );
+      for (const r of landingRows) {
+        insStandard.run(tree.label, r.section, r.name, r.descriptionMarkdown, r.sourceOrder, r.sourceLine);
+      }
       let pageOrder = 0;
       for (const page of pages) {
         const { id: pageId } = insPage.get(
@@ -1030,7 +1163,12 @@ async function extractTree(tree: CliRefTree): Promise<TreeResult> {
     );
   }
   if (CHECK_COUNTS) console.log(`[${tree.label}] Count check OK: ${rawTypeMarkers} entries, ${rawRows} field+flag rows`);
-  return { tree, pages, keep: [...slugs, ...checkedNonCli].map(cacheName) };
+
+  const landingMarkdown = await fetchLanding(tree);
+  const landingRows = parseLandingPage(landingMarkdown);
+  const perSection = LANDING_SECTIONS.map((sec) => `${landingRows.filter((r) => r.section === sec).length} ${sec}`).join(", ");
+  console.log(`[${tree.label}] Landing page: ${perSection}`);
+  return { tree, pages, landingMarkdown, landingRows, keep: ["_landing.md", ...[...slugs, ...checkedNonCli].map(cacheName)] };
 }
 
 async function main(): Promise<void> {
@@ -1073,6 +1211,7 @@ async function main(): Promise<void> {
   db.run("DELETE FROM cliref_fields;");
   db.run("DELETE FROM cliref_entries;");
   db.run("DELETE FROM cliref_pages;");
+  db.run("DELETE FROM cliref_standard;");
   db.run("DELETE FROM cliref_trees;");
   store(results);
   setDbMeta(CLIREF_MANUAL_VERSION_KEY, defaultTree.label);

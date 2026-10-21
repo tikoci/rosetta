@@ -576,8 +576,8 @@ describe("runExport — cli-reference overlay (issue #124)", () => {
     const md = "# Ztcert\n\n## ztcert\n\n**Type:** Directory\n\nprose\n";
     const sha = new Bun.CryptoHasher("sha256").update(md).digest("hex");
     // Format 1 exports the default tree only (#188): the 7.24 page below must not appear.
-    db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256)
-      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', ''), ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '')`);
+    db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256)
+      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', '', '', ''), ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '', '', '')`);
     db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE},'7.26','ztcert','u','Ztcert','','Ztcert',?,?,990000)`, [md, sha]);
     db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order) VALUES (${CE + 1},'7.24','old-ztcert','u724','Old Ztcert','','Old Ztcert','old','old',0)`);
     db.run(`INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line) VALUES (${CE},${CE},'ztcert','ztcert','Directory',2,'prose',0,3,7)`);

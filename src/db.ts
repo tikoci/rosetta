@@ -561,16 +561,22 @@ export function initDb() {
   // A tree is identified by the RouterOS version its llms.txt declares (`7.24`), never by
   // URL: the default /docs/ tree is one of them, flagged is_default, and that flag can
   // move between trees without changing any row's identity. Pre-v12 cliref_pages had no
-  // tree key; the overlay is rebuilt by every extract-cliref run, so dropping it loses
-  // nothing.
+  // tree key, and an early (unreleased) v12 cliref_trees had no landing page; the overlay is
+  // rebuilt by every extract-cliref run, so dropping either shape loses nothing.
   const clirefPageCols = db.prepare("PRAGMA table_info(cliref_pages)").all() as Array<{ name: string }>;
-  if (clirefPageCols.length > 0 && !clirefPageCols.some((c) => c.name === "manual_version")) {
+  const clirefTreeCols = db.prepare("PRAGMA table_info(cliref_trees)").all() as Array<{ name: string }>;
+  if (
+    (clirefPageCols.length > 0 && !clirefPageCols.some((c) => c.name === "manual_version")) ||
+    (clirefTreeCols.length > 0 && !clirefTreeCols.some((c) => c.name === "landing_markdown"))
+  ) {
     db.run("DROP VIEW IF EXISTS cliref_field_inspect_links;");
     db.run("DROP TABLE IF EXISTS cliref_entry_schema_links;");
     db.run("DROP TABLE IF EXISTS cliref_flags;");
     db.run("DROP TABLE IF EXISTS cliref_fields;");
     db.run("DROP TABLE IF EXISTS cliref_entries;");
     db.run("DROP TABLE IF EXISTS cliref_pages;");
+    db.run("DROP TABLE IF EXISTS cliref_standard;");
+    db.run("DROP TABLE IF EXISTS cliref_trees;");
   }
 
   db.run(`CREATE TABLE IF NOT EXISTS cliref_trees (
@@ -580,7 +586,11 @@ export function initDb() {
     fetched_at     TEXT NOT NULL,
     retained       INTEGER NOT NULL CHECK (retained IN (0, 1)),
     llms_txt       TEXT NOT NULL,
-    llms_sha256    TEXT NOT NULL
+    llms_sha256    TEXT NOT NULL,
+    -- The tree's CLI Reference landing page (/docs/[<v>/]cli-reference.md, #193): the
+    -- facts every menu page leaves out on purpose. It belongs to the tree, not to a menu.
+    landing_markdown TEXT NOT NULL,
+    landing_sha256   TEXT NOT NULL
   );`);
   db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_cliref_trees_one_default ON cliref_trees(is_default) WHERE is_default = 1;`);
 
@@ -597,6 +607,22 @@ export function initDb() {
     source_order    INTEGER NOT NULL CHECK (source_order >= 0),
     UNIQUE (manual_version, slug),
     UNIQUE (manual_version, source_order)
+  );`);
+
+  // The landing page's four parsed sections, one row per bullet (or address-flags row),
+  // description kept verbatim (#193). What a row *means* for a menu — which verbs take
+  // `copy-from` — is the consumer's reading of that prose, never a column here.
+  db.run(`CREATE TABLE IF NOT EXISTS cliref_standard (
+    id                   INTEGER PRIMARY KEY,
+    manual_version       TEXT NOT NULL REFERENCES cliref_trees(manual_version),
+    section              TEXT NOT NULL CHECK (section IN (
+                           'Argument types', 'Standard list entry properties',
+                           'Standard print modifiers', 'address-flags')),
+    name                 TEXT NOT NULL,
+    description_markdown TEXT NOT NULL,
+    source_order         INTEGER NOT NULL CHECK (source_order >= 0),
+    source_line          INTEGER NOT NULL CHECK (source_line >= 1),
+    UNIQUE (manual_version, section, name)
   );`);
 
   db.run(`CREATE TABLE IF NOT EXISTS cliref_entries (
