@@ -860,7 +860,7 @@ const CLIREF_CONTRACT_DISCLOSURES = [
   },
   {
     subject: "retained",
-    note: "retained = true marks a tree MikroTik no longer serves, re-parsed from an earlier release's archived source and keeping its original fetched_at. No tree is retained until carry-forward ships (#188 slice 4).",
+    note: "retained = true marks a tree MikroTik no longer serves, re-parsed from the newest earlier release's rosetta-cli-reference.tar.gz (this directory, archived) and keeping its original fetched_at. A retained tree that was the default when archived is stored under base_url /docs/<manual_version>/, because /docs/ belongs to the current default; its source/<manual_version>/_llms.txt still lists the /docs/ URLs it was fetched from.",
   },
 ];
 

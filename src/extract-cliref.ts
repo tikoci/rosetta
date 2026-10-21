@@ -19,8 +19,10 @@
  * in cliref_pages, so a future parser improvement re-reads source without a re-fetch.
  *
  * Versions (#188): every served manual tree is extracted — the default /docs/ tree plus each
- * /docs/<v>/ tree cli-compare.json lists — keyed by the version its llms.txt declares. See
- * resolveTreesLive() for which trees are fetched, skipped, or fail the build.
+ * /docs/<v>/ tree cli-compare.json lists — keyed by the version its llms.txt declares. A tree
+ * MikroTik stops serving is retained: re-parsed from the previous release's archived source
+ * (--archive). See resolveTreesLive() for which trees are fetched, retained, skipped, or fail
+ * the build.
  *
  * Usage:
  *   bun run src/extract-cliref.ts                 # live fetch of every tree and page (never
@@ -34,12 +36,16 @@
  *   bun run src/extract-cliref.ts --reconcile-report=FILE  # where the cli-compare.json
  *                                                 # reconciliation TSV goes (default:
  *                                                 # CACHE_DIR/cli-compare-reconcile.tsv)
+ *   bun run src/extract-cliref.ts --archive=DIR   # the previous release's cli-reference/
+ *                                                 # directory (rosetta-cli-reference.tar.gz,
+ *                                                 # unpacked): source for trees gone upstream
  */
 
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { pruneCache } from "./cache-prune.ts";
 import { db, getDbMeta, initDb, setDbMeta } from "./db.ts";
+import { parseTsv } from "./export.ts";
 import { CLIREF_MANUAL_VERSION_KEY, DOCS_MANUAL_VERSION_KEY, manualVersionMismatch, parseManualVersion } from "./manual-version.ts";
 import { parseSitemapLocs } from "./rosetta-id.ts";
 
@@ -77,6 +83,8 @@ const cacheDirArg = argv.find((a) => a.startsWith("--cache-dir="));
 const CACHE_DIR = cacheDirArg ? cacheDirArg.slice("--cache-dir=".length) : DEFAULT_CACHE_DIR;
 const reportArg = argv.find((a) => a.startsWith("--reconcile-report="));
 const RECONCILE_REPORT = reportArg ? reportArg.slice("--reconcile-report=".length) : join(CACHE_DIR, "cli-compare-reconcile.tsv");
+const archiveArg = argv.find((a) => a.startsWith("--archive="));
+const ARCHIVE_DIR = archiveArg ? archiveArg.slice("--archive=".length) : undefined;
 
 // ── Discovery ──
 
@@ -154,10 +162,25 @@ export interface CliRefTree {
   isDefault: boolean;
   fetchedAt: string;
   llmsTxt: string;
+  /** Gone upstream and re-parsed from the previous release's archive (#188). */
+  retained: boolean;
+  /**
+   * Where the tree's llms.txt lists its pages, when that differs from docsPrefix: a retained
+   * tree that was the default when archived lists them under /docs/, but is stored under
+   * /docs/<v>/ because /docs/ now belongs to the new default.
+   */
+  listedPrefix?: string;
+  /** For a retained tree in a live run: the archive's source/<label>/ it is read from. */
+  archiveDir?: string;
 }
 
 function treeCliPrefix(tree: CliRefTree): string {
   return `${tree.docsPrefix}cli-reference/`;
+}
+
+/** The two prefixes a tree's llms.txt can list its pages under: /docs/ or /docs/<label>/. */
+function validListedPrefix(label: string, prefix: string): boolean {
+  return prefix === DEFAULT_DOCS_PREFIX || prefix === `${DEFAULT_DOCS_PREFIX}${label}/`;
 }
 
 /** The tree's own cache directory, `CACHE_DIR/<label>/`. */
@@ -223,6 +246,65 @@ export function parseCliCompare(text: string): CliCompare {
   return { versions: j.versions, pairs };
 }
 
+/** One tree a previous release archived: where its raw source is, and when it was first fetched. */
+export interface ArchivedTree {
+  label: string;
+  fetchedAt: string;
+  /** The tree's docs prefix when archived: /docs/ if it was the default then. */
+  docsPrefix: string;
+  sourceDir: string;
+}
+
+/**
+ * Read a previous release's cli-reference/ directory (export format 2): its trees.tsv rows,
+ * each pointing at source/<label>/. The archive is rosetta's own artifact, so anything off
+ * its shape is broken, not an upstream absence: throw.
+ */
+export function readArchive(dir: string): Map<string, ArchivedTree> {
+  const manifest = readFileSync(join(dir, "manifest.toml"), "utf8");
+  if (!/^format = "rosetta-cli-reference"$/m.test(manifest) || !/^format_version = 2$/m.test(manifest)) {
+    throw new Error(`${dir} is not a format-2 rosetta-cli-reference archive (manifest.toml)`);
+  }
+  const { columns, rows } = parseTsv(readFileSync(join(dir, "trees.tsv"), "utf8"));
+  const col = (name: string) => {
+    const i = columns.indexOf(name);
+    if (i < 0) throw new Error(`${dir}/trees.tsv has no ${name} column`);
+    return i;
+  };
+  const [labelCol, fetchedCol, baseCol] = [col("manual_version"), col("fetched_at"), col("base_url")];
+  const out = new Map<string, ArchivedTree>();
+  for (const r of rows) {
+    const label = r[labelCol] ?? "";
+    if (!TREE_LABEL.test(label)) throw new Error(`${dir}/trees.tsv names tree ${JSON.stringify(label)}`);
+    const baseUrl = r[baseCol] ?? "";
+    const docsPrefix = baseUrl.startsWith(BASE) ? baseUrl.slice(BASE.length) : "";
+    if (!validListedPrefix(label, docsPrefix)) throw new Error(`${dir}/trees.tsv has base_url ${JSON.stringify(baseUrl)} for ${label}`);
+    out.set(label, { label, fetchedAt: r[fetchedCol] ?? "", docsPrefix, sourceDir: safeCachePath(join(dir, "source"), label) });
+  }
+  return out;
+}
+
+/**
+ * A tree MikroTik no longer serves, rebuilt from its archived source. It is stored under its
+ * own versioned prefix whatever it was archived under, so it can't collide with the default
+ * tree's base_url or page URLs.
+ */
+function retainedTree(archived: ArchivedTree): CliRefTree {
+  const llmsTxt = readFileSync(join(archived.sourceDir, "_llms.txt"), "utf8");
+  const declared = parseManualVersion(llmsTxt);
+  if (declared !== archived.label) throw new Error(`archived ${archived.label}/_llms.txt declares ${declared}`);
+  return {
+    label: archived.label,
+    docsPrefix: `${DEFAULT_DOCS_PREFIX}${archived.label}/`,
+    isDefault: false,
+    fetchedAt: archived.fetchedAt,
+    llmsTxt,
+    retained: true,
+    listedPrefix: archived.docsPrefix,
+    archiveDir: archived.sourceDir,
+  };
+}
+
 async function fetchText(url: string): Promise<{ status: number; text: string }> {
   const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
   return { status: res.status, text: res.ok ? await res.text() : "" };
@@ -230,18 +312,23 @@ async function fetchText(url: string): Promise<{ status: number; text: string }>
 
 /**
  * Which trees a live run extracts. The default tree's declared version is resolved first;
- * every version cli-compare.json lists, plus that one, is then probed at /docs/<v>/:
+ * every version cli-compare.json lists or the archive holds, plus that one, is then probed
+ * at /docs/<v>/:
  *
  *   200                         → extract it from /docs/<v>/ (for the default's own version
  *                                 this is the dedupe case: one tree, its stable URL, is_default)
  *   404, the default's version  → covered by the default /docs/ tree, silently (7.26 today)
+ *   404, archived               → retain it: re-parse the archived source, keep its original
+ *                                 fetched_at, warn
  *   404, any other version      → warn and skip — an upstream absence never fails a build
  *   anything else, or a 200 whose llms.txt declares another version → throw: served but broken
  *
- * cli-compare.json itself: 404 → warn and fall back to the default tree alone; a 200 that
- * does not parse → throw (parseCliCompare).
+ * cli-compare.json itself: 404 → warn and fall back to the default and archived trees; a 200
+ * that does not parse → throw (parseCliCompare).
  */
-async function resolveTreesLive(): Promise<{ trees: CliRefTree[]; compare: CliCompare | null; compareText: string | null }> {
+async function resolveTreesLive(
+  archive: ReadonlyMap<string, ArchivedTree>,
+): Promise<{ trees: CliRefTree[]; compare: CliCompare | null; compareText: string | null }> {
   const fetchedAt = new Date().toISOString();
   const root = await fetchText(LLMS_TXT_URL);
   if (root.status !== 200) throw new Error(`Failed to fetch ${LLMS_TXT_URL}: HTTP ${root.status}`);
@@ -250,7 +337,7 @@ async function resolveTreesLive(): Promise<{ trees: CliRefTree[]; compare: CliCo
   const cmp = await fetchText(CLI_COMPARE_URL);
   let compare: CliCompare | null = null;
   if (cmp.status === 404) {
-    console.log(`::warning::${CLI_COMPARE_URL} returned 404 — extracting the default tree only, with no reconciliation`);
+    console.log(`::warning::${CLI_COMPARE_URL} returned 404 — extracting the default and archived trees only, with no reconciliation`);
   } else if (cmp.status !== 200) {
     throw new Error(`Failed to fetch ${CLI_COMPARE_URL}: HTTP ${cmp.status}`);
   } else {
@@ -258,7 +345,7 @@ async function resolveTreesLive(): Promise<{ trees: CliRefTree[]; compare: CliCo
   }
 
   // Default first: its rows are stored first, so their ids match a single-tree build.
-  const labels = [defaultLabel, ...(compare?.versions ?? []).filter((v) => v !== defaultLabel)];
+  const labels = [defaultLabel, ...(compare?.versions ?? []), ...archive.keys()];
   const trees: CliRefTree[] = [];
   for (const label of new Set(labels)) {
     const docsPrefix = `${DEFAULT_DOCS_PREFIX}${label}/`;
@@ -267,10 +354,17 @@ async function resolveTreesLive(): Promise<{ trees: CliRefTree[]; compare: CliCo
     if (probe.status === 200) {
       const declared = parseManualVersion(probe.text);
       if (declared !== label) throw new Error(`${docsPrefix}llms.txt declares ${declared}, not ${label} — served but broken (#188)`);
-      trees.push({ label, docsPrefix, isDefault, fetchedAt, llmsTxt: probe.text });
+      trees.push({ label, docsPrefix, isDefault, fetchedAt, llmsTxt: probe.text, retained: false });
     } else if (probe.status === 404) {
-      if (isDefault) trees.push({ label, docsPrefix: DEFAULT_DOCS_PREFIX, isDefault, fetchedAt, llmsTxt: root.text });
-      else console.log(`::warning::cli-compare.json lists ${label}, but ${docsPrefix}llms.txt returned 404 — tree skipped`);
+      const archived = archive.get(label);
+      if (isDefault) {
+        trees.push({ label, docsPrefix: DEFAULT_DOCS_PREFIX, isDefault, fetchedAt, llmsTxt: root.text, retained: false });
+      } else if (archived !== undefined) {
+        trees.push(retainedTree(archived));
+        console.log(`::warning::${docsPrefix}llms.txt returned 404 — ${label} retained from the previous release's archive (fetched ${archived.fetchedAt})`);
+      } else {
+        console.log(`::warning::${label} is listed, but ${docsPrefix}llms.txt returned 404 and no archive holds it — tree skipped`);
+      }
     } else {
       throw new Error(`Failed to fetch ${BASE}${docsPrefix}llms.txt: HTTP ${probe.status}`);
     }
@@ -285,7 +379,7 @@ function readCachedTrees(): { trees: CliRefTree[]; compare: CliCompare | null } 
   for (const d of dirs.map((x) => x.name).sort()) {
     if (!TREE_LABEL.test(d)) continue;
     const dir = safeCachePath(CACHE_DIR, d);
-    let meta: { label: string; docsPrefix: string; isDefault: boolean; fetchedAt: string };
+    let meta: { label: string; docsPrefix: string; isDefault: boolean; fetchedAt: string; retained?: boolean; listedPrefix?: string };
     try {
       meta = JSON.parse(readFileSync(join(dir, "_tree.json"), "utf8"));
     } catch {
@@ -297,12 +391,17 @@ function readCachedTrees(): { trees: CliRefTree[]; compare: CliCompare | null } 
     const isDefault = meta.isDefault === true;
     const docsPrefix = isDefault && meta.docsPrefix === DEFAULT_DOCS_PREFIX ? DEFAULT_DOCS_PREFIX : `${DEFAULT_DOCS_PREFIX}${d}/`;
     if (meta.docsPrefix !== docsPrefix) throw new Error(`${dir}/_tree.json has docsPrefix ${JSON.stringify(meta.docsPrefix)}, expected ${docsPrefix}`);
+    if (meta.listedPrefix !== undefined && !validListedPrefix(d, meta.listedPrefix)) {
+      throw new Error(`${dir}/_tree.json has listedPrefix ${JSON.stringify(meta.listedPrefix)}`);
+    }
     trees.push({
       label: d,
       docsPrefix,
       isDefault,
       fetchedAt: String(meta.fetchedAt),
       llmsTxt: readFileSync(join(dir, "_llms.txt"), "utf8"),
+      retained: meta.retained === true,
+      ...(meta.listedPrefix === undefined ? {} : { listedPrefix: meta.listedPrefix }),
     });
   }
   if (trees.length === 0) {
@@ -437,6 +536,19 @@ async function fetchPage(tree: CliRefTree, slug: string): Promise<string | null>
       return null;
     }
   }
+  // A retained tree's pages come from the archive, and are cached like fetched ones so
+  // --from-cache reproduces the run.
+  if (tree.archiveDir !== undefined) {
+    let body: string;
+    try {
+      body = readFileSync(safeCachePath(tree.archiveDir, `${slug}.md`), "utf8");
+    } catch {
+      return null;
+    }
+    mkdirSync(cacheDir, { recursive: true });
+    writeFileSync(file, body);
+    return body;
+  }
   // A live run never reads the cache (#160): every page is re-fetched and its cache file
   // overwritten. A reused July copy of routing__route.md once kept a section MikroTik had
   // since removed, so a "live" local build disagreed with CI's empty-cache build (#159).
@@ -464,10 +576,20 @@ async function fetchLanding(tree: CliRefTree): Promise<string> {
       throw new Error(`--from-cache set but no cached landing page at ${file} — run one live extract first (#193)`);
     }
   }
-  const url = `${BASE}${tree.docsPrefix}cli-reference.md`;
-  const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-  if (!res.ok) throw new Error(`[${tree.label}] Failed to fetch ${url}: HTTP ${res.status} — the tree is served without its landing page (#193)`);
-  const body = await res.text();
+  let body: string;
+  if (tree.archiveDir !== undefined) {
+    const archived = safeCachePath(tree.archiveDir, "cli-reference.md");
+    try {
+      body = readFileSync(archived, "utf8");
+    } catch {
+      throw new Error(`[${tree.label}] the archive has no landing page at ${archived} (#193)`);
+    }
+  } else {
+    const url = `${BASE}${tree.docsPrefix}cli-reference.md`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) throw new Error(`[${tree.label}] Failed to fetch ${url}: HTTP ${res.status} — the tree is served without its landing page (#193)`);
+    body = await res.text();
+  }
   mkdirSync(cacheDir, { recursive: true });
   writeFileSync(file, body);
   return body;
@@ -1014,7 +1136,7 @@ interface TreeResult {
 function store(results: TreeResult[], mismatches: ReadonlyMap<string, number | null>): void {
   const insTree = db.prepare(
     `INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256, cli_compare_mismatches)
-     VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
   const insStandard = db.prepare(
     `INSERT INTO cliref_standard (manual_version, section, name, description_markdown, source_order, source_line)
@@ -1047,6 +1169,7 @@ function store(results: TreeResult[], mismatches: ReadonlyMap<string, number | n
         `${BASE}${tree.docsPrefix}`,
         tree.isDefault ? 1 : 0,
         tree.fetchedAt,
+        tree.retained ? 1 : 0,
         tree.llmsTxt,
         new Bun.CryptoHasher("sha256").update(tree.llmsTxt).digest("hex"),
         landingMarkdown,
@@ -1122,11 +1245,11 @@ async function extractTree(tree: CliRefTree): Promise<TreeResult> {
     // The tree's index files, written before any page so --from-cache can rebuild the run.
     mkdirSync(cacheDir, { recursive: true });
     writeFileSync(safeCachePath(cacheDir, "_llms.txt"), tree.llmsTxt);
-    const { llmsTxt: _omit, ...meta } = tree;
+    const { llmsTxt: _llms, archiveDir: _archive, ...meta } = tree;
     writeFileSync(safeCachePath(cacheDir, "_tree.json"), `${JSON.stringify(meta, null, 2)}\n`);
   }
   const cliPrefix = treeCliPrefix(tree);
-  const { names: tocNames, nonCliPages } = parseLlmsToc(tree.llmsTxt, cliPrefix);
+  const { names: tocNames, nonCliPages } = parseLlmsToc(tree.llmsTxt, `${tree.listedPrefix ?? tree.docsPrefix}cli-reference/`);
   let slugs = await loadCliRefSlugs(tree, tocNames);
   if (LIMIT !== undefined) slugs = slugs.slice(0, LIMIT);
 
@@ -1201,7 +1324,9 @@ async function main(): Promise<void> {
     ({ trees, compare } = readCachedTrees());
   } else {
     let compareText: string | null;
-    ({ trees, compare, compareText } = await resolveTreesLive());
+    const archive = ARCHIVE_DIR === undefined ? new Map<string, ArchivedTree>() : readArchive(ARCHIVE_DIR);
+    if (ARCHIVE_DIR !== undefined) console.log(`Archive ${ARCHIVE_DIR}: ${[...archive.keys()].join(", ") || "no trees"}`);
+    ({ trees, compare, compareText } = await resolveTreesLive(archive));
     mkdirSync(CACHE_DIR, { recursive: true });
     const comparePath = safeCachePath(CACHE_DIR, "_cli-compare.json");
     if (compareText !== null) writeFileSync(comparePath, compareText);
@@ -1209,7 +1334,9 @@ async function main(): Promise<void> {
   }
   const defaultTree = trees.find((t) => t.isDefault);
   if (defaultTree === undefined) throw new Error("no default tree resolved");
-  console.log(`Manual trees: ${trees.map((t) => `${t.label}${t.isDefault ? " (default)" : ""} from ${t.docsPrefix}`).join(", ")}`);
+  console.log(
+    `Manual trees: ${trees.map((t) => `${t.label}${t.isDefault ? " (default)" : ""} from ${t.retained ? "the archive (retained)" : t.docsPrefix}`).join(", ")}`,
+  );
 
   const results: TreeResult[] = [];
   for (const tree of trees) results.push(await extractTree(tree));

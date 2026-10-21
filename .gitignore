@@ -32,6 +32,9 @@ images/
 # potentially ros-help.db.gz from `gh` ops
 ros-help.db.gz
 
+# release.yml's unpacked retention archive (previous rosetta-cli-reference.tar.gz, #188)
+cliref-archive/
+
 # Skills cache (fetched from GitHub API — not committed like transcripts/dude).
 # Anchored to root so .github/skills/ (Claude Code skills) is NOT ignored.
 /skills/

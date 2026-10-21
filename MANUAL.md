@@ -101,10 +101,11 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **CLI Reference overlay** — `/docs/cli-reference/*` (current counts: `routeros_stats`; discovered as the union of `sitemap.xml` and `llms.txt`, because a branching menu's own Directory page is listed only in the latter — see `V-cliref-discovery`) parsed by `src/extract-cliref.ts` (build: `make extract-cliref`) into a source-faithful overlay with one row set per served manual tree (#188): `cliref_trees` (one row per tree, keyed by the version its `llms.txt` declares, with `is_default` marking the site's default `/docs/` tree; it also keeps the tree's CLI Reference landing page `cli-reference.md` verbatim), `cliref_standard` (#193: the landing page's argument types, standard list entry properties, standard print modifiers and address flags, one row each, descriptions verbatim), `cliref_pages` (byte-exact source Markdown + SHA-256), `cliref_entries` (Directory / Settings Directory / Command menus, with the manual-only `package`/`conditions`/`syscap` gates), `cliref_fields` (Argument / Read-only Argument), and `cliref_flags` (print-output markers). `src/link-cliref.ts` (`make link-cliref`, after `schema_nodes` is populated) resolves each entry to its inspect command node — exact, single-internal-segment alias, or manual-only — in `cliref_entry_schema_links`; the `cliref_field_inspect_links` **view** derives the zero-to-many field→argument mapping. An entry has a source path; a field has a name and zero-to-many inspect coordinates, never a path (see [DESIGN.md](DESIGN.md#cli-reference-overlay-source-vs-inspect-identity)). Issue #124. `release.yml` runs both steps so published DBs carry the overlay (#127); two blocking gates run in `qa.yml` db-content against the built DB — `make link-cliref-check` (`V-cliref-link-drift`: byte-compares the crosswalk against the committed `cli-reference-links.tsv` and rejects a non-allowlisted alias segment) and `make cliref-db-check` (`V-cliref-db-integrity`: structural + semantic invariants). After a corpus refresh that legitimately changes the crosswalk, regenerate the reviewable baseline with `make link-cliref-baseline` and commit `cli-reference-links.tsv`. `make extract-cliref-from-cache` re-runs offline from `manual/cli-reference/`, where each tree has its own `<version>/` directory with a `_tree.json`, `_llms.txt` and `_landing.md`. The default tree's directory also needs `_sitemap.txt`: since #137, the sitemap and `llms.txt` together are its page inventory. The sitemap lists no versioned URLs, so a versioned tree's inventory is its `llms.txt` alone.
 
-  **Which trees (#188).** The default tree's declared version is resolved first. Every version MikroTik's `https://manual.mikrotik.com/cli-compare.json` lists is then probed at `/docs/<v>/llms.txt`:
+  **Which trees (#188).** The default tree's declared version is resolved first. Every version MikroTik's `https://manual.mikrotik.com/cli-compare.json` lists, and every version the retention archive holds, is then probed at `/docs/<v>/llms.txt`:
   - A 200 is extracted. For the default's own version, this replaces `/docs/` as the same single tree.
   - A 404 on the default's own version is the normal state, and is silent.
-  - A 404 on any other listed version warns and skips the tree.
+  - A 404 on a version the archive holds **retains** the tree: it is re-parsed from the archived raw source through the same parser, keeps its original `fetched_at`, gets `retained = 1`, and logs a warning. It is stored under `/docs/<v>/` even if it was the default when archived.
+  - A 404 on any other version warns and skips the tree.
   - A 200 whose `llms.txt` declares another version fails the build, and so does a served tree with a missing page or a count that doesn't reconcile.
 
   The run also compares each `cli-compare.json` pair with the same diff computed from rosetta's rows, as sets (`V-cli-compare-reconcile`). A mismatch never fails the build: `release.yml`'s `cli-compare-issue` job keeps one open tracking issue while it lasts, and closes that issue on the first clean run. Runtime answers (`routeros_lookup_property`'s CLI-Reference fallback) read the default tree only; `rosetta export` writes every tree (see "Dataset Export"). Each tree's mismatch count is stored in `cliref_trees.cli_compare_mismatches` (NULL when no pair naming the tree was compared), so the export can report it. Expect the release job's CLI-Reference step to take about three times as long as a single-tree build.
@@ -393,6 +394,15 @@ https://github.com/tikoci/rosetta/releases/download/v0.7.3/ros-help.db.gz
 ```
 
 The version-pinned URL is what `bunx @tikoci/rosetta` uses internally — see [How Updates Work](#how-updates-work) below.
+
+**CLI Reference dataset (#188).** Every release also publishes `rosetta-cli-reference.tar.gz`, the `cli-reference/` directory of [`rosetta export`](#dataset-export) format 2 (every stored manual tree, ~3.5 MB), with `rosetta-cli-reference.tar.gz.sha256` beside it. The release notes repeat the digest. A consumer that needs this data without the whole DB should pin both:
+
+```sh
+curl -LO https://github.com/tikoci/rosetta/releases/download/<tag>/rosetta-cli-reference.tar.gz
+echo "<sha256>  rosetta-cli-reference.tar.gz" | sha256sum -c
+```
+
+Rosetta never deletes a release asset, but `republish_assets` can replace one under the same tag, so the tag alone is not an immutable pin; the sha256 is. Freshness is the release cadence: there is no moving `latest` dataset URL to follow. The asset is also rosetta's own archive: `release.yml` downloads the newest earlier release's copy (prereleases included), verifies its sha256, and passes its `cli-reference/` to `extract-cliref --archive`, so a tree MikroTik stops serving is retained rather than dropped. A failed download or a digest mismatch fails the build; no earlier release carrying the asset is the normal first-run state.
 
 Use it with any SQLite client:
 
