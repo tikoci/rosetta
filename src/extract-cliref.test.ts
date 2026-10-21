@@ -515,8 +515,13 @@ globalThis.fetch = async (input) => {
     try {
       extract(dir, "live.db");
       const meta = join(dir, "cache", "7.24", "_tree.json");
-      writeFileSync(meta, readFileSync(meta, "utf8").replace("/docs/7.24/", "/docs/elsewhere/"));
+      const original = readFileSync(meta, "utf8");
+      writeFileSync(meta, original.replace("/docs/7.24/", "/docs/elsewhere/"));
       expect(extractExpecting(1, dir, "cached.db", "--from-cache")).toContain('has docsPrefix "/docs/elsewhere/", expected /docs/7.24/');
+      // Only the default tree may claim /docs/: a non-default one doing so is a cache error,
+      // not a duplicate base_url for SQLite to reject.
+      writeFileSync(meta, original.replace("/docs/7.24/", "/docs/"));
+      expect(extractExpecting(1, dir, "cached.db", "--from-cache")).toContain('has docsPrefix "/docs/", expected /docs/7.24/');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -560,6 +565,22 @@ globalThis.fetch = async (input) => {
         { manual_version: "7.24", base_url: `${BASE}/docs/7.24/`, is_default: 0, retained: 0 },
         { manual_version: "7.26", base_url: `${BASE}/docs/7.26/`, is_default: 1, retained: 0 },
       ]);
+      // Still the default tree's sitemap ∪ llms.txt inventory, cached for --from-cache.
+      expect(readdirSync(join(dir, "cache", "7.26"))).toContain("_sitemap.txt");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("the #137 discovery gate still guards the default tree when it is read from /docs/<v>/", () => {
+    const orphan = `<urlset><url><loc>${BASE}/docs/cli-reference/orphan/</loc></url></urlset>`;
+    const dir = setup("rosetta-cliref-dedupe-gate-", {
+      ...ROUTES,
+      [`${BASE}/sitemap.xml`]: orphan,
+      [`${BASE}/docs/7.26/llms.txt`]: llms("7.26", "/docs/7.26/", ["ip/address"]),
+    });
+    try {
+      expect(extractExpecting(1, dir, "gate.db")).toContain("Discovery shape drift");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

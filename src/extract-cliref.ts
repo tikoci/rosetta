@@ -293,13 +293,14 @@ function readCachedTrees(): { trees: CliRefTree[]; compare: CliCompare | null } 
     }
     if (meta.label !== d) throw new Error(`${dir}/_tree.json names tree ${meta.label}`);
     // Rebuild the prefix from the validated directory name rather than trusting the file's
-    // string: a cached tree is either the default /docs/ tree or /docs/<its own label>/.
-    const docsPrefix = meta.docsPrefix === DEFAULT_DOCS_PREFIX ? DEFAULT_DOCS_PREFIX : `${DEFAULT_DOCS_PREFIX}${d}/`;
+    // string: any tree may be /docs/<its own label>/, and only the default tree may be /docs/.
+    const isDefault = meta.isDefault === true;
+    const docsPrefix = isDefault && meta.docsPrefix === DEFAULT_DOCS_PREFIX ? DEFAULT_DOCS_PREFIX : `${DEFAULT_DOCS_PREFIX}${d}/`;
     if (meta.docsPrefix !== docsPrefix) throw new Error(`${dir}/_tree.json has docsPrefix ${JSON.stringify(meta.docsPrefix)}, expected ${docsPrefix}`);
     trees.push({
       label: d,
       docsPrefix,
-      isDefault: meta.isDefault === true,
+      isDefault,
       fetchedAt: String(meta.fetchedAt),
       llmsTxt: readFileSync(join(dir, "_llms.txt"), "utf8"),
     });
@@ -333,9 +334,11 @@ function tocGroup(slug: string): string {
  * next inventory change fails the build instead of quietly shrinking the corpus.
  */
 async function loadCliRefSlugs(tree: CliRefTree, tocNames: Map<string, string>): Promise<string[]> {
-  // The sitemap lists no versioned URLs (0 of 2,306 on 2026-10-20), so for a /docs/<v>/ tree
-  // llms.txt is the whole inventory — and the #137 trailing-dir gate has nothing to check.
-  if (tree.docsPrefix !== DEFAULT_DOCS_PREFIX) {
+  // The sitemap lists no versioned URLs (0 of 2,306 on 2026-10-20), so for a non-default tree
+  // llms.txt is the whole inventory — and the #137 trailing-dir gate has nothing to check. The
+  // default tree keeps both even when it is read from /docs/<v>/ (the dedupe case): the sitemap
+  // describes the default version, and its slugs are relative to the cli-reference root.
+  if (!tree.isDefault) {
     console.log(`Discovery [${tree.label}]: ${tocNames.size} pages from ${tree.docsPrefix}llms.txt (no sitemap for versioned trees)`);
     return [...tocNames.keys()].sort();
   }
