@@ -35,6 +35,14 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **CLI Reference extraction skips MikroTik's new CLI-compare tool page.** On
+  2026-10-20 the site added `/docs/cli-reference/compare-versions`, listed in
+  `llms.txt` and in the sitemap (with a trailing slash). It documents no CLI
+  path, but discovery took it for a menu, which failed every live extraction.
+  It is now excluded by name, with the old `index` landing page. Each excluded
+  page that `llms.txt` lists is still fetched, and extraction fails if it ever
+  gains a `**Type:**` entry, so a page that becomes a real menu can't be
+  dropped silently.
 - **Manual extraction works with manual.mikrotik.com's new Markdown layout.** On
   2026-10-06 the site moved category pages from `<dir>/index.md` to `<dir>.md`,
   CLI Reference menu pages from `<dir>/<dir>.md` to `<dir>.md`, and dropped the MDX

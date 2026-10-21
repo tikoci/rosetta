@@ -9,10 +9,27 @@ import { join } from "node:path";
 // Bun's static-import hoisting — otherwise this file opening db.ts against the real
 // on-disk path would trip query.test.ts's singleton guard (order-dependent flake).
 process.env.DB_PATH = ":memory:";
-const { cliRefSlug, countStructuralMarkers, parsePage, reconcileTrailingDirs } = await import("./extract-cliref.ts");
+const { assertNonCliPage, cliRefSlug, countStructuralMarkers, nonCliPageSlug, parsePage, reconcileTrailingDirs } = await import(
+  "./extract-cliref.ts"
+);
 
 const FIXTURE = readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", "sample.md"), "utf8");
 const page = parsePage("sample", FIXTURE, "Sample");
+
+describe("assertNonCliPage (#194)", () => {
+  // The live compare-versions page as served 2026-10-20: prose plus a widget, no entries.
+  const TOOL_PAGE = "# /compare-versions\n\n<CliCompare />\n\n## How the comparison works\n\nVersions are compared by path.\n";
+
+  test("accepts a page with no **Type:** entries", () => {
+    expect(() => assertNonCliPage("compare-versions", TOOL_PAGE)).not.toThrow();
+  });
+
+  test("fails loudly once an excluded page carries a real entry", () => {
+    expect(() => assertNonCliPage("compare-versions", `${TOOL_PAGE}\n## compare-versions\n\n**Type:** Command\n`)).toThrow(
+      "remove it from NON_CLI_PAGES",
+    );
+  });
+});
 
 describe("cliRefSlug", () => {
   test("keeps a real page slug", () => {
@@ -34,6 +51,13 @@ describe("cliRefSlug", () => {
     expect(cliRefSlug("/docs/cli-reference/system/index")).toBe("system/index");
   });
 
+  test("excludes the CLI-compare tool page, and only at the section root (#194)", () => {
+    expect(cliRefSlug("https://manual.mikrotik.com/docs/cli-reference/compare-versions")).toBeNull();
+    expect(nonCliPageSlug("https://manual.mikrotik.com/docs/cli-reference/compare-versions")).toBe("compare-versions");
+    expect(nonCliPageSlug("https://manual.mikrotik.com/docs/cli-reference/ip/address")).toBeNull();
+    expect(cliRefSlug("/docs/cli-reference/tool/compare-versions")).toBe("tool/compare-versions");
+  });
+
   test("keeps a branching menu's own Directory leaf (#137)", () => {
     // The sitemap serves these menus as trailing-slash category URLs (excluded above), but
     // the menu's Directory entry is published at <dir>/<basename>.md and reaches discovery
@@ -50,6 +74,12 @@ describe("cliRefSlug", () => {
 });
 
 describe("reconcileTrailingDirs (#137 discovery gate)", () => {
+  test("ignores a non-CLI page the sitemap lists with a trailing slash (#194)", () => {
+    // Live sitemap, 2026-10-21: the tool page is served as …/compare-versions/ and has no leaf.
+    const locs = ["https://manual.mikrotik.com/docs/cli-reference/compare-versions/"];
+    expect(() => reconcileTrailingDirs(locs, new Set<string>())).not.toThrow();
+  });
+
   const B = "https://manual.mikrotik.com/docs/cli-reference";
   const locs = [`${B}/`, `${B}/app/`, `${B}/caps-man/interface/`, `${B}/ip/address`];
 
@@ -231,7 +261,8 @@ describe("live run vs cache (#160)", () => {
   // "Live" manual.mikrotik.com, served to the extractor subprocess by a preloaded fetch stub.
   const ROUTES: Record<string, string> = {
     [`${BASE}/sitemap.xml`]: SITEMAP,
-    [`${BASE}/llms.txt`]: `# MikroTik RouterOS Manual\n\nIndex of the RouterOS 7.26 manual, in documentation menu order.\n\n- [Address](${BASE}/docs/cli-reference/ip/address.md)\n- [Route](${BASE}/docs/cli-reference/ip/route.md)\n`,
+    [`${BASE}/docs/cli-reference/compare-versions.md`]: "# /compare-versions\n\n<CliCompare />\n\n## How the comparison works\n\nProse.\n",
+    [`${BASE}/llms.txt`]: `# MikroTik RouterOS Manual\n\nIndex of the RouterOS 7.26 manual, in documentation menu order.\n\n- [/compare-versions](${BASE}/docs/cli-reference/compare-versions.md)\n- [Address](${BASE}/docs/cli-reference/ip/address.md)\n- [Route](${BASE}/docs/cli-reference/ip/route.md)\n`,
     [`${BASE}/docs/cli-reference/ip/address.md`]: FIXTURE,
     [`${BASE}/docs/cli-reference/ip/route.md`]: ROUTE,
   };
@@ -305,7 +336,8 @@ globalThis.fetch = async (input) => {
       // The cache now holds exactly this run: live page bodies plus the index files it wrote.
       expect(readFileSync(join(cache, "ip__address.md"), "utf8")).toBe(FIXTURE);
       expect(readFileSync(join(cache, "_sitemap.txt"), "utf8")).toBe(SITEMAP);
-      expect(readdirSync(cache).sort()).toEqual(["_llms.txt", "_sitemap.txt", "ip__address.md", "ip__route.md"]);
+      // compare-versions is listed in llms.txt: fetched and kept only to re-check it is still non-CLI (#194).
+      expect(readdirSync(cache).sort()).toEqual(["_llms.txt", "_sitemap.txt", "compare-versions.md", "ip__address.md", "ip__route.md"]);
 
       extract(dir, "cached.db", "--from-cache");
       expect(query(join(dir, "cached.db"), COUNTS)).toEqual(query(join(dir, "live.db"), COUNTS));
