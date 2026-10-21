@@ -15,6 +15,7 @@ const {
   countStructuralMarkers,
   nonCliPageSlug,
   parseCliCompare,
+  parseLandingPage,
   parseLlmsToc,
   parsePage,
   reconcileCliCompare,
@@ -24,6 +25,38 @@ const {
 
 const FIXTURE = readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", "sample.md"), "utf8");
 const page = parsePage("sample", FIXTURE, "Sample");
+
+describe("parseLandingPage (#193)", () => {
+  const landing = (v: string) => readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", `landing-${v}.md`), "utf8");
+  const tally = (rows: ReturnType<typeof parseLandingPage>) =>
+    Object.fromEntries(["Argument types", "Standard list entry properties", "Standard print modifiers", "address-flags"].map((s) => [s, rows.filter((r) => r.section === s).length]));
+
+  test("reads every row of the four sections in the default tree (7.26 fixture, 2026-10-21)", () => {
+    const rows = parseLandingPage(landing("7.26"));
+    expect(tally(rows)).toEqual({ "Argument types": 34, "Standard list entry properties": 4, "Standard print modifiers": 2, "address-flags": 13 });
+    const copyFrom = rows.find((r) => r.name === "copy-from");
+    expect(copyFrom).toMatchObject({ section: "Standard list entry properties", sourceOrder: 2, sourceLine: 54 });
+    // Kept verbatim: which verb takes the name is the consumer's reading of this sentence.
+    expect(copyFrom?.descriptionMarkdown).toBe("argument of the `add` command: creates the new entry as a copy of an existing entry");
+    expect(rows.find((r) => r.name === "address")?.descriptionMarkdown).toContain("[address flags](#address-flags)");
+    expect(rows.filter((r) => r.section === "address-flags").map((r) => r.name).join("")).toBe("46Di/v%RS+:Lm");
+  });
+
+  test("reads the 7.24 tree, whose flag table lacks % and whose extra sections stay raw", () => {
+    const rows = parseLandingPage(landing("7.24"));
+    expect(tally(rows)).toEqual({ "Argument types": 34, "Standard list entry properties": 4, "Standard print modifiers": 2, "address-flags": 12 });
+    expect(rows.find((r) => r.section === "address-flags" && r.name === "i")?.descriptionMarkdown).toBe("Interface name");
+    expect(rows.some((r) => r.name === "Headings")).toBe(false);
+  });
+
+  test("fails loudly on a missing section, a reshaped row, or a repeated name", () => {
+    const md = landing("7.26");
+    expect(() => parseLandingPage(md.replace("## Standard print modifiers", "## Print modifiers"))).toThrow('section "Standard print modifiers" is missing');
+    expect(() => parseLandingPage(md.replace("- **`detail`** — prints", "- `detail`: prints"))).toThrow("does not match");
+    expect(() => parseLandingPage(md.replace("| Flag | Meaning |", "| Flag | Description |"))).toThrow("table header");
+    expect(() => parseLandingPage(md.replace("- **`as-value`**", "- **`detail`**"))).toThrow('"detail" repeats');
+  });
+});
 
 describe("versioned trees (#188)", () => {
   test("parseLlmsToc reads a versioned tree's pages under its own prefix only", () => {
@@ -357,9 +390,13 @@ describe("live run vs cache (#160)", () => {
     pairs: { "7.24->7.26": { changedCommands: [], addedCommands: ["ip/route"], removedCommands: ["Headings"] } },
   };
 
+  const LANDING = (v: string) => readFileSync(join(import.meta.dirname, "..", "fixtures", "cli-reference", `landing-${v}.md`), "utf8");
+
   // "Live" manual.mikrotik.com, served to the extractor subprocess by a preloaded fetch stub.
   // A null route is an expected 404; a URL with no route at all is a test bug.
   const ROUTES: Record<string, string | null> = {
+    [`${BASE}/docs/cli-reference.md`]: LANDING("7.26"),
+    [`${BASE}/docs/7.24/cli-reference.md`]: LANDING("7.24"),
     [`${BASE}/sitemap.xml`]: SITEMAP,
     [`${BASE}/cli-compare.json`]: JSON.stringify(CLI_COMPARE),
     // The default tree (7.26): its own versioned URL is not served, so /docs/ covers it.
@@ -472,8 +509,18 @@ globalThis.fetch = async (input) => {
       expect(readFileSync(join(tree, "ip__address.md"), "utf8")).toBe(FIXTURE);
       expect(readFileSync(join(tree, "_sitemap.txt"), "utf8")).toBe(SITEMAP);
       // compare-versions is listed in llms.txt: fetched and kept only to re-check it is still non-CLI (#194).
-      expect(readdirSync(tree).sort()).toEqual(["_llms.txt", "_sitemap.txt", "_tree.json", "compare-versions.md", "ip__address.md", "ip__route.md"]);
-      expect(readdirSync(join(cache, "7.24")).sort()).toEqual(["_llms.txt", "_tree.json", "ip__address.md"]);
+      expect(readdirSync(tree).sort()).toEqual(["_landing.md", "_llms.txt", "_sitemap.txt", "_tree.json", "compare-versions.md", "ip__address.md", "ip__route.md"]);
+      expect(readdirSync(join(cache, "7.24")).sort()).toEqual(["_landing.md", "_llms.txt", "_tree.json", "ip__address.md"]);
+
+      // #193: each tree keeps its own landing page and its parsed standard rows.
+      const STANDARD = "SELECT manual_version, COUNT(*) AS n FROM cliref_standard GROUP BY manual_version ORDER BY manual_version";
+      expect(query(join(dir, "live.db"), STANDARD)).toEqual([
+        { manual_version: "7.24", n: 52 },
+        { manual_version: "7.26", n: 53 },
+      ]);
+      expect(
+        query(join(dir, "live.db"), "SELECT manual_version FROM cliref_trees WHERE landing_markdown LIKE '%## Headings%'"),
+      ).toEqual([{ manual_version: "7.24" }]);
       expect(readdirSync(cache).sort()).toEqual(["7.24", "7.26", "_cli-compare.json", "cli-compare-reconcile.tsv"]);
       // The two sides agree once the Headings artifact is set aside: a header-only report.
       expect(readFileSync(join(cache, "cli-compare-reconcile.tsv"), "utf8")).toBe("pair\tkind\tpath\tname\tonly_in\n");
@@ -481,6 +528,7 @@ globalThis.fetch = async (input) => {
       extract(dir, "cached.db", "--from-cache");
       expect(query(join(dir, "cached.db"), COUNTS)).toEqual(query(join(dir, "live.db"), COUNTS));
       expect(query(join(dir, "cached.db"), TREES)).toEqual(query(join(dir, "live.db"), TREES));
+      expect(query(join(dir, "cached.db"), STANDARD)).toEqual(query(join(dir, "live.db"), STANDARD));
 
       // #187: both runs stamp the version the cached/live llms.txt header declares.
       for (const name of ["live.db", "cached.db"]) {
@@ -543,6 +591,15 @@ globalThis.fetch = async (input) => {
     }
   });
 
+  test("a served tree without its landing page fails the build (#193)", () => {
+    const dir = setup("rosetta-cliref-no-landing-", { ...ROUTES, [`${BASE}/docs/7.24/cli-reference.md`]: null });
+    try {
+      expect(extractExpecting(1, dir, "no-landing.db")).toContain("served without its landing page");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test("a served tree whose llms.txt declares another version fails the build (#188)", () => {
     const dir = setup("rosetta-cliref-broken-", { ...ROUTES, [`${BASE}/docs/7.24/llms.txt`]: llms("7.25", "/docs/7.24/", ["ip/address"]) });
     try {
@@ -558,6 +615,7 @@ globalThis.fetch = async (input) => {
       [`${BASE}/docs/7.26/llms.txt`]: llms("7.26", "/docs/7.26/", ["ip/address", "ip/route"]),
       [`${BASE}/docs/7.26/cli-reference/ip/address.md`]: FIXTURE,
       [`${BASE}/docs/7.26/cli-reference/ip/route.md`]: ROUTE,
+      [`${BASE}/docs/7.26/cli-reference.md`]: LANDING("7.26"),
     });
     try {
       extract(dir, "dedupe.db");

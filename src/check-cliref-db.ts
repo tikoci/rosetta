@@ -54,6 +54,17 @@ expectZero(
   "SELECT COUNT(*) AS n FROM cliref_trees WHERE length(llms_sha256) <> 64",
 );
 
+// ── Landing page (#193): every tree keeps it, and all four fact sections parsed ──
+expectZero("malformed cliref_trees.landing_sha256", "SELECT COUNT(*) AS n FROM cliref_trees WHERE length(landing_sha256) <> 64");
+expectZero(
+  "tree missing a landing-page section",
+  `SELECT COUNT(*) AS n FROM cliref_trees t,
+     (SELECT 'Argument types' AS s UNION ALL SELECT 'Standard list entry properties'
+      UNION ALL SELECT 'Standard print modifiers' UNION ALL SELECT 'address-flags') sec
+   WHERE NOT EXISTS (SELECT 1 FROM cliref_standard c WHERE c.manual_version = t.manual_version AND c.section = sec.s)`,
+);
+expectZero("orphan cliref_standard.manual_version", "SELECT COUNT(*) AS n FROM cliref_standard c WHERE NOT EXISTS (SELECT 1 FROM cliref_trees t WHERE t.manual_version = c.manual_version)");
+
 // ── Orphans (explicit — belt-and-suspenders beyond the FK declarations) ──
 expectZero("orphan cliref_entries.page_id", "SELECT COUNT(*) AS n FROM cliref_entries e WHERE NOT EXISTS (SELECT 1 FROM cliref_pages p WHERE p.id = e.page_id)");
 expectZero("orphan cliref_entries.source_parent_id", "SELECT COUNT(*) AS n FROM cliref_entries e WHERE e.source_parent_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM cliref_entries p WHERE p.id = e.source_parent_id)");
@@ -99,4 +110,4 @@ if (problems.length > 0) {
   process.exit(1);
 }
 const treeCount = (db.query("SELECT COUNT(*) AS n FROM cliref_trees").get() as { n: number }).n;
-console.log(`✓ V-cliref-db-integrity OK — ${treeCount} tree(s), ${entryCount} entries: integrity/FK clean, one default tree, no orphans, enums valid, occurrence identity unique, field view settable-only.`);
+console.log(`✓ V-cliref-db-integrity OK — ${treeCount} tree(s), ${entryCount} entries: integrity/FK clean, one default tree, landing pages parsed, no orphans, enums valid, occurrence identity unique, field view settable-only.`);

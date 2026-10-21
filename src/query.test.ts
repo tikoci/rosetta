@@ -1264,9 +1264,9 @@ describe("lookupProperty — CLI-Reference fallback (#169)", () => {
              (${CR + 2}, '/ping', 'ping', 'cmd', '/', NULL, 'Ping', '7.22')`);
     // Two trees (#188): every fixture page lives in the default 7.26 tree, and a 7.24 copy of
     // system/note carries an older show-at-login that no lookup may return.
-    db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256)
-      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', ''),
-             ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '')`);
+    db.run(`INSERT INTO cliref_trees (manual_version, base_url, is_default, fetched_at, retained, llms_txt, llms_sha256, landing_markdown, landing_sha256)
+      VALUES ('7.26', 'https://manual.mikrotik.com/docs/', 1, 'x', 0, '', '', '', ''),
+             ('7.24', 'https://manual.mikrotik.com/docs/7.24/', 0, 'x', 0, '', '', '', '')`);
     db.run(`INSERT INTO cliref_pages (id,manual_version,slug,url,toc_name,toc_group,source_title,source_markdown,source_sha256,source_order)
       VALUES (${CR + 50}, '7.24', 'system/note', 'https://manual.mikrotik.com/docs/7.24/cli-reference/system/note', 'system/note', '', '', '', '', 0)`);
     db.run(`INSERT INTO cliref_entries (id,page_id,source_heading,source_path,source_type,heading_level,description_markdown,source_order,source_line,source_end_line)
