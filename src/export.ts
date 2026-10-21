@@ -808,6 +808,9 @@ export async function runExport(outDir: string, database: Database, opts: Export
       schema_version: readMeta(database, "schema_version") ?? String((database.prepare("PRAGMA user_version").get() as { user_version: number }).user_version),
       source_commit: readMeta(database, "source_commit") ?? "(unstamped)",
       built_at: readMeta(database, "built_at") ?? "(unstamped)",
+      // The manual tree each docs store was read from (#187); not the RouterOS stable release.
+      docs_manual_version: readMeta(database, "docs_manual_version") ?? "(unstamped)",
+      cliref_manual_version: readMeta(database, "cliref_manual_version") ?? "(unstamped)",
     },
     contract: {
       file_format: "tsv",

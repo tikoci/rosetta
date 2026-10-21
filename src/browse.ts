@@ -1126,6 +1126,7 @@ function renderStats(): string {
   kv("Videos", stats.videos);
   kv("Video segments", stats.video_segments);
   kv("Version range", `${stats.ros_version_min ?? "?"}–${stats.ros_version_max ?? "?"}`);
+  kv("Manual version", `docs ${stats.manual_version.docs ?? "?"}, CLI Reference ${stats.manual_version.cli_reference ?? "?"}`);
 
   return out.join("\n");
 }

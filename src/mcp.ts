@@ -1027,6 +1027,8 @@ at rosetta://skills/{name}. Use the resource listing to browse available skills.
 
 Knowledge boundaries:
 - Documentation corpus: see provenance.built_at / provenance.release_tag for what this DB actually is
+- Manual version: manual_version names the manual.mikrotik.com tree the docs and CLI Reference
+  came from. The site's default tree can be a development (beta) manual, not stable
 - Command tree: RouterOS 7.9+ from inspect.json (with extra-packages from CHR); see ros_version range
 - No RouterOS v6 data available — v6 syntax and subsystems differ significantly from v7
 - For versions older than ${commandRange.min ?? "the tracked range"}, no command tree data exists

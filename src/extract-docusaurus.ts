@@ -27,7 +27,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 import { pruneCache } from "./cache-prune.ts";
-import { db, initDb } from "./db.ts";
+import { db, initDb, setDbMeta } from "./db.ts";
+import { DOCS_MANUAL_VERSION_KEY, parseManualVersion } from "./manual-version.ts";
 import { deriveRosettaId, loadSitemapUrls, rosettaIdToUrl } from "./rosetta-id.ts";
 
 const BASE = "https://manual.mikrotik.com";
@@ -898,6 +899,28 @@ export function parseLlmsTxtInScopeCount(llmsTxt: string): number {
   return links.filter((u) => isInScopeDocsUrl(u)).length;
 }
 
+/**
+ * The tree's llms.txt, for its version header (#187). A live run fetches it and caches it as
+ * `_llms.txt` beside the pages (pruneCache only touches `.md`), so --from-cache can stamp the
+ * same version offline. Read before any page so a missing header fails before the rebuild.
+ */
+async function loadLlmsTxt(): Promise<string> {
+  const cached = join(CACHE_DIR, "_llms.txt");
+  if (FROM_CACHE) {
+    try {
+      return readFileSync(cached, "utf-8");
+    } catch {
+      throw new Error(`--from-cache set but no cached llms.txt at ${cached} — run one live extract first (#187)`);
+    }
+  }
+  const res = await fetch(LLMS_TXT_URL, { signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`Failed to fetch ${LLMS_TXT_URL}: HTTP ${res.status}`);
+  const txt = await res.text();
+  mkdirSync(CACHE_DIR, { recursive: true });
+  writeFileSync(cached, txt);
+  return txt;
+}
+
 async function checkCounts(extractedCount: number): Promise<"match" | "mismatch" | "skipped"> {
   try {
     const res = await fetch(LLMS_TXT_URL, { signal: AbortSignal.timeout(10_000) });
@@ -924,6 +947,9 @@ async function checkCounts(extractedCount: number): Promise<"match" | "mismatch"
 async function main() {
   console.log("Initializing database...");
   initDb();
+
+  const manualVersion = parseManualVersion(await loadLlmsTxt());
+  console.log(`Manual tree: RouterOS ${manualVersion} (llms.txt header)`);
 
   console.log(FROM_CACHE ? `Discovering pages from cache: ${CACHE_DIR}` : `Discovering pages from sitemap: ${SITEMAP_URL}`);
 
@@ -1228,6 +1254,8 @@ async function main() {
     console.error("A constraint is silently discarding rows. Do not 'fix' this by lowering the parsed count (issue #90).");
     process.exit(1);
   }
+
+  setDbMeta(DOCS_MANUAL_VERSION_KEY, manualVersion);
 
   const counts = CHECK_COUNTS ? await checkCounts(parsedPages.length) : "match";
   if (counts !== "match" && STRICT) process.exit(1);

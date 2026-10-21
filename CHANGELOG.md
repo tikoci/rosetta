@@ -22,6 +22,17 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`routeros_stats` names the manual version the docs came from.** A new
+  `manual_version` block (`docs`, `cli_reference`) reports the version each
+  manual.mikrotik.com tree declares in its `llms.txt` header. The browse TUI's
+  stats view and the `rosetta export` manifest show it too. The site's default
+  tree is not the stable manual (it declared 7.26 on 2026-10-20, while stable
+  was 7.24.5), so treat this, not the stable channel, as the docs' version.
+  Extraction now fails when the header is missing, or when the prose and CLI
+  Reference were read from different trees.
+
 ### Fixed
 
 - **Manual extraction works with manual.mikrotik.com's new Markdown layout.** On

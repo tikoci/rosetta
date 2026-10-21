@@ -1,0 +1,7 @@
+# MikroTik RouterOS Manual
+
+> Official MikroTik RouterOS documentation: configuration reference, CLI reference, and user guides.
+
+Index of the RouterOS 7.26 manual, in documentation menu order. Links open Markdown copies of the pages.
+
+Fixture header only (#187): extract-docusaurus reads the tree version from this line. The page list is not used by --from-cache discovery.
