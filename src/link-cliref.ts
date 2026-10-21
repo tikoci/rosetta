@@ -17,6 +17,10 @@
  *               prefix is a published entry is a real menu and is never dropped (#136).
  *   3. manual-only — no link row; a first-class entry inspect cannot self-report.
  *
+ * Every manual tree (#188) links the same way, by path: schema_nodes is one union across
+ * inspect versions with no per-version node ids, so there is no "nearest inspect version"
+ * to link a tree to. Version questions go through schema_node_presence instead.
+ *
  * Usage:
  *   bun run src/link-cliref.ts                  # link against the current DB
  *   bun run src/link-cliref.ts --report         # print exact/alias/manual-only breakdown
@@ -162,10 +166,16 @@ export function linkEntries(): { exact: number; alias: number; manual: number } 
     );
   }
   const entries = db
-    .query("SELECT id, source_path, source_type FROM cliref_entries")
-    .all() as Array<{ id: number; source_path: string; source_type: string }>;
-  // Published menu paths, for the alias branch's prefix-scoping guard (#136).
-  const publishedPaths = new Set(entries.map((e) => e.source_path));
+    .query("SELECT e.id, e.source_path, e.source_type, p.manual_version FROM cliref_entries e JOIN cliref_pages p ON p.id = e.page_id")
+    .all() as Array<{ id: number; source_path: string; source_type: string; manual_version: string }>;
+  // Published menu paths, for the alias branch's prefix-scoping guard (#136) — per tree, since
+  // a menu published in one manual version says nothing about another.
+  const publishedPaths = new Map<string, Set<string>>();
+  for (const e of entries) {
+    const paths = publishedPaths.get(e.manual_version) ?? new Set<string>();
+    paths.add(e.source_path);
+    publishedPaths.set(e.manual_version, paths);
+  }
 
   const insLink = db.prepare(
     "INSERT INTO cliref_entry_schema_links (entry_id, schema_node_id, match_kind, match_detail) VALUES (?, ?, ?, ?)",
@@ -176,7 +186,7 @@ export function linkEntries(): { exact: number; alias: number; manual: number } 
   db.transaction(() => {
     db.run("DELETE FROM cliref_entry_schema_links;");
     for (const e of entries) {
-      const link = resolveEntry(e.source_path, e.source_type, index, publishedPaths);
+      const link = resolveEntry(e.source_path, e.source_type, index, publishedPaths.get(e.manual_version) ?? new Set());
       if (link === null) {
         manual++;
         continue;
@@ -190,6 +200,7 @@ export function linkEntries(): { exact: number; alias: number; manual: number } 
 }
 
 interface CrosswalkRow {
+  manual_version: string;
   source_path: string;
   source_type: string;
   match_kind: string; // 'exact' | 'alias' | 'manual-only'
@@ -200,16 +211,18 @@ interface CrosswalkRow {
 export function readCrosswalk(): CrosswalkRow[] {
   return db
     .query(
-      `SELECT e.source_path                          AS source_path,
+      `SELECT p.manual_version                       AS manual_version,
+              e.source_path                          AS source_path,
               e.source_type                          AS source_type,
               COALESCE(l.match_kind, 'manual-only')  AS match_kind,
               COALESCE(l.match_detail, '')           AS match_detail
        FROM cliref_entries e
+       JOIN cliref_pages p ON p.id = e.page_id
        LEFT JOIN cliref_entry_schema_links l ON l.entry_id = e.id
        -- (page_id, source_order) is the entry identity and breaks ties fully: the corpus
        -- allows duplicate heading paths, so source_path/source_type alone leaves tied rows
        -- in undefined order and the baseline TSV could reorder harmlessly and trip --check.
-       ORDER BY e.source_path, e.source_type, e.page_id, e.source_order`,
+       ORDER BY p.manual_version, e.source_path, e.source_type, e.page_id, e.source_order`,
     )
     .all() as CrosswalkRow[];
 }
@@ -220,29 +233,34 @@ export function readCrosswalk(): CrosswalkRow[] {
  * since an exact match is just source_path == inspect path. A `# counts` header pins
  * exact/alias/manual-only/entries so a pure exact-count shift can't slip past the
  * byte-compare. Any drift (new mismatch, changed alias segment, count move) shows in
- * the diff, exactly like device-map.tsv.
+ * the diff, exactly like device-map.tsv. One `# counts` line per manual tree (#188).
  */
 export function buildBaselineTsv(): string {
   const rows = readCrosswalk();
-  let exact = 0;
-  let alias = 0;
-  let manual = 0;
+  const counts = new Map<string, { exact: number; alias: number; manual: number; entries: number }>();
   const body: string[] = [];
   for (const r of rows) {
+    const c = counts.get(r.manual_version) ?? { exact: 0, alias: 0, manual: 0, entries: 0 };
+    counts.set(r.manual_version, c);
+    c.entries++;
     if (r.match_kind === "exact") {
-      exact++;
+      c.exact++;
       continue;
     }
-    if (r.match_kind === "alias") alias++;
-    else manual++;
+    if (r.match_kind === "alias") c.alias++;
+    else c.manual++;
     // source_path/source_type/match_detail are slug/enum/quoted-segment text — no tabs
     // or newlines — but sanitize defensively so a row can never break the TSV grid.
-    body.push([r.source_path, r.source_type, r.match_kind, r.match_detail].map((c) => c.replace(/[\t\r\n]/g, " ")).join("\t"));
+    body.push(
+      [r.manual_version, r.source_path, r.source_type, r.match_kind, r.match_detail].map((c) => c.replace(/[\t\r\n]/g, " ")).join("\t"),
+    );
   }
   return [
     "# cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)",
-    `# counts\texact=${exact}\talias=${alias}\tmanual-only=${manual}\tentries=${rows.length}`,
-    ["source_path", "source_type", "match_kind", "match_detail"].join("\t"),
+    ...[...counts].map(
+      ([v, c]) => `# counts ${v}\texact=${c.exact}\talias=${c.alias}\tmanual-only=${c.manual}\tentries=${c.entries}`,
+    ),
+    ["manual_version", "source_path", "source_type", "match_kind", "match_detail"].join("\t"),
     ...body,
     "",
   ].join("\n");
@@ -283,7 +301,7 @@ export function staleBaselineProblem(committed: string, fresh: string): string |
 export function auditAliasSegments(): string[] {
   const problems: string[] = [];
   const aliases = db
-    .query("SELECT e.source_path, l.match_detail FROM cliref_entry_schema_links l JOIN cliref_entries e ON e.id = l.entry_id WHERE l.match_kind = 'alias'")
+    .query("SELECT DISTINCT e.source_path, l.match_detail FROM cliref_entry_schema_links l JOIN cliref_entries e ON e.id = l.entry_id WHERE l.match_kind = 'alias'")
     .all() as Array<{ source_path: string; match_detail: string }>;
   for (const a of aliases) {
     const dropped = a.match_detail.match(/^dropped segment "(.+)"$/)?.[1];

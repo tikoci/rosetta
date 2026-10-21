@@ -1,146 +1,347 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
-# counts	exact=963	alias=0	manual-only=143	entries=1106
-source_path	source_type	match_kind	match_detail
-cmr	Settings Directory	manual-only	
-cmr/alert	Directory	manual-only	
-cmr/alert/show-devices	Command	manual-only	
-cmr/alert/test	Command	manual-only	
-cmr/client	Settings Directory	manual-only	
-cmr/client/forget	Command	manual-only	
-cmr/client/pair	Command	manual-only	
-cmr/client/push-button	Command	manual-only	
-cmr/device	Directory	manual-only	
-cmr/device/apptraffic	Command	manual-only	
-cmr/device/dashboard	Command	manual-only	
-cmr/device/pair	Command	manual-only	
-cmr/device/reboot	Command	manual-only	
-cmr/device/run-script	Command	manual-only	
-cmr/device/upgrade	Command	manual-only	
-cmr/device/wifi-logs	Command	manual-only	
-cmr/layout	Directory	manual-only	
-cmr/layout/add-devices	Command	manual-only	
-cmr/layout/link	Directory	manual-only	
-cmr/layout/node	Directory	manual-only	
-cmr/layout/rebuild-links	Command	manual-only	
-cmr/push-button	Command	manual-only	
-cmr/upgrade	Directory	manual-only	
-cmr/upgrade/job	Directory	manual-only	
-cmr/upgrade/job/run-next	Command	manual-only	
-cmr/upgrade/job/show-devices	Command	manual-only	
-cmr/upgrade/show-devices	Command	manual-only	
-cmr/upgrade/trigger	Command	manual-only	
-cmr/upgrade/version-check	Command	manual-only	
-cmr/vlan	Directory	manual-only	
-cmr/wifi	Directory	manual-only	
-cmr/wifi/radio	Directory	manual-only	
-interface/ethernet/poe	Directory	manual-only	
-interface/ethernet/poe/monitor	Command	manual-only	
-interface/ethernet/poe/power-cycle	Command	manual-only	
-interface/ethernet/poe/settings	Settings Directory	manual-only	
-interface/ethernet/pon	Directory	manual-only	
-interface/ethernet/pon/monitor	Command	manual-only	
-interface/ethernet/switch/acl	Directory	manual-only	
-interface/ethernet/switch/acl/policer	Directory	manual-only	
-interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
-interface/ethernet/switch/dscp-to-dscp	Directory	manual-only	
-interface/ethernet/switch/egress-vlan-tag	Directory	manual-only	
-interface/ethernet/switch/egress-vlan-translation	Directory	manual-only	
-interface/ethernet/switch/ingress-port-policer	Directory	manual-only	
-interface/ethernet/switch/ingress-vlan-translation	Directory	manual-only	
-interface/ethernet/switch/l3hw-settings	Settings Directory	manual-only	
-interface/ethernet/switch/l3hw-settings/advanced	Settings Directory	manual-only	
-interface/ethernet/switch/l3hw-settings/advanced/monitor	Command	manual-only	
-interface/ethernet/switch/l3hw-settings/monitor	Command	manual-only	
-interface/ethernet/switch/mac-based-vlan	Directory	manual-only	
-interface/ethernet/switch/multicast-fdb	Directory	manual-only	
-interface/ethernet/switch/one2one-vlan-switching	Directory	manual-only	
-interface/ethernet/switch/policer-qos-map	Directory	manual-only	
-interface/ethernet/switch/port-leakage	Directory	manual-only	
-interface/ethernet/switch/protocol-based-vlan	Directory	manual-only	
-interface/ethernet/switch/qos	Directory	manual-only	
-interface/ethernet/switch/qos-group	Directory	manual-only	
-interface/ethernet/switch/qos/map	Directory	manual-only	
-interface/ethernet/switch/qos/map/ip	Directory	manual-only	
-interface/ethernet/switch/qos/map/vlan	Directory	manual-only	
-interface/ethernet/switch/qos/monitor	Command	manual-only	
-interface/ethernet/switch/qos/port	Directory	manual-only	
-interface/ethernet/switch/qos/port/reset-counters	Command	manual-only	
-interface/ethernet/switch/qos/priority-flow-control	Directory	manual-only	
-interface/ethernet/switch/qos/profile	Directory	manual-only	
-interface/ethernet/switch/qos/settings	Settings Directory	manual-only	
-interface/ethernet/switch/qos/tx-manager	Directory	manual-only	
-interface/ethernet/switch/qos/tx-manager/queue	Directory	manual-only	
-interface/ethernet/switch/reserved-fdb	Directory	manual-only	
-interface/ethernet/switch/rule/reset-counters	Command	manual-only	
-interface/ethernet/switch/rule/reset-counters-all	Command	manual-only	
-interface/ethernet/switch/shaper	Directory	manual-only	
-interface/ethernet/switch/stats	Settings Directory	manual-only	
-interface/ethernet/switch/trunk	Directory	manual-only	
-interface/ethernet/switch/unicast-fdb	Directory	manual-only	
-interface/ethernet/switch/unicast-fdb/flush	Command	manual-only	
-interface/lte/run-modem-update	Command	manual-only	
-interface/pwr-line	Directory	manual-only	
-interface/pwr-line/blink	Command	manual-only	
-interface/pwr-line/configure	Command	manual-only	
-interface/pwr-line/join	Command	manual-only	
-interface/pwr-line/leave	Command	manual-only	
-interface/pwr-line/monitor	Command	manual-only	
-interface/pwr-line/reset-counters	Command	manual-only	
-interface/pwr-line/reset-mac-address	Command	manual-only	
-interface/pwr-line/upgrade-firmware	Command	manual-only	
-interface/w60g	Directory	manual-only	
-interface/w60g/align	Command	manual-only	
-interface/w60g/monitor	Command	manual-only	
-interface/w60g/reset-configuration	Command	manual-only	
-interface/w60g/scan	Command	manual-only	
-interface/w60g/station	Directory	manual-only	
-interface/w60g/station/monitor	Command	manual-only	
-interface/wifi/dashboard/settings	Settings Directory	manual-only	
-interface/wifi/dashboard/show	Command	manual-only	
-interface/wifi/dashboard/show-clients	Command	manual-only	
-interface/wifi/dashboard/show-logs	Command	manual-only	
-interface/wifi/trigger-radar	Command	manual-only	
-interface/xfrm	Directory	manual-only	
-iot/gpio	Directory	manual-only	
-iot/gpio/analog	Directory	manual-only	
-iot/gpio/digital	Directory	manual-only	
-ip/cloud/back-to-home-file/settings/remove-certificate	Command	manual-only	
-ip/ssh/known-hosts	Directory	manual-only	
-lcd	Settings Directory	manual-only	
-lcd/backlight	Command	manual-only	
-lcd/interface	Directory	manual-only	
-lcd/interface/default-wireless	Command	manual-only	
-lcd/interface/display	Command	manual-only	
-lcd/interface/pages	Directory	manual-only	
-lcd/pin	Settings Directory	manual-only	
-lcd/recalibrate	Command	manual-only	
-lcd/screen	Directory	manual-only	
-lcd/show	Command	manual-only	
-lcd/take-screenshot	Command	manual-only	
-partitions	Directory	manual-only	
-partitions/activate	Command	manual-only	
-partitions/copy-to	Command	manual-only	
-partitions/repartition	Command	manual-only	
-partitions/restore-config-from	Command	manual-only	
-partitions/save-config-to	Command	manual-only	
-root/terminal	Directory	manual-only	
-routing/bfd/authentication	Directory	manual-only	
-system/dashboard/settings	Settings Directory	manual-only	
-system/dashboard/show	Command	manual-only	
-system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
-system/license/output	Command	manual-only	
-system/ptp	Directory	manual-only	
-system/ptp/monitor	Command	manual-only	
-system/ptp/port	Directory	manual-only	
-system/ptp/status	Directory	manual-only	
-system/resource/irq/rps	Directory	manual-only	
-system/swos	Settings Directory	manual-only	
-system/swos/load-config	Command	manual-only	
-system/swos/password	Command	manual-only	
-system/swos/reset-config	Command	manual-only	
-system/swos/save-config	Command	manual-only	
-system/swos/upgrade	Command	manual-only	
-tool/apptraffic	Settings Directory	manual-only	
-tool/apptraffic/stats	Directory	manual-only	
-tool/apptraffic/stats/categories	Directory	manual-only	
-tool/apptraffic/stats/clear	Command	manual-only	
+# counts 7.24	exact=962	alias=0	manual-only=98	entries=1060
+# counts 7.25	exact=963	alias=0	manual-only=101	entries=1064
+# counts 7.26	exact=963	alias=0	manual-only=143	entries=1106
+manual_version	source_path	source_type	match_kind	match_detail
+7.24	interface/bridge/msrp	Directory	manual-only	
+7.24	interface/bridge/msrp/attributes	Directory	manual-only	
+7.24	interface/bridge/msrp/domain	Directory	manual-only	
+7.24	interface/bridge/msrp/domain/attributes	Directory	manual-only	
+7.24	interface/bridge/msrp/domain/monitor	Command	manual-only	
+7.24	interface/ethernet/poe	Directory	manual-only	
+7.24	interface/ethernet/poe/monitor	Command	manual-only	
+7.24	interface/ethernet/poe/power-cycle	Command	manual-only	
+7.24	interface/ethernet/poe/settings	Settings Directory	manual-only	
+7.24	interface/ethernet/switch/acl	Directory	manual-only	
+7.24	interface/ethernet/switch/acl/policer	Directory	manual-only	
+7.24	interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
+7.24	interface/ethernet/switch/dscp-to-dscp	Directory	manual-only	
+7.24	interface/ethernet/switch/egress-vlan-tag	Directory	manual-only	
+7.24	interface/ethernet/switch/egress-vlan-translation	Directory	manual-only	
+7.24	interface/ethernet/switch/ingress-port-policer	Directory	manual-only	
+7.24	interface/ethernet/switch/ingress-vlan-translation	Directory	manual-only	
+7.24	interface/ethernet/switch/l3hw-settings	Settings Directory	manual-only	
+7.24	interface/ethernet/switch/l3hw-settings/advanced	Settings Directory	manual-only	
+7.24	interface/ethernet/switch/l3hw-settings/advanced/monitor	Command	manual-only	
+7.24	interface/ethernet/switch/l3hw-settings/monitor	Command	manual-only	
+7.24	interface/ethernet/switch/mac-based-vlan	Directory	manual-only	
+7.24	interface/ethernet/switch/multicast-fdb	Directory	manual-only	
+7.24	interface/ethernet/switch/one2one-vlan-switching	Directory	manual-only	
+7.24	interface/ethernet/switch/policer-qos-map	Directory	manual-only	
+7.24	interface/ethernet/switch/port-leakage	Directory	manual-only	
+7.24	interface/ethernet/switch/protocol-based-vlan	Directory	manual-only	
+7.24	interface/ethernet/switch/qos	Directory	manual-only	
+7.24	interface/ethernet/switch/qos-group	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/map	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/map/ip	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/map/vlan	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/monitor	Command	manual-only	
+7.24	interface/ethernet/switch/qos/port	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/port/reset-counters	Command	manual-only	
+7.24	interface/ethernet/switch/qos/priority-flow-control	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/profile	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/settings	Settings Directory	manual-only	
+7.24	interface/ethernet/switch/qos/tx-manager	Directory	manual-only	
+7.24	interface/ethernet/switch/qos/tx-manager/queue	Directory	manual-only	
+7.24	interface/ethernet/switch/reserved-fdb	Directory	manual-only	
+7.24	interface/ethernet/switch/shaper	Directory	manual-only	
+7.24	interface/ethernet/switch/stats	Settings Directory	manual-only	
+7.24	interface/ethernet/switch/trunk	Directory	manual-only	
+7.24	interface/ethernet/switch/unicast-fdb	Directory	manual-only	
+7.24	interface/ethernet/switch/unicast-fdb/flush	Command	manual-only	
+7.24	interface/pwr-line	Directory	manual-only	
+7.24	interface/pwr-line/blink	Command	manual-only	
+7.24	interface/pwr-line/configure	Command	manual-only	
+7.24	interface/pwr-line/join	Command	manual-only	
+7.24	interface/pwr-line/leave	Command	manual-only	
+7.24	interface/pwr-line/monitor	Command	manual-only	
+7.24	interface/pwr-line/reset-counters	Command	manual-only	
+7.24	interface/pwr-line/reset-mac-address	Command	manual-only	
+7.24	interface/pwr-line/upgrade-firmware	Command	manual-only	
+7.24	interface/w60g	Directory	manual-only	
+7.24	interface/w60g/align	Command	manual-only	
+7.24	interface/w60g/monitor	Command	manual-only	
+7.24	interface/w60g/reset-configuration	Command	manual-only	
+7.24	interface/w60g/scan	Command	manual-only	
+7.24	interface/w60g/station	Directory	manual-only	
+7.24	interface/w60g/station/monitor	Command	manual-only	
+7.24	interface/wifi/trigger-radar	Command	manual-only	
+7.24	iot/gpio	Directory	manual-only	
+7.24	iot/gpio/analog	Directory	manual-only	
+7.24	iot/gpio/digital	Directory	manual-only	
+7.24	lcd	Settings Directory	manual-only	
+7.24	lcd/backlight	Command	manual-only	
+7.24	lcd/interface	Directory	manual-only	
+7.24	lcd/interface/default-wireless	Command	manual-only	
+7.24	lcd/interface/display	Command	manual-only	
+7.24	lcd/interface/pages	Directory	manual-only	
+7.24	lcd/pin	Settings Directory	manual-only	
+7.24	lcd/recalibrate	Command	manual-only	
+7.24	lcd/screen	Directory	manual-only	
+7.24	lcd/show	Command	manual-only	
+7.24	lcd/take-screenshot	Command	manual-only	
+7.24	partitions	Directory	manual-only	
+7.24	partitions/activate	Command	manual-only	
+7.24	partitions/copy-to	Command	manual-only	
+7.24	partitions/repartition	Command	manual-only	
+7.24	partitions/restore-config-from	Command	manual-only	
+7.24	partitions/save-config-to	Command	manual-only	
+7.24	root/terminal	Directory	manual-only	
+7.24	routing/bfd/authentication	Directory	manual-only	
+7.24	system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
+7.24	system/license/output	Command	manual-only	
+7.24	system/ptp	Directory	manual-only	
+7.24	system/ptp/monitor	Command	manual-only	
+7.24	system/ptp/port	Directory	manual-only	
+7.24	system/ptp/status	Directory	manual-only	
+7.24	system/resource/irq/rps	Directory	manual-only	
+7.24	system/swos	Settings Directory	manual-only	
+7.24	system/swos/load-config	Command	manual-only	
+7.24	system/swos/password	Command	manual-only	
+7.24	system/swos/reset-config	Command	manual-only	
+7.24	system/swos/save-config	Command	manual-only	
+7.24	system/swos/upgrade	Command	manual-only	
+7.25	interface/ethernet/poe	Directory	manual-only	
+7.25	interface/ethernet/poe/monitor	Command	manual-only	
+7.25	interface/ethernet/poe/power-cycle	Command	manual-only	
+7.25	interface/ethernet/poe/settings	Settings Directory	manual-only	
+7.25	interface/ethernet/pon	Directory	manual-only	
+7.25	interface/ethernet/switch/acl	Directory	manual-only	
+7.25	interface/ethernet/switch/acl/policer	Directory	manual-only	
+7.25	interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
+7.25	interface/ethernet/switch/dscp-to-dscp	Directory	manual-only	
+7.25	interface/ethernet/switch/egress-vlan-tag	Directory	manual-only	
+7.25	interface/ethernet/switch/egress-vlan-translation	Directory	manual-only	
+7.25	interface/ethernet/switch/ingress-port-policer	Directory	manual-only	
+7.25	interface/ethernet/switch/ingress-vlan-translation	Directory	manual-only	
+7.25	interface/ethernet/switch/l3hw-settings	Settings Directory	manual-only	
+7.25	interface/ethernet/switch/l3hw-settings/advanced	Settings Directory	manual-only	
+7.25	interface/ethernet/switch/l3hw-settings/advanced/monitor	Command	manual-only	
+7.25	interface/ethernet/switch/l3hw-settings/monitor	Command	manual-only	
+7.25	interface/ethernet/switch/mac-based-vlan	Directory	manual-only	
+7.25	interface/ethernet/switch/multicast-fdb	Directory	manual-only	
+7.25	interface/ethernet/switch/one2one-vlan-switching	Directory	manual-only	
+7.25	interface/ethernet/switch/policer-qos-map	Directory	manual-only	
+7.25	interface/ethernet/switch/port-leakage	Directory	manual-only	
+7.25	interface/ethernet/switch/protocol-based-vlan	Directory	manual-only	
+7.25	interface/ethernet/switch/qos	Directory	manual-only	
+7.25	interface/ethernet/switch/qos-group	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/map	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/map/ip	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/map/vlan	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/monitor	Command	manual-only	
+7.25	interface/ethernet/switch/qos/port	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/port/reset-counters	Command	manual-only	
+7.25	interface/ethernet/switch/qos/priority-flow-control	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/profile	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/settings	Settings Directory	manual-only	
+7.25	interface/ethernet/switch/qos/tx-manager	Directory	manual-only	
+7.25	interface/ethernet/switch/qos/tx-manager/queue	Directory	manual-only	
+7.25	interface/ethernet/switch/reserved-fdb	Directory	manual-only	
+7.25	interface/ethernet/switch/rule/reset-counters	Command	manual-only	
+7.25	interface/ethernet/switch/rule/reset-counters-all	Command	manual-only	
+7.25	interface/ethernet/switch/shaper	Directory	manual-only	
+7.25	interface/ethernet/switch/stats	Settings Directory	manual-only	
+7.25	interface/ethernet/switch/trunk	Directory	manual-only	
+7.25	interface/ethernet/switch/unicast-fdb	Directory	manual-only	
+7.25	interface/ethernet/switch/unicast-fdb/flush	Command	manual-only	
+7.25	interface/lte/run-modem-update	Command	manual-only	
+7.25	interface/pwr-line	Directory	manual-only	
+7.25	interface/pwr-line/blink	Command	manual-only	
+7.25	interface/pwr-line/configure	Command	manual-only	
+7.25	interface/pwr-line/join	Command	manual-only	
+7.25	interface/pwr-line/leave	Command	manual-only	
+7.25	interface/pwr-line/monitor	Command	manual-only	
+7.25	interface/pwr-line/reset-counters	Command	manual-only	
+7.25	interface/pwr-line/reset-mac-address	Command	manual-only	
+7.25	interface/pwr-line/upgrade-firmware	Command	manual-only	
+7.25	interface/w60g	Directory	manual-only	
+7.25	interface/w60g/align	Command	manual-only	
+7.25	interface/w60g/monitor	Command	manual-only	
+7.25	interface/w60g/reset-configuration	Command	manual-only	
+7.25	interface/w60g/scan	Command	manual-only	
+7.25	interface/w60g/station	Directory	manual-only	
+7.25	interface/w60g/station/monitor	Command	manual-only	
+7.25	interface/wifi/trigger-radar	Command	manual-only	
+7.25	interface/xfrm	Directory	manual-only	
+7.25	iot/gpio	Directory	manual-only	
+7.25	iot/gpio/analog	Directory	manual-only	
+7.25	iot/gpio/digital	Directory	manual-only	
+7.25	ip/cloud/back-to-home-file/settings/remove-certificate	Command	manual-only	
+7.25	ip/ssh/known-hosts	Directory	manual-only	
+7.25	lcd	Settings Directory	manual-only	
+7.25	lcd/backlight	Command	manual-only	
+7.25	lcd/interface	Directory	manual-only	
+7.25	lcd/interface/default-wireless	Command	manual-only	
+7.25	lcd/interface/display	Command	manual-only	
+7.25	lcd/interface/pages	Directory	manual-only	
+7.25	lcd/pin	Settings Directory	manual-only	
+7.25	lcd/recalibrate	Command	manual-only	
+7.25	lcd/screen	Directory	manual-only	
+7.25	lcd/show	Command	manual-only	
+7.25	lcd/take-screenshot	Command	manual-only	
+7.25	partitions	Directory	manual-only	
+7.25	partitions/activate	Command	manual-only	
+7.25	partitions/copy-to	Command	manual-only	
+7.25	partitions/repartition	Command	manual-only	
+7.25	partitions/restore-config-from	Command	manual-only	
+7.25	partitions/save-config-to	Command	manual-only	
+7.25	root/terminal	Directory	manual-only	
+7.25	routing/bfd/authentication	Directory	manual-only	
+7.25	system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
+7.25	system/license/output	Command	manual-only	
+7.25	system/ptp	Directory	manual-only	
+7.25	system/ptp/monitor	Command	manual-only	
+7.25	system/ptp/port	Directory	manual-only	
+7.25	system/ptp/status	Directory	manual-only	
+7.25	system/resource/irq/rps	Directory	manual-only	
+7.25	system/routerboard/settings/keep-frequency	Command	manual-only	
+7.25	system/swos	Settings Directory	manual-only	
+7.25	system/swos/load-config	Command	manual-only	
+7.25	system/swos/password	Command	manual-only	
+7.25	system/swos/reset-config	Command	manual-only	
+7.25	system/swos/save-config	Command	manual-only	
+7.25	system/swos/upgrade	Command	manual-only	
+7.26	cmr	Settings Directory	manual-only	
+7.26	cmr/alert	Directory	manual-only	
+7.26	cmr/alert/show-devices	Command	manual-only	
+7.26	cmr/alert/test	Command	manual-only	
+7.26	cmr/client	Settings Directory	manual-only	
+7.26	cmr/client/forget	Command	manual-only	
+7.26	cmr/client/pair	Command	manual-only	
+7.26	cmr/client/push-button	Command	manual-only	
+7.26	cmr/device	Directory	manual-only	
+7.26	cmr/device/apptraffic	Command	manual-only	
+7.26	cmr/device/dashboard	Command	manual-only	
+7.26	cmr/device/pair	Command	manual-only	
+7.26	cmr/device/reboot	Command	manual-only	
+7.26	cmr/device/run-script	Command	manual-only	
+7.26	cmr/device/upgrade	Command	manual-only	
+7.26	cmr/device/wifi-logs	Command	manual-only	
+7.26	cmr/layout	Directory	manual-only	
+7.26	cmr/layout/add-devices	Command	manual-only	
+7.26	cmr/layout/link	Directory	manual-only	
+7.26	cmr/layout/node	Directory	manual-only	
+7.26	cmr/layout/rebuild-links	Command	manual-only	
+7.26	cmr/push-button	Command	manual-only	
+7.26	cmr/upgrade	Directory	manual-only	
+7.26	cmr/upgrade/job	Directory	manual-only	
+7.26	cmr/upgrade/job/run-next	Command	manual-only	
+7.26	cmr/upgrade/job/show-devices	Command	manual-only	
+7.26	cmr/upgrade/show-devices	Command	manual-only	
+7.26	cmr/upgrade/trigger	Command	manual-only	
+7.26	cmr/upgrade/version-check	Command	manual-only	
+7.26	cmr/vlan	Directory	manual-only	
+7.26	cmr/wifi	Directory	manual-only	
+7.26	cmr/wifi/radio	Directory	manual-only	
+7.26	interface/ethernet/poe	Directory	manual-only	
+7.26	interface/ethernet/poe/monitor	Command	manual-only	
+7.26	interface/ethernet/poe/power-cycle	Command	manual-only	
+7.26	interface/ethernet/poe/settings	Settings Directory	manual-only	
+7.26	interface/ethernet/pon	Directory	manual-only	
+7.26	interface/ethernet/pon/monitor	Command	manual-only	
+7.26	interface/ethernet/switch/acl	Directory	manual-only	
+7.26	interface/ethernet/switch/acl/policer	Directory	manual-only	
+7.26	interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
+7.26	interface/ethernet/switch/dscp-to-dscp	Directory	manual-only	
+7.26	interface/ethernet/switch/egress-vlan-tag	Directory	manual-only	
+7.26	interface/ethernet/switch/egress-vlan-translation	Directory	manual-only	
+7.26	interface/ethernet/switch/ingress-port-policer	Directory	manual-only	
+7.26	interface/ethernet/switch/ingress-vlan-translation	Directory	manual-only	
+7.26	interface/ethernet/switch/l3hw-settings	Settings Directory	manual-only	
+7.26	interface/ethernet/switch/l3hw-settings/advanced	Settings Directory	manual-only	
+7.26	interface/ethernet/switch/l3hw-settings/advanced/monitor	Command	manual-only	
+7.26	interface/ethernet/switch/l3hw-settings/monitor	Command	manual-only	
+7.26	interface/ethernet/switch/mac-based-vlan	Directory	manual-only	
+7.26	interface/ethernet/switch/multicast-fdb	Directory	manual-only	
+7.26	interface/ethernet/switch/one2one-vlan-switching	Directory	manual-only	
+7.26	interface/ethernet/switch/policer-qos-map	Directory	manual-only	
+7.26	interface/ethernet/switch/port-leakage	Directory	manual-only	
+7.26	interface/ethernet/switch/protocol-based-vlan	Directory	manual-only	
+7.26	interface/ethernet/switch/qos	Directory	manual-only	
+7.26	interface/ethernet/switch/qos-group	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/map	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/map/ip	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/map/vlan	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/monitor	Command	manual-only	
+7.26	interface/ethernet/switch/qos/port	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/port/reset-counters	Command	manual-only	
+7.26	interface/ethernet/switch/qos/priority-flow-control	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/profile	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/settings	Settings Directory	manual-only	
+7.26	interface/ethernet/switch/qos/tx-manager	Directory	manual-only	
+7.26	interface/ethernet/switch/qos/tx-manager/queue	Directory	manual-only	
+7.26	interface/ethernet/switch/reserved-fdb	Directory	manual-only	
+7.26	interface/ethernet/switch/rule/reset-counters	Command	manual-only	
+7.26	interface/ethernet/switch/rule/reset-counters-all	Command	manual-only	
+7.26	interface/ethernet/switch/shaper	Directory	manual-only	
+7.26	interface/ethernet/switch/stats	Settings Directory	manual-only	
+7.26	interface/ethernet/switch/trunk	Directory	manual-only	
+7.26	interface/ethernet/switch/unicast-fdb	Directory	manual-only	
+7.26	interface/ethernet/switch/unicast-fdb/flush	Command	manual-only	
+7.26	interface/lte/run-modem-update	Command	manual-only	
+7.26	interface/pwr-line	Directory	manual-only	
+7.26	interface/pwr-line/blink	Command	manual-only	
+7.26	interface/pwr-line/configure	Command	manual-only	
+7.26	interface/pwr-line/join	Command	manual-only	
+7.26	interface/pwr-line/leave	Command	manual-only	
+7.26	interface/pwr-line/monitor	Command	manual-only	
+7.26	interface/pwr-line/reset-counters	Command	manual-only	
+7.26	interface/pwr-line/reset-mac-address	Command	manual-only	
+7.26	interface/pwr-line/upgrade-firmware	Command	manual-only	
+7.26	interface/w60g	Directory	manual-only	
+7.26	interface/w60g/align	Command	manual-only	
+7.26	interface/w60g/monitor	Command	manual-only	
+7.26	interface/w60g/reset-configuration	Command	manual-only	
+7.26	interface/w60g/scan	Command	manual-only	
+7.26	interface/w60g/station	Directory	manual-only	
+7.26	interface/w60g/station/monitor	Command	manual-only	
+7.26	interface/wifi/dashboard/settings	Settings Directory	manual-only	
+7.26	interface/wifi/dashboard/show	Command	manual-only	
+7.26	interface/wifi/dashboard/show-clients	Command	manual-only	
+7.26	interface/wifi/dashboard/show-logs	Command	manual-only	
+7.26	interface/wifi/trigger-radar	Command	manual-only	
+7.26	interface/xfrm	Directory	manual-only	
+7.26	iot/gpio	Directory	manual-only	
+7.26	iot/gpio/analog	Directory	manual-only	
+7.26	iot/gpio/digital	Directory	manual-only	
+7.26	ip/cloud/back-to-home-file/settings/remove-certificate	Command	manual-only	
+7.26	ip/ssh/known-hosts	Directory	manual-only	
+7.26	lcd	Settings Directory	manual-only	
+7.26	lcd/backlight	Command	manual-only	
+7.26	lcd/interface	Directory	manual-only	
+7.26	lcd/interface/default-wireless	Command	manual-only	
+7.26	lcd/interface/display	Command	manual-only	
+7.26	lcd/interface/pages	Directory	manual-only	
+7.26	lcd/pin	Settings Directory	manual-only	
+7.26	lcd/recalibrate	Command	manual-only	
+7.26	lcd/screen	Directory	manual-only	
+7.26	lcd/show	Command	manual-only	
+7.26	lcd/take-screenshot	Command	manual-only	
+7.26	partitions	Directory	manual-only	
+7.26	partitions/activate	Command	manual-only	
+7.26	partitions/copy-to	Command	manual-only	
+7.26	partitions/repartition	Command	manual-only	
+7.26	partitions/restore-config-from	Command	manual-only	
+7.26	partitions/save-config-to	Command	manual-only	
+7.26	root/terminal	Directory	manual-only	
+7.26	routing/bfd/authentication	Directory	manual-only	
+7.26	system/dashboard/settings	Settings Directory	manual-only	
+7.26	system/dashboard/show	Command	manual-only	
+7.26	system/default-configuration/wps-sync-mode-script	Settings Directory	manual-only	
+7.26	system/license/output	Command	manual-only	
+7.26	system/ptp	Directory	manual-only	
+7.26	system/ptp/monitor	Command	manual-only	
+7.26	system/ptp/port	Directory	manual-only	
+7.26	system/ptp/status	Directory	manual-only	
+7.26	system/resource/irq/rps	Directory	manual-only	
+7.26	system/swos	Settings Directory	manual-only	
+7.26	system/swos/load-config	Command	manual-only	
+7.26	system/swos/password	Command	manual-only	
+7.26	system/swos/reset-config	Command	manual-only	
+7.26	system/swos/save-config	Command	manual-only	
+7.26	system/swos/upgrade	Command	manual-only	
+7.26	tool/apptraffic	Settings Directory	manual-only	
+7.26	tool/apptraffic/stats	Directory	manual-only	
+7.26	tool/apptraffic/stats/categories	Directory	manual-only	
+7.26	tool/apptraffic/stats/clear	Command	manual-only	

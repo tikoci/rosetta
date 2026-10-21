@@ -43,6 +43,17 @@ if (integrity !== "ok") problems.push(`PRAGMA integrity_check returned ${JSON.st
 const fkViolations = db.query("PRAGMA foreign_key_check").all() as unknown[];
 if (fkViolations.length > 0) problems.push(`PRAGMA foreign_key_check found ${fkViolations.length} violation(s)`);
 
+// ── Trees (#188): one row set per served manual tree, exactly one of them the default ──
+const defaults = (db.query("SELECT COUNT(*) AS n FROM cliref_trees WHERE is_default = 1").get() as { n: number }).n;
+if (defaults !== 1) problems.push(`cliref_trees has ${defaults} default tree(s), expected exactly 1`);
+expectZero("tree with no pages", "SELECT COUNT(*) AS n FROM cliref_trees t WHERE NOT EXISTS (SELECT 1 FROM cliref_pages p WHERE p.manual_version = t.manual_version)");
+expectZero("orphan cliref_pages.manual_version", "SELECT COUNT(*) AS n FROM cliref_pages p WHERE NOT EXISTS (SELECT 1 FROM cliref_trees t WHERE t.manual_version = p.manual_version)");
+expectZero("invalid cliref_trees.is_default/retained", "SELECT COUNT(*) AS n FROM cliref_trees WHERE is_default NOT IN (0, 1) OR retained NOT IN (0, 1)");
+expectZero(
+  "malformed cliref_trees.llms_sha256",
+  "SELECT COUNT(*) AS n FROM cliref_trees WHERE length(llms_sha256) <> 64",
+);
+
 // ── Orphans (explicit — belt-and-suspenders beyond the FK declarations) ──
 expectZero("orphan cliref_entries.page_id", "SELECT COUNT(*) AS n FROM cliref_entries e WHERE NOT EXISTS (SELECT 1 FROM cliref_pages p WHERE p.id = e.page_id)");
 expectZero("orphan cliref_entries.source_parent_id", "SELECT COUNT(*) AS n FROM cliref_entries e WHERE e.source_parent_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM cliref_entries p WHERE p.id = e.source_parent_id)");
@@ -63,7 +74,8 @@ expectZero(
 );
 
 // ── Occurrence-identity uniqueness (source order within each parent) ──
-expectZero("duplicate cliref_pages.source_order", "SELECT COUNT(*) AS n FROM (SELECT source_order FROM cliref_pages GROUP BY source_order HAVING COUNT(*) > 1)");
+expectZero("duplicate cliref_pages (manual_version, source_order)", "SELECT COUNT(*) AS n FROM (SELECT 1 FROM cliref_pages GROUP BY manual_version, source_order HAVING COUNT(*) > 1)");
+expectZero("duplicate cliref_pages (manual_version, slug)", "SELECT COUNT(*) AS n FROM (SELECT 1 FROM cliref_pages GROUP BY manual_version, slug HAVING COUNT(*) > 1)");
 expectZero("duplicate cliref_entries (page_id, source_order)", "SELECT COUNT(*) AS n FROM (SELECT 1 FROM cliref_entries GROUP BY page_id, source_order HAVING COUNT(*) > 1)");
 expectZero("duplicate cliref_fields (entry_id, source_order)", "SELECT COUNT(*) AS n FROM (SELECT 1 FROM cliref_fields GROUP BY entry_id, source_order HAVING COUNT(*) > 1)");
 expectZero("duplicate cliref_flags (entry_id, source_order)", "SELECT COUNT(*) AS n FROM (SELECT 1 FROM cliref_flags GROUP BY entry_id, source_order HAVING COUNT(*) > 1)");
@@ -86,4 +98,5 @@ if (problems.length > 0) {
   for (const p of problems) console.error(`  ✗ ${p}`);
   process.exit(1);
 }
-console.log(`✓ V-cliref-db-integrity OK — ${entryCount} entries: integrity/FK clean, no orphans, enums valid, occurrence identity unique, field view settable-only.`);
+const treeCount = (db.query("SELECT COUNT(*) AS n FROM cliref_trees").get() as { n: number }).n;
+console.log(`✓ V-cliref-db-integrity OK — ${treeCount} tree(s), ${entryCount} entries: integrity/FK clean, one default tree, no orphans, enums valid, occurrence identity unique, field view settable-only.`);

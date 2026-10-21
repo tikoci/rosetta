@@ -374,12 +374,24 @@ jobs:
             bun run src/extract-commands.ts
           fi
 
-      # CLI-Reference overlay (#124/#127). extract-cliref live-fetches the cli-reference
-      # sitemap and enforces V-cliref-parse-reconcile (throws on parsed-vs-source drift).
+      # CLI-Reference overlay (#124/#127), every served manual tree (#188). extract-cliref
+      # live-fetches each tree and enforces V-cliref-parse-reconcile per tree (throws on
+      # parsed-vs-source drift, or on a served-but-broken tree; a 404 tree only warns). It
+      # also reconciles against MikroTik's cli-compare.json without failing: the report goes
+      # to the cli-compare-issue job below, which keeps a tracking issue (V-cli-compare-reconcile).
       # link-cliref MUST run after "Extract command tree" populated schema_nodes — it fails
       # fast on an empty schema_nodes rather than wiping the crosswalk to all-manual-only.
       - name: Extract CLI-Reference overlay
-        run: bun run src/extract-cliref.ts
+        run: bun run src/extract-cliref.ts --reconcile-report=cli-compare-reconcile.tsv
+
+      - name: Upload cli-compare.json reconciliation
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-compare-reconcile
+          path: cli-compare-reconcile.tsv
+          # Absent only when cli-compare.json returned 404 (extract-cliref warned instead).
+          if-no-files-found: warn
+          retention-days: 30
 
       # link-cliref needs the command tree. "Extract command tree" only populates
       # schema_nodes on the full-versions path (a single-version / non-dispatch build runs
@@ -506,6 +518,78 @@ jobs:
           name: release-package-json
           path: package.json
           retention-days: 7
+
+  # ── cli-compare.json reconciliation → tracking issue (#188) ──
+  # Not a gate: publish does not need this job. A disagreement between rosetta's per-tree
+  # rows and MikroTik's own diff is something to fix (in the parser or upstream), but it
+  # must not block a release, and it must not get lost in a log either. So one open issue
+  # carries it: created on the first mismatch, commented on each later one, and closed by
+  # the first clean run (the skew can resolve itself when MikroTik regenerates the file).
+  # Only this job can write issues.
+  cli-compare-issue:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Download cli-compare.json reconciliation
+        id: report
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: cli-compare-reconcile
+
+      - name: Open, update or close the tracking issue
+        if: steps.report.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="CLI Reference disagrees with MikroTik's cli-compare.json"
+          rows=$(( $(wc -l < cli-compare-reconcile.tsv) - 1 ))
+          existing=$(gh issue list --state open --limit 100 --json number,title \
+            --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
+
+          if [ "$rows" -eq 0 ]; then
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --comment "Clean as of $RUN_URL: every compared pair agrees with cli-compare.json."
+              echo "Closed #$existing: the reconciliation is clean."
+            fi
+            exit 0
+          fi
+
+          # Per pair / kind / side counts, then the first rows verbatim.
+          counts=$(tail -n +2 cli-compare-reconcile.tsv | cut -f1,2,5 | sort | uniq -c | sort -rn \
+            | awk '{ printf "| %s | %s | %s | %s |\n", $2, $3, $4, $1 }')
+          sample=$(head -n 26 cli-compare-reconcile.tsv)
+          report="**Run:** $RUN_URL — $rows mismatch(es). The full \`cli-compare-reconcile.tsv\` is attached to the run.
+
+          | Pair | Kind | Only in | Rows |
+          |---|---|---|---:|
+          $counts
+
+          \`\`\`text
+          $sample
+          \`\`\`"
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still disagreeing. $report"
+            echo "Updated #$existing."
+          else
+            gh issue create --title "$title" --body "rosetta extracts every served CLI-Reference tree (#188) and compares the per-pair diff it computes from its own rows with MikroTik's https://manual.mikrotik.com/cli-compare.json. They disagree. This does not block releases, but it is a defect to resolve: in rosetta's parser, or upstream.
+
+          $report
+
+          ### How to resolve
+
+          1. \`only_in = rosetta\`: rosetta's rows show a change cli-compare.json does not. Check the page in both trees: a parser defect, or a change MikroTik's generator misses.
+          2. \`only_in = cli-compare\`: MikroTik lists a change rosetta's rows do not show. Check whether the page or field exists in rosetta's cache for both trees.
+          3. A name cli-compare.json lists that is not a CLI page belongs in \`CLI_COMPARE_ARTIFACTS\` (src/extract-cliref.ts), like \`Headings\`.
+
+          This issue gets one comment per release run while the mismatch lasts, and the first clean run closes it."
+          fi
 
   # ── Release-locked quality gates (one definition) ──
   # The contract tests, retrieval evals (golden blocking + self-supervised
