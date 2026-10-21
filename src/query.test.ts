@@ -2753,8 +2753,11 @@ describe("getDbStats", () => {
     db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('docs_manual_version', '7.26')");
     try {
       expect(getDbStats().manual_version).toEqual({ docs: "7.26", cli_reference: null });
+      // Distinct values, so a swapped or misspelled key mapping can't pass.
+      db.run("INSERT OR REPLACE INTO db_meta (key, value) VALUES ('cliref_manual_version', '7.25')");
+      expect(getDbStats().manual_version).toEqual({ docs: "7.26", cli_reference: "7.25" });
     } finally {
-      db.run("DELETE FROM db_meta WHERE key = 'docs_manual_version'");
+      db.run("DELETE FROM db_meta WHERE key IN ('docs_manual_version', 'cliref_manual_version')");
     }
   });
 
