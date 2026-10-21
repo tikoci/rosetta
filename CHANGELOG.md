@@ -24,6 +24,15 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Each release publishes the CLI Reference dataset as its own asset, and keeps trees
+  MikroTik stops serving.** `rosetta-cli-reference.tar.gz` (the `cli-reference/`
+  directory of export format 2, about 3.5 MB) and its `.sha256` sit next to
+  `ros-help.db.gz`, and the release notes repeat the digest; pin the tag and the digest.
+  The release build downloads the newest earlier release's copy and passes it to the new
+  `extract-cliref --archive=DIR`. A tree whose `/docs/<v>/llms.txt` now returns 404 is
+  re-parsed from that archive with its original `fetched_at` and `retained = 1`, instead
+  of disappearing. A former default tree is stored under `/docs/<v>/` (#188 slice 4).
+
 - **The DB stores each manual version's CLI Reference landing page.** That page
   documents what every menu page leaves out: argument types, standard list entry
   properties (`comment`, `disabled`, `copy-from`, `place-before`), standard print

@@ -381,8 +381,37 @@ jobs:
       # to the cli-compare-issue job below, which keeps a tracking issue (V-cli-compare-reconcile).
       # link-cliref MUST run after "Extract command tree" populated schema_nodes — it fails
       # fast on an empty schema_nodes rather than wiping the crosswalk to all-manual-only.
+      #
+      # Retention (#188): a tree MikroTik stops serving is re-parsed from the newest earlier
+      # release's rosetta-cli-reference.tar.gz (prereleases included), so it isn't lost. The
+      # asset is rosetta's own, so a sha256 mismatch or a failed download fails the build;
+      # only "no release carries it yet" is a normal state.
+      - name: Download the previous CLI-Reference archive
+        id: cliref_archive
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ASSET=rosetta-cli-reference.tar.gz
+          # Every page, newest by created_at across all of them (one line per matching release).
+          TAG=$(gh api --paginate "repos/${{ github.repository }}/releases?per_page=100" \
+            --jq ".[] | select(.draft | not) | select(any(.assets[]; .name == \"$ASSET\")) | [.created_at, .tag_name] | @tsv" \
+            | sort -r | awk -F '\t' 'NR == 1 { print $2 }')
+          if [ -z "$TAG" ]; then
+            echo "No earlier release carries $ASSET — nothing to retain from this run."
+            exit 0
+          fi
+          mkdir -p cliref-archive
+          gh release download "$TAG" --pattern "$ASSET" --pattern "$ASSET.sha256" --dir cliref-archive
+          (cd cliref-archive && sha256sum -c "$ASSET.sha256")
+          tar -x -z -f "cliref-archive/$ASSET" -C cliref-archive
+          echo "dir=cliref-archive/cli-reference" >> "$GITHUB_OUTPUT"
+          echo "Retention archive: $ASSET from $TAG"
+
       - name: Extract CLI-Reference overlay
-        run: bun run src/extract-cliref.ts --reconcile-report=cli-compare-reconcile.tsv
+        env:
+          ARCHIVE: ${{ steps.cliref_archive.outputs.dir }}
+        run: bun run src/extract-cliref.ts --reconcile-report=cli-compare-reconcile.tsv ${ARCHIVE:+--archive="$ARCHIVE"}
 
       - name: Upload cli-compare.json reconciliation
         uses: actions/upload-artifact@v7
@@ -661,6 +690,11 @@ jobs:
       - name: Build release artifacts
         run: bun run scripts/build-release.ts ${{ needs.build.outputs.version }}
 
+      # The CLI-Reference dataset as its own release asset, pinned by tag + sha256 (#188): export format 2's
+      # cli-reference/ directory plus a sha256. It is also the next release's retention archive.
+      - name: Build CLI-Reference asset
+        run: bun run scripts/build-cliref-asset.ts ros-help.db dist
+
       # `next` must never be behind `latest` (#152). A prerelease always moves
       # `next` (build's "Verify prerelease is ahead of latest and next" already
       # proved it is newer than both). A stable publish moves `next` only when the
@@ -836,6 +870,10 @@ jobs:
           - **Properties:** ${{ needs.build.outputs.properties }}
           - **Videos:** ${{ needs.build.outputs.videos }} (${{ needs.build.outputs.segments }} transcript segments)
 
+          ## CLI Reference dataset
+          - **Asset:** \`rosetta-cli-reference.tar.gz\` (export format 2, every stored manual tree)
+          - **sha256:** \`$(cut -d' ' -f1 dist/rosetta-cli-reference.tar.gz.sha256)\` (pin the tag and this digest)
+
           ## Build Info
           - **Commit:** ${{ github.sha }}
           - **Docs date:** ${DOCS_DATE:-extracted live at build time}
@@ -893,22 +931,25 @@ jobs:
             done
           }
 
+          # The CLI-Reference dataset ships beside the DB on every path (#188).
+          ASSETS=(dist/*.zip dist/ros-help.db.gz dist/rosetta-cli-reference.tar.gz dist/rosetta-cli-reference.tar.gz.sha256)
+
           if [ "$REPUBLISH_ASSETS" = "true" ]; then
             # Create release if it doesn't exist, then reupload assets with clobber.
             ensure_release_exists
-            gh_retry gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh_retry gh release upload "$VERSION" "${ASSETS[@]}" --clobber
             gh_retry gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION updated"
           elif gh release view "$VERSION" >/dev/null 2>&1; then
             # A previous run may have created the GitHub Release and then failed
             # at npm publish. The npm preflight above rejects already-published
             # package versions, so this retry path is safe to clobber assets.
-            gh_retry gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh_retry gh release upload "$VERSION" "${ASSETS[@]}" --clobber
             gh_retry gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION updated before npm publish retry"
           else
             ensure_release_exists
-            gh_retry gh release upload "$VERSION" dist/*.zip dist/ros-help.db.gz --clobber
+            gh_retry gh release upload "$VERSION" "${ASSETS[@]}" --clobber
             gh_retry gh release edit "$VERSION" --notes "$NOTES" "${PRERELEASE_FLAGS[@]}"
             echo "✓ Release $VERSION created"
           fi

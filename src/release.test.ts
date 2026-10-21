@@ -924,6 +924,18 @@ exit $?`,
     expect(proc.exitCode).toBe(42);
   });
 
+  test("every release ships the CLI-Reference asset and retains from the previous one (#188)", () => {
+    const src = readText(".github/workflows/release.yml");
+    // Built after build-release.ts (which wipes dist/), uploaded on every path via ASSETS.
+    expect(mustIndex(src, "scripts/build-cliref-asset.ts")).toBeGreaterThan(mustIndex(src, "scripts/build-release.ts"));
+    expect(src).toContain("ASSETS=(dist/*.zip dist/ros-help.db.gz dist/rosetta-cli-reference.tar.gz dist/rosetta-cli-reference.tar.gz.sha256)");
+    expect(src.match(/gh release upload "\$VERSION" "\$\{ASSETS\[@\]\}" --clobber/g)?.length).toBe(3);
+    // The previous asset is sha-verified, then handed to extraction as the retention archive.
+    const verify = mustIndex(src, 'sha256sum -c "$ASSET.sha256"');
+    const extract = mustIndex(src, '--archive="$ARCHIVE"');
+    expect(verify).toBeLessThan(extract);
+  });
+
   test("republish_assets controls immutable npm skips and release clobbering", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toContain("republish_assets:");

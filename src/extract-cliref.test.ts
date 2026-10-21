@@ -18,6 +18,7 @@ const {
   parseLandingPage,
   parseLlmsToc,
   parsePage,
+  readArchive,
   reconcileCliCompare,
   reconcileTrailingDirs,
   reconcileTsv,
@@ -150,6 +151,35 @@ describe("versioned trees (#188)", () => {
     // A tree in no compared pair, or no cli-compare.json at all, is "not checked", never 0.
     expect(Object.fromEntries(treeMismatchCounts([], compare, ["7.25", "7.26", "7.27"]))).toEqual({ "7.25": 0, "7.26": 0, "7.27": null });
     expect(Object.fromEntries(treeMismatchCounts([], null, ["7.26"]))).toEqual({ "7.26": null });
+  });
+});
+
+describe("readArchive (#188 retention)", () => {
+  const archive = (baseUrl: string) => {
+    const dir = mkdtempSync(join(tmpdir(), "rosetta-archive-"));
+    writeFileSync(join(dir, "manifest.toml"), 'format = "rosetta-cli-reference"\nformat_version = 2\n');
+    writeFileSync(join(dir, "trees.tsv"), `manual_version\tbase_url\tfetched_at\n7.24\t${baseUrl}\t2026-10-21T00:00:00Z\n`);
+    return dir;
+  };
+
+  test("reads each tree's archived prefix from its base_url", () => {
+    const dir = archive("https://manual.mikrotik.com/docs/");
+    try {
+      expect(readArchive(dir).get("7.24")).toMatchObject({ docsPrefix: "/docs/", fetchedAt: "2026-10-21T00:00:00Z" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects a base_url on any other origin, including a lookalike host", () => {
+    for (const bad of ["https://manual.mikrotik.com.evil/docs/", "https://evil/docs/", "/docs/", "https://manual.mikrotik.com/docs/?x=1"]) {
+      const dir = archive(bad);
+      try {
+        expect(() => readArchive(dir)).toThrow("has base_url");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
   });
 });
 
@@ -605,8 +635,115 @@ globalThis.fetch = async (input) => {
     const dir = setup("rosetta-cliref-gone-", routes);
     try {
       const output = extract(dir, "gone.db");
-      expect(output).toContain("::warning::cli-compare.json lists 7.25, but /docs/7.25/llms.txt returned 404");
+      expect(output).toContain("::warning::7.25 is listed, but /docs/7.25/llms.txt returned 404 and no archive holds it — tree skipped");
       expect(query<{ manual_version: string }>(join(dir, "gone.db"), TREES).map((t) => t.manual_version)).toEqual(["7.24", "7.26"]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // Slice 4 (#188): 7.24 is served, then MikroTik stops serving it. The previous release's
+  // asset, built by the real packaging script and unpacked as release.yml does, is the only
+  // source left — the tree must come back from it, unchanged and marked retained.
+  test("a tree gone upstream is re-parsed from the previous release's archive, retained (#188)", async () => {
+    const { buildCliRefAsset, ASSET_NAME } = await import("../scripts/build-cliref-asset.ts");
+    const dir = setup("rosetta-cliref-retain-");
+    const pack = async (dbName: string, out: string) => {
+      const { tarball, sha256 } = await buildCliRefAsset(join(dir, dbName), join(dir, out));
+      expect(readFileSync(`${tarball}.sha256`, "utf8")).toBe(`${sha256}  ${ASSET_NAME}\n`);
+      expect(Bun.spawnSync(["tar", "-x", "-z", "-f", tarball, "-C", join(dir, out)]).exitCode).toBe(0);
+      return join(dir, out, "cli-reference");
+    };
+    const digest = async (dbName: string, v: string) => {
+      const { parseTsv } = await import("./export.ts");
+      const archive = await pack(dbName, `digest-${dbName}`);
+      const trees = parseTsv(readFileSync(join(archive, "trees.tsv"), "utf8"));
+      return trees.rows.find((r) => r[0] === v)?.[trees.columns.indexOf("rows_digest")];
+    };
+    const TREE_724 = "SELECT manual_version, base_url, is_default, retained, fetched_at, cli_compare_mismatches FROM cliref_trees WHERE manual_version = '7.24'";
+    const PER_TREE = `SELECT p.manual_version, COUNT(DISTINCT p.id) AS pages, COUNT(DISTINCT e.id) AS entries, COUNT(f.id) AS fields
+                      FROM cliref_pages p JOIN cliref_entries e ON e.page_id = p.id LEFT JOIN cliref_fields f ON f.entry_id = e.id
+                      WHERE p.manual_version = '7.24' GROUP BY p.manual_version`;
+    try {
+      extract(dir, "live.db");
+      const [served] = query<{ fetched_at: string }>(join(dir, "live.db"), TREE_724);
+      const archive = await pack("live.db", "prev-release");
+
+      // MikroTik drops 7.24: its tree 404s and cli-compare.json no longer lists it.
+      const gone: Record<string, string | null> = { ...ROUTES, [`${BASE}/cli-compare.json`]: JSON.stringify({ versions: ["7.26"], pairs: {} }) };
+      for (const url of Object.keys(gone)) if (url.includes("/docs/7.24/")) gone[url] = null;
+      writeFileSync(join(dir, "routes.json"), JSON.stringify(gone));
+
+      const output = extract(dir, "retained.db", `--archive=${archive}`);
+      expect(output).toContain("/docs/7.24/llms.txt returned 404 — 7.24 retained from the previous release's archive");
+      expect(query(join(dir, "retained.db"), TREE_724)).toEqual([
+        // Its original fetch date, and no cli-compare pair names it any more.
+        { manual_version: "7.24", base_url: `${BASE}/docs/7.24/`, is_default: 0, retained: 1, fetched_at: served.fetched_at, cli_compare_mismatches: null },
+      ]);
+      expect(query(join(dir, "retained.db"), PER_TREE)).toEqual(query(join(dir, "live.db"), PER_TREE));
+      expect(await digest("retained.db", "7.24")).toBe(await digest("live.db", "7.24"));
+
+      // --from-cache reproduces the retained run, and a second release carries it forward again.
+      extract(dir, "cached.db", "--from-cache");
+      expect(query(join(dir, "cached.db"), TREE_724)).toEqual(query(join(dir, "retained.db"), TREE_724));
+      const carried = await pack("retained.db", "next-release");
+      extract(dir, "carried.db", `--archive=${carried}`);
+      expect(query(join(dir, "carried.db"), TREE_724)).toEqual(query(join(dir, "retained.db"), TREE_724));
+
+      // Without an archive nothing names 7.24 any more: it is gone, and the build still succeeds.
+      expect(extract(dir, "no-archive.db")).not.toContain("retained");
+      expect(query(join(dir, "no-archive.db"), TREE_724)).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  // The forum's `lastVersion` scenario: /docs/ moves on to 7.27 and 7.26 is never served at
+  // /docs/7.26/. The archived 7.26 llms.txt lists its pages under /docs/, but the retained tree
+  // can't keep /docs/ — the new default owns it — so it is stored under /docs/7.26/.
+  test("a former default tree is retained under its versioned prefix (#188)", async () => {
+    const { buildCliRefAsset } = await import("../scripts/build-cliref-asset.ts");
+    const dir = setup("rosetta-cliref-retain-default-");
+    try {
+      extract(dir, "live.db");
+      const { tarball } = await buildCliRefAsset(join(dir, "live.db"), join(dir, "prev"));
+      expect(Bun.spawnSync(["tar", "-x", "-z", "-f", tarball, "-C", join(dir, "prev")]).exitCode).toBe(0);
+
+      const moved: Record<string, string | null> = {
+        ...ROUTES,
+        [`${BASE}/llms.txt`]: llms("7.27", "/docs/", ["ip/address", "ip/route"]),
+        [`${BASE}/docs/7.27/llms.txt`]: null,
+        [`${BASE}/cli-compare.json`]: JSON.stringify({ versions: ["7.24", "7.27"], pairs: {} }),
+      };
+      writeFileSync(join(dir, "routes.json"), JSON.stringify(moved));
+      extract(dir, "moved.db", `--archive=${join(dir, "prev", "cli-reference")}`);
+
+      expect(query(join(dir, "moved.db"), TREES)).toEqual([
+        { manual_version: "7.24", base_url: `${BASE}/docs/7.24/`, is_default: 0, retained: 0 },
+        { manual_version: "7.26", base_url: `${BASE}/docs/7.26/`, is_default: 0, retained: 1 },
+        { manual_version: "7.27", base_url: `${BASE}/docs/`, is_default: 1, retained: 0 },
+      ]);
+      const pages = (db: string) => query(join(dir, db), "SELECT slug, url FROM cliref_pages WHERE manual_version = '7.26' ORDER BY source_order");
+      expect(pages("moved.db")).toEqual([
+        { slug: "ip/address", url: `${BASE}/docs/7.26/cli-reference/ip/address` },
+        { slug: "ip/route", url: `${BASE}/docs/7.26/cli-reference/ip/route` },
+      ]);
+      // --from-cache keeps reading the archived llms.txt under the prefix it lists.
+      extract(dir, "moved-cached.db", "--from-cache");
+      expect(pages("moved-cached.db")).toEqual(pages("moved.db"));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("an archive off the format-2 shape fails the build: it is rosetta's own artifact (#188)", () => {
+    const dir = setup("rosetta-cliref-bad-archive-");
+    try {
+      const archive = join(dir, "archive");
+      mkdirSync(archive);
+      writeFileSync(join(archive, "manifest.toml"), 'format = "rosetta-cli-reference"\nformat_version = 1\n');
+      writeFileSync(join(archive, "trees.tsv"), "manual_version\tfetched_at\n");
+      expect(extractExpecting(1, dir, "bad.db", `--archive=${archive}`)).toContain("is not a format-2 rosetta-cli-reference archive");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
