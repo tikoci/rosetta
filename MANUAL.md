@@ -26,7 +26,9 @@ Run `--setup` before starting the MCP host so the database download finishes
 outside the host's handshake timeout. For a package install, use the exact version
 and DB destination configured in the host; for a compiled install, use that same
 binary. See [local setup](README.md#quick-setup). Package versions have separate
-default DB files. `--refresh` is a forced replacement, not necessary first-run
+default DB files. The printed package snippets use floating stable; preserve
+your exact package version and DB override when configuring a pinned or prerelease
+client. `--refresh` is a forced replacement, not necessary first-run
 preparation; stop clients owning an existing destination before replacing it.
 The asynchronous-startup redesign remains tracked in
 [#167](https://github.com/tikoci/rosetta/issues/167).

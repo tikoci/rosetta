@@ -129,8 +129,10 @@ bunx @tikoci/rosetta@0.11.3 --setup
 
 Replace `0.11.3` with your configured version and use the same `--db` / `DB_PATH`
 if overridden. Each package version has its own default DB, so setting up one
-version does not prepare another. This avoids the first-download delay; it does
-not change startup behavior (tracked in [#167](https://github.com/tikoci/rosetta/issues/167)).
+version does not prepare another. Setup still prints floating stable config
+snippets: for a pinned or prerelease install, edit the package argument to retain
+your exact version and carry any DB override into the client configuration.
+This avoids the first-download delay; it does not change startup behavior (tracked in [#167](https://github.com/tikoci/rosetta/issues/167)).
 
 To force a database reload, stop clients using that DB first. For the stable default install, use:
 
