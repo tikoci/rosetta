@@ -88,7 +88,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 - Clarify first-run MCP pre-download with the same package version and DB path,
   including the need to preserve pins and overrides when adapting setup snippets.
-  Correct obsolete release-planning and manual-version guidance.
+  Correct obsolete release-planning, manual-version, and bare-`bunx` auto-update
+  guidance; a cached bare invocation need not see a just-published version.
 
 - **Command-version answers say which arches a version's data came from (#91).** 39 of
   the 68 versions with command data come from x86-only `inspect.json` builds, so they lack
