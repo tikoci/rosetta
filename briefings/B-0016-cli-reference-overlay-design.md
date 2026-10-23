@@ -468,17 +468,17 @@ Four findings worth carrying forward:
 The `fixtures/cli-reference/sample.md` fixture deliberately keeps the historical multi-entry shape: it
 is what proves intra-page heading ancestry still parses, which no live page currently exercises.
 
-The briefing therefore stays `open` **only** for the genuinely unresolved work: ~~**Q3**~~ (answered
-2026-10-04 on [#25](https://github.com/tikoci/rosetta/issues/25), see above),
-**Q5** (agent surfacing — partially answered 2026-07-31 by B-0024's bounded `(path, name)` validation,
-but the wider "how do `Conditions`/`Syscap`/`Package` reach an agent" question is untouched), **Q7**
-(is the alias list closed — pending its `VALIDATION.md` row), and **Q8** (how read-only arguments
-surface).
+As of 2026-10-23, the briefing stays `open` for **Q5** (agent surfacing — partially
+answered 2026-07-31 by B-0024's bounded `(path, name)` validation, while broader
+`Conditions`/`Syscap`/`Package` presentation remains undecided) and **Q8** (how
+read-only arguments surface). Q7's ambiguity policy and its `VALIDATION.md` proof
+are delivered. Q3's stable-at-build premise is superseded by declared-manual-version
+stamping; #25 retains the runtime provenance and arch-fallback decisions.
 
 ## Open questions
 
-See "Open design questions" above. Questions 1, 2, 4, 6, 9, and 10 are settled **and implemented**;
-3 is decided (2026-10-04, implementation tracked on #25); 5, 7, and 8 remain (7 now has a concrete ambiguity policy — manual-only + loud validation — pending
-only its `VALIDATION.md` row). Next revisit trigger: the #25 implementation of the Q3 decision (the
-first user-visible provenance shape is Q5's answer too), Q7's `VALIDATION.md` row, or any upstream docs
-rebuild that changes the page count away from 228.
+See "Current status" above. Questions 1, 2, 4, 6, 7, 9, and 10 are settled and
+implemented; the historical Q3 premise is superseded. Questions 5 and 8 remain.
+Revisit when #25 settles runtime provenance/arch fallback, #203 settles use of
+standard descriptions, or an upstream CLI Reference reshape changes the matching
+or parsing assumptions. The dated corpus counts above are historical evidence.
