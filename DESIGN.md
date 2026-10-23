@@ -17,8 +17,8 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 |--------|----------|--------|----------|
 | Docusaurus manual `/docs` prose | <https://manual.mikrotik.com>, discovered via `sitemap.xml` | Raw Markdown (`{page}.md`; category pages `{category}.md`, falling back to `{category}/index.md`) | Current default prose source (T-0035); 360 in-scope `/docs` pages as of 2026-07-07, matching `llms.txt` exactly |
 | Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export, frozen; kept only for `make extract-legacy-confluence` historical rebuilds |
-| inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | 46 versions (7.9–7.23beta2) |
-| Product matrix | `matrix/2026-07-20/matrix.csv` | CSV, 34 columns | 156 products, July 2026 |
+| inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | Per-version command history; query `command_versions` for the built artifact's range |
+| Product matrix | `matrix/2026-10-03/matrix.csv` | CSV, 34 columns | Committed October 2026 snapshot; query the built DB for counts |
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 | YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 746 videos, ~2,374 non-empty transcript segments |
@@ -26,7 +26,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
-**Version cadence:** MikroTik's Docusaurus manual carries no version tag beyond `"current"` — see B-0012 H3/H7 for the full finding. inspect.json versions update automatically via restraml's CI — new versions appear weekly. The primary `commands` table uses the latest stable from inspect.json, which may be newer than the prose-doc extraction date.
+**Version cadence:** The manual declares its version in each tree's `llms.txt` header. Extraction stamps `docs_manual_version` and `cliref_manual_version` into `db_meta`; stats, the TUI and export provenance surface them (#191). The default tree can document a development release, so its declared version must never be inferred from the stable channel. Prose still uses the default tree; CLI Reference stores every served tree, keyed by `manual_version`, and retains archived trees removed upstream (#188). Runtime property lookup uses the default CLI Reference tree; versioned storage/export does not imply version-scoped prose or answers (#186). The primary `commands` table independently uses the latest stable inspect dataset.
 
 ### Docusaurus manual (current primary prose corpus)
 
@@ -36,8 +36,8 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 - **Fetch:** raw Markdown per page, `{url}.md` for leaf pages. Category/index pages (URLs ending in `/` in the sitemap) were served at `{url}index.md` on 2026-07-07 and at `{slug}.md` from 2026-10-06, each spelling 404ing while the other was live, so the extractor tries `{slug}.md` first and falls back to `index.md` on a 404.
 - **Identity:** `pages.rosetta_id` — a lowercased, trailing-slash-stripped, `.md`/`.mdx`-suffix-stripped, version-prefix-tolerant URL path (e.g. `docs/network-management/dhcp`). See "H7 — Identity / rosetta-id design" in `briefings/B-0012-docusaurus-manual-migration.md` for the full derivation rationale and the T-0034 spike that validated it before T-0035 built on it. Legacy Confluence-sourced `pages` rows keep `rosetta_id = NULL` and their original Confluence-numbered `id`; the two identity shapes coexist in the schema but a single build populates one or the other, never both.
 - **Parsing:** Every Markdown pipe table is retained generically in normalized `page_tables` → rows → cells storage (raw Markdown remains alongside decoded cells); table-derived properties consume that shared parse and link to the exact source row, while bullet properties stay a separate path. The property classifier remains intentionally narrow (`| Property |` or `| Parameter |`, both seen live) and tolerant of dhcp.md's malformed `check-gateway` emphasis (B-0012 H4). `:::type ... :::` admonitions → `callouts`; non-empty prose before the first real h1–h3 heading becomes a synthetic lead section (`level = 0`, `anchor_id = "_lead"`), followed by the ordinary h1–h3 `sections`. The parser excludes a real source quirk where the raw `.md` repeats the page's H1 title after the AI-generated summary blockquote. Relative Markdown links inside property descriptions are rewritten to live `manual.mikrotik.com` URLs (anchor fragment preserved) instead of left as broken relative paths.
-- **CLI Reference:** still out of scope for this extractor — <https://manual.mikrotik.com/docs/cli-reference/> exposes RouterOS command menus, flags, argument names, and types from `/console/inspect`-derived data (plus `Package`/`Conditions`/`Syscap` facts restraml can't produce, B-0012 H3), but needs a JSX-aware `ArgTable` parser and an overlay-merge design against `schema_nodes` — proposed as a separate follow-up task in B-0012.
-- **Surface impact not yet done:** MCP and TUI result shapes are still page-centric (`pages`, `sections`, `properties`). Reworking them around source-typed results (Option F) is deliberately deferred until CLI Reference and `/hardware` extraction land too — see B-0012's "Proposed migration task files."
+- **CLI Reference:** handled by the separate, shipped `src/extract-cliref.ts` extractor and inspect crosswalk. It preserves menus, fields, flags, source Markdown and the landing page for each manual tree. The source-faithful overlay stays separate from inspect identity; see "CLI-Reference overlay: source vs inspect identity" below and MANUAL's data-source/export reference.
+- **Remaining surface work:** CLI Reference and `/hardware` extraction have landed, and property lookup/explain already consume the overlay. Broader tool consolidation remains a separate decision in B-0011/B-0025, informed by #54's current-surface inventory. Standard landing-page rows are exported but not yet consumed by runtime answers (#203).
 
 Directional options and the full research trail are recorded in `briefings/B-0012-docusaurus-manual-migration.md`.
 
@@ -56,7 +56,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 - **Access path:** Version discovery uses the GitHub API once; actual files come from GitHub Pages at `https://tikoci.github.io/restraml/<version>/extra/...`. Deep-inspect files are preferred when available; older versions fall back to `inspect.json`.
 - **Generation:** restraml's GitHub Actions run RouterOS CHR under QEMU and publish both base (`routeros.npk` only) and `extra/` builds. Rosetta prefers the `extra/` variant.
 - **Coverage:** Full RouterOS API from `/console/inspect` — 551 dirs, 5114 commands, and ~34K args in the current primary version. Deep-inspect adds `_completion` data (11K+ args with valid values and style hints) and dual-arch coverage.
-- **Version tracking:** 46 versions from 7.9 through 7.23beta2. New versions appear weekly; the latest stable is auto-detected as primary for `commands`.
+- **Version tracking:** Query `command_versions` for actual coverage; `ros_versions` also contains metadata-only versions. The latest stable is auto-detected as primary for `commands`; per-version architecture coverage is disclosed separately (#91/#200).
 - **Retention split:** `command_versions` keeps the full extracted history. `schema_node_presence` mirrors that history during extraction, then release GC prunes it to active channel heads only.
 - **Multi-arch:** About 97% of paths are shared. The remainder is mostly arm64-only (`wifi-qcom`, `ethernet/switch`) with a very small x86-only set (`system/check-disk`, `console/screen`).
 - **Coverage gap:** CHR lacks Wi-Fi hardware, so some packages (`wifi-qcom`, `zerotier`, architecture-specific extras) do not appear in inspect output even though the HTML docs cover them.
@@ -64,8 +64,8 @@ Directional options and the full research trail are recorded in `briefings/B-001
 ### Product matrix CSV
 
 - **Source:** Manual browser export from <https://mikrotik.com/products/matrix>.
-- **Format:** UTF-8 BOM CSV, 34 columns, 156 products in the current snapshot.
-- **Location:** `matrix/2026-07-20/matrix.csv`; snapshots are date-stamped and committed. The path lives in exactly one place in code — `MATRIX_CSV_RELATIVE_PATH` in `src/paths.ts` — because five entry points read it and must agree; committing a new `matrix/YYYY-MM-DD/` without bumping that constant is a silent no-op.
+- **Format:** UTF-8 BOM CSV, 34 columns. `routeros_stats` reports the built DB's device count.
+- **Location:** `matrix/2026-10-03/matrix.csv`; snapshots are date-stamped and committed. The path lives in exactly one place in code — `MATRIX_CSV_RELATIVE_PATH` in `src/paths.ts` — because five entry points read it and must agree; committing a new `matrix/YYYY-MM-DD/` without bumping that constant is a silent no-op.
 - **Download path:** Use the site's export/download control, choose **All**, and save to `matrix/<ISODATE>/matrix.csv`.
 - **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
 - **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.
@@ -131,7 +131,7 @@ Each returns a plain-text response with the version string (e.g., `7.22.1`). The
 
 ### Junction table for version tracking
 
-`command_versions` is a (command_path, ros_version) junction table — not per-version columns or per-version rows in `commands`. This scales to hundreds of versions without schema changes. The `commands` table holds only the primary version (latest stable, currently 7.22).
+`command_versions` is a (command_path, ros_version) junction table — not per-version columns or per-version rows in `commands`. This scales to hundreds of versions without schema changes. The `commands` table holds only the primary version (latest stable at extraction).
 
 ### Primary version = latest stable
 
@@ -139,7 +139,7 @@ The `commands` table is populated from the latest stable version. All other vers
 
 ### All versions extracted, filter at query time
 
-46 versions including betas and RCs. Prefer more data over less. The `channel` column in `ros_versions` allows filtering to stable-only if needed.
+Retain extracted history including betas and RCs. Prefer more data over less. The `channel` column in `ros_versions` allows filtering to stable-only if needed.
 
 ### FTS5 for text, SQL WHERE for structured queries
 

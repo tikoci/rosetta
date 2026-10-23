@@ -23,8 +23,10 @@ Drop one-line thoughts here. Promote later — to an issue if it gains shape, to
 - `device_detail: "brief" | "full"` arg on `routeros_search` — let an agent pull fuller device data inline and skip a second `routeros_device_lookup` call. Deferred from Phase 2A ([#49](https://github.com/tikoci/rosetta/issues/49)) to keep it shippable/budget-safe; recorded in B-0019 feedback #3. Promote to an issue if a real need surfaces.
 - Doc → device cross-referencing: `routeros_get_page` "references devices"/"references pivots (switch chips)" block; main-doc prose as a test corpus for free-form device surfacing + a scope probe for how often devices are mentioned. Routed to `briefings/B-0007-special-hardware-pages.md` (Track B); downstream of Phase 2A ([#49](https://github.com/tikoci/rosetta/issues/49)).
 - One-shot CLI mirroring the MCP tools (`bunx @tikoci/rosetta routeros_search '…' --limit 5`, `T-0032`): the underlying need behind the closed #27 umbrella is a more useful CLI. Shape lives in B-0015; promote to one concrete issue when the 0.12 surface work starts (after #54's parity table).
-- Extractor rebuild isn't atomic: an insert error mid-rebuild leaves a wiped DB, and the naive fix (wrap in a transaction) silently re-enables FK enforcement because `PRAGMA foreign_keys` is a no-op inside a transaction. Moved here from the closed #95 umbrella. Related but separate: a failed per-version extraction in `extract-all-versions.ts` doesn't fail the release at all ([#178](https://github.com/tikoci/rosetta/issues/178), next.116 shipped without 7.15), so "CI catches it" can't be assumed.
+- Extractor rebuild isn't atomic: an insert error mid-rebuild leaves a wiped DB, and the naive fix (wrap in a transaction) silently re-enables FK enforcement because `PRAGMA foreign_keys` is a no-op inside a transaction. Moved here from the closed #95 umbrella. Separate failure mode [#178](https://github.com/tikoci/rosetta/issues/178) is fixed: per-version extraction failures now fail the build (#179). That fail-closed release behavior does not make local rebuilds atomic.
 - `routeros_command_tree` path ergonomics: requires exact slash-delimited REST-like paths (e.g. `/ip/address/add/address`) and rejects natural forms like `ip address`; shape is tightly bound to `inspect.json`'s parts, some of which (e.g. `page_title`/`page_url`/`dir_role`/`data_type`/`_arch`/`completion`, often all `null`) may not carry their weight. Surfaced while reviewing B-0004 (2026-07-14), which is otherwise superseded/resolved — not yet scoped as its own issue.
+
+- Manual doc-changes watcher: Docusaurus extraction has landed, so the old prerequisite is satisfied. Decide whether RSS-driven refresh adds value before scheduling it; reverify the feed before implementation.
 
 ## Triggers
 
@@ -40,15 +42,19 @@ Items waiting on a specific external event. Not tracked as issues because the wa
 | Local usage analytics | When we need real query-shape data. Keep opt-in (`ROSETTA_LOG_USAGE=1`) and local-only. |
 | Video extraction retry | At each scheduled transcript refresh — re-run consistent-fail videos after 48–72h gaps; add to `known-bad.json` after repeated failures. |
 | LSP consumer artifacts | When `lsp-routeros-ts` is ready for static manifests. The path→URL/title half is now [#173](https://github.com/tikoci/rosetta/issues/173) (publish `rosetta export` output); a `verbs.json` manifest (#5 H4) would ride the same publishing path. |
-| Manual doc-changes watcher | After Docusaurus extraction lands: CI polls `manual.mikrotik.com/changelog/rss.xml` (verified live 2026-07-07) and opens an issue/PR when the manual changed, making re-extraction event-driven instead of scheduled. |
 | bench-routeros-tools merge | When `agents/grounded-data-collection-agents` and the pending Claude matrix work land, review benchmark reports for stable external-eval fixtures and decide whether to promote a rosetta task. |
 | Overlay-as-base path vocabulary (B-0024 step 8) | When `centrs`' `explain` canonicalization work settles whether the CLI-Reference path vocabulary can host inspect's verbs without a new alias layer. Until then rosetta keeps the overlay beside `schema_nodes`, not under it. Do not preempt with a rosetta-local alias scheme. |
 
-Fired 2026-10-20: **versioned manual** — `/docs/7.24/` and `/docs/7.25/` now serve `llms.txt` + `.md`, and the default tree declares itself 7.26 (development), not stable. Tracked in [#187](https://github.com/tikoci/rosetta/issues/187) (stamp the ingested manual version), [#188](https://github.com/tikoci/rosetta/issues/188) (per-version CLI Reference as a published dataset for centrs), and [#186](https://github.com/tikoci/rosetta/issues/186) (per-version prose).
+Fired 2026-10-20: **versioned manual** — `/docs/7.24/` and `/docs/7.25/` now serve `llms.txt` + `.md`, and the default tree declares itself 7.26 (development), not stable. Delivered: [#187](https://github.com/tikoci/rosetta/issues/187) (stamp the ingested manual version) and [#188](https://github.com/tikoci/rosetta/issues/188) (per-version CLI Reference as a published dataset for centrs). Remaining: [#186](https://github.com/tikoci/rosetta/issues/186) (per-version prose).
 
 ---
 
 ## Active work
+
+The bounded next stable release is tracked in
+[#204](https://github.com/tikoci/rosetta/issues/204). The `0.12 — MCP surface`
+milestone is a longer-term theme, not a requirement to finish every member before
+0.12.0. The 0.11.3 release tracker and milestone are closed.
 
 Tracked in [GitHub Issues](https://github.com/tikoci/rosetta/issues) since 2026-07-10 (migration: [#18](https://github.com/tikoci/rosetta/issues/18)). The commands below need an authenticated [`gh` CLI](https://cli.github.com/); without it, the [Issues tab](https://github.com/tikoci/rosetta/issues) shows the same thing. List it live:
 
@@ -56,8 +62,7 @@ Tracked in [GitHub Issues](https://github.com/tikoci/rosetta/issues) since 2026-
 gh issue list                        # everything open
 gh issue list --label agent-ready    # pick-up-now queue
 gh issue list --label umbrella       # theme tracking issues
-gh issue list --milestone 0.11.3     # 0.11.3 -next candidates (umbrella #148)
-gh issue list --milestone "0.12 — MCP surface"  # surface-cleanup theme
+gh issue list --milestone "0.12 — MCP surface"  # longer-term surface theme
 ```
 
 ## Briefings index
@@ -81,7 +86,7 @@ Grounded research and decision notes. Open items are ongoing thinking; resolved 
 | B-0013 | Steering / skills / rosetta / centrs positioning ladder | open |
 | B-0014 | CI is release-workflow-locked, not PR/main-gated — QA cleanup plan. Resolved 2026-10-04: `qa.yml` (reusable, called by Release), `test.yml` on PRs, branch protection, coverage reporting (`V-coverage-reported`) and the `next` channel all shipped | resolved |
 | B-0015 | Unified "explain" static + live across the tikoci trilogy (rosetta/centrs/lsp) | open |
-| B-0016 | CLI-Reference overlay: precursor ETL design ([#33](https://github.com/tikoci/rosetta/issues/33)); 2026-07-20 extraction experiment answered join-key + parsing → scoped extractor issue [#124](https://github.com/tikoci/rosetta/issues/124) cut, landed via [#126](https://github.com/tikoci/rosetta/issues/126)/[#128](https://github.com/tikoci/rosetta/issues/128). Provenance format (Q3) decided 2026-10-04 on #25 ("current" = stable at build time); Q5 (agent surfacing) got its first concrete consumer 2026-07-31 — the corroborated join in B-0024 | open |
+| B-0016 | CLI-Reference overlay: precursor ETL design ([#33](https://github.com/tikoci/rosetta/issues/33)); 2026-07-20 extraction experiment answered join-key + parsing → scoped extractor issue [#124](https://github.com/tikoci/rosetta/issues/124) cut, landed via [#126](https://github.com/tikoci/rosetta/issues/126)/[#128](https://github.com/tikoci/rosetta/issues/128). The stable-at-build Q3 premise is superseded: #191 stamps the declared manual version and #188 stores/exports multiple CLI Reference trees; #25 retains per-answer provenance and arch-fallback decisions; Q5 (agent surfacing) got its first concrete consumer 2026-07-31 — the corroborated join in B-0024 | open |
 | B-0017 | `/hardware` overlay: device-resolution research (issue [#34](https://github.com/tikoci/rosetta/issues/34); absorbs B-0006/B-0007) | open |
 | B-0018 | Product-naming ↔ three-source map: human/MikroTik guide to `device-map.tsv`, parsing tricks, and known `/hardware` gaps (companion to B-0017) | open |
 | B-0019 | Hardware overlay Phase 2: surfacing `hardware_catalog`/`device_aliases` in MCP/TUI — design done, [#39](https://github.com/tikoci/rosetta/issues/39) closed; build spawned as [#49](https://github.com/tikoci/rosetta/issues/49)/[#50](https://github.com/tikoci/rosetta/issues/50) | resolved |

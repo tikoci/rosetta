@@ -10,8 +10,22 @@ related_tasks:
   - "#131"
   - "B-0024"
 created: 2026-07-10
-last_revisited: 2026-10-04
+last_revisited: 2026-10-23
 ---
+
+## Current status — 2026-10-23
+
+The October 4 stable-at-build Q3 decision quoted below is historical and superseded.
+#191 stamps the version declared by the manual itself; #196–#199 store, export and
+publish every CLI Reference tree. Runtime lookup still uses the default tree.
+#25 owns remaining per-answer provenance and arch-fallback semantics; #203 owns
+whether standard landing-page descriptions enrich existing runtime answers.
+
+Q7's requested proof is also delivered: `VALIDATION.md` names
+`V-cliref-link-drift` and `V-cliref-db-integrity`, enforced by release QA.
+The briefing remains open for Q5/Q8's broader agent surfacing decisions, not for
+missing extraction, stable-version inference, or an absent Q7 validation row.
+Historical counts and proposed prerequisites below remain dated research evidence.
 
 # Question
 

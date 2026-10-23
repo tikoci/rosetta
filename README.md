@@ -1,6 +1,6 @@
 # rosetta
 
-MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation — 363 pages extracted live from MikroTik's official Docusaurus manual (<https://manual.mikrotik.com>), 4,587 properties, a 40,000-entry command tree, hardware specs for 156 current products (part of a wider 255-device overlay also covering legacy/EOL gear and accessories), 746 YouTube video transcripts, and direct links to source docs.
+MCP server that gives AI assistants searchable access to MikroTik RouterOS documentation, CLI Reference fields, versioned command trees, hardware specs, YouTube transcripts, and direct links to source docs. See the dated corpus snapshot below; `routeros_stats` reports the database you're running.
 
 If you need MikroTik docs, you likely have a MikroTik. Install rosetta once as a container on your router using [RouterOS /app](#install-on-mikrotik-app), and any AI assistant on the network can use it. Or [run it locally](#install-locally-with-bun) on your workstation. **No AI required** — rosetta includes a [terminal browser](#browse-without-ai) for searching the database directly.
 
@@ -109,7 +109,7 @@ Point any HTTP-capable MCP client at the URL from the previous step:
 
 ## Install Locally (with Bun)
 
-Run rosetta on your workstation using [Bun](https://bun.sh/). The MCP server runs over stdio — no network configuration needed. The database downloads automatically on first launch (~50 MB compressed).
+Run rosetta on your workstation using [Bun](https://bun.sh/). The MCP server runs over stdio — no network configuration needed. The database downloads automatically on first launch; its size varies by release.
 
 ### Quick setup
 
@@ -118,6 +118,19 @@ bunx @tikoci/rosetta --setup
 ```
 
 This downloads the database and prints config snippets for all supported MCP clients. Copy-paste the config for your client and you're done.
+
+Run setup before starting your MCP client: the initial download happens before
+Rosetta answers the MCP handshake, and some clients time out while it downloads.
+For a pinned install, use the same exact package version as the client's config:
+
+```sh
+bunx @tikoci/rosetta@0.11.3 --setup
+```
+
+Replace `0.11.3` with your configured version and use the same `--db` / `DB_PATH`
+if overridden. Each package version has its own default DB, so setting up one
+version does not prepare another. This avoids the first-download delay; it does
+not change startup behavior (tracked in [#167](https://github.com/tikoci/rosetta/issues/167)).
 
 To force a database reload, stop clients using that DB first. For the stable default install, use:
 
