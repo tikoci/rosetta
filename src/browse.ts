@@ -246,9 +246,9 @@ async function paged(output: string, opts?: { selectCount?: number }): Promise<P
   const selectCount = opts?.selectCount ?? 0;
   const lines = output.split("\n");
   const pageSize = Math.max(5, termHeight() - 2);
-  if (lines.length <= pageSize || !process.stdout.isTTY) {
+  if (onceMode || lines.length <= pageSize || !process.stdout.isTTY) {
     process.stdout.write(`${output}\n`);
-    // Non-TTY (or single screen) — no interactive selection possible.
+    // --once, non-TTY, or single screen — no interactive selection possible.
     return { quit: false };
   }
   const totalPages = Math.ceil(lines.length / pageSize);
@@ -346,6 +346,12 @@ type Context =
 
 let ctx: Context = { type: "home" };
 const history: Context[] = [];
+
+// Set by main() from argv. In --once mode dot-commands print pure JSON to
+// stdout (diagnostics go to stderr) and the process exit code reflects
+// whether the one-shot command succeeded, so shell consumers can pipe safely.
+let onceMode = false;
+let lastDispatchOk = true;
 
 function pushCtx(next: Context) {
   history.push(ctx);
@@ -1231,6 +1237,8 @@ function parseDotArgs(rest: string, primary?: string, aliases?: Record<string, s
 type DotTool = {
   /** Field name that bare positional tokens are joined into. */
   primary?: string;
+  /** Allow filter-only calls when the primary argument is omitted. */
+  optionalPrimary?: boolean;
   /** Short one-line description shown by `.help`. */
   desc: string;
   /** Optional alias→canonical key map (e.g. `{ id: "page" }` so the form
@@ -1280,6 +1288,7 @@ const dotTools: Record<string, DotTool> = {
     ),
   },
   routeros_command_tree: {
+    optionalPrimary: true,
     primary: "path",
     tui: "cmd [path]",
     desc: "Browse command tree (args: path=, version=, arch=)",
@@ -1290,6 +1299,7 @@ const dotTools: Record<string, DotTool> = {
     },
   },
   routeros_search_changelogs: {
+    optionalPrimary: true,
     primary: "query",
     tui: "cl [query]",
     desc: "Search changelogs (args: query=, version=, from_version=, to_version=, category=, breaking_only=, limit=)",
@@ -1322,6 +1332,7 @@ const dotTools: Record<string, DotTool> = {
     ),
   },
   routeros_device_lookup: {
+    optionalPrimary: true,
     primary: "query",
     tui: "device <query>",
     desc: "Device lookup with FTS+filters (args: query=, architecture=, license_level=, has_wireless=, ...)",
@@ -1385,13 +1396,19 @@ function highlightSnippetMarkers(json: string): string {
   });
 }
 
-async function dispatchDotCommand(input: string): Promise<void> {
+async function dispatchDotCommand(input: string): Promise<boolean> {
+  // Diagnostics channel: stdout stays parseable in --once mode.
+  const say = onceMode || !process.stdout.isTTY ? console.error : console.log;
   // .help / .tools — list all dot-commands
   if (input === ".help" || input === ".?" || input === ".tools") {
+    if (onceMode) {
+      console.log(JSON.stringify({ tools: Object.entries(dotTools).map(([name, { run: _run, ...tool }]) => ({ name, ...tool })) }, null, 2));
+      return true;
+    }
     const out: string[] = [];
     out.push(`  ${bold("MCP probe — direct tool invocation")}`);
     out.push(`  ${dim("Format: .<tool_name> [positional...] [key=value ...]")}`);
-    out.push(`  ${dim("Output: raw JSON, exactly what an MCP client would receive.")}`);
+    out.push(`  ${dim("Output: raw JSON, exactly what an MCP client would receive (stdout is exactly the JSON document under --once).")}`);
     out.push("");
     out.push(`  ${bold("Tool dot-commands")} ${dim(`(${Object.keys(dotTools).length} tools)`)}`);
     for (const [name, t] of Object.entries(dotTools)) {
@@ -1410,19 +1427,29 @@ async function dispatchDotCommand(input: string): Promise<void> {
     out.push(`  ${dim("Example: .routeros_get_page id=81362945       (paste from next_steps)")}`);
     out.push(`  ${dim("Example: .routeros_lookup_property name=disabled command_path=/ip/firewall/filter")}`);
     await paged(out.join("\n"));
-    return;
+    return true;
   }
   // .instructions — print MCP server `instructions` string
   if (input === ".instructions") {
+    if (onceMode) {
+      console.log(JSON.stringify({ instructions: MCP_INSTRUCTIONS }, null, 2));
+      return true;
+    }
     const out: string[] = [];
     out.push(`  ${bold("MCP server instructions")} ${dim("(sent to clients on initialize)")}`);
     out.push("");
     out.push(MCP_INSTRUCTIONS);
     await paged(out.join("\n"));
-    return;
+    return true;
   }
   // .resources — list registered MCP resources
   if (input === ".resources" || input === ".refs") {
+    if (onceMode) {
+      let skills: ReturnType<typeof listSkills> = [];
+      try { skills = listSkills(); } catch { /* Older databases may lack skills. */ }
+      console.log(JSON.stringify({ resources: MCP_STATIC_RESOURCES, skills, skill_source: "tikoci/routeros-skills — community content, NOT official MikroTik docs" }, null, 2));
+      return true;
+    }
     const out: string[] = [];
     out.push(`  ${bold("MCP resources")} ${dim("(static + per-skill)")}`);
     out.push("");
@@ -1444,30 +1471,27 @@ async function dispatchDotCommand(input: string): Promise<void> {
       // skills table may not exist
     }
     await paged(out.join("\n"));
-    return;
+    return true;
   }
   const m = input.match(/^\.([a-z_]\w*)\s*(.*)$/i);
   if (!m) {
-    console.log(dim(`  Bad dot-command syntax. Try '.help' for the list.`));
-    return;
+    say(dim(`  Bad dot-command syntax. Try '.help' for the list.`));
+    return false;
   }
   const name = m[1];
   const tool = dotTools[name];
   if (!tool) {
-    console.log(dim(`  Unknown MCP tool: .${name}. Try '.help' for the list.`));
-    return;
+    say(dim(`  Unknown MCP tool: .${name}. Try '.help' for the list.`));
+    return false;
   }
   try {
     const args = parseDotArgs(m[2] ?? "", tool.primary, tool.aliases);
-    // If the tool has a primary arg and the user supplied no value for it
-    // (and no key=value args at all), show a usage hint instead of running
-    // the tool against an empty/null query — calling with no args usually
-    // returns null or an empty object, which is confusing for users probing
-    // the MCP surface for the first time.
+    // Required positional arguments remain required when options are present.
+    // Keep the interactive no-argument usage hint for filter-capable tools.
     if (
       tool.primary &&
       (args[tool.primary] === undefined || args[tool.primary] === "") &&
-      Object.keys(args).length === 0
+      (!tool.optionalPrimary || Object.keys(args).length === 0)
     ) {
       const aliasStr = tool.aliases
         ? Object.keys(tool.aliases).map((a) => `${a}=`).join(" | ")
@@ -1475,29 +1499,39 @@ async function dispatchDotCommand(input: string): Promise<void> {
       const primaryHint = aliasStr
         ? `${tool.primary}=  (or ${aliasStr})`
         : `${tool.primary}=`;
-      console.log(`  ${dim("Usage:")} ${cyan(`.${name}`)} ${dim(`<${tool.primary}>  |  ${primaryHint}<value>  [key=value ...]`)}`);
-      console.log(`  ${dim(tool.desc)}`);
-      if (tool.tui) console.log(`  ${dim("TUI equivalent:")} ${cyan(tool.tui)}`);
-      return;
+      say(`  ${dim("Usage:")} ${cyan(`.${name}`)} ${dim(`<${tool.primary}>  |  ${primaryHint}<value>  [key=value ...]`)}`);
+      say(`  ${dim(tool.desc)}`);
+      if (tool.tui) say(`  ${dim("TUI equivalent:")} ${cyan(tool.tui)}`);
+      return false;
     }
     const result = await tool.run(args);
     const json = JSON.stringify(result, null, 2);
+    if (onceMode) {
+      // Machine path: stdout is exactly one JSON document. The args echo
+      // stays available on stderr for debugging.
+      console.error(dim(`── .${name}  args=${JSON.stringify(args)}`));
+      console.log(json);
+      return true;
+    }
     const banner = dim(`── .${name}  args=${JSON.stringify(args)}`);
     await paged(`${banner}\n${highlightSnippetMarkers(json)}`);
+    return true;
   } catch (e) {
-    console.log(red(`  Error invoking .${name}: ${(e as Error).message}`));
+    say(red(`  Error invoking .${name}: ${(e as Error).message}`));
+    return false;
   }
 }
 
 // ── Command dispatcher ──
 
 async function dispatch(input: string): Promise<void> {
+  lastDispatchOk = true;
   const trimmed = input.trim();
   if (!trimmed) return;
 
   // ── MCP probe (dot-command) ──
   if (trimmed.startsWith(".")) {
-    await dispatchDotCommand(trimmed);
+    lastDispatchOk = await dispatchDotCommand(trimmed);
     return;
   }
 
@@ -2274,7 +2308,7 @@ async function main() {
   initDb();
 
   const args = process.argv.slice(2);
-  const onceMode = args.includes("--once");
+  onceMode = args.includes("--once");
   // Filter out --once, browse, and --db <path> so they don't become search queries
   const dbArgIdx = args.indexOf("--db");
   const queryArgs = args.filter((a, i) => {
@@ -2299,7 +2333,7 @@ async function main() {
   //   browse dhcp server               → (bare text) search as before
   if (initialQuery) {
     await dispatch(initialQuery);
-    if (onceMode) process.exit(0);
+    if (onceMode) process.exit(lastDispatchOk ? 0 : 1);
   }
 
   // Non-TTY: exit after initial query or do nothing
@@ -2308,7 +2342,7 @@ async function main() {
       console.error("Non-interactive mode requires a query argument.");
       process.exit(1);
     }
-    process.exit(0);
+    process.exit(lastDispatchOk ? 0 : 1);
   }
 
   // Interactive REPL
