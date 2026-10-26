@@ -10,11 +10,6 @@ const hasTestDb = existsSync(DB_PATH);
 const dbWasExplicitlyConfigured = Boolean(configuredDbPath);
 const skipReason = `No populated test database at ${DB_PATH}; set TEST_DB_PATH or place ros-help.db at repo root to run this parity check.`;
 
-function stripAnsi(s: string): string {
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape matching requires control chars
-  return s.replace(/\x1b\][^\x07]*\x07/g, "").replace(/\x1b\[[0-9;]*m/g, "");
-}
-
 function runBrowseHelp(): string {
   if (!existsSync(DB_PATH)) {
     throw new Error(`Expected populated test database at ${DB_PATH}.`);
@@ -37,12 +32,8 @@ function runBrowseHelp(): string {
 }
 
 function extractToolDotCommands(helpOutput: string): string[] {
-  const seen = new Set<string>();
-  for (const line of stripAnsi(helpOutput).split("\n")) {
-    const match = line.match(/^\s*\.(routeros_[a-z_]+)\b/);
-    if (match) seen.add(match[1]);
-  }
-  return [...seen].sort();
+  const parsed = JSON.parse(helpOutput) as { tools: { name: string }[] };
+  return parsed.tools.map((tool) => tool.name).sort();
 }
 
 describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(

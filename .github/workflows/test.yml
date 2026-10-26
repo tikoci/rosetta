@@ -52,6 +52,11 @@ jobs:
           TEST_DB_PATH: ${{ runner.temp }}/ros-help.db
         run: bun test src/mcp-stdio-client.test.ts
 
+      - name: Run browse one-shot integration tests
+        env:
+          TEST_DB_PATH: ${{ runner.temp }}/ros-help.db
+        run: bun test src/browse-once.test.ts src/browse-parity.test.ts
+
       - name: Run tests
         run: bun test
 

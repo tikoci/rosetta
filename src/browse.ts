@@ -1237,6 +1237,8 @@ function parseDotArgs(rest: string, primary?: string, aliases?: Record<string, s
 type DotTool = {
   /** Field name that bare positional tokens are joined into. */
   primary?: string;
+  /** Allow filter-only calls when the primary argument is omitted. */
+  optionalPrimary?: boolean;
   /** Short one-line description shown by `.help`. */
   desc: string;
   /** Optional alias→canonical key map (e.g. `{ id: "page" }` so the form
@@ -1286,6 +1288,7 @@ const dotTools: Record<string, DotTool> = {
     ),
   },
   routeros_command_tree: {
+    optionalPrimary: true,
     primary: "path",
     tui: "cmd [path]",
     desc: "Browse command tree (args: path=, version=, arch=)",
@@ -1296,6 +1299,7 @@ const dotTools: Record<string, DotTool> = {
     },
   },
   routeros_search_changelogs: {
+    optionalPrimary: true,
     primary: "query",
     tui: "cl [query]",
     desc: "Search changelogs (args: query=, version=, from_version=, to_version=, category=, breaking_only=, limit=)",
@@ -1328,6 +1332,7 @@ const dotTools: Record<string, DotTool> = {
     ),
   },
   routeros_device_lookup: {
+    optionalPrimary: true,
     primary: "query",
     tui: "device <query>",
     desc: "Device lookup with FTS+filters (args: query=, architecture=, license_level=, has_wireless=, ...)",
@@ -1393,9 +1398,13 @@ function highlightSnippetMarkers(json: string): string {
 
 async function dispatchDotCommand(input: string): Promise<boolean> {
   // Diagnostics channel: stdout stays parseable in --once mode.
-  const say = onceMode ? console.error : console.log;
+  const say = onceMode || !process.stdout.isTTY ? console.error : console.log;
   // .help / .tools — list all dot-commands
   if (input === ".help" || input === ".?" || input === ".tools") {
+    if (onceMode) {
+      console.log(JSON.stringify({ tools: Object.entries(dotTools).map(([name, { run: _run, ...tool }]) => ({ name, ...tool })) }, null, 2));
+      return true;
+    }
     const out: string[] = [];
     out.push(`  ${bold("MCP probe — direct tool invocation")}`);
     out.push(`  ${dim("Format: .<tool_name> [positional...] [key=value ...]")}`);
@@ -1422,6 +1431,10 @@ async function dispatchDotCommand(input: string): Promise<boolean> {
   }
   // .instructions — print MCP server `instructions` string
   if (input === ".instructions") {
+    if (onceMode) {
+      console.log(JSON.stringify({ instructions: MCP_INSTRUCTIONS }, null, 2));
+      return true;
+    }
     const out: string[] = [];
     out.push(`  ${bold("MCP server instructions")} ${dim("(sent to clients on initialize)")}`);
     out.push("");
@@ -1431,6 +1444,12 @@ async function dispatchDotCommand(input: string): Promise<boolean> {
   }
   // .resources — list registered MCP resources
   if (input === ".resources" || input === ".refs") {
+    if (onceMode) {
+      let skills: ReturnType<typeof listSkills> = [];
+      try { skills = listSkills(); } catch { /* Older databases may lack skills. */ }
+      console.log(JSON.stringify({ resources: MCP_STATIC_RESOURCES, skills, skill_source: "tikoci/routeros-skills — community content, NOT official MikroTik docs" }, null, 2));
+      return true;
+    }
     const out: string[] = [];
     out.push(`  ${bold("MCP resources")} ${dim("(static + per-skill)")}`);
     out.push("");
@@ -1467,15 +1486,12 @@ async function dispatchDotCommand(input: string): Promise<boolean> {
   }
   try {
     const args = parseDotArgs(m[2] ?? "", tool.primary, tool.aliases);
-    // If the tool has a primary arg and the user supplied no value for it
-    // (and no key=value args at all), show a usage hint instead of running
-    // the tool against an empty/null query — calling with no args usually
-    // returns null or an empty object, which is confusing for users probing
-    // the MCP surface for the first time.
+    // Required positional arguments remain required when options are present.
+    // Keep the interactive no-argument usage hint for filter-capable tools.
     if (
       tool.primary &&
       (args[tool.primary] === undefined || args[tool.primary] === "") &&
-      Object.keys(args).length === 0
+      (!tool.optionalPrimary || Object.keys(args).length === 0)
     ) {
       const aliasStr = tool.aliases
         ? Object.keys(tool.aliases).map((a) => `${a}=`).join(" | ")
@@ -1486,7 +1502,7 @@ async function dispatchDotCommand(input: string): Promise<boolean> {
       say(`  ${dim("Usage:")} ${cyan(`.${name}`)} ${dim(`<${tool.primary}>  |  ${primaryHint}<value>  [key=value ...]`)}`);
       say(`  ${dim(tool.desc)}`);
       if (tool.tui) say(`  ${dim("TUI equivalent:")} ${cyan(tool.tui)}`);
-      return !onceMode;
+      return false;
     }
     const result = await tool.run(args);
     const json = JSON.stringify(result, null, 2);
