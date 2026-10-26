@@ -40,12 +40,14 @@ The asynchronous-startup redesign remains tracked in
 | `browse` | Interactive terminal browser (REPL) |
 | `browse <cmd> [args]` | Run any TUI command once, then open REPL (e.g. `browse changelog 7.20..7.22`) |
 | `browse --once <cmd>` | Execute any TUI command and exit — no REPL (for piping) |
+| `browse --once .help` | List MCP tools as pipeable JSON dot-commands (one per tool; stdout is pure JSON under `--once`) |
 | `export <dir> [--force]` | Write DB-only dataset directory (TSV + manifest.toml); `--force` overwrites a non-empty directory with no rosetta manifest |
 | `--setup` | Download DB + print MCP config |
 | `--setup --force` | Re-download DB |
 | `--refresh` | Shortcut for `--setup --force` (refresh DB) |
 | `--version` | Print version |
 | `--help` | Print usage |
+| `--db <path>` | Use a specific database file (same as `DB_PATH`) |
 | `--http` | Start with Streamable HTTP transport (instead of stdio) |
 | `--port <N>` | HTTP listen port (default: 8080, env: `PORT`) |
 | `--host <ADDR>` | HTTP bind address (default: localhost, env: `HOST`) |

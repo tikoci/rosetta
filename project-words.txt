@@ -318,6 +318,7 @@ persistable
 phy
 pickable
 pimsm
+pipeable
 pipefail
 pipestatus
 pivotable

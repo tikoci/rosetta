@@ -63,6 +63,10 @@ uses [Semantic Versioning](https://semver.org/).
   was 7.24.5), so treat this, not the stable channel, as the docs' version.
   Extraction now fails when the header is missing, or when the prose and CLI
   Reference were read from different trees.
+- **`--help` documents the pipeable JSON path and `--db`.** Top-level
+  `--help` points at `browse --once .help` with JSON examples, and the working
+  `--db <path>` override (same as `DB_PATH`) is now listed and mirrored in the
+  MANUAL CLI Flags table.
 
 ### Changed
 
@@ -121,6 +125,11 @@ uses [Semantic Versioning](https://semver.org/).
   (74 prose pages 404'd; the CLI Reference discovery gate tripped). The extractors
   now accept both layouts, so the corpus picks up the new CMR pages (RouterOS
   7.26beta1) with no other entries lost.
+- **`browse --once .<tool>` stdout is now exactly one JSON document.** The args
+  echo banner moved to stderr and excerpt highlighting no longer injects ANSI
+  escapes into the JSON, so shell consumers can pipe straight into `jq` or
+  `JSON.parse`. Unknown dot-commands, missing required args, and tool errors
+  now exit non-zero with the diagnostic on stderr instead of exiting 0.
 
 ## [0.11.3] — 2026-10-05
 
