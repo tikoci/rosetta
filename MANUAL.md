@@ -153,17 +153,16 @@ Verdict statuses: `schema_mismatch` (pragma ≠ code schema), `internal_inconsis
 
 ## Re-extracting a Local Database
 
-`make extract` and `make extract-full` fetch `/docs` prose live from manual.mikrotik.com and rebuild the versioned command tree, devices, changelogs, Dude cache, and skills:
+`make extract` and `make extract-full` fetch `/docs` prose live from manual.mikrotik.com and rebuild the versioned command tree, devices, changelogs, Dude cache, skills, and CLI Reference:
 
 ```sh
-make clean
-make extract
-make extract-full
-make gc-versions EXTRA_FLAGS=--verbose
+make clean && make extract-full   # Full local build (clean first is required — see below)
 ```
 
-- `make extract` runs the single-version ETL chain: Docusaurus `/docs` prose → commands → devices → test results → changelogs → Dude cache → skills → link.
-- `make extract-full` keeps the same pipeline but uses all tracked RouterOS versions for command/schema extraction.
+- `make extract` runs the single-version ETL chain: Docusaurus `/docs` prose → commands (single version) → devices → hardware catalog → test results → changelogs → Dude cache → skills → CLI Reference → link.
+- `make extract-full` runs the same pipeline with command/schema data for all tracked RouterOS versions, plus the CLI Reference crosswalk (`link-cliref`) at the end.
+- Always `make clean` before rebuilding: the primary version's table rebuild runs inside the chain and fails on foreign-key constraints over a populated DB. Back up `ros-help.db` first if it holds the release DB you ground on — `make db-sync` re-fetches it.
+- Skill extraction calls `api.github.com` and needs a token past the anonymous rate limit: `GITHUB_TOKEN=$(gh auth token) make extract-full`.
 - `make gc-versions` is the release-retention step that prunes `schema_node_presence` down to active channel heads; local full extracts intentionally keep the full presence history until you run it.
 - `make extract-docusaurus` runs the Docusaurus step alone, live-fetching every in-scope `/docs` page and caching each page's raw Markdown to `manual/pages/` (gitignored — not committed). `make extract-docusaurus-from-cache` re-runs from that cache with no network dependency, for fast local iteration; the cache holds the last complete live run (see "Local-only source refreshes"). `make extract-docusaurus-check-counts` compares the extracted page count against `llms.txt`'s scoped entry count (B-0012 H8, `V-docusaurus-docs-count`) — non-blocking, prints MATCH/MISMATCH.
 

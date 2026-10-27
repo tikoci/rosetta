@@ -5,9 +5,10 @@ Development guide for building, testing, and releasing.
 ## Prerequisites
 
 - [Bun](https://bun.sh/) v1.1+
-- RouterOS legacy HTML documentation export (Confluence space export) — placed in `box/`
-- For future documentation refreshes, MikroTik's official manual is now Docusaurus at <https://manual.mikrotik.com>; see `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` before changing extraction, MCP, or TUI behavior.
-- Internet access to [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) for command-tree extraction
+- [`gh`](https://cli.github.com/) (authenticated) — `make db-sync` uses it to fetch the CI-built database, the fast path below
+- Internet access to <https://manual.mikrotik.com> (prose), [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) (command tree), and `api.github.com` (agent skills) for a from-scratch extraction
+- A `GITHUB_TOKEN` in the environment when extracting skills — unauthenticated `extract-skills` hits GitHub API rate limits (HTTP 403). `GITHUB_TOKEN=$(gh auth token) make extract-full` works
+- The legacy Confluence HTML export in `box/` is only needed for historical rebuilds (`make extract-legacy-confluence`); the default pipeline fetches the live Docusaurus manual and needs no export. See `DESIGN.md` and `briefings/B-0012-docusaurus-manual-migration.md` before changing extraction, MCP, or TUI behavior.
 
 ### Optional system dependencies
 
@@ -27,19 +28,23 @@ cd rosetta
 bun install
 ```
 
-Place the legacy Confluence HTML export in `box/documents-export-<date>/ROS/` and symlink `box/latest` to it:
+Get a database — either the fast path (download the CI-built DB) or the full
+local build (live extraction, tens of minutes):
 
 ```sh
-ln -s documents-export-<date> box/latest
-```
-
-Then:
-
-```sh
-make extract       # HTML → properties → commands → devices → tests → changelogs → Dude cache → skills → link
+make db-sync       # Fast path: newest CI release DB matching this checkout (needs gh)
 # or
-make extract-full  # Same, but command data uses all 46 RouterOS versions
+make clean && make extract-full  # Full local build: Docusaurus prose, all tracked
+                                 # RouterOS versions, devices, changelogs, Dude cache,
+                                 # skills, CLI Reference, linking
 ```
+
+Rebuilding over an existing `ros-help.db` fails (foreign-key constraint on the
+primary version's table rebuild), so `make clean` first is required, not
+optional. `make extract` is the faster single-version variant (pinned 7.22.1
+inspect data). The legacy Confluence path (`box/` export + `box/latest` symlink, then
+`make extract-legacy-confluence`) is for historical pre-migration DBs only —
+see MANUAL.md.
 
 `make extract` and `make extract-full` fetch `inspect.json` from restraml GitHub Pages by default. You can also pass a local source:
 
@@ -53,12 +58,12 @@ bun run src/extract-all-versions.ts /path/to/restraml/docs
 ```sh
 bun test             # Run tests (in-memory SQLite, no DB needed)
 bun run typecheck    # Type check
-bun run lint         # Biome linter
+make lint            # All linters: Biome + Markdown + spelling (what CI runs)
 make preflight       # All checks: clean tree, DB, typecheck, test, lint
 bun run src/mcp.ts   # Start MCP server in dev mode
 ```
 
-The repo includes `.vscode/mcp.json` — opening the folder in VS Code automatically configures Copilot to use the dev server.
+The repo includes `.vscode/mcp.json` — opening the folder in VS Code automatically configures Copilot to use the dev server. For Claude-style clients, create a gitignored `.mcp.json` with a `rosetta` server running `bun run src/mcp.ts` and `cwd` set to the checkout (same command as `.vscode/mcp.json`, in `mcpServers` format).
 
 ### Interactive browsing
 
@@ -79,7 +84,7 @@ Type `help` in the REPL for all commands. Bare text searches pages; results are 
 Three ways to exercise MCP tools during development:
 
 1. **Browse REPL** — `bun run src/mcp.ts browse` (no MCP client needed, uses query.ts directly)
-2. **MCP Inspector** — `npx @modelcontextprotocol/inspector bun src/mcp.ts` (web UI for calling individual tools)
+2. **MCP Inspector** — `bunx @modelcontextprotocol/inspector bun src/mcp.ts` (web UI for calling individual tools)
 3. **CLI search** — `bun run src/search.ts "query"` (quick one-shot FTS search)
 
 ## Testing
@@ -96,7 +101,7 @@ Three ways to exercise MCP tools during development:
 | `src/release.test.ts` | File consistency, build constants, structural pattern checks, container setup |
 | `src/schema-roundtrip.test.ts`, `src/extract-*.test.ts`, `src/gc-versions.test.ts` | Extraction/schema/retention behavior and importer isolation |
 
-Run `bun test` and `bun run lint` before any commit.
+Run `bun test` and `make lint` before any commit (`make verify` runs the full local gate).
 
 ## Work tracking
 
@@ -169,15 +174,18 @@ src/
 ├── browse.ts               # Interactive terminal browser (REPL)
 ├── query.ts                # NL → FTS5 query planner, BM25 ranking
 ├── db.ts                   # SQLite schema, WAL mode, FTS5 triggers
-├── extract-html.ts         # Legacy Confluence HTML → pages + callouts
-├── extract-properties.ts   # Property table extraction
+├── extract-docusaurus.ts   # Live manual.mikrotik.com /docs prose → pages + sections (default prose source)
+├── extract-html.ts         # Legacy Confluence HTML → pages + callouts (historical rebuilds only)
+├── extract-properties.ts   # Property table extraction (legacy Confluence path)
 ├── extract-commands.ts     # inspect.json → commands (version-aware)
-├── extract-all-versions.ts # Batch extract all 46 versions
+├── extract-all-versions.ts # Batch extract all tracked versions
 ├── extract-devices.ts      # Product matrix CSV → devices table
 ├── extract-test-results.ts # Product page test results + block diagrams
 ├── extract-changelogs.ts   # Changelog entries from MikroTik download server
+├── extract-cliref.ts       # Live CLI Reference → versioned overlay trees
 ├── extract-videos.ts       # MikroTik YouTube channel transcripts → videos + video_segments (incremental, requires yt-dlp)
 ├── link-commands.ts        # Command ↔ page mapping
+├── link-cliref.ts          # CLI Reference ↔ inspect crosswalk (+ drift baseline)
 ├── query.test.ts           # Tests — query planner + DB integration + schema
 ├── extract-videos.test.ts  # Tests — yt-dlp mock tests + cache function tests
 ├── release.test.ts         # Tests — file consistency, build constants, container
@@ -191,21 +199,25 @@ scripts/
 
 ## Extraction Pipeline
 
-Each extractor is idempotent — it `DELETE`s existing data and rebuilds. Individual steps:
+Each extractor is idempotent — it `DELETE`s existing data and rebuilds. A full
+rebuild still starts with `make clean`: the primary version's table rebuild
+fails on foreign keys over a populated DB. Individual steps:
 
 ```sh
-make extract-html          # HTML → pages + callouts + sections
-make extract-properties    # Property tables from HTML
+make extract-docusaurus    # Live /docs prose → pages + sections + tables (default prose source)
 make extract-commands      # inspect.json → commands (single version)
-make extract-all-versions  # All 46 RouterOS versions
+make extract-all-versions  # All tracked RouterOS versions
 make extract-devices       # Product matrix CSV → devices
 make extract-test-results  # Product page benchmarks + block diagrams
 make extract-changelogs    # Changelog entries from download server
 make extract-videos-from-cache # Import committed transcript NDJSON (CI path)
 make extract-dude-from-cache   # Import cached Dude wiki HTML
-make extract-skills            # Fetch/import tikoci/routeros-skills
+make extract-skills            # Fetch/import tikoci/routeros-skills (needs GITHUB_TOKEN)
+make extract-cliref            # Live CLI Reference → versioned overlay trees
 make link                  # Command ↔ page matching
+make link-cliref           # CLI Reference ↔ inspect crosswalk (+ drift baseline)
 make gc-versions           # Release retention: prune schema_node_presence to active channel heads
+make extract-legacy-confluence # Historical Confluence HTML export (needs box/; not the default)
 ```
 
 ## Data Sources
@@ -214,7 +226,7 @@ The database combines multiple sources of MikroTik data:
 
 - **HTML Documentation** — legacy Confluence space export from help.mikrotik.com. Pages are broken into sections, callout boxes, and property tables (~515K words). Future official docs are on <https://manual.mikrotik.com> and require the Docusaurus migration path.
 
-- **Command Tree** — `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml), which runs `/console/inspect` against RouterOS CHR under QEMU for every version since 7.9 (46 versions tracked).
+- **Command Tree** — `inspect.json` from [tikoci/restraml](https://github.com/tikoci/restraml), which runs `/console/inspect` against RouterOS CHR under QEMU for every version since 7.9 (all versions restraml tracks).
 
 - **Product Matrix** — CSV export from mikrotik.com/products/matrix (144 products, 34 columns).
 

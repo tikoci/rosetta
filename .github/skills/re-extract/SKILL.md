@@ -33,7 +33,7 @@ Do **not** use this skill as the migration path for <https://manual.mikrotik.com
    make extract
    ```
 
-   All versions (slower, all 46 RouterOS versions):
+   All versions (slower, all tracked RouterOS versions):
    ```sh
    make extract-full
    ```
