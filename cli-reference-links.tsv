@@ -1,7 +1,7 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
 # counts 7.24	exact=962	alias=0	manual-only=98	entries=1060
-# counts 7.25	exact=963	alias=0	manual-only=101	entries=1064
-# counts 7.26	exact=963	alias=0	manual-only=143	entries=1106
+# counts 7.25	exact=967	alias=0	manual-only=97	entries=1064
+# counts 7.26	exact=967	alias=0	manual-only=139	entries=1106
 manual_version	source_path	source_type	match_kind	match_detail
 7.24	interface/bridge/msrp	Directory	manual-only	
 7.24	interface/bridge/msrp/attributes	Directory	manual-only	
@@ -105,7 +105,6 @@ manual_version	source_path	source_type	match_kind	match_detail
 7.25	interface/ethernet/poe/monitor	Command	manual-only	
 7.25	interface/ethernet/poe/power-cycle	Command	manual-only	
 7.25	interface/ethernet/poe/settings	Settings Directory	manual-only	
-7.25	interface/ethernet/pon	Directory	manual-only	
 7.25	interface/ethernet/switch/acl	Directory	manual-only	
 7.25	interface/ethernet/switch/acl/policer	Directory	manual-only	
 7.25	interface/ethernet/switch/dscp-qos-map	Directory	manual-only	
@@ -163,12 +162,9 @@ manual_version	source_path	source_type	match_kind	match_detail
 7.25	interface/w60g/station	Directory	manual-only	
 7.25	interface/w60g/station/monitor	Command	manual-only	
 7.25	interface/wifi/trigger-radar	Command	manual-only	
-7.25	interface/xfrm	Directory	manual-only	
 7.25	iot/gpio	Directory	manual-only	
 7.25	iot/gpio/analog	Directory	manual-only	
 7.25	iot/gpio/digital	Directory	manual-only	
-7.25	ip/cloud/back-to-home-file/settings/remove-certificate	Command	manual-only	
-7.25	ip/ssh/known-hosts	Directory	manual-only	
 7.25	lcd	Settings Directory	manual-only	
 7.25	lcd/backlight	Command	manual-only	
 7.25	lcd/interface	Directory	manual-only	
@@ -238,7 +234,6 @@ manual_version	source_path	source_type	match_kind	match_detail
 7.26	interface/ethernet/poe/monitor	Command	manual-only	
 7.26	interface/ethernet/poe/power-cycle	Command	manual-only	
 7.26	interface/ethernet/poe/settings	Settings Directory	manual-only	
-7.26	interface/ethernet/pon	Directory	manual-only	
 7.26	interface/ethernet/pon/monitor	Command	manual-only	
 7.26	interface/ethernet/switch/acl	Directory	manual-only	
 7.26	interface/ethernet/switch/acl/policer	Directory	manual-only	
@@ -301,12 +296,9 @@ manual_version	source_path	source_type	match_kind	match_detail
 7.26	interface/wifi/dashboard/show-clients	Command	manual-only	
 7.26	interface/wifi/dashboard/show-logs	Command	manual-only	
 7.26	interface/wifi/trigger-radar	Command	manual-only	
-7.26	interface/xfrm	Directory	manual-only	
 7.26	iot/gpio	Directory	manual-only	
 7.26	iot/gpio/analog	Directory	manual-only	
 7.26	iot/gpio/digital	Directory	manual-only	
-7.26	ip/cloud/back-to-home-file/settings/remove-certificate	Command	manual-only	
-7.26	ip/ssh/known-hosts	Directory	manual-only	
 7.26	lcd	Settings Directory	manual-only	
 7.26	lcd/backlight	Command	manual-only	
 7.26	lcd/interface	Directory	manual-only	
