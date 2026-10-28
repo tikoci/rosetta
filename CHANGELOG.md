@@ -94,6 +94,9 @@ uses [Semantic Versioning](https://semver.org/).
   including the need to preserve pins and overrides when adapting setup snippets.
   Correct obsolete release-planning, manual-version, and bare-`bunx` auto-update
   guidance; a cached bare invocation need not see a just-published version.
+- Correct contributor setup docs that still described the retired Confluence-first
+  build: the default pipeline is live Docusaurus (`make db-sync` is the fast path),
+  rebuilds require `make clean` first, and skill extraction needs `GITHUB_TOKEN`.
 
 - **Command-version answers say which arches a version's data came from (#91).** 39 of
   the 68 versions with command data come from x86-only `inspect.json` builds, so they lack
