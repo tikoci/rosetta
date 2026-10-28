@@ -23,6 +23,33 @@ function runOnce(
   return { exitCode: proc.exitCode, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
 }
 
+// `script(1)` allocates a pty so the child sees a TTY on stdout — the only way
+// to prove the NO_COLOR branch does anything, since the harness always pipes.
+// util-linux syntax, so Linux-only; this file runs on ubuntu-latest in CI.
+const canFakeTty = process.platform === "linux" && existsSync("/usr/bin/script");
+
+function shellQuote(arg: string): string {
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+function runOnceTty(
+  args: string[],
+  extraEnv: Record<string, string> = {},
+): { exitCode: number | null; stdout: string; stderr: string } {
+  const env = { ...process.env, DB_PATH, ...extraEnv };
+  // An ambient NO_COLOR must not leak into the styled-output assertion; tests
+  // that need it pass it explicitly via extraEnv.
+  if (!("NO_COLOR" in extraEnv)) delete env.NO_COLOR;
+  const cmd = ["bun", "src/browse.ts", "--once", ...args].map(shellQuote).join(" ");
+  const proc = Bun.spawnSync(["script", "-qec", cmd, "/dev/null"], {
+    cwd: ROOT,
+    env,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  return { exitCode: proc.exitCode, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
+}
+
 describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
   hasTestDb || dbWasExplicitlyConfigured
     ? "browse --once dot-commands are machine-readable"
@@ -109,6 +136,22 @@ describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
 
     test("NO_COLOR strips ANSI from human commands", () => {
       const r = runOnce(["stats"], true, { NO_COLOR: "1" });
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("Database Statistics");
+      expect(r.stdout).not.toContain("\x1b");
+    });
+
+    // The piped tests above pass even if the NO_COLOR branch is deleted (a pipe
+    // is never a TTY), so this pair proves both halves under a pty instead.
+    test.skipIf(!canFakeTty)("TTY keeps styled output without NO_COLOR", () => {
+      const r = runOnceTty(["stats"]);
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("Database Statistics");
+      expect(r.stdout).toContain("\x1b");
+    });
+
+    test.skipIf(!canFakeTty)("NO_COLOR strips ANSI even on a TTY", () => {
+      const r = runOnceTty(["stats"], { NO_COLOR: "1" });
       expect(r.exitCode).toBe(0);
       expect(r.stdout).toContain("Database Statistics");
       expect(r.stdout).not.toContain("\x1b");
