@@ -483,6 +483,7 @@ vpls
 vrf
 vrid
 vrrp
+vtab
 vteps
 vtt
 vxlan
