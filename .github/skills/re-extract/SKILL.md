@@ -1,6 +1,6 @@
 ---
 name: re-extract
-description: "Re-extract the legacy Confluence RouterOS documentation export into SQLite. Use for rebuilding the current DB pipeline, not for the manual.mikrotik.com Docusaurus migration."
+description: "Re-extract the legacy Confluence RouterOS documentation export into SQLite. Use only for rebuilding historical pre-migration DBs; the default pipeline (make extract-full) fetches the live manual.mikrotik.com Docusaurus docs instead."
 argument-hint: "Path to legacy HTML export directory (optional)"
 ---
 # Re-extract Legacy Documentation Pipeline
@@ -26,16 +26,15 @@ Do **not** use this skill as the migration path for <https://manual.mikrotik.com
    make clean
    ```
 
-3. **Run full pipeline** (choose one)
+3. **Run the legacy pipeline**
 
-   Single version (fast, latest stable only):
+   `make extract` / `make extract-full` are the Docusaurus pipeline and never read
+   `box/` — the legacy path is its own sequence:
    ```sh
-   make extract
-   ```
-
-   All versions (slower, all tracked RouterOS versions):
-   ```sh
-   make extract-full
+   make extract-legacy-confluence   # extract-html + extract-properties from box/latest/ROS
+   make extract-commands            # single version (fast), or:
+   make extract-all-versions        # all tracked RouterOS versions (slower)
+   make link
    ```
 
    Pipeline order:
@@ -44,11 +43,13 @@ Do **not** use this skill as the migration path for <https://manual.mikrotik.com
    - `extract-commands` or `extract-all-versions` — inspect.json → commands + ros_versions + command_versions
    - `link` — command ↔ page mapping
 
+   Do not run this against a DB built by `extract-docusaurus` — pick one prose source per build.
+
 4. **Verify results**
    ```sh
    make search query="firewall filter"
    ```
-   Expected counts (full pipeline):
+   Expected counts (March 2026 export, all versions):
    - ~317 pages, ~4860 properties, ~1034 callouts
    - ~40K commands (primary version), ~1.67M command_versions
    - 46 ros_versions, ~92% dir link coverage

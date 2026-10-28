@@ -180,12 +180,13 @@ src/
 ├── extract-commands.ts     # inspect.json → commands (version-aware)
 ├── extract-all-versions.ts # Batch extract all tracked versions
 ├── extract-devices.ts      # Product matrix CSV → devices table
+├── extract-hardware-catalog.ts # B-0017 hardware/www artifacts → hardware_catalog + device_aliases
 ├── extract-test-results.ts # Product page test results + block diagrams
 ├── extract-changelogs.ts   # Changelog entries from MikroTik download server
 ├── extract-cliref.ts       # Live CLI Reference → versioned overlay trees
 ├── extract-videos.ts       # MikroTik YouTube channel transcripts → videos + video_segments (incremental, requires yt-dlp)
 ├── link-commands.ts        # Command ↔ page mapping
-├── link-cliref.ts          # CLI Reference ↔ inspect crosswalk (+ drift baseline)
+├── link-cliref.ts          # CLI Reference ↔ inspect crosswalk (--check/--write-baseline drift baseline)
 ├── query.test.ts           # Tests — query planner + DB integration + schema
 ├── extract-videos.test.ts  # Tests — yt-dlp mock tests + cache function tests
 ├── release.test.ts         # Tests — file consistency, build constants, container
@@ -208,6 +209,7 @@ make extract-docusaurus    # Live /docs prose → pages + sections + tables (def
 make extract-commands      # inspect.json → commands (single version)
 make extract-all-versions  # All tracked RouterOS versions
 make extract-devices       # Product matrix CSV → devices
+make extract-hardware-catalog # B-0017 hardware/www artifacts → hardware_catalog + device_aliases (after extract-devices)
 make extract-test-results  # Product page benchmarks + block diagrams
 make extract-changelogs    # Changelog entries from download server
 make extract-videos-from-cache # Import committed transcript NDJSON (CI path)
@@ -215,7 +217,7 @@ make extract-dude-from-cache   # Import cached Dude wiki HTML
 make extract-skills            # Fetch/import tikoci/routeros-skills (needs GITHUB_TOKEN)
 make extract-cliref            # Live CLI Reference → versioned overlay trees
 make link                  # Command ↔ page matching
-make link-cliref           # CLI Reference ↔ inspect crosswalk (+ drift baseline)
+make link-cliref           # CLI Reference ↔ inspect crosswalk (needs schema_nodes)
 make gc-versions           # Release retention: prune schema_node_presence to active channel heads
 make extract-legacy-confluence # Historical Confluence HTML export (needs box/; not the default)
 ```
