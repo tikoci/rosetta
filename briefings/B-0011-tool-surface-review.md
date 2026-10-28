@@ -2,9 +2,9 @@
 id: B-0011-tool-surface-review
 topic: Audit the 14-tool MCP surface for consolidation candidates
 status: open
-related_tasks: ["#131", "#132", "B-0001", "B-0024"]
+related_tasks: ["#131", "#132", "B-0001", "B-0024", "#54", "#222", "#223", "#224"]
 created: 2026-05-02
-last_revisited: 2026-10-04
+last_revisited: 2026-10-28
 ---
 
 # Question
@@ -59,3 +59,92 @@ This is a "double-check on current think" — the answer might be "all 14 are ri
 # Open questions
 
 - What signal do we have about real-session tool usage frequency? Today: none. Worth opt-in logging (see B-0010 → "opt-in TUI/usage logs") to inform this kind of audit?
+
+# TUI ↔ MCP parity inventory (2026-10-28, #54)
+
+Read-only inventory of the current surfaces; no behavior conclusions beyond the
+gap markings. Grounded in `main` @ `7eb706d` (post-#217): `server.registerTool`
+call sites in `src/mcp.ts`, `dispatch`/`dotTools` in `src/browse.ts`, and
+`EXPECTED_TOOLS` in `src/mcp-contract.test.ts`. The tool count is still 14 —
+the historical number in this briefing holds — and the `dotTools` key set was
+statically diffed against `EXPECTED_TOOLS` (14 == 14, no drift).
+
+Headline: the raw parity contract holds. All 14 tools are reachable via
+`browse --once .<tool>` with `key=value` args (pure JSON on stdout per
+`V-cli-once-json`); 12/14 dot-tools carry a `tui:` hint to a named command and
+2/14 (`routeros_explain_command`, `routeros_dude_get_page`) are dot-only. Named
+TUI paths are uniformly narrower than dot paths — same query core, fewer
+expressible args.
+
+## One row per MCP tool
+
+"Gaps" marks each gap **intentional** or **candidate-work** (#224 tracks the
+candidate set; #222/#223 track the two broken items).
+
+| # | MCP tool (`src/mcp.ts`) | Args (types/defaults) | Named TUI path (`src/browse.ts`) | Dot-command | Gaps |
+|---|-------------------------|-----------------------|----------------------------------|-------------|------|
+| 1 | `routeros_search` (:706) | `query` string req; `limit` int 1–50, default 8 | `search`/`s`/bare text — query only, limit fixed at 8 (:1596, :1925) | `.routeros_search <q> limit=` — full | candidate-work: named `limit` (#224) |
+| 2 | `routeros_get_page` (:768) | `page` string req; `max_length` int ≥1000, default 16000; `section` string opt | `page <id\|title>` — page only (:1602); section via interactive number-select (:1767) | full, plus `id=` alias | candidate-work: named `section`/`max_length` (#224) |
+| 3 | `routeros_lookup_property` (:832) | `name` string req; `command_path` string opt | `prop`/`p <name>` — name only; `command_path` auto-scoped from page ctx, and only when ctx is a non-section page (:1973) | full (`name=`, `command_path=`) | candidate-work: explicit `command_path`, sections-ctx scoping (#224) |
+| 4 | `routeros_explain_command` (:907) | `command` string req; `ros_version` string opt (no default); `model` string opt (no default) | NONE — `explain …` falls through to search (:1752) | full | candidate-work: named command, or document dot-only (#224) |
+| 5 | `routeros_command_tree` (:962) | `path` string, default `""`; `version` string opt (no default); `arch` string opt (no default) | `cmd`/`tree [path]` + `@version` suffix (:2033); relative nav, leaf version card; no `arch` | full (`path=`, `version=`, `arch=`) | candidate-work: named `arch` (#224); relative-nav/leaf extras intentional |
+| 6 | `routeros_stats` (:1020) | none | `stats` (:1592) — counts, provenance, grounding; no skills | `.routeros_stats` — **omits the `skills` block the MCP tool adds** (:1055) | candidate-work: broken parity (dot/named omit the `skills` block), filed as #223 |
+| 7 | `routeros_search_changelogs` (:1092) | `query` string, default `""`; `version`/`from_version` (EXCLUSIVE)/`to_version`/`category` string opt (no default); `breaking_only` boolean opt (no default); `limit` int 1–500, default 50 | `changelog`/`cl` — terms, single version, `A..B` range, `breaking` keyword; no `category` (dead var, :2180), limit fixed 50 (:2172) | full | candidate-work: named `category`/`limit` (#224); named `A..B` is inclusive on both ends while MCP `from_version` is exclusive — document-or-align decision needed (#224) |
+| 8 | `routeros_dude_search` (:1185) | `query` string req; `limit` int 1–20, default 8 | `dude <query>` — limit fixed at 10 (:2234) | full | candidate-work: confirm 10-vs-8 default difference intentional or align (#224) |
+| 9 | `routeros_dude_get_page` (:1232) | `id` int-or-string req; `max_length` int 1000–200000, default 16000 | NONE as a command; interactive number-select on `dude` results opens the full page (:1798) | full | candidate-work: named view, or document dot-only (#224) |
+| 10 | `routeros_command_version_check` (:1278) | `command_path` string req | `vcheck`/`vc` — full (:1739) | full | none |
+| 11 | `routeros_command_diff` (:1315) | `from_version`/`to_version` string req; `path_prefix`/`arch` string opt (no default) | `diff <from> <to> [path]` — no `arch` (:1729) | full | candidate-work: named `arch` (#224) |
+| 12 | `routeros_device_lookup` (:1382) | `query` string, default `""`; `architecture` string opt, `min_ram_mb`/`license_level`/`min_storage_mb` int opt, `has_poe`/`has_wireless`/`has_lte` boolean opt (all no default); `limit` int 1–50, default 10 | `device`/`dev <query>` — query only, default limit (:1668) | full, incl. filter-only calls | candidate-work: named filters (#224) |
+| 13 | `routeros_search_tests` (:1517) | `device`/`test_type`/`mode`/`configuration` string opt, `packet_size` int opt (all no default); `sort_by` enum mbps\|kpps, default `mbps`; `limit` int 1–200, default 50 | `tests [device] <type> [mode] [packet_size]` positional (:2110); bare `tests` mirrors MCP discovery; no `configuration`/`sort_by`/`limit` | full | candidate-work: named `configuration`/`sort_by`/`limit` (#224) |
+| 14 | `routeros_current_versions` (:1638) | none | `versions`/`ver` — full (:1746) | full | none |
+
+## One row per TUI-only capability
+
+`tui-mcp-parity` allows the TUI to be richer, so most rows below are
+intentional asymmetry — the question column is whether an MCP counterpart is
+warranted.
+
+| TUI capability (`src/browse.ts`) | MCP counterpart? | Gap marking |
+|----------------------------------|------------------|-------------|
+| `props`/`sp` FTS property search (:1648) | partial — exact-lookup tool + `related.properties` in search | intentional; no dedicated MCP FTS tool warranted, `related` covers discovery |
+| `glossary`/`g` (:1655) | partial — `related.glossary` | intentional; same rationale |
+| `callouts`/`cal` (:1680), incl. no-arg page-scoped form | partial — `related.callouts` + `get_page` callouts | intentional |
+| `videos`/`vid` (:1705) | partial — `related.videos` | intentional |
+| `skills`/`skill` (:1718) | YES — `rosetta://skills…` MCP resources | full parity via resources, not tools; candidate-work: broken `skill <name> refs` hint (:2290), filed as #222 |
+| `view`/`v`, `back`/`b`, `help`/`?`, `quit`, number-select, no-arg `page`/`prop` re-render | none — navigation/session chrome | intentional; no MCP counterpart warranted |
+| meta dot-commands `.help`/`.tools`/`.?`, `.instructions`, `.resources`/`.refs` (:1421) | n/a — they describe the MCP surface itself | intentional |
+| `browse <cmd>` shell passthrough + `--once` (dot → pure JSON per `V-cli-once-json`; named → plain text when piped per #216) | n/a — invocation mode, not a capability | intentional |
+
+## MCP-only surface (no TUI path)
+
+The dataset/schema MCP resources have no TUI command:
+`rosetta://datasets/device-test-results.csv`, `rosetta://datasets/devices.csv`,
+`rosetta://schema.sql`, `rosetta://schema-guide.md` (`src/mcp-meta.ts`). The
+parity rule covers tools, not resources; bulk-export and schema introspection
+are machine-oriented and human equivalents exist (`tests`, `device`, `stats`).
+Marking: **intentional**, recorded here for completeness.
+
+## Cross-check against `browse-parity.test.ts`
+
+The test enforces listing only: `.help` JSON tool names equal
+`EXPECTED_TOOLS` (and it is DB-gated — it skips without `ros-help.db`, so the
+raw contract is unenforced on DB-less runs). The table above finds enforcement
+gaps the test does not cover — candidate test additions, listed but NOT
+implemented here, tracked in #224:
+
+- each listed dot-command actually executes (not just listed);
+- dot-command paths accept/round-trip every MCP arg for that tool;
+- `tui:` hints in `dotTools` resolve to a real `dispatch` case (12/14 today;
+  explain + dude-get-page intentionally hint-less);
+- dot-vs-MCP response-shape equivalence (would have caught the #223 class);
+- `--once` pure-JSON purity for all 14 tools (`browse-once.test.ts` covers
+  stats/search only);
+- the human `.help` text hard-codes "all 14 tool dot-commands" (:1194) —
+  drift risk if the registry changes without touching help.
+
+## Follow-ups filed
+
+- #222 — `skill <name> refs` advertised but unimplemented (broken TUI hint).
+- #223 — `.routeros_stats`/named `stats` omit the MCP `skills` block.
+- #224 — candidate-work tracker: named-path arg gaps + candidate test
+  additions above. #27 stays closed per the #54 acceptance criteria.
