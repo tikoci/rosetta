@@ -140,6 +140,22 @@ uses [Semantic Versioning](https://semver.org/).
   escapes into the JSON, so shell consumers can pipe straight into `jq` or
   `JSON.parse`. Unknown dot-commands, missing required args, and tool errors
   now exit non-zero with the diagnostic on stderr instead of exiting 0.
+- **Device-benchmark extraction fails the release instead of shipping an empty
+  or gapped table (#218).** v0.12.0-next.123 shipped 0 `device_test_results`
+  rows after mikrotik.com 503'd the whole scrape, and nothing caught it:
+  `routeros_search_tests` answered nothing while its description still claimed
+  thousands of rows. The extractor now retries 5xx, 429 (honoring Retry-After
+  up to 30s), network, and timeout failures — other statuses, including 403,
+  fail at once — sends an identifying User-Agent, distinguishes gone pages
+  (404) from host failures, and treats a 200 page with no benchmark rows and
+  no block diagram as a host failure rather than a quiet zero-row success. It
+  exits non-zero on an empty result, over 10% hard fetch errors, over 15%
+  missing pages, or a 15-minute global fetch deadline
+  (`ROSETTA_EXTRACT_DEADLINE_MS` overrides it); a failed run leaves the
+  previous table untouched instead of wiped or partial. The release db-content
+  gate additionally floors `device_test_results` at 2,000 rows, and the tool
+  description reads its counts from the served DB so the claim can't drift
+  again.
 
 ## [0.11.3] — 2026-10-05
 

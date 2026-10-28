@@ -19,7 +19,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export, frozen; kept only for `make extract-legacy-confluence` historical rebuilds |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | Per-version command history; query `command_versions` for the built artifact's range |
 | Product matrix | `matrix/2026-10-03/matrix.csv` | CSV, 34 columns | Committed October 2026 snapshot; query the built DB for counts |
-| Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 125 devices with tests, 110 with block diagrams |
+| Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 144 devices with tests, 127 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 | YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 746 videos, ~2,374 non-empty transcript segments |
 | Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 8 skills, ~30K words (community content) |
@@ -74,7 +74,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 ### Product test results and block diagrams
 
 - **Source:** Individual product pages at `https://mikrotik.com/product/<slug>`, parsed server-side with linkedom.
-- **Coverage:** 125 of 156 devices have benchmark tables; 110 expose block diagram URLs.
+- **Coverage:** 144 of 155 devices have benchmark tables; 127 expose block diagram URLs.
 - **Benchmarks:** Ethernet bridging/routing at 64/512/1518-byte packets and IPSec throughput at 64/512/1400-byte packets with multiple cipher/config combinations.
 - **URL slugs:** Slug discovery is the fragile part. The extractor tries several generated variants per product, including product-code forms, `plus` substitutions, and Unicode superscript normalization.
 - **Storage shape:** Benchmarks live in normalized `device_test_results` rows, not JSON blobs, so cross-device filtering/sorting stays SQL-native.
@@ -292,6 +292,8 @@ The old `curl -X POST -d "ax=matrix"` API is dead (late 2025). MikroTik's produc
 MikroTik publishes ethernet & IPSec benchmark tables and hardware block diagram images on individual product pages (`mikrotik.com/product/<slug>`). These are server-side rendered HTML (Laravel Livewire), parseable without JavaScript. Tables use `class="performance-table"` with CSS classes encoding packet size and metric type (`kpps size1518`, `mbps size512`).
 
 **Slug discovery is the hard part.** MikroTik's product URL slugs follow no consistent pattern — some use lowercased product names with underscores, some use product codes with original casing, `+` sometimes becomes `plus`, sometimes `_`, sometimes nothing. Unicode superscript characters (², ³) in product names translate to regular digits. The extractor generates 4–6 candidate slugs per product and tries them sequentially. 15 products (mostly kits, bundles, discontinued) have no discoverable page. This is inherently fragile — MikroTik could change slugs or page structure at any time.
+
+**The scrape fails loud, never quiet (#218).** next.123 shipped an empty `device_test_results` table after mikrotik.com 503'd the whole run, because every failure mode exited 0. Each product now classifies as ok / missing (every slug variant 404'd) / hard error (anything else surviving retries — including a 200 page with no benchmark rows and no block diagram, which is a soft-404, bot-wall page, or markup drift rather than a benchmark-less product), and the run exits non-zero on an empty result, over 10% hard errors (healthy: 0), or over 15% missing (healthy baseline 7/155 ≈ 5% genuine discontinuations, so 15% is ~3× headroom while a slug-scheme change drives missing toward 100%). A 15-minute global fetch deadline bounds hung-host CI burn (~17 minutes worst case instead of ~80). Nothing is written before the verdict passes, so a failed run keeps the previous table intact, and the release db-content gate floors the table at 2,000 rows as a second backstop.
 
 **Test results live in `device_test_results`** (normalized: one row per device×test_type×mode×config×packet_size) rather than denormalized JSON blobs. This enables SQL filtering (e.g., "show all devices sorted by routing throughput at 512-byte packets"). Results are auto-attached to device lookups for exact/small result sets — no separate tool needed.
 

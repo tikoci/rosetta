@@ -1225,6 +1225,7 @@ describe("qa.yml", () => {
       /TABLE_PROPERTIES.*-lt 2450/,
       /HARDWARE_CATALOG.*-lt 200/,
       /DEVICE_ALIASES.*-lt 600/,
+      /TEST_RESULTS.*-lt 2000/,
       /CLIREF_ENTRIES.*-lt 900/,
       /CLIREF_FIELDS.*-lt 8000/,
       /CLIREF_FLAGS.*-lt 800/,

@@ -131,7 +131,7 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Product Matrix** — CSV export from mikrotik.com/products/matrix (156 products, 34 columns). Hardware specs, license levels, and pricing.
 
-- **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
+- **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (3,177 measurements across 144 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 127 devices.
 
 - **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (746 videos, ~2,374 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
 
@@ -165,6 +165,7 @@ make clean && make extract-full   # Full local build (clean first is required �
 - Skill extraction calls `api.github.com` and needs a token past the anonymous rate limit: `GITHUB_TOKEN=$(gh auth token) make extract-full`.
 - `make gc-versions` is the release-retention step that prunes `schema_node_presence` down to active channel heads; local full extracts intentionally keep the full presence history until you run it.
 - `make extract-docusaurus` runs the Docusaurus step alone, live-fetching every in-scope `/docs` page and caching each page's raw Markdown to `manual/pages/` (gitignored — not committed). `make extract-docusaurus-from-cache` re-runs from that cache with no network dependency, for fast local iteration; the cache holds the last complete live run (see "Local-only source refreshes"). `make extract-docusaurus-check-counts` compares the extracted page count against `llms.txt`'s scoped entry count (B-0012 H8, `V-docusaurus-docs-count`) — non-blocking, prints MATCH/MISMATCH.
+- `extract-test-results` fails loud (`V-extract-test-results-fail-loud`): it exits non-zero — leaving the previous `device_test_results` table untouched — on an empty result, over 10% hard fetch errors, over 15% missing (404) pages, or the 15-minute global fetch deadline. A 200 page with no benchmark rows and no block diagram counts as a hard error (soft-404/bot-wall/markup drift), not a quiet success. Retries cover 5xx, 429 (honoring `Retry-After` up to 30s), network, and timeout failures; other statuses, including 403, fail at once. Raise `ROSETTA_EXTRACT_DEADLINE_MS` (milliseconds) on genuinely slow links.
 
 ### Rebuilding a historical (pre-migration) Confluence release DB
 

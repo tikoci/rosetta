@@ -6,7 +6,7 @@
  * all inspect.json fetches go through GitHub Pages (no rate limit).
  */
 
-import { fetchGitHub, githubApiHeaders } from "./github.ts";
+import { fetchGitHub, githubApiHeaders, retryAfterMs } from "./github.ts";
 
 /** GitHub Pages base URL — inspect.json files served here (no rate limit) */
 export const RESTRAML_PAGES_URL = "https://tikoci.github.io/restraml";
@@ -66,10 +66,12 @@ class FatalFetchError extends Error {}
 /**
  * One attempt loop for status, network and body failures: GitHub Pages serves routine
  * transient 503s, and one of those dropped 7.15 from a release (#178). A network error,
- * a timeout, a 5xx, or a failure inside `read` (a reset or truncated body) retries with
- * exponential backoff, up to `attempts` requests in total. A non-5xx response goes
- * straight to `read`, which throws FatalFetchError to fail at once. Each attempt gets
- * its own timeout, covering the body read, unless the caller passes a signal.
+ * a timeout, a 5xx, a 429, or a failure inside `read` (a reset or truncated body)
+ * retries with exponential backoff, up to `attempts` requests in total. Any other
+ * status goes straight to `read`, which throws FatalFetchError to fail at once —
+ * deliberately including 403: from these hosts a 403 means blocking or auth, not a
+ * throttle, and only 429 carries retry semantics. Each attempt gets its own timeout,
+ * covering the body read, unless the caller passes a signal.
  */
 async function withRetry<T>(
   url: string,
@@ -81,14 +83,26 @@ async function withRetry<T>(
     const last = attempt >= attempts;
     try {
       const response = await fetchImpl(url, { ...init, signal: init.signal ?? AbortSignal.timeout(timeoutMs) });
-      if (response.status < 500 || last) return await read(response);
+      if ((response.status < 500 && response.status !== 429) || last) return await read(response);
       console.warn(`  ${url}: HTTP ${response.status}, retry ${attempt}/${attempts - 1}`);
+      await Bun.sleep(retryDelayMs(response, attempt, baseDelayMs));
     } catch (e) {
       if (last || e instanceof FatalFetchError) throw e;
       console.warn(`  ${url}: ${(e as Error).message}, retry ${attempt}/${attempts - 1}`);
+      await Bun.sleep(baseDelayMs * 2 ** (attempt - 1));
     }
-    await Bun.sleep(baseDelayMs * 2 ** (attempt - 1));
   }
+}
+
+/** Backoff for a retryable status: honor the server's Retry-After on a 429
+ *  (capped like the GitHub helper — a rogue "wait an hour" must not stall a
+ *  release build), exponential backoff otherwise. */
+function retryDelayMs(response: Response, attempt: number, baseDelayMs: number): number {
+  if (response.status === 429) {
+    const after = retryAfterMs(response.headers.get("retry-after"));
+    if (after !== null) return Math.min(after, 30_000);
+  }
+  return baseDelayMs * 2 ** (attempt - 1);
 }
 
 /**
@@ -100,8 +114,26 @@ export function fetchWithRetry(url: string, init: RequestInit = {}, retry: Retry
 }
 
 /**
- * Load a JSON file from a URL or local path. A URL load retries 5xx, network and
- * body-read failures in one budget; any other error status fails at once.
+ * fetchWithRetry with the body read inside the retry loop, so a reset or stall
+ * after the headers retries like a network error instead of surfacing once the
+ * status is in. Returns the final status with its body for the caller to judge.
+ */
+export function fetchTextWithRetry(
+  url: string,
+  init: RequestInit = {},
+  retry: RetryOptions = {},
+): Promise<{ status: number; ok: boolean; text: string }> {
+  return withRetry(url, init, retry, async (response) => ({
+    status: response.status,
+    ok: response.ok,
+    text: await response.text(),
+  }));
+}
+
+/**
+ * Load a JSON file from a URL or local path. A URL load retries 5xx, 429
+ * (honoring Retry-After up to 30s), network and body-read failures in one
+ * budget; any other error status — including 403 — fails at once.
  */
 export async function loadJson<T = unknown>(source: string, retry: RetryOptions = {}): Promise<T> {
   if (isHttpUrl(source)) {
