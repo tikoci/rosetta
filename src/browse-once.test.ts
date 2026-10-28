@@ -36,7 +36,7 @@ function runOnceTty(
   args: string[],
   extraEnv: Record<string, string> = {},
 ): { exitCode: number | null; stdout: string; stderr: string } {
-  const env = { ...process.env, DB_PATH, ...extraEnv };
+  const env: Record<string, string | undefined> = { ...process.env, DB_PATH, ...extraEnv };
   // An ambient NO_COLOR must not leak into the styled-output assertion; tests
   // that need it pass it explicitly via extraEnv.
   if (!("NO_COLOR" in extraEnv)) delete env.NO_COLOR;
