@@ -1313,8 +1313,8 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "RB912UAG-5HPnD-OUT",
         "RB912UAG-2HPnD-OUT",
+        "RB912UAG-5HPnD-OUT",
         "basebox_6"
       ],
       "tableModelCodes": [
@@ -1673,8 +1673,8 @@
       "tableCount": 0,
       "isSeries": true,
       "productLinks": [
-        "CCR1036-12G-4S-EM",
-        "CCR1036-12G-4S-149"
+        "CCR1036-12G-4S-149",
+        "CCR1036-12G-4S-EM"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -3882,8 +3882,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "RB952Ui-5ac2nD-TC",
-        "RB952Ui-5ac2nD"
+        "RB952Ui-5ac2nD",
+        "RB952Ui-5ac2nD-TC"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4579,8 +4579,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr8",
-        "knot"
+        "knot",
+        "knot_lr8"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4607,8 +4607,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr8g_kit",
-        "knot"
+        "knot",
+        "knot_lr8g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4642,8 +4642,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr9",
-        "knot"
+        "knot",
+        "knot_lr9"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4670,8 +4670,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr9g_kit",
-        "knot"
+        "knot",
+        "knot_lr9g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -5117,9 +5117,9 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "lhg_2",
-        "RBLHG-5nD",
         "RBLHG-5HPnD",
+        "RBLHG-5nD",
+        "lhg_2",
         "lhg_5_ac"
       ],
       "tableModelCodes": [
@@ -5460,8 +5460,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "ltap_lr8_lte_kit",
-        "lora_antenna_kit"
+        "lora_antenna_kit",
+        "ltap_lr8_lte_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -5534,10 +5534,10 @@
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
-        "ltap_mini",
-        "dinrail_pro",
         "acgpsa",
-        "acsmaufl"
+        "acsmaufl",
+        "dinrail_pro",
+        "ltap_mini"
       ],
       "tableModelCodes": [
         "RB912R-2nD-LTm"
@@ -5574,11 +5574,11 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "ltap_mini_lte_kit_2024",
-        "dinrail_pro",
         "acgpsa",
         "acsmaufl",
-        "ltap_mini_lte_kit"
+        "dinrail_pro",
+        "ltap_mini_lte_kit",
+        "ltap_mini_lte_kit_2024"
       ],
       "tableModelCodes": [
         "RB912R-2nD-LTm&R11e-LTE",
@@ -5718,8 +5718,8 @@
       "isSeries": true,
       "productLinks": [
         "RB921GS-5HPacD-15S",
-        "mantbox_2_12s",
-        "RB921GS-5HPacD-19S"
+        "RB921GS-5HPacD-19S",
+        "mantbox_2_12s"
       ],
       "tableModelCodes": [
         "RB921GS-5HPacD-15S",
@@ -5876,8 +5876,8 @@
       "tableCount": 1,
       "isSeries": true,
       "productLinks": [
-        "mtp250_53v47_od",
-        "mtp250_26v94_od"
+        "mtp250_26v94_od",
+        "mtp250_53v47_od"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -5898,8 +5898,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "RB911G-5HPacD-NB",
-        "ACRPSMA"
+        "ACRPSMA",
+        "RB911G-5HPacD-NB"
       ],
       "tableModelCodes": [
         "RBDisc-5nD"
@@ -5928,8 +5928,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "netbox_5_ax",
-        "ACRPSMA"
+        "ACRPSMA",
+        "netbox_5_ax"
       ],
       "tableModelCodes": [
         "RBDisc-5nD"
@@ -6052,10 +6052,10 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "RB922UAGS-5HPacD-NM",
         "RB921UAGS-5SHPacD-NM",
-        "RB922UAGS-5HPacT-NM",
-        "RB921UAGS-5SHPacT-NM"
+        "RB921UAGS-5SHPacT-NM",
+        "RB922UAGS-5HPacD-NM",
+        "RB922UAGS-5HPacT-NM"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6230,10 +6230,10 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "rbomnitikg_5hacd",
-        "rbomnitikpg_5hacd",
+        "RBOmniTikU-5HnDr2",
         "RBOmniTikUPA-5HnDr2",
-        "RBOmniTikU-5HnDr2"
+        "rbomnitikg_5hacd",
+        "rbomnitikpg_5hacd"
       ],
       "tableModelCodes": [
         "RBOmniTikG-5HacD",
@@ -6642,8 +6642,8 @@
       "tableCount": 0,
       "isSeries": true,
       "productLinks": [
-        "rb1100ahx4",
-        "RB1100Dx4"
+        "RB1100Dx4",
+        "rb1100ahx4"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6667,8 +6667,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "RBWMK",
-        "RB2011iL-IN"
+        "RB2011iL-IN",
+        "RBWMK"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6710,8 +6710,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "RBWMK",
-        "RB2011iLS-IN"
+        "RB2011iLS-IN",
+        "RBWMK"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6753,8 +6753,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "RBWMK",
-        "RB2011UiAS-IN"
+        "RB2011UiAS-IN",
+        "RBWMK"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -7054,8 +7054,8 @@
       "tableCount": 3,
       "isSeries": true,
       "productLinks": [
-        "RB912UAG-5HPnD",
-        "RB912UAG-2HPnD"
+        "RB912UAG-2HPnD",
+        "RB912UAG-5HPnD"
       ],
       "tableModelCodes": [
         "RB912UAG-5HPnD",
@@ -7416,8 +7416,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "sxtsq_5ax",
-        "qm_x"
+        "qm_x",
+        "sxtsq_5ax"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -7516,11 +7516,11 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "sxtsq_5_high_power",
-        "qm_x",
-        "sxtsq_lite2",
         "RBSXTsq5nD",
-        "sxtsq_5_ac"
+        "qm_x",
+        "sxtsq_5_ac",
+        "sxtsq_5_high_power",
+        "sxtsq_lite2"
       ],
       "tableModelCodes": [
         "SXTsq Lite5",
@@ -7703,9 +7703,9 @@
       "tableCount": 3,
       "isSeries": true,
       "productLinks": [
-        "wireless_wire",
         "wap_60g",
-        "wap_60g_ap"
+        "wap_60g_ap",
+        "wireless_wire"
       ],
       "tableModelCodes": [
         "RBwAPG-60adkit",
@@ -7949,8 +7949,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "wap_lr2",
-        "tof_2400_8v_4"
+        "tof_2400_8v_4",
+        "wap_lr2"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -7981,8 +7981,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "wap_lr8g_kit",
-        "868_omni_antenna"
+        "868_omni_antenna",
+        "wap_lr8g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -8013,8 +8013,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "wap_lr9_kit",
-        "lora_antenna_kit"
+        "lora_antenna_kit",
+        "wap_lr9_kit"
       ],
       "tableModelCodes": [
         "RBwAPR-2nD&R11e-LoRa9"
@@ -8054,8 +8054,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "wap_lr9g_kit",
-        "915_omni_antenna"
+        "915_omni_antenna",
+        "wap_lr9g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -8190,8 +8190,8 @@
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
-        "wireless_wire_cube",
-        "qm_x"
+        "qm_x",
+        "wireless_wire_cube"
       ],
       "tableModelCodes": [
         "CubeG-5ac60adpair"
@@ -8223,8 +8223,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "wireless_wire_cube_pro",
-        "cube_60pro_ac"
+        "cube_60pro_ac",
+        "wireless_wire_cube_pro"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
