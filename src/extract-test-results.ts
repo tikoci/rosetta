@@ -7,7 +7,8 @@
  *   - Block diagram PNG URL
  *   - Product page URL slug
  *
- * Idempotent: deletes all existing test results, updates device rows.
+ * Idempotent: on a passing verdict, atomically replaces all test results and
+ * updates device rows; a failed run exits non-zero with the table untouched.
  * Requires devices table to be populated first (via extract-devices.ts).
  *
  * Usage: bun run src/extract-test-results.ts [--concurrency N] [--delay MS]
@@ -42,7 +43,7 @@ const REQUEST_HEADERS = {
   Accept: "text/html",
 };
 
-// Per-request retry budget for mikrotik.com fetches: the shared 5xx/network
+// Per-request retry budget for mikrotik.com fetches: the shared 5xx/429/network
 // retry (a transient 503 blanked the whole next.123 table, #218), with a
 // shorter per-attempt timeout than the restraml default — product pages are
 // ~330 KB and answer in ~2s, so 30s without a byte is already a sick host.
@@ -53,6 +54,23 @@ const FETCH_RETRY: RetryOptions = { timeoutMs: 30_000 };
 // A healthy run has 0 hard errors (only a handful of genuine 404s for
 // discontinued products); the next.123 incident was 155/155.
 export const MAX_HARD_ERROR_RATE = 0.10;
+
+// Fail-loud threshold for gone pages: a mass-404 (slug-scheme change, WAF
+// answering 404s) with a few surviving rows must not ship as a quiet prune.
+// Healthy baseline is 7/155 ≈ 5% genuine 404s for discontinued products, so
+// 15% gives ~3x headroom for a bad discontinuation batch while a real
+// scheme change drives missing toward 100% — far above the gate.
+export const MAX_MISSING_RATE = 0.15;
+
+// Global run deadline: the batch loop breaks out once the fetch phase
+// exceeds this. A healthy run finishes in ~2 minutes, so 15 minutes is
+// generous headroom that still bounds a hung host at ~17 minutes of CI burn
+// instead of ~80 (4 attempts × 30s timeout × ~39 batches). Overridable for
+// genuinely slow links; a breached run exits 1 with the table untouched.
+export const EXTRACTION_DEADLINE_MS = (() => {
+  const raw = Number(process.env.ROSETTA_EXTRACT_DEADLINE_MS ?? "");
+  return Number.isFinite(raw) && raw > 0 ? raw : 15 * 60_000;
+})();
 
 // ── Slug overrides ──
 // Products whose URL slugs are undiscoverable by heuristics alone.
@@ -110,6 +128,8 @@ export interface ExtractionOutcome {
   missing: number;
   /** Whether the sitemap seed load succeeded. */
   sitemapOk: boolean;
+  /** Whether the fetch phase hit the global run deadline. */
+  timedOut: boolean;
 }
 
 /**
@@ -118,6 +138,12 @@ export interface ExtractionOutcome {
  * an error message when the run must fail, null when it may proceed.
  */
 export function evaluateExtractionOutcome(o: ExtractionOutcome): string | null {
+  if (o.timedOut) {
+    return `extract-test-results: global extraction deadline ` +
+      `(${Math.round(EXTRACTION_DEADLINE_MS / 60000)} min) exceeded with only ` +
+      `${o.totalTests} rows collected — refusing to ship partial test results ` +
+      `(raise ROSETTA_EXTRACT_DEADLINE_MS if this link is genuinely slow)`;
+  }
   if (o.totalTests === 0) {
     return `extract-test-results: 0 test-result rows for ${o.deviceCount} devices ` +
       `(${o.hardErrors} unreachable, ${o.missing} pages missing` +
@@ -128,6 +154,11 @@ export function evaluateExtractionOutcome(o: ExtractionOutcome): string | null {
     return `extract-test-results: ${o.hardErrors}/${o.deviceCount} product pages failed ` +
       `with transport/HTTP errors (over the ${MAX_HARD_ERROR_RATE * 100}% threshold) — ` +
       `mikrotik.com may be blocking or down; refusing to ship partial test results`;
+  }
+  if (o.deviceCount > 0 && o.missing / o.deviceCount > MAX_MISSING_RATE) {
+    return `extract-test-results: ${o.missing}/${o.deviceCount} product pages 404'd ` +
+      `(over the ${MAX_MISSING_RATE * 100}% threshold) — ` +
+      `the slug scheme may have changed; refusing to ship partial test results`;
   }
   return null;
 }
@@ -257,7 +288,7 @@ function generateSlugs(name: string, code: string | null): string[] {
 /** Fetch sitemap.xml and return the set of all valid product slugs.
  *  Retries transient failures, then returns an empty set on persistent error
  *  (callers fall back to heuristics). */
-async function fetchSitemap(retry: RetryOptions = {}): Promise<Set<string>> {
+export async function fetchSitemap(retry: RetryOptions = {}): Promise<Set<string>> {
   try {
     const resp = await fetchWithRetry(SITEMAP_URL, { headers: REQUEST_HEADERS }, { ...FETCH_RETRY, ...retry });
     if (!resp.ok) {
@@ -326,8 +357,14 @@ export async function fetchProductPage(
       return { status: "error", detail: `fetch failed: ${(e as Error).message}` };
     }
     if (resp.ok) {
-      const html = await resp.text();
-      const data = parseProductHtml(html, slug);
+      // A body-read or parse throw is one product's hard error, not a reason
+      // to let Promise.all reject and kill the other 154 products' results.
+      let data: ProductPageData | null;
+      try {
+        data = parseProductHtml(await resp.text(), slug);
+      } catch (e) {
+        return { status: "error", detail: `unparseable page at ${slug}: ${(e as Error).message}` };
+      }
       if (data) return { status: "ok", data };
       return { status: "error", detail: `unparseable page at ${slug}` };
     }
@@ -339,7 +376,13 @@ export async function fetchProductPage(
   return { status: "missing", tried: slugs.length };
 }
 
-/** Parse product page HTML into structured data. */
+/** Parse product page HTML into structured data. Returns null when the page
+ *  carries nothing we recognize — no benchmark rows and no block diagram link.
+ *  A 200 with zero parseable content is a soft-404, a bot-wall page, or markup
+ *  drift, never a product without benchmarks; recording it `ok` would let a
+ *  site-wide drift pass with 0 hard errors behind only the QA row floor. A
+ *  page with a diagram but no tables stays `ok` (some products genuinely lack
+ *  benchmark tables). */
 function parseProductHtml(html: string, slug: string): ProductPageData | null {
 
   const { document } = parseHTML(html);
@@ -374,6 +417,9 @@ function parseProductHtml(html: string, slug: string): ProductPageData | null {
     }
   }
 
+  if (ethernet_results.length === 0 && ipsec_results.length === 0 && block_diagram_url === null) {
+    return null;
+  }
   return { slug, ethernet_results, ipsec_results, block_diagram_url };
 }
 
@@ -413,10 +459,8 @@ async function main(): Promise<void> {
     deviceSlugs.push({ id: dev.id, name: dev.product_name, slugs });
   }
 
-  // Idempotent: clear existing test results
-  db.run("DELETE FROM device_test_results");
-
-  // Prepare statements
+  // Prepare statements (no writes yet — the verdict below runs first, so a
+  // failed run leaves the previous table untouched instead of wiped/partial).
   const insertTest = db.prepare(`INSERT OR IGNORE INTO device_test_results (
     device_id, test_type, mode, configuration, packet_size,
     throughput_kpps, throughput_mbps
@@ -426,67 +470,22 @@ async function main(): Promise<void> {
     SET product_url = ?, block_diagram_url = ?
     WHERE id = ?`);
 
+  const clearTests = db.prepare("DELETE FROM device_test_results");
+
   console.log(`Fetching ${deviceSlugs.length} product pages (concurrency=${CONCURRENCY}, delay=${DELAY_MS}ms)...`);
-
-  let totalTests = 0;
-  let devicesWithTests = 0;
-  let devicesWithDiagrams = 0;
-  let hardErrors = 0;
-  let missingPages = 0;
-
-  const insertAll = db.transaction(
-    (results: Array<{ deviceId: number; name: string; firstSlug: string; result: ProductFetchResult }>) => {
-      for (const { deviceId, name, firstSlug, result } of results) {
-        if (result.status === "missing") {
-          missingPages++;
-          console.warn(`  [missing] ${name} (${firstSlug}, all ${result.tried} slug variants 404)`);
-          continue;
-        }
-        if (result.status === "error") {
-          hardErrors++;
-          console.warn(`  [error] ${name} (${firstSlug}: ${result.detail})`);
-          continue;
-        }
-        const data = result.data;
-
-        // Update device with URL and block diagram
-        updateDevice.run(
-          `https://mikrotik.com/product/${data.slug}`,
-          data.block_diagram_url,
-          deviceId,
-        );
-
-        if (data.block_diagram_url) devicesWithDiagrams++;
-
-        // Insert test results
-        const allResults = [
-          ...data.ethernet_results.map((r) => ({ ...r, test_type: "ethernet" as const })),
-          ...data.ipsec_results.map((r) => ({ ...r, test_type: "ipsec" as const })),
-        ];
-
-        if (allResults.length > 0) devicesWithTests++;
-
-        for (const r of allResults) {
-          insertTest.run(
-            deviceId,
-            r.test_type,
-            r.mode,
-            r.configuration,
-            r.packet_size,
-            r.throughput_kpps,
-            r.throughput_mbps,
-          );
-          totalTests++;
-        }
-      }
-    },
-  );
 
   // Fetch all products with rate limiting
   const allResults: Array<{ deviceId: number; name: string; firstSlug: string; result: ProductFetchResult }> = [];
   let processed = 0;
+  let timedOut = false;
+  const startedAt = Date.now();
 
   for (let i = 0; i < deviceSlugs.length; i += CONCURRENCY) {
+    if (Date.now() - startedAt > EXTRACTION_DEADLINE_MS) {
+      timedOut = true;
+      console.warn(`  [deadline] global extraction deadline exceeded after ${processed}/${deviceSlugs.length} products`);
+      break;
+    }
     const batch = deviceSlugs.slice(i, i + CONCURRENCY);
     const batchResults = await Promise.all(
       batch.map(async (dev) => {
@@ -506,8 +505,30 @@ async function main(): Promise<void> {
   }
   console.log(""); // newline after progress
 
-  // Insert all results in one transaction
-  insertAll(allResults);
+  // Tally the run before touching the DB: the verdict decides whether any
+  // write happens at all.
+  let totalTests = 0;
+  let devicesWithTests = 0;
+  let devicesWithDiagrams = 0;
+  let hardErrors = 0;
+  let missingPages = 0;
+
+  for (const { name, firstSlug, result } of allResults) {
+    if (result.status === "missing") {
+      missingPages++;
+      console.warn(`  [missing] ${name} (${firstSlug}, all ${result.tried} slug variants 404)`);
+      continue;
+    }
+    if (result.status === "error") {
+      hardErrors++;
+      console.warn(`  [error] ${name} (${firstSlug}: ${result.detail})`);
+      continue;
+    }
+    const rows = result.data.ethernet_results.length + result.data.ipsec_results.length;
+    if (rows > 0) devicesWithTests++;
+    if (result.data.block_diagram_url) devicesWithDiagrams++;
+    totalTests += rows;
+  }
 
   console.log(`Test results: ${totalTests} rows for ${devicesWithTests} devices`);
   console.log(`Block diagrams: ${devicesWithDiagrams} devices`);
@@ -518,18 +539,57 @@ async function main(): Promise<void> {
     console.warn(`Hard errors: ${hardErrors} products (transport/HTTP failures after retries)`);
   }
 
-  // Fail loudly, never ship an empty or badly-gapped table (#218).
+  // Fail loudly, never ship an empty or badly-gapped table (#218). Nothing
+  // has been written yet, so a failing run keeps the previous table intact.
   const verdict = evaluateExtractionOutcome({
     deviceCount: devices.length,
     totalTests,
     hardErrors,
     missing: missingPages,
     sitemapOk: sitemapSlugs.size > 0,
+    timedOut,
   });
   if (verdict) {
     console.error(verdict);
     process.exit(1);
   }
+
+  // Idempotent rebuild, atomically: clear + insert in one transaction.
+  const insertAll = db.transaction(
+    (results: Array<{ deviceId: number; result: ProductFetchResult }>) => {
+      clearTests.run();
+      for (const { deviceId, result } of results) {
+        if (result.status !== "ok") continue;
+        const data = result.data;
+
+        // Update device with URL and block diagram
+        updateDevice.run(
+          `https://mikrotik.com/product/${data.slug}`,
+          data.block_diagram_url,
+          deviceId,
+        );
+
+        // Insert test results
+        const rows = [
+          ...data.ethernet_results.map((r) => ({ ...r, test_type: "ethernet" as const })),
+          ...data.ipsec_results.map((r) => ({ ...r, test_type: "ipsec" as const })),
+        ];
+
+        for (const r of rows) {
+          insertTest.run(
+            deviceId,
+            r.test_type,
+            r.mode,
+            r.configuration,
+            r.packet_size,
+            r.throughput_kpps,
+            r.throughput_mbps,
+          );
+        }
+      }
+    },
+  );
+  insertAll(allResults);
 }
 
 if (import.meta.main) {

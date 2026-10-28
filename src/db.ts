@@ -1277,6 +1277,9 @@ export function getCommandVersionArches(): Map<string, string[]> {
 export function getDbStats() {
   const count = (sql: string) =>
     Number((db.prepare(sql).get() as { c: number }).c ?? 0);
+  // Single definition of the benchmark counts — getDbStats reuses the same
+  // helper the MCP tool descriptions read, so the two can't drift apart.
+  const testCounts = getDeviceTestCounts();
   const dbSizeBytes = (() => {
     try {
       return Bun.file(DB_PATH).size;
@@ -1336,8 +1339,8 @@ export function getDbStats() {
     commands: count("SELECT COUNT(*) AS c FROM commands"),
     commands_linked: count("SELECT COUNT(*) AS c FROM commands WHERE page_id IS NOT NULL"),
     devices: count("SELECT COUNT(*) AS c FROM devices"),
-    device_test_results: count("SELECT COUNT(*) AS c FROM device_test_results"),
-    devices_with_tests: count("SELECT COUNT(DISTINCT device_id) AS c FROM device_test_results"),
+    device_test_results: testCounts.results,
+    devices_with_tests: testCounts.devices,
     hardware_catalog: count("SELECT COUNT(*) AS c FROM hardware_catalog"),
     hardware_catalog_linked: count("SELECT COUNT(*) AS c FROM hardware_catalog WHERE device_id IS NOT NULL"),
     device_aliases: count("SELECT COUNT(*) AS c FROM device_aliases"),

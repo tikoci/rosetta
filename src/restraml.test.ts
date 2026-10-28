@@ -99,6 +99,41 @@ describe("fetchWithRetry / loadJson", () => {
     expect(calls).toHaveLength(1);
   });
 
+  test("a 403 fails at once, without retrying (blocking, not a throttle)", async () => {
+    const { calls, fetchImpl } = scripted([403, 200]);
+    await expect(loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 0 })).rejects.toThrow("HTTP 403");
+    expect(calls).toHaveLength(1);
+  });
+
+  test("retries a 429 and succeeds once the throttle lifts", async () => {
+    const { calls, fetchImpl } = scripted([429, 429, 200]);
+    const data = await loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 0 });
+    expect(data).toEqual({ ok: true });
+    expect(calls).toHaveLength(3);
+  });
+
+  test("honors Retry-After on a 429 instead of the backoff schedule", async () => {
+    const calls: string[] = [];
+    let n = 0;
+    const fetchImpl = (async (url: string) => {
+      calls.push(url);
+      return n++ === 0
+        ? new Response("", { status: 429, headers: { "retry-after": "0" } })
+        : new Response('{"ok":true}', { status: 200 });
+    }) as unknown as typeof fetch;
+    // Retry-After: 0 pins the header path without sleeping; a large base
+    // delay would make this test slow if the header were ignored.
+    const data = await loadJson("https://example.test/a.json", { fetchImpl, baseDelayMs: 60_000 });
+    expect(data).toEqual({ ok: true });
+    expect(calls).toHaveLength(2);
+  });
+
+  test("returns the final response when retries run out on a 429", async () => {
+    const { fetchImpl } = scripted([429, 429]);
+    const response = await fetchWithRetry("https://example.test/a", {}, { fetchImpl, baseDelayMs: 0, attempts: 2 });
+    expect(response.status).toBe(429);
+  });
+
   test("gives up after the last attempt and reports the final status", async () => {
     const { calls, fetchImpl } = scripted([503, 503, 502]);
     await expect(

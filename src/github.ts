@@ -16,7 +16,8 @@ export function githubApiHeaders(accept = DEFAULT_ACCEPT): Record<string, string
   return headers;
 }
 
-function retryAfterMs(value: string | null): number | null {
+/** Parse a Retry-After header (delay-seconds or HTTP-date) into milliseconds. */
+export function retryAfterMs(value: string | null): number | null {
   if (!value) return null;
   const seconds = Number(value);
   if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
