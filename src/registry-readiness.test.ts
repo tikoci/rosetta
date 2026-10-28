@@ -217,7 +217,66 @@ describe("waitForExactVersion against a mock registry", () => {
   });
 });
 
+describe("waitForExactVersion with an injected fetch", () => {
+  test("a stalled connection fails the attempt instead of hanging the wait", async () => {
+    // A fetch that never settles and ignores its signal: without a
+    // per-attempt timeout this test would hang until the runner kills it.
+    let sawSignal = false;
+    const started = Date.now();
+    const outcome = await waitForExactVersion({
+      name: "pkg",
+      version: "1.0.1",
+      registry: "http://127.0.0.1:9/",
+      timeoutMs: 300,
+      intervalMs: 20,
+      attemptTimeoutMs: 40,
+      fetchImpl: ((_url, init) => {
+        sawSignal = init?.signal instanceof AbortSignal;
+        return new Promise<Response>(() => {});
+      }) as typeof fetch,
+      sleepImpl: () => Promise.resolve(),
+    });
+    expect(Date.now() - started).toBeLessThan(10_000);
+    expect(outcome.ready).toBe(false);
+    expect(outcome.attempts).toBeGreaterThan(1);
+    expect(outcome.lastFailure).toContain("attempt timed out after 40ms");
+    // The injected seam still receives an abort signal, so a well-behaved
+    // fetch can release its socket even though the race bounds the wait.
+    expect(sawSignal).toBe(true);
+  });
+
+  test("transport failures fail closed with endpoint diagnostics", async () => {
+    const outcome = await waitForExactVersion({
+      name: "pkg",
+      version: "1.0.1",
+      registry: "http://127.0.0.1:9/",
+      timeoutMs: 100,
+      intervalMs: 20,
+      fetchImpl: (() => Promise.reject(new Error("socket hang up"))) as unknown as typeof fetch,
+      sleepImpl: () => Promise.resolve(),
+    });
+    expect(outcome.ready).toBe(false);
+    expect(outcome.attempts).toBeGreaterThan(1);
+    expect(outcome.lastFailure).toBe("request to http://127.0.0.1:9/pkg failed: socket hang up");
+  });
+});
+
 describe("wait-for-registry.ts CLI", () => {
+  // Async spawn: a spawnSync would block this process's event loop, and the
+  // mock registry living in it could never answer the child (deadlock).
+  const runCli = async (args: string[]) => {
+    const child = Bun.spawn([process.execPath, join(import.meta.dirname, "..", "scripts", "wait-for-registry.ts"), ...args], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const [stdout, stderr, exit] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ]);
+    return { stdout, stderr, exit };
+  };
+
   test("exit 0 with a ✓ line when ready; exit 1 with ::error:: diagnostics on timeout", async () => {
     const server = Bun.serve({
       port: 0,
@@ -230,20 +289,6 @@ describe("wait-for-registry.ts CLI", () => {
         }),
     });
     const registry = `http://127.0.0.1:${server.port}/`;
-    // Async spawn: a spawnSync would block this process's event loop, and the
-    // mock registry living in it could never answer the child (deadlock).
-    const runCli = async (args: string[]) => {
-      const child = Bun.spawn([process.execPath, join(import.meta.dirname, "..", "scripts", "wait-for-registry.ts"), ...args], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      const [stdout, stderr, exit] = await Promise.all([
-        new Response(child.stdout).text(),
-        new Response(child.stderr).text(),
-        child.exited,
-      ]);
-      return { stdout, stderr, exit };
-    };
     try {
       const ok = await runCli(["pkg", "v1.0.1", "--registry", registry]);
       expect(ok.exit).toBe(0);
@@ -255,9 +300,35 @@ describe("wait-for-registry.ts CLI", () => {
       expect(miss.stderr).toContain(registry);
       expect(miss.stderr).toContain("pkg@9.9.9");
       expect(miss.stderr).toContain("Last failure");
+      // Per-attempt progress is a diagnostic: stderr, never stdout.
+      expect(miss.stderr).toContain("[attempt 1] not ready");
+      expect(miss.stdout).not.toContain("[attempt");
     } finally {
       server.stop(true);
     }
+  }, 30_000);
+
+  test("fail-closed branches exit 1 with usage; --help exits 0", async () => {
+    const failures: Array<{ args: string[]; stderr: string }> = [
+      { args: ["pkg", "1.0.1", "--registry"], stderr: "--registry needs a value" },
+      { args: ["pkg", "1.0.1", "--timeout-s", "--registry", "http://x/"], stderr: "--timeout-s needs a value" },
+      { args: ["pkg", "1.0.1", "--bogus"], stderr: "Unknown flag --bogus" },
+      { args: [], stderr: "Missing <package>" },
+      { args: ["pkg"], stderr: "Missing <package>" },
+      { args: ["pkg", "1.0.1", "--timeout-s", "abc"], stderr: "must be positive numbers" },
+      { args: ["pkg", "1.0.1", "--timeout-s", "0"], stderr: "must be positive numbers" },
+      { args: ["pkg", "1.0.1", "--interval-s", "-1"], stderr: "must be positive numbers" },
+      { args: ["pkg", "latest"], stderr: "exact-version-only" },
+    ];
+    for (const { args, stderr } of failures) {
+      const r = await runCli(args);
+      expect(r.exit).toBe(1);
+      expect(r.stderr).toContain(stderr);
+    }
+
+    const help = await runCli(["--help"]);
+    expect(help.exit).toBe(0);
+    expect(help.stdout).toContain("Usage:");
   }, 30_000);
 });
 

@@ -57,6 +57,11 @@ function isHttpUrl(value: string): boolean {
  * version must be present with a usable `dist.tarball` reference. A
  * dist-tag or full-metadata-only match is NOT readiness — the caller must
  * pass the abbreviated document Bun would read.
+ *
+ * Known limitation: the gate checks the tarball URL's shape but never HEADs
+ * it, so a partial publish (metadata live, bytes missing) passes here and
+ * fails at bunx. Accepted as negligible — npm publish is effectively atomic,
+ * so that window does not occur in practice.
  */
 export function checkAbbreviatedManifest(doc: unknown, version: string): ManifestCheck {
   if (typeof doc !== "object" || doc === null || Array.isArray(doc)) {
@@ -91,6 +96,12 @@ export interface WaitOptions {
   registry?: string;
   timeoutMs?: number;
   intervalMs?: number;
+  /**
+   * Per-attempt fetch bound. Defaults to `min(max(intervalMs, 1s), 30s)`: the
+   * floor keeps a small poll interval from causing spurious timeouts, the cap
+   * keeps one stalled connection from eating the whole budget.
+   */
+  attemptTimeoutMs?: number;
   fetchImpl?: typeof fetch;
   sleepImpl?: (ms: number) => Promise<void>;
   onAttempt?: (attempt: number, ok: boolean, detail: string) => void;
@@ -108,10 +119,25 @@ export interface WaitOutcome {
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Read a response body as JSON without throwing — a truncated or non-JSON
+ * error page from the registry is a retryable not-ready signal, not an
+ * exception. Callers route failures through the shared loop tail.
+ */
+async function readJsonBody(res: Response): Promise<{ doc: unknown; error?: unknown }> {
+  try {
+    return { doc: await res.json() };
+  } catch (error) {
+    return { doc: undefined, error };
+  }
+}
+
+/**
  * Poll the abbreviated install manifest until the exact version is servable
- * or the budget expires. Bounded: resolves (never hangs) after `timeoutMs`.
- * Throws only for caller errors (non-exact version); registry-side failures
- * are returned as `{ ready: false, lastFailure }` for diagnostics.
+ * or the budget expires. Bounded: every attempt carries its own timeout, so
+ * a stalled connection fails one attempt instead of hanging the wait, and
+ * the loop returns once `timeoutMs` elapses. Throws only for caller errors
+ * (non-exact version); registry-side failures are returned as
+ * `{ ready: false, lastFailure }` for diagnostics.
  */
 export async function waitForExactVersion(opts: WaitOptions): Promise<WaitOutcome> {
   const {
@@ -120,6 +146,7 @@ export async function waitForExactVersion(opts: WaitOptions): Promise<WaitOutcom
     registry = DEFAULT_REGISTRY,
     timeoutMs = 900_000,
     intervalMs = 5_000,
+    attemptTimeoutMs = Math.min(Math.max(intervalMs, 1_000), 30_000),
     fetchImpl = fetch,
     sleepImpl = defaultSleep,
     onAttempt,
@@ -138,31 +165,45 @@ export async function waitForExactVersion(opts: WaitOptions): Promise<WaitOutcom
     let detail: string;
     let tarball: string | undefined;
     try {
-      const res = await fetchImpl(url, {
-        headers: { Accept: ABBREVIATED_MANIFEST_ACCEPT },
+      // Bound the attempt twice over: the AbortSignal lets a well-behaved
+      // fetch release its socket, and the race bounds even an implementation
+      // that ignores the signal (including injected mocks).
+      const controller = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`attempt timed out after ${attemptTimeoutMs}ms`));
+        }, attemptTimeoutMs);
       });
-      if (!res.ok) {
-        detail = `HTTP ${res.status} ${res.statusText} from ${url}`;
-      } else {
-        let doc: unknown;
-        try {
-          doc = await res.json();
-        } catch (e) {
-          detail = `invalid JSON in abbreviated manifest from ${url}: ${e instanceof Error ? e.message : e}`;
-          lastFailure = detail;
-          onAttempt?.(attempts, false, detail);
-          if (Date.now() - started >= timeoutMs) break;
-          await sleepImpl(intervalMs);
-          continue;
+      try {
+        const res = await Promise.race([
+          fetchImpl(url, {
+            headers: { Accept: ABBREVIATED_MANIFEST_ACCEPT },
+            signal: controller.signal,
+          }),
+          timeout,
+        ]);
+        if (!res.ok) {
+          detail = `HTTP ${res.status} ${res.statusText} from ${url}`;
+        } else {
+          const body = await readJsonBody(res);
+          if (body.error !== undefined) {
+            const e = body.error;
+            detail = `invalid JSON in abbreviated manifest from ${url}: ${e instanceof Error ? e.message : e}`;
+          } else {
+            const check = checkAbbreviatedManifest(body.doc, version);
+            if (check.ready) {
+              tarball = check.tarball;
+              detail = check.reason;
+              onAttempt?.(attempts, true, detail);
+              return { ready: true, attempts, elapsedMs: Date.now() - started, lastFailure, tarball };
+            }
+            detail = `${check.reason} (via ${url})`;
+          }
         }
-        const check = checkAbbreviatedManifest(doc, version);
-        if (check.ready) {
-          tarball = check.tarball;
-          detail = check.reason;
-          onAttempt?.(attempts, true, detail);
-          return { ready: true, attempts, elapsedMs: Date.now() - started, lastFailure, tarball };
-        }
-        detail = `${check.reason} (via ${url})`;
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
       }
     } catch (e) {
       // Network/transport failure — the registry endpoint itself is unreachable.

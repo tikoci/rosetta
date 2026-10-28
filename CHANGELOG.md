@@ -98,7 +98,7 @@ uses [Semantic Versioning](https://semver.org/).
   the abbreviated manifest for the exact version plus a usable tarball
   reference on the same 900s budget, and the `--version` probe now asserts the
   exact executed version instead of a substring match. The bare/tag upgrade
-  path is unchanged; its warm-cache contract is still undecided (see #202).
+  path is unchanged; its warm-cache contract is still undecided (see #226).
 - **Piped `browse` output is plain text; `NO_COLOR` is honored.** Human-rendered
   commands (`browse --once stats`, `search`, …) no longer emit ANSI escapes or
   OSC 8 hyperlinks when stdout is not a TTY, so piped output needs no stripping

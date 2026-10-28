@@ -74,7 +74,7 @@ jobs:
           # not the full packument `npm view` sees — the abbreviated manifest
           # can lag it, and a full-metadata-only match is not readiness (#202).
           # Same 900s budget as before (#176). The upgrade path's bare/tag
-          # contract is deliberately separate (undecided — see #202).
+          # contract is deliberately separate (undecided — see #226).
           bun scripts/wait-for-registry.ts "@tikoci/rosetta" "$NPM_VER" --timeout-s 900 --interval-s 5
 
       - name: bunx --refresh exits 0 (DB downloads + opens cleanly)

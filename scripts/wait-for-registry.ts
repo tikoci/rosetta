@@ -73,7 +73,7 @@ const outcome = await waitForExactVersion({
   timeoutMs: timeoutS * 1000,
   intervalMs: intervalS * 1000,
   onAttempt: (attempt, ok, detail) => {
-    if (!ok) console.log(`  [attempt ${attempt}] not ready: ${detail}`);
+    if (!ok) console.error(`  [attempt ${attempt}] not ready: ${detail}`);
   },
 }).catch((e: unknown) => {
   console.error(`✗ ${e instanceof Error ? e.message : e}`);
