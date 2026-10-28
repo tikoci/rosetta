@@ -33,7 +33,7 @@ export function isExactVersion(spec: string): boolean {
 
 /** Packument URL for a package, matching npm CLI's scoped-name encoding (`/` → `%2f`). */
 export function manifestUrl(registry: string, name: string): string {
-  return `${registry.replace(/\/+$/, "")}/${name.replace("/", "%2f")}`;
+  return `${registry.replace(/\/+$/, "")}/${name.replaceAll("/", "%2f")}`;
 }
 
 export interface ManifestCheck {

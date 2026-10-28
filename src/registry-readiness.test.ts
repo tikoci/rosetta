@@ -43,6 +43,10 @@ describe("manifestUrl", () => {
   test("tolerates a missing trailing slash", () => {
     expect(manifestUrl("http://127.0.0.1:1", "pkg")).toBe("http://127.0.0.1:1/pkg");
   });
+
+  test("encodes every slash, not just the first", () => {
+    expect(manifestUrl("https://r.example/", "@scope/a/b")).toBe("https://r.example/@scope%2fa%2fb");
+  });
 });
 
 describe("checkAbbreviatedManifest", () => {
