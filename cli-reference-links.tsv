@@ -1,7 +1,7 @@
 # cli-reference entry→inspect crosswalk (V-cliref-link-drift baseline; regenerate: make link-cliref-baseline)
 # counts 7.24	exact=962	alias=0	manual-only=98	entries=1060
-# counts 7.25	exact=967	alias=0	manual-only=97	entries=1064
-# counts 7.26	exact=967	alias=0	manual-only=139	entries=1106
+# counts 7.25	exact=967	alias=0	manual-only=96	entries=1063
+# counts 7.26	exact=967	alias=0	manual-only=149	entries=1116
 manual_version	source_path	source_type	match_kind	match_detail
 7.24	interface/bridge/msrp	Directory	manual-only	
 7.24	interface/bridge/msrp/attributes	Directory	manual-only	
@@ -191,13 +191,13 @@ manual_version	source_path	source_type	match_kind	match_detail
 7.25	system/ptp/port	Directory	manual-only	
 7.25	system/ptp/status	Directory	manual-only	
 7.25	system/resource/irq/rps	Directory	manual-only	
-7.25	system/routerboard/settings/keep-frequency	Command	manual-only	
 7.25	system/swos	Settings Directory	manual-only	
 7.25	system/swos/load-config	Command	manual-only	
 7.25	system/swos/password	Command	manual-only	
 7.25	system/swos/reset-config	Command	manual-only	
 7.25	system/swos/save-config	Command	manual-only	
 7.25	system/swos/upgrade	Command	manual-only	
+7.26	app/settings/remove-certificate	Command	manual-only	
 7.26	cmr	Settings Directory	manual-only	
 7.26	cmr/alert	Directory	manual-only	
 7.26	cmr/alert/show-devices	Command	manual-only	
@@ -295,6 +295,12 @@ manual_version	source_path	source_type	match_kind	match_detail
 7.26	interface/wifi/dashboard/show	Command	manual-only	
 7.26	interface/wifi/dashboard/show-clients	Command	manual-only	
 7.26	interface/wifi/dashboard/show-logs	Command	manual-only	
+7.26	interface/wifi/easymesh	Settings Directory	manual-only	
+7.26	interface/wifi/easymesh/bss	Directory	manual-only	
+7.26	interface/wifi/easymesh/dpp-trigger	Command	manual-only	
+7.26	interface/wifi/easymesh/sta	Directory	manual-only	
+7.26	interface/wifi/easymesh/topology	Directory	manual-only	
+7.26	interface/wifi/easymesh/wps-push-button	Command	manual-only	
 7.26	interface/wifi/trigger-radar	Command	manual-only	
 7.26	iot/gpio	Directory	manual-only	
 7.26	iot/gpio/analog	Directory	manual-only	
@@ -326,6 +332,9 @@ manual_version	source_path	source_type	match_kind	match_detail
 7.26	system/ptp/monitor	Command	manual-only	
 7.26	system/ptp/port	Directory	manual-only	
 7.26	system/ptp/status	Directory	manual-only	
+7.26	system/resource/hardware/power-cycle	Command	manual-only	
+7.26	system/resource/hardware/power-reset	Command	manual-only	
+7.26	system/resource/hardware/reset-overcurrent	Command	manual-only	
 7.26	system/resource/irq/rps	Directory	manual-only	
 7.26	system/swos	Settings Directory	manual-only	
 7.26	system/swos/load-config	Command	manual-only	
