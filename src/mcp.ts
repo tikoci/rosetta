@@ -248,6 +248,7 @@ if (args.includes("--help") || args.includes("-h")) {
   console.log("Examples:");
   console.log('  $ rosetta browse --once .routeros_search "vrrp" limit=5  Pipeable JSON answer');
   console.log("  $ rosetta browse --once .routeros_stats  DB provenance + grounding verdict");
+  console.log("  For machine-readable output, use dot-commands: pure JSON on stdout, diagnostics on stderr.");
   console.log();
   console.log("HTTP options (require --http):");
   console.log("  --port <N>           Listen port (default: 8080, env: PORT)");
