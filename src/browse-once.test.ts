@@ -41,7 +41,7 @@ function runOnceTty(
   // that need it pass it explicitly via extraEnv.
   if (!("NO_COLOR" in extraEnv)) delete env.NO_COLOR;
   const cmd = ["bun", "src/browse.ts", "--once", ...args].map(shellQuote).join(" ");
-  const proc = Bun.spawnSync(["script", "-qec", cmd, "/dev/null"], {
+  const proc = Bun.spawnSync(["script", "-q", "-e", "-c", cmd, "/dev/null"], {
     cwd: ROOT,
     env,
     stdout: "pipe",
