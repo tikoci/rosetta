@@ -339,7 +339,7 @@ const { z } = await import("zod/v3");
 await ensureDbReady((msg) => process.stderr.write(`${msg}\n`));
 
 // Now import db.ts (opens the DB) and query.ts
-const { db, getCommandVersionRange, getDbStats, initDb } = await import("./db.ts");
+const { db, getCommandVersionRange, getDbStats, getDeviceTestCounts, initDb } = await import("./db.ts");
 const {
   browseCommands,
   browseCommandsAtVersion,
@@ -370,6 +370,12 @@ const commandRange = getCommandVersionRange();
 const COMMAND_RANGE = commandRange.min && commandRange.max
   ? `${commandRange.min}–${commandRange.max}`
   : "the versions routeros_stats reports";
+
+// Same read-from-the-DB rule as COMMAND_RANGE: the benchmark counts are what
+// agents read, and a baked "2,874 across 125" survived two corpus changes (#218).
+const testCounts = getDeviceTestCounts();
+const TEST_RESULT_COUNT = testCounts.results.toLocaleString("en-US");
+const TEST_DEVICE_COUNT = testCounts.devices.toLocaleString("en-US");
 
 const newerVersions = newerLocalVersions(import.meta.dirname);
 const SERVER_INSTRUCTIONS = newerVersions.length > 0
@@ -1424,7 +1430,7 @@ Shows bus topology and per-port bandwidth limits — useful for understanding So
 - SMIPS: lowest-end (hAP lite)
 
 Workflow — combine with other tools:
-→ routeros_search_tests: cross-device performance ranking (all 125 devices at once, e.g., 512B routing benchmark)
+→ routeros_search_tests: cross-device performance ranking (all ${TEST_DEVICE_COUNT} devices at once, e.g., 512B routing benchmark)
 → routeros_search: find documentation for features relevant to a device
 → routeros_command_tree: check commands available for a feature
 → routeros_current_versions: check latest firmware for the device
@@ -1520,9 +1526,9 @@ server.registerTool(
     description: `Query device performance test results across all devices.
 
 Returns throughput benchmarks from mikrotik.com product pages — one call replaces
-what would otherwise require 125+ individual device lookups.
+what would otherwise require ${TEST_DEVICE_COUNT}+ individual device lookups.
 
-**Data:** 2,874 test results across 125 devices (March 2026).
+**Data:** ${TEST_RESULT_COUNT} test results across ${TEST_DEVICE_COUNT} devices.
 - Ethernet: bridging/routing throughput at 64/512/1518 byte packets
 - IPSec: tunnel throughput with AES/SHA cipher configurations
 - Results include kpps (packets/sec) and Mbps

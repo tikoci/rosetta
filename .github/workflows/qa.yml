@@ -227,6 +227,7 @@ jobs:
           PAGES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM pages")
           COMMANDS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM commands WHERE type='cmd'")
           DEVICES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM devices")
+          TEST_RESULTS=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM device_test_results" 2>/dev/null || echo 0)
           PROPERTIES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM properties")
           PAGE_TABLES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM page_tables" 2>/dev/null || echo 0)
           PAGE_TABLE_DATA_ROWS=$(sqlite3 ros-help.db "SELECT COALESCE(SUM(data_row_count), 0) FROM page_tables" 2>/dev/null || echo 0)
@@ -243,7 +244,7 @@ jobs:
           SCHEMA_CMD_NODES=$(sqlite3 ros-help.db "SELECT COUNT(*) FROM schema_nodes WHERE type IN ('dir','cmd')" 2>/dev/null || echo 0)
           CMD_VERSIONS=$(sqlite3 ros-help.db "SELECT COUNT(DISTINCT ros_version) FROM command_versions" 2>/dev/null || echo 0)
           EXPECTED_VERSIONS=$(sqlite3 ros-help.db "SELECT value FROM db_meta WHERE key = 'command_versions_expected'" 2>/dev/null || echo "")
-          echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $PROPERTIES properties ($TABLE_PROPERTIES table-linked), $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases, $CLIREF_ENTRIES cliref_entries ($CLIREF_FIELDS fields, $CLIREF_FLAGS flags, $CLIREF_LINKS links)"
+          echo "✓ DB: $PAGES pages, $COMMANDS commands, $DEVICES devices, $TEST_RESULTS test_results, $PROPERTIES properties ($TABLE_PROPERTIES table-linked), $PAGE_TABLES page_tables ($PAGE_TABLE_DATA_ROWS data rows), $HARDWARE_CATALOG hardware_catalog, $DEVICE_ALIASES device_aliases, $CLIREF_ENTRIES cliref_entries ($CLIREF_FIELDS fields, $CLIREF_FLAGS flags, $CLIREF_LINKS links)"
           fail=0
           if [ "${PAGES:-0}" -lt 200 ]; then
             echo "::error::DB has only ${PAGES} pages — expected ≥200 (Docusaurus /docs export is ~365)."
@@ -290,6 +291,16 @@ jobs:
           fi
           if [ "${DEVICE_ALIASES:-0}" -lt 600 ]; then
             echo "::error::DB has only ${DEVICE_ALIASES} device_aliases rows — expected ≥600. Did extract-hardware-catalog run after extract-devices?"
+            fail=1
+          fi
+          # Device benchmark floor (#218): device_test_results exists at db.ts init,
+          # so a scrape that silently failed would ship empty — next.123 shipped 0
+          # rows after mikrotik.com 503'd the whole run, and no floor caught it.
+          # Floor sits well below the observed ~3,160 rows (3,162 in next.114,
+          # 3,177 locally 2026-10-28) so it asserts "the scrape ran," not an
+          # exact count.
+          if [ "${TEST_RESULTS:-0}" -lt 2000 ]; then
+            echo "::error::DB has only ${TEST_RESULTS} device_test_results — expected ≥2000. Did extract-test-results run, or did mikrotik.com block the scrape?"
             fail=1
           fi
           # CLI-Reference overlay floors (#124/#127): the cliref_* tables exist at db.ts

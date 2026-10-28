@@ -19,6 +19,7 @@
  */
 
 import { parseHTML } from "linkedom";
+import { fetchWithRetry, type RetryOptions } from "./restraml.ts";
 
 // ── CLI flags ──
 
@@ -33,6 +34,25 @@ const CONCURRENCY = getFlag("concurrency", 4);
 const DELAY_MS = getFlag("delay", 500);
 const PRODUCT_BASE = "https://mikrotik.com/product/";
 const SITEMAP_URL = "https://mikrotik.com/sitemap.xml";
+
+// Identify the scraper: a default runtime UA looks like an anonymous bot to
+// bot protection, and gives MikroTik no way to reach us about crawl load.
+const REQUEST_HEADERS = {
+  "User-Agent": "rosetta-docs-bot/1.0 (+https://github.com/tikoci/rosetta)",
+  Accept: "text/html",
+};
+
+// Per-request retry budget for mikrotik.com fetches: the shared 5xx/network
+// retry (a transient 503 blanked the whole next.123 table, #218), with a
+// shorter per-attempt timeout than the restraml default — product pages are
+// ~330 KB and answer in ~2s, so 30s without a byte is already a sick host.
+const FETCH_RETRY: RetryOptions = { timeoutMs: 30_000 };
+
+// Fail-loud threshold (#218): the share of products that may hard-fail
+// (transport/HTTP errors after retries — NOT 404s) before the run fails.
+// A healthy run has 0 hard errors (only a handful of genuine 404s for
+// discontinued products); the next.123 incident was 155/155.
+export const MAX_HARD_ERROR_RATE = 0.10;
 
 // ── Slug overrides ──
 // Products whose URL slugs are undiscoverable by heuristics alone.
@@ -70,6 +90,46 @@ interface ProductPageData {
   ethernet_results: TestResultRow[];
   ipsec_results: TestResultRow[];
   block_diagram_url: string | null;
+}
+
+/** Per-product fetch outcome. `missing` (every slug variant 404'd) means the
+ *  product page is genuinely gone; `error` (a transport failure or non-404
+ *  HTTP status surviving retries) means the host is sick or blocking us. */
+export type ProductFetchResult =
+  | { status: "ok"; data: ProductPageData }
+  | { status: "missing"; tried: number }
+  | { status: "error"; detail: string };
+
+/** End-of-run counts for the fail-loud verdict. */
+export interface ExtractionOutcome {
+  deviceCount: number;
+  totalTests: number;
+  /** Products failing with transport/HTTP errors after retries (not 404s). */
+  hardErrors: number;
+  /** Products whose page is simply gone (all slug variants 404). */
+  missing: number;
+  /** Whether the sitemap seed load succeeded. */
+  sitemapOk: boolean;
+}
+
+/**
+ * Fail-loud verdict (#218): next.123 shipped an empty device_test_results
+ * table because every fetch failed and the extractor still exited 0. Returns
+ * an error message when the run must fail, null when it may proceed.
+ */
+export function evaluateExtractionOutcome(o: ExtractionOutcome): string | null {
+  if (o.totalTests === 0) {
+    return `extract-test-results: 0 test-result rows for ${o.deviceCount} devices ` +
+      `(${o.hardErrors} unreachable, ${o.missing} pages missing` +
+      `${o.sitemapOk ? "" : ", sitemap seed failed"}) — ` +
+      `refusing to ship an empty device_test_results table`;
+  }
+  if (o.deviceCount > 0 && o.hardErrors / o.deviceCount > MAX_HARD_ERROR_RATE) {
+    return `extract-test-results: ${o.hardErrors}/${o.deviceCount} product pages failed ` +
+      `with transport/HTTP errors (over the ${MAX_HARD_ERROR_RATE * 100}% threshold) — ` +
+      `mikrotik.com may be blocking or down; refusing to ship partial test results`;
+  }
+  return null;
 }
 
 // ── HTML Parsing ──
@@ -195,10 +255,11 @@ function generateSlugs(name: string, code: string | null): string[] {
 }
 
 /** Fetch sitemap.xml and return the set of all valid product slugs.
- *  Returns an empty set on error (callers fall back to heuristics). */
-async function fetchSitemap(): Promise<Set<string>> {
+ *  Retries transient failures, then returns an empty set on persistent error
+ *  (callers fall back to heuristics). */
+async function fetchSitemap(retry: RetryOptions = {}): Promise<Set<string>> {
   try {
-    const resp = await fetch(SITEMAP_URL);
+    const resp = await fetchWithRetry(SITEMAP_URL, { headers: REQUEST_HEADERS }, { ...FETCH_RETRY, ...retry });
     if (!resp.ok) {
       console.warn(`  [sitemap] HTTP ${resp.status} — falling back to heuristics`);
       return new Set();
@@ -213,8 +274,8 @@ async function fetchSitemap(): Promise<Set<string>> {
     }
     console.log(`  [sitemap] ${slugs.size} product slugs loaded`);
     return slugs;
-  } catch {
-    console.warn("  [sitemap] fetch failed — falling back to heuristics");
+  } catch (e) {
+    console.warn(`  [sitemap] fetch failed (${(e as Error).message}) — falling back to heuristics`);
     return new Set();
   }
 }
@@ -247,23 +308,35 @@ function buildSlugCandidates(name: string, code: string | null, sitemapSlugs: Se
   return slugs;
 }
 
-/** Fetch and parse a single product page, trying multiple slug candidates. */
-async function fetchProductPage(slugs: string[]): Promise<ProductPageData | null> {
+/** Fetch and parse a single product page, trying multiple slug candidates.
+ *  A 404 moves to the next variant (wrong slug guess); any other failure —
+ *  transport error or non-404 status surviving retries — stops the variants
+ *  (a sick host won't answer a different slug) and reports a hard error. */
+export async function fetchProductPage(
+  slugs: string[],
+  retry: RetryOptions = {},
+): Promise<ProductFetchResult> {
+  const opts = { ...FETCH_RETRY, ...retry };
   for (const slug of slugs) {
     const url = `${PRODUCT_BASE}${slug}`;
+    let resp: Response;
     try {
-      const resp = await fetch(url);
-      if (resp.ok) {
-        const html = await resp.text();
-        return parseProductHtml(html, slug);
-      }
-      // Don't warn for intermediary attempts — only the last slug matters
-    } catch {
-      // network error, try next slug
+      resp = await fetchWithRetry(url, { headers: REQUEST_HEADERS }, opts);
+    } catch (e) {
+      return { status: "error", detail: `fetch failed: ${(e as Error).message}` };
     }
+    if (resp.ok) {
+      const html = await resp.text();
+      const data = parseProductHtml(html, slug);
+      if (data) return { status: "ok", data };
+      return { status: "error", detail: `unparseable page at ${slug}` };
+    }
+    if (resp.status !== 404) {
+      return { status: "error", detail: `HTTP ${resp.status}` };
+    }
+    // 404: wrong slug guess — try the next variant silently.
   }
-  console.warn(`  [404] ${slugs[0]} (tried ${slugs.length} variants)`);
-  return null;
+  return { status: "missing", tried: slugs.length };
 }
 
 /** Parse product page HTML into structured data. */
@@ -358,15 +431,23 @@ async function main(): Promise<void> {
   let totalTests = 0;
   let devicesWithTests = 0;
   let devicesWithDiagrams = 0;
-  let fetchErrors = 0;
+  let hardErrors = 0;
+  let missingPages = 0;
 
   const insertAll = db.transaction(
-    (results: Array<{ deviceId: number; data: ProductPageData | null }>) => {
-      for (const { deviceId, data } of results) {
-        if (!data) {
-          fetchErrors++;
+    (results: Array<{ deviceId: number; name: string; firstSlug: string; result: ProductFetchResult }>) => {
+      for (const { deviceId, name, firstSlug, result } of results) {
+        if (result.status === "missing") {
+          missingPages++;
+          console.warn(`  [missing] ${name} (${firstSlug}, all ${result.tried} slug variants 404)`);
           continue;
         }
+        if (result.status === "error") {
+          hardErrors++;
+          console.warn(`  [error] ${name} (${firstSlug}: ${result.detail})`);
+          continue;
+        }
+        const data = result.data;
 
         // Update device with URL and block diagram
         updateDevice.run(
@@ -402,15 +483,15 @@ async function main(): Promise<void> {
   );
 
   // Fetch all products with rate limiting
-  const allResults: Array<{ deviceId: number; data: ProductPageData | null }> = [];
+  const allResults: Array<{ deviceId: number; name: string; firstSlug: string; result: ProductFetchResult }> = [];
   let processed = 0;
 
   for (let i = 0; i < deviceSlugs.length; i += CONCURRENCY) {
     const batch = deviceSlugs.slice(i, i + CONCURRENCY);
     const batchResults = await Promise.all(
       batch.map(async (dev) => {
-        const data = await fetchProductPage(dev.slugs);
-        return { deviceId: dev.id, data };
+        const result = await fetchProductPage(dev.slugs);
+        return { deviceId: dev.id, name: dev.name, firstSlug: dev.slugs[0], result };
       }),
     );
     allResults.push(...batchResults);
@@ -430,8 +511,24 @@ async function main(): Promise<void> {
 
   console.log(`Test results: ${totalTests} rows for ${devicesWithTests} devices`);
   console.log(`Block diagrams: ${devicesWithDiagrams} devices`);
-  if (fetchErrors > 0) {
-    console.warn(`Fetch errors: ${fetchErrors} products`);
+  if (missingPages > 0) {
+    console.warn(`Missing pages: ${missingPages} products (all slug variants 404)`);
+  }
+  if (hardErrors > 0) {
+    console.warn(`Hard errors: ${hardErrors} products (transport/HTTP failures after retries)`);
+  }
+
+  // Fail loudly, never ship an empty or badly-gapped table (#218).
+  const verdict = evaluateExtractionOutcome({
+    deviceCount: devices.length,
+    totalTests,
+    hardErrors,
+    missing: missingPages,
+    sitemapOk: sitemapSlugs.size > 0,
+  });
+  if (verdict) {
+    console.error(verdict);
+    process.exit(1);
   }
 }
 

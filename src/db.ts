@@ -1243,6 +1243,19 @@ export function getCommandVersionRange(): { min: string | null; max: string | nu
 }
 
 /**
+ * Device benchmark counts for tool descriptions. Read at startup instead of
+ * baking counts in — a baked "2,874 across 125" went stale twice (the DB
+ * served 3,162/143, then 0/0 while the description still claimed thousands,
+ * #218), and tool descriptions are what agents read.
+ */
+export function getDeviceTestCounts(): { results: number; devices: number } {
+  const results = (db.prepare("SELECT COUNT(*) AS c FROM device_test_results").get() as { c: number }).c;
+  const devices = (db.prepare("SELECT COUNT(DISTINCT device_id) AS c FROM device_test_results").get() as { c: number })
+    .c;
+  return { results, devices };
+}
+
+/**
  * Which arches each command-data version was extracted from (#91), arches sorted. command_versions
  * has no arch column: a version's rows are the union of these arches' paths, so a version with
  * fewer arches than the corpus (legacy x86-only inspect.json) lacks every path that exists only on

@@ -131,7 +131,7 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Product Matrix** — CSV export from mikrotik.com/products/matrix (156 products, 34 columns). Hardware specs, license levels, and pricing.
 
-- **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (2,874 measurements across 125 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 110 devices.
+- **Device Benchmarks** — Ethernet bridging/routing and IPSec throughput test results scraped from individual product pages on mikrotik.com (3,177 measurements across 144 devices; 64/512/1518-byte packets, multiple configurations). Also captures block diagram image URLs for 127 devices.
 
 - **YouTube Transcripts** — Auto-generated English transcripts from the official [MikroTik YouTube channel](https://www.youtube.com/@MikroTik/videos) (746 videos, ~2,374 non-empty transcript segments). Split by chapter when available, with timestamps for deep linking. Extracted via yt-dlp, cached as NDJSON in the repo for reproducible CI builds.
 
