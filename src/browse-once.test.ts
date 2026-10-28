@@ -156,5 +156,27 @@ describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
       expect(r.stdout).toContain("Database Statistics");
       expect(r.stdout).not.toContain("\x1b");
     });
+
+    // Markdown + labeled-link plain fallbacks (page 1's lead lists child pages
+    // as markdown links; page 170's prose has inline code spans).
+    test("piped page renders labeled links as text (url)", () => {
+      const r = runOnce(["page", "1"]);
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("(https://manual.mikrotik.com/docs/");
+      expect(r.stdout).not.toContain("\x1b");
+    });
+
+    test("piped page preserves inline code backticks", () => {
+      const r = runOnce(["page", "170"]);
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("`");
+      expect(r.stdout).not.toContain("\x1b");
+    });
+
+    test.skipIf(!canFakeTty)("TTY page emits OSC8 hyperlinks", () => {
+      const r = runOnceTty(["page", "1"]);
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("\x1b]8;;");
+    });
   },
 );
