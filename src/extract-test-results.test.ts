@@ -468,15 +468,25 @@ describe("fetchProductPage failure classification (#218)", () => {
     }
   });
 
-  it("reports a body-read failure as one product's hard error instead of rejecting", async () => {
+  function truncated(): Response {
     const broken = new Response("x", { status: 200 });
     broken.text = () => Promise.reject(new Error("truncated body"));
-    const result = await fetchProductPage(["hap_ax3"], { ...fast, fetchImpl: stubFetch(() => broken) });
-    expect(result.status).toBe("error");
-    if (result.status === "error") {
-      expect(result.detail).toContain("unparseable page at hap_ax3");
-      expect(result.detail).toContain("truncated body");
-    }
+    return broken;
+  }
+
+  it("retries a transient body-read failure inside the retry budget", async () => {
+    let n = 0;
+    const result = await fetchProductPage(
+      ["hap_ax3"],
+      { ...fast, fetchImpl: stubFetch(() => (n++ === 0 ? truncated() : new Response(PRODUCT_HTML, { status: 200 }))) },
+    );
+    expect(result.status).toBe("ok");
+    expect(n).toBe(2);
+  });
+
+  it("reports a persistent body-read failure as one product's hard error instead of rejecting", async () => {
+    const result = await fetchProductPage(["hap_ax3"], { ...fast, fetchImpl: stubFetch(truncated) });
+    expect(result).toEqual({ status: "error", detail: "fetch failed: truncated body" });
   });
 });
 

@@ -18,7 +18,7 @@ Instead of vector embeddings, rosetta uses **SQLite [FTS5](https://www.sqlite.or
 | Version history | 67 RouterOS versions with command data (7.9–7.25rc1) |
 | Hardware products | 155 current matrix devices — specs, pricing, block diagrams |
 | Hardware overlay | 258 devices (matrix + legacy/EOL + accessories), resolved via ~1,280 curated alias mappings for cross-source device lookup |
-| Performance benchmarks | 3,177 tests across 144 devices (ethernet + IPSec) |
+| Performance benchmarks | 3,162 tests across 143 devices (ethernet + IPSec) |
 | YouTube transcripts | 746 videos, ~2,479 transcript segments |
 | Callout blocks | 880 warnings, notes, and tips |
 

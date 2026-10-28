@@ -20,7 +20,7 @@
  */
 
 import { parseHTML } from "linkedom";
-import { fetchWithRetry, type RetryOptions } from "./restraml.ts";
+import { fetchTextWithRetry, type RetryOptions } from "./restraml.ts";
 
 // ── CLI flags ──
 
@@ -290,12 +290,12 @@ function generateSlugs(name: string, code: string | null): string[] {
  *  (callers fall back to heuristics). */
 export async function fetchSitemap(retry: RetryOptions = {}): Promise<Set<string>> {
   try {
-    const resp = await fetchWithRetry(SITEMAP_URL, { headers: REQUEST_HEADERS }, { ...FETCH_RETRY, ...retry });
+    const resp = await fetchTextWithRetry(SITEMAP_URL, { headers: REQUEST_HEADERS }, { ...FETCH_RETRY, ...retry });
     if (!resp.ok) {
       console.warn(`  [sitemap] HTTP ${resp.status} — falling back to heuristics`);
       return new Set();
     }
-    const xml = await resp.text();
+    const xml = resp.text;
     const slugs = new Set<string>();
     const re = /\/product\/([^<"]+)/g;
     while (true) {
@@ -350,18 +350,20 @@ export async function fetchProductPage(
   const opts = { ...FETCH_RETRY, ...retry };
   for (const slug of slugs) {
     const url = `${PRODUCT_BASE}${slug}`;
-    let resp: Response;
+    let resp: Awaited<ReturnType<typeof fetchTextWithRetry>>;
     try {
-      resp = await fetchWithRetry(url, { headers: REQUEST_HEADERS }, opts);
+      // The body is read inside the retry loop: a mid-body reset retries
+      // instead of becoming this product's hard error after the headers.
+      resp = await fetchTextWithRetry(url, { headers: REQUEST_HEADERS }, opts);
     } catch (e) {
       return { status: "error", detail: `fetch failed: ${(e as Error).message}` };
     }
     if (resp.ok) {
-      // A body-read or parse throw is one product's hard error, not a reason
-      // to let Promise.all reject and kill the other 154 products' results.
+      // A parse throw is one product's hard error, not a reason to let
+      // Promise.all reject and kill the other 154 products' results.
       let data: ProductPageData | null;
       try {
-        data = parseProductHtml(await resp.text(), slug);
+        data = parseProductHtml(resp.text, slug);
       } catch (e) {
         return { status: "error", detail: `unparseable page at ${slug}: ${(e as Error).message}` };
       }

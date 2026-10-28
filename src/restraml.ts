@@ -114,6 +114,23 @@ export function fetchWithRetry(url: string, init: RequestInit = {}, retry: Retry
 }
 
 /**
+ * fetchWithRetry with the body read inside the retry loop, so a reset or stall
+ * after the headers retries like a network error instead of surfacing once the
+ * status is in. Returns the final status with its body for the caller to judge.
+ */
+export function fetchTextWithRetry(
+  url: string,
+  init: RequestInit = {},
+  retry: RetryOptions = {},
+): Promise<{ status: number; ok: boolean; text: string }> {
+  return withRetry(url, init, retry, async (response) => ({
+    status: response.status,
+    ok: response.ok,
+    text: await response.text(),
+  }));
+}
+
+/**
  * Load a JSON file from a URL or local path. A URL load retries 5xx, 429
  * (honoring Retry-After up to 30s), network and body-read failures in one
  * budget; any other error status — including 403 — fails at once.
