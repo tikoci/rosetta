@@ -63,24 +63,19 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
-      - name: Wait for npm registry to propagate @tikoci/rosetta@${{ inputs.version }}
+      - name: Wait for the abbreviated install manifest to serve @tikoci/rosetta@${{ inputs.version }}
         env:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           # Strip leading v — npm versions are unprefixed.
           NPM_VER="${VERSION#v}"
-          echo "Waiting for @tikoci/rosetta@${NPM_VER} on npm registry..."
-          # Same 900s budget as verify-dist-tags: registry propagation has been slowing (#176).
-          for i in {1..180}; do
-            if npm view "@tikoci/rosetta@${NPM_VER}" version >/dev/null 2>&1; then
-              echo "✓ npm registry has ${NPM_VER} (attempt $i)"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::error::npm registry did not surface @tikoci/rosetta@${NPM_VER} within 900s"
-          exit 1
+          # Poll what Bun reads (Accept: application/vnd.npm.install-v1+json),
+          # not the full packument `npm view` sees — the abbreviated manifest
+          # can lag it, and a full-metadata-only match is not readiness (#202).
+          # Same 900s budget as before (#176). The upgrade path's bare/tag
+          # contract is deliberately separate (undecided — see #202).
+          bun scripts/wait-for-registry.ts "@tikoci/rosetta" "$NPM_VER" --timeout-s 900 --interval-s 5
 
       - name: bunx --refresh exits 0 (DB downloads + opens cleanly)
         env:
@@ -96,7 +91,13 @@ jobs:
           echo "── bunx @tikoci/rosetta@${NPM_VER} --version ──"
           OUT=$(bunx "@tikoci/rosetta@${NPM_VER}" --version)
           echo "$OUT"
-          echo "$OUT" | grep -F "${NPM_VER}" > /dev/null
+          # Exact whole-output match asserting which package version actually
+          # ran — a substring grep would let a superset version (next.12 vs
+          # next.123) or a stale cache hit pass (#202).
+          if [ "$OUT" != "rosetta ${NPM_VER}" ]; then
+            echo "::error::Expected exactly 'rosetta ${NPM_VER}' from bunx @tikoci/rosetta@${NPM_VER} --version, got '${OUT}'"
+            exit 1
+          fi
 
       - name: MCP server starts and DB probe succeeds
         env:

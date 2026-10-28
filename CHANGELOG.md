@@ -90,6 +90,15 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Release smoke waits on the install metadata Bun reads, not `npm view`
+  (#202).** `bunx-smoke` polled the full packument, which can serve a
+  just-published version before the abbreviated install manifest Bun resolves
+  from does — twice the wait passed and the exact-version `bunx` then failed
+  with "No version matching". A new `scripts/wait-for-registry.ts` gate polls
+  the abbreviated manifest for the exact version plus a usable tarball
+  reference on the same 900s budget, and the `--version` probe now asserts the
+  exact executed version instead of a substring match. The bare/tag upgrade
+  path is unchanged; its warm-cache contract is still undecided (see #202).
 - **Piped `browse` output is plain text; `NO_COLOR` is honored.** Human-rendered
   commands (`browse --once stats`, `search`, …) no longer emit ANSI escapes or
   OSC 8 hyperlinks when stdout is not a TTY, so piped output needs no stripping

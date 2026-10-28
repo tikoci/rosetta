@@ -1053,7 +1053,20 @@ exit $?`,
     const smoke = readText(".github/workflows/release-smoke.yml");
     const bunxBlock = smoke.slice(mustIndex(smoke, "\n  bunx-smoke:"), mustIndex(smoke, "\n  bunx-upgrade-smoke:"));
     expect(bunxBlock).toContain('bun scripts/smoke-install.ts "$CURRENT_VERSION" "$PREVIOUS_VERSION"');
-    expect(bunxBlock).toContain(`npm view "@tikoci/rosetta@\${NPM_VER}" version`);
+    expect(bunxBlock).toContain(`bun scripts/wait-for-registry.ts "@tikoci/rosetta" "$NPM_VER" --timeout-s 900 --interval-s 5`);
+  });
+
+  test("bunx-smoke gates the exact version on the abbreviated install manifest and asserts the executed version (#202)", () => {
+    const smoke = readText(".github/workflows/release-smoke.yml");
+    const bunxBlock = smoke.slice(mustIndex(smoke, "\n  bunx-smoke:"), mustIndex(smoke, "\n  bunx-upgrade-smoke:"));
+    // Readiness polls what Bun reads, not the full packument `npm view` sees —
+    // a full-metadata-only match is not readiness (0.11.3, next.123). (The
+    // negative matches a real `npm view "…"` invocation, not the prose above.)
+    expect(bunxBlock).not.toContain('npm view "');
+    // The --version probe asserts exactly which package version ran: a
+    // substring grep would let a superset version pass (next.12 vs next.123).
+    expect(bunxBlock).toContain(`if [ "$OUT" != "rosetta \${NPM_VER}" ]; then`);
+    expect(bunxBlock).not.toContain(`grep -F "\${NPM_VER}"`);
   });
 
   test("release-smoke.yml is dispatchable against an already-published version (#176)", () => {
