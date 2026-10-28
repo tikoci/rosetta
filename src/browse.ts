@@ -62,20 +62,34 @@ import { dbRefreshCommand } from "./setup.ts";
 // ── ANSI utilities (zero deps) ──
 
 const ESC = "\x1b";
-const bold = (s: string) => `${ESC}[1m${s}${ESC}[0m`;
-const dim = (s: string) => `${ESC}[2m${s}${ESC}[0m`;
-const _italic = (s: string) => `${ESC}[3m${s}${ESC}[0m`;
-const _underline = (s: string) => `${ESC}[4m${s}${ESC}[0m`;
-const cyan = (s: string) => `${ESC}[36m${s}${ESC}[0m`;
-const yellow = (s: string) => `${ESC}[33m${s}${ESC}[0m`;
-const green = (s: string) => `${ESC}[32m${s}${ESC}[0m`;
-const red = (s: string) => `${ESC}[31m${s}${ESC}[0m`;
-const magenta = (s: string) => `${ESC}[35m${s}${ESC}[0m`;
-const blue = (s: string) => `${ESC}[34m${s}${ESC}[0m`;
-const _bgDim = (s: string) => `${ESC}[48;5;236m${s}${ESC}[0m`;
+
+/**
+ * Style gate for the human renderers: styled on an interactive terminal, plain
+ * text when stdout is piped or NO_COLOR is set (present and non-empty, per
+ * https://no-color.org). Dot-command JSON under --once never passes through
+ * these helpers, so machine output is unaffected.
+ */
+function colorsEnabled(): boolean {
+  const noColor = process.env.NO_COLOR;
+  if (noColor !== undefined && noColor !== "") return false;
+  return process.stdout.isTTY === true;
+}
+
+const bold = (s: string) => colorsEnabled() ? `${ESC}[1m${s}${ESC}[0m` : s;
+const dim = (s: string) => colorsEnabled() ? `${ESC}[2m${s}${ESC}[0m` : s;
+const _italic = (s: string) => colorsEnabled() ? `${ESC}[3m${s}${ESC}[0m` : s;
+const _underline = (s: string) => colorsEnabled() ? `${ESC}[4m${s}${ESC}[0m` : s;
+const cyan = (s: string) => colorsEnabled() ? `${ESC}[36m${s}${ESC}[0m` : s;
+const yellow = (s: string) => colorsEnabled() ? `${ESC}[33m${s}${ESC}[0m` : s;
+const green = (s: string) => colorsEnabled() ? `${ESC}[32m${s}${ESC}[0m` : s;
+const red = (s: string) => colorsEnabled() ? `${ESC}[31m${s}${ESC}[0m` : s;
+const magenta = (s: string) => colorsEnabled() ? `${ESC}[35m${s}${ESC}[0m` : s;
+const blue = (s: string) => colorsEnabled() ? `${ESC}[34m${s}${ESC}[0m` : s;
+const _bgDim = (s: string) => colorsEnabled() ? `${ESC}[48;5;236m${s}${ESC}[0m` : s;
 
 /** OSC 8 clickable hyperlink (iTerm2, macOS Terminal, Windows Terminal, etc.) */
 function link(url: string, display?: string): string {
+  if (!colorsEnabled()) return display !== undefined && display !== url ? `${display} (${url})` : url;
   return `${ESC}]8;;${url}\x07${display ?? url}${ESC}]8;;\x07`;
 }
 
@@ -87,6 +101,9 @@ function link(url: string, display?: string): string {
  * into whatever prints next.
  */
 function highlightExcerpt(excerpt: string, resumeCode = ""): string {
+  if (!colorsEnabled()) {
+    return excerpt.split(EXCERPT_MARK_START).join("").split(EXCERPT_MARK_END).join("");
+  }
   return `${excerpt
     .split(EXCERPT_MARK_START)
     .join(`${ESC}[1m`)
@@ -137,9 +154,9 @@ function mdToAnsi(s: string): string {
     raw = raw.replace(/^(\s*)[-*]\s+/, (_m, sp) => `${sp}${cyan("•")} `);
     // Inline: links, code, bold, italic — order matters.
     raw = raw.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, txt, url) => link(url, cyan(txt)));
-    raw = raw.replace(/`([^`]+)`/g, (_m, code) => `${ESC}[48;5;236m ${code} ${ESC}[0m`);
+    raw = raw.replace(/`([^`]+)`/g, (_m, code) => colorsEnabled() ? `${ESC}[48;5;236m ${code} ${ESC}[0m` : `\`${code}\``);
     raw = raw.replace(/\*\*([^*]+)\*\*/g, (_m, t) => bold(t));
-    raw = raw.replace(/(^|[^*])\*([^*\n]+)\*/g, (_m, pre, t) => `${pre}${ESC}[3m${t}${ESC}[0m`);
+    raw = raw.replace(/(^|[^*])\*([^*\n]+)\*/g, (_m, pre, t) => colorsEnabled() ? `${pre}${ESC}[3m${t}${ESC}[0m` : `${pre}${t}`);
     out.push(raw);
   }
   return out.join("\n");
@@ -1389,6 +1406,7 @@ const dotTools: Record<string, DotTool> = {
  *  TUI search/changelog/video renderers do). Operates only on quoted JSON
  *  string contents — keys and structure use their own quoting. */
 function highlightSnippetMarkers(json: string): string {
+  if (!colorsEnabled()) return json;
   return json.replace(/"((?:\\.|[^"\\])*)"/g, (full, body) => {
     if (!body.includes("**")) return full;
     const replaced = body.replace(/\*\*([^*"]+)\*\*/g, (_m: string, t: string) => `${ESC}[1m${t}${ESC}[0m`);

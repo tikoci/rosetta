@@ -9,10 +9,14 @@ const hasTestDb = existsSync(DB_PATH);
 const dbWasExplicitlyConfigured = Boolean(configuredDbPath);
 const skipReason = `No populated test database at ${DB_PATH}; set TEST_DB_PATH or place ros-help.db at repo root to run this check.`;
 
-function runOnce(args: string[], once = true): { exitCode: number | null; stdout: string; stderr: string } {
+function runOnce(
+  args: string[],
+  once = true,
+  extraEnv: Record<string, string> = {},
+): { exitCode: number | null; stdout: string; stderr: string } {
   const proc = Bun.spawnSync(["bun", "src/browse.ts", ...(once ? ["--once"] : []), ...args], {
     cwd: ROOT,
-    env: { ...process.env, DB_PATH },
+    env: { ...process.env, DB_PATH, ...extraEnv },
     stdout: "pipe",
     stderr: "pipe",
   });
@@ -83,6 +87,31 @@ describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
       const r = runOnce([".routeros_search"]);
       expect(r.exitCode).not.toBe(0);
       expect(r.stderr).toContain("Usage:");
+    });
+
+    // Human commands degrade to plain text when stdout is piped (the harness
+    // pipes, so stdout is never a TTY here) or when NO_COLOR is set; a TTY
+    // keeps styled output. Dot-command JSON purity is covered above.
+    test("piped human command emits no ANSI escapes", () => {
+      const r = runOnce(["stats"]);
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("Database Statistics");
+      expect(r.stdout).not.toContain("\x1b");
+      expect(r.stderr).not.toContain("\x1b");
+    });
+
+    test("piped human search emits no ANSI escapes", () => {
+      const r = runOnce(["search", "vrrp"]);
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("vrrp");
+      expect(r.stdout).not.toContain("\x1b");
+    });
+
+    test("NO_COLOR strips ANSI from human commands", () => {
+      const r = runOnce(["stats"], true, { NO_COLOR: "1" });
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout).toContain("Database Statistics");
+      expect(r.stdout).not.toContain("\x1b");
     });
   },
 );

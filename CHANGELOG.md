@@ -90,6 +90,13 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Piped `browse` output is plain text; `NO_COLOR` is honored.** Human-rendered
+  commands (`browse --once stats`, `search`, …) no longer emit ANSI escapes or
+  OSC 8 hyperlinks when stdout is not a TTY, so piped output needs no stripping
+  (links render as `text (url)`). Setting `NO_COLOR` forces plain output even on
+  a terminal. Interactive TTY output is unchanged, and `--once` dot-command JSON
+  was already escape-free.
+
 - Clarify first-run MCP pre-download with the same package version and DB path,
   including the need to preserve pins and overrides when adapting setup snippets.
   Correct obsolete release-planning, manual-version, and bare-`bunx` auto-update
