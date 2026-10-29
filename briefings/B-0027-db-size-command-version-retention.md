@@ -2,7 +2,7 @@
 id: B-0027-db-size-command-version-retention
 topic: ros-help.db is 390 MB, 76% of it command_versions snapshots — prune to last-patch-per-minor and align retention with MikroTik channels
 status: open
-related_tasks: ["#91"]
+related_tasks: ["#91", "#237"]
 created: 2026-10-29
 last_revisited: 2026-10-29
 ---
@@ -133,8 +133,15 @@ exactness partly illusory. Think more before cutting an issue.
 
 # Open questions
 
-- What is the actual long-term lineage (which version preceded
-  7.23.8)? This decides whether P3 raises or lowers the floor.
+- ~~What is the actual long-term lineage (which version preceded
+  7.23.8)?~~ Answered 2026-10-29: operator calls 7.21.5 the previous
+  long-term (most recent patch on the previous minor before current
+  long-term 7.23.8, per the www changelog channel badges). No
+  deep-inspect prune follows from this — merged deep-inspect already
+  makes newer versions relatively bigger, so there is little room to
+  save there. The lineage question exposed the real gap: neither
+  rosetta nor restraml tracks channel membership at all (stored
+  `channel` is filename-derived; 0 `long-term` rows) — filed as #237.
 - Prerelease snapshots: last-beta/rc per minor, or only live channel
   heads (testing/development)? P1 keeps 7.22rc4/7.25rc2/7.26beta3;
   heads-only would drop the first two.
