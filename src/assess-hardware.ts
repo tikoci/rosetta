@@ -352,7 +352,7 @@ export function parsePage(slug: string, url: string, html: string): PageInfo {
     tableCount,
     headings,
     // Upstream DOM order drifts between runs (PR #228 cube-lite60 reorder); sort for
-    // diff stability, mirroring the slugs / category-members / headings sorts elsewhere.
+    // diff stability, mirroring the alphabetical slugs / category-members sorts elsewhere.
     productLinks: [...productLinks].sort(),
     nonDefaultIps,
     isSeries: slug.endsWith("-series"),
