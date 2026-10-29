@@ -239,8 +239,9 @@ reading them is a skill's job.
   vendor data. Attachments surface through `routeros_device_lookup` (no new tool), and
   `block_diagram_url` keeps its contract.
 - **#234: FCC ID** (added in this decision; not in the original phasing). The ID is taken from the
-  grant-PDF text only, never from filenames, and stored per document. A committed URL → ID map keeps
-  poppler and the PDF fetches out of release CI. No OCR, and no FCC or fccid.io fetches. The ID is the
+  grant-PDF text only, never from filenames, and stored per document. Each grant PDF holds exactly one
+  ID (checked across all 146), so a committed one-ID-per-URL map is enough; it keeps poppler and the
+  PDF fetches out of release CI. No OCR, and no FCC or fccid.io fetches. The ID is the
   hand-off point for a future skill that reads FCC filings.
 - **#235: beamwidth** from the numeric `.ant`/`.txt` files. Not agent-ready: it needs a grounding pass
   first (file conventions against external references, computed values cross-checked against brochure
@@ -250,7 +251,8 @@ reading them is a skill's job.
 
 # Open questions
 
-Answered by the Decision above, kept for the record:
+Kept for the record. The Decision settles the FCC (#234), digitization and no-new-tool questions,
+and moves the derived-scalar question into #235's grounding pass. Skill ownership is still open.
 
 - Does beamwidth-as-derived-scalar satisfy the agent use case, or is there a
   question class that needs raw pattern rows at query time (i.e., does the
