@@ -1,11 +1,19 @@
 ---
 id: B-0026-device-rf-documents-antenna-patterns
 topic: Where antenna/RF data lives for MikroTik wireless gear, and how device_documents + pattern tables + a skill should carry it
-status: open
-related_tasks: ["#190", "#70", "B-0017", "B-0018", "B-0019"]
+status: resolved
+related_tasks: ["#190", "#233", "#234", "#235", "#70", "B-0017", "B-0018", "B-0019"]
 created: 2026-10-29
 last_revisited: 2026-10-29
 ---
+
+> **2026-10-29 — resolved.** Decided with the maintainer the same day; see
+> [Decision](#decision-2026-10-29-with-maintainer). #190 closed as triaged and the work split into
+> [#233](https://github.com/tikoci/rosetta/issues/233) (`device_documents`, verbatim labels),
+> [#234](https://github.com/tikoci/rosetta/issues/234) (FCC ID from grant-PDF text) and
+> [#235](https://github.com/tikoci/rosetta/issues/235) (beamwidth from numeric pattern files, grounding
+> first). The proposal and phasing below are kept as the original reasoning; where they differ from the
+> Decision, the Decision wins. Nothing here is outstanding beyond those issues.
 
 # Question
 
@@ -204,7 +212,45 @@ deciding the MCP shape decides the CLI shape.
    modern-gear gap. The exhibit leg needs a coverage census first (what
    fraction of `TV7` filings carry an Antenna Report?) before it earns ETL.
 
+# Round 3: full sitemap census (2026-10-29)
+
+Before the issues were filed, all 566 `mikrotik.com/product/<slug>` pages from `sitemap.xml` were fetched (no
+Not Found pages, no errors), and every `title="Open …"` anchor was recorded. Scratch only; nothing committed.
+
+- **Labels are unnormalized upstream.** There are 126 distinct labels: `DOC` (319) vs `DoC` (105) vs
+  `Declaration of Conformity`; `Block Diagram` (234) vs `Block diagram` (15); a bare filename used as a
+  label. The extractor's exact-text `"Block Diagram"` match already misses the lowercase variant.
+- **FCC.** 190 pages link a grant PDF (148 distinct). `pdftotext` finds `FCC IDENTIFIER:` in 122 of 146;
+  17 are image-only scans and 7 have a broken font encoding. **Filenames are unreliable:** 9 `TV7…` tokens
+  in filenames disagree with the PDF text. 153 pages resolve to ≥1 ID (97 distinct, all `TV7`), and 9
+  pages carry two distinct IDs. Of the 150 matrix devices with a product URL, 47 resolve an ID.
+- **Antenna files.** About 23 pages carry real antenna data (10 CST `.txt`, 8 `.ant`, the rest pattern
+  PDFs), mostly legacy PtP gear plus accessory antennas. Only about 6 of those devices are in the matrix.
+  This confirms round 1's legacy-only finding. **Labels don't identify the cut:** on `MTAS-5G-19D120`,
+  `Horizontal Elevation` and `Horizontal Azimuth` link the same `Gain_h_polar_*.txt`.
+
+# Decision (2026-10-29, with maintainer)
+
+Surface what MikroTik publishes without layering interpretation on it. Rosetta records vendor facts;
+reading them is a skill's job.
+
+- **#233: `device_documents`.** Store every labeled attachment with its label verbatim. The `kind` and
+  `rf_content` columns proposed above are **dropped**, because classifying labels is our opinion on
+  vendor data. Attachments surface through `routeros_device_lookup` (no new tool), and
+  `block_diagram_url` keeps its contract.
+- **#234: FCC ID** (added in this decision; not in the original phasing). The ID is taken from the
+  grant-PDF text only, never from filenames, and stored per document. A committed URL → ID map keeps
+  poppler and the PDF fetches out of release CI. No OCR, and no FCC or fccid.io fetches. The ID is the
+  hand-off point for a future skill that reads FCC filings.
+- **#235: beamwidth** from the numeric `.ant`/`.txt` files. Not agent-ready: it needs a grounding pass
+  first (file conventions against external references, computed values cross-checked against brochure
+  values), and stated and derived values are kept side by side with provenance.
+- **Dropped:** splitting or digitizing pattern PDFs (they stay links), the pattern MCP resource and TUI
+  view (revisit inside #235 if needed), and Phase 3's FCC exhibit crawl (left to the skill).
+
 # Open questions
+
+Answered by the Decision above, kept for the record:
 
 - Does beamwidth-as-derived-scalar satisfy the agent use case, or is there a
   question class that needs raw pattern rows at query time (i.e., does the
