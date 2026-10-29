@@ -312,7 +312,7 @@ function extractSidebarCategory(html: string): { name: string; members: Array<{ 
   return { name, members };
 }
 
-function parsePage(slug: string, url: string, html: string): PageInfo {
+export function parsePage(slug: string, url: string, html: string): PageInfo {
   const { document } = parseHTML(html);
   const article = document.querySelector("article") ?? document.body;
 
@@ -351,7 +351,9 @@ function parsePage(slug: string, url: string, html: string): PageInfo {
     wordCount,
     tableCount,
     headings,
-    productLinks: [...productLinks],
+    // Upstream DOM order drifts between runs (PR #228 cube-lite60 reorder); sort for
+    // diff stability, mirroring the alphabetical slugs / category-members sorts elsewhere.
+    productLinks: [...productLinks].sort(),
     nonDefaultIps,
     isSeries: slug.endsWith("-series"),
     bodyText: text,

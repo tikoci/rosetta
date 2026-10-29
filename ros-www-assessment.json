@@ -1,7 +1,7 @@
 {
-  "candidateCount": 483,
+  "candidateCount": 484,
   "foundCount": 316,
-  "notFoundCount": 167,
+  "notFoundCount": 168,
   "notFound": [
     "A42G-HbeP",
     "ATLGM",
@@ -152,6 +152,7 @@
     "RBcAPGi-5acD2nD",
     "RBcAPGi-5acD2nD-XLr4",
     "RBcAPL-2nD",
+    "RBD25G-5HPacQD2HPnD",
     "RBD52G-5HacD2HnD-TCr2",
     "RBD53iG-5HacD2HnD",
     "RBLDF-5nD",
@@ -171,7 +172,7 @@
     "wAPGR-5HaxD2HaxD",
     "wAPR-2nD"
   ],
-  "discontinuedCount": 129,
+  "discontinuedCount": 130,
   "fieldFrequency": {
     "Product code": 316,
     "Suggested price": 316,
@@ -194,7 +195,7 @@
     "PoE in": 216,
     "PoE in input Voltage": 215,
     "10/100/1000 Ethernet ports": 194,
-    "Dimensions": 175,
+    "Dimensions": 177,
     "Max power consumption without attachments": 154,
     "Switch chip model": 148,
     "DC jack input Voltage": 144,
@@ -1329,7 +1330,7 @@
     {
       "code": "ACRPSMA",
       "title": "Flex-guide",
-      "tagline": "Low loss cable assembly, soldered on both ends, with silver plated copper and less than 0.65dB losses",
+      "tagline": "Low loss cable assembly, soldered on both ends, with silver plated copper and less than 0.65dB losses, resistance = 50 Ohms.",
       "discontinued": false,
       "compareId": "ACRPSMA",
       "specs": {
@@ -3972,8 +3973,8 @@
         "Dimensions": "443 x 183 x 44 mm",
         "RouterOS license": "5",
         "Operating System": "RouterOS v7 / SwitchOS",
-        "Size of RAM": "64 MB",
-        "Storage size": "16 MB",
+        "Size of RAM": "128 MB",
+        "Storage size": "32 MB",
         "Storage type": "FLASH",
         "MTBF": "Approximately 200'000 hours at 25C",
         "Tested ambient temperature": "-30°C to 70°C",
@@ -4574,8 +4575,8 @@
         "Dimensions": "320 x 185 x 44 mm",
         "RouterOS license": "5",
         "Operating System": "RouterOS v7",
-        "Size of RAM": "64 MB",
-        "Storage size": "16 MB",
+        "Size of RAM": "128 MB",
+        "Storage size": "32 MB",
         "Storage type": "FLASH",
         "MTBF": "Approximately 200'000 hours at 25C",
         "Tested ambient temperature": "-40°C to 70°C",
@@ -4696,8 +4697,8 @@
         "Switch chip model": "98DX8525",
         "RouterOS license": "6",
         "Operating System": "RouterOS v7",
-        "Size of RAM": "64 MB",
-        "Storage size": "16 MB",
+        "Size of RAM": "128 MB",
+        "Storage size": "32 MB",
         "Storage type": "FLASH",
         "MTBF": "Approximately 200'000 hours at 25C",
         "Tested ambient temperature": "-40°C to 70°C",
@@ -5078,7 +5079,7 @@
       "code": "cubesa_60pro_ac",
       "title": "CubeSA 60Pro ac",
       "tagline": "A powerful sector antenna to connect multiple 60 GHz devices. Quick and easy networking for all kinds of pop-up events and distances up to 800m.",
-      "discontinued": false,
+      "discontinued": true,
       "compareId": "CubeG-5ac60ay-SA",
       "specs": {
         "Product code": "CubeG-5ac60ay-SA",
@@ -12364,7 +12365,7 @@
     {
       "code": "S-31DLC20D-181",
       "title": "S-31DLC20D",
-      "tagline": "SFP (1.25G) module,\r\n20KM, Single Mode",
+      "tagline": "SFP / \r\nDuplex LC Connector / \r\n1310nm / \r\nSingle-mode / \r\n1G / \r\n20km",
       "discontinued": false,
       "compareId": "S-31DLC20D",
       "specs": {
@@ -12383,7 +12384,7 @@
     {
       "code": "S-3553LC20D",
       "title": "S-3553LC20D",
-      "tagline": "Two SFP (1.25G) module kit,\r\n20Km, single mode",
+      "tagline": "Two SFP module kit / \r\nSimplex LC connector / \r\n1310nm/ \r\n1550nm / \r\nSingle-mode / \r\n1G / \r\n20km",
       "discontinued": false,
       "compareId": "S-3553LC20D",
       "specs": {
@@ -12911,6 +12912,7 @@
       "specs": {
         "Product code": "TG-BT5-IN",
         "Suggested price": "$10.00",
+        "Dimensions": "37x22x6",
         "Storage size": "352 KB",
         "Storage type": "FLASH",
         "MTBF": "Approximately 100'000 hours at 25C",
@@ -12928,6 +12930,7 @@
       "specs": {
         "Product code": "TG-BT5-OUT",
         "Suggested price": "$18.00",
+        "Dimensions": "38x32x16",
         "Storage size": "512 KB",
         "Storage type": "FLASH",
         "MTBF": "Approximately 100'000 hours at 25C",

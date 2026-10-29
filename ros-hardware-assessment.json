@@ -6,8 +6,8 @@
   "matchedByCode": 55,
   "matchedByTable": 1,
   "matchedBySlug": 85,
-  "unmatched": 91,
-  "noProductLink": 14,
+  "unmatched": 93,
+  "noProductLink": 12,
   "seriesWithMultipleMatches": 5,
   "matrixRowsWithNoHardwarePage": [
     "Chateau LTE12 (2025)",
@@ -23,38 +23,38 @@
   "headingFrequency": {
     "250": 1,
     "Safety Warnings": 223,
-    "Operating system support": 219,
-    "Powering": 206,
+    "Operating system support": 222,
+    "Powering": 210,
     "Extension slots and ports": 191,
     "Mounting": 183,
     "Configuration": 176,
     "Accessories": 150,
-    "Quickstart": 149,
+    "Quickstart": 141,
     "Eurasian Conformity Mark": 136,
     "Norma Oficial Mexicana": 135,
     "CE Declaration of Conformity": 133,
     "Federal Communication Commission Interference Statement": 122,
     "Innovation, Science and Economic Development Canada": 118,
-    "Buttons and jumpers": 113,
+    "Buttons and jumpers": 111,
     "UKCA marking": 108,
     "Reset button": 100,
     "Specifications": 97,
     "The National Commission for the State Regulation of Communications and Informatization by Ukraine": 85,
     "MikroTik mobile app": 65,
-    "First use": 36,
+    "Setup": 38,
+    "First use": 31,
     "Notice": 29,
     "Grounding": 29,
     "Mode button": 27,
     "UKCA Marking": 26,
     "LED indicators": 21,
-    "Connecting": 20,
     "Power output": 20,
     "Bottom Lid": 20,
     "SIM slot usage": 19,
     "Antenna usage": 15,
-    "Setup": 15,
     "Booting process": 13,
     "Front status LED behavior": 12,
+    "Connecting": 12,
     "Sync button": 12,
     "Front LED status": 12,
     "Connecting with a mobile app": 11,
@@ -97,7 +97,6 @@
     "LTE Antenna usage": 3,
     "Connecting to a POE Adapter": 3,
     "Configuration and operating system support": 3,
-    "Operating System Support": 3,
     "GPS": 3,
     "miniPCIe slot": 3,
     "Notes": 3,
@@ -110,8 +109,6 @@
     "First steps:": 2,
     "Operation Environment": 2,
     "Base plate mounting instruction": 2,
-    "First steps": 2,
-    "First Steps": 2,
     "Expansion slots and ports": 2,
     "Antenna Connections": 2,
     "Cellular modem configuration": 2,
@@ -130,14 +127,31 @@
     "Initial steps": 2,
     "ATL LTE18 kit (ATLGM&EG18-EA)": 1,
     "ATL 5G R16 (ATLGM&RG520F-EU)": 1,
+    "Audience (RBD25G-5HPacQD2HPnD)": 1,
     "Audience LTE6 kit (RBD25GR-5HPacQD2HPnD&R11e-LTE6)": 1,
     "BaseBox 5 (RB912UAG-5HPnD-OUT)": 1,
     "The miniPCI-e slot usage": 1,
+    "cAP (RBcAP2nD)": 1,
+    "cAP ac (RBcAPGi-5acD2nD)": 1,
     "Removing mounting ring": 1,
+    "cAP ax (cAPGi-5HaxD2HaxD)": 1,
+    "cAP lite (RBcAPL-2nD)": 1,
     "cAP LTE12 ax (cAPGi-5HaxD2HaxD&EG12-EA)": 1,
+    "cAP XL ac (RBcAPGi-5acD2nD-XL)": 1,
+    "CCR1009-7G-1C-1S+": 1,
+    "CCR1009-7G-1C-1S+PC": 1,
+    "CCR1009-7G-1C-PC": 1,
+    "CCR1016-12G": 1,
+    "CCR1016-12S-1S+": 1,
     "PCIe usage": 1,
+    "CCR1072-1G-8S+": 1,
+    "CCR2004-16G-2S+": 1,
+    "CCR2004-16G-2S+PC": 1,
+    "CCR2004-1G-12S+2XS": 1,
+    "CCR2004-1G-2XS-PCIe": 1,
     "Reset": 1,
     "CCR2116-12G-4S+": 1,
+    "CCR2216-1G-12XS-2XQ": 1,
     "Chateau 5G (D53G-5HacD2HnD-TC&RG502Q-EA)": 1,
     "Chateau 5G ax (S53UG+M-5HaxD2HaxD-TC&RG502Q-EA)": 1,
     "Chateau 5G R16 (D53G-5HacD2HnD-TC&RG520F-EU)": 1,
@@ -150,6 +164,7 @@
     "Chateau LTE6-US (D53G-5HacD2HnD-TC&EG06-A)": 1,
     "Chateau LTE7 (D53G-5HacD2HnD-TC&R11e-LTE7)": 1,
     "Chateau LTE7 ax (S53UG+5HaxD2HaxD-TC&R11e-LTE7)": 1,
+    "Chateau PRO ax (H53UiG-5HaxQ2HaxQ)": 1,
     "Mounting and bottom lid": 1,
     "GPS and CAT-M": 1,
     "Default configuration": 1,
@@ -159,15 +174,33 @@
     "Use case schemes": 1,
     "Combo ports": 1,
     "PoE-Out": 1,
+    "Cube 60G ac (CubeG-5ac60ad)": 1,
+    "Cube Lite60 (RBCube-60ad)": 1,
     "DISC Lite5 (RBDisc-5nD)": 1,
     "DISC Lite5 ac (RBDiscG-5acD)": 1,
     "DynaDish 5 (RBDynaDishG-5HacD)": 1,
     "DynaDish 6 (RBDynaDishG-6HnD)": 1,
     "Reset and Reinstall": 1,
     "The Reset button": 1,
+    "hAP (RB951Ui-2nD)": 1,
+    "hAP ac (RB962UiGS-5HacT2HnT)": 1,
+    "hAP ac² (RBd52G-5HacD2HnD-TC)": 1,
+    "hAP ac lite (RB952Ui-5ac2nD)": 1,
+    "hAP ac lite TC (RB952Ui-5ac2nD-TC)": 1,
+    "hAP ac³ (RBd53iG-5HacD2HnD)": 1,
     "hAP ac3 LTE6 kit (RBD53GR-5HacD2HnD&R11e-LTE6)": 1,
     "Status LEDs": 1,
+    "hAP ax² (C52iG-5HaxD2HaxD-TC)": 1,
+    "hAP ax³ (C53UiG+5HPaxD2HPaxD)": 1,
+    "hAP ax lite (L41G-2axD)": 1,
+    "hAP ax S (E62iUGS-2axD5axT)": 1,
+    "hAP be lite (A42G-HbeP)": 1,
+    "hAP be³ Media (MA53UG+HbeH)": 1,
+    "hAP lite (RB941-2nD)": 1,
+    "hAP lite TC (RB941-2nD-TC)": 1,
+    "hAP mini (RB931-2nD)": 1,
     "IAQM-THC2PV-W/G": 1,
+    "First Steps": 1,
     "Button controls": 1,
     "Claire and Google Nest": 1,
     "Claire and Apple HomePod": 1,
@@ -183,13 +216,16 @@
     "Configuration import": 1,
     "Monitoring": 1,
     "Full dual-carrier configuration": 1,
+    "L009UiGS-2HaxD-IN (L009UiGS-2HaxD-IN)": 1,
     "LAMP 5G R16 (LAMPGM&RG520F-EU)": 1,
     "LDF 2 (RBLDF-2nD)": 1,
     "LDF 5 ac (RBLDFG-5acD)": 1,
     "LDF LTE6 kit (RBLDFR&R11e-LTE6)": 1,
     "Sim slot usage": 1,
     "LHG 5 ax (LHG-5axD)": 1,
+    "LHG 60G (RBLHGG-60ad)": 1,
     "Federal Communication Commission interference statement": 1,
+    "LHG Lite60 (RBLHG-60ad)": 1,
     "LHG LTE18 kit (LHGGM&EG18-EA)": 1,
     "LHG R (RBLHGR)": 1,
     "LHG 5 (RBLHG-5nD)": 1,
@@ -211,7 +247,8 @@
     "mANTBox 2 12s (RB911G-2HPnD-12S)": 1,
     "Models: RB921GS-5HPacD-15S (mANTBox 15s), RB921GS-5HPacD-19S (mANTBox 19s)": 1,
     "Models: RB911G-2HPnD-12S (mANTBox 2 12s)": 1,
-    "Quick Setup Guide": 1,
+    "mAP (RBmAP2nD)": 1,
+    "mAP lite (RBmAPL-2nD)": 1,
     "Metal 52 ac (RBMetalG-52SHPacn)": 1,
     "Opening Ethernet cover": 1,
     "Upgrading": 1,
@@ -224,6 +261,7 @@
     "NetMetal 5 (RB922UAGS-5HPacD-NM)": 1,
     "Battery Charger Description": 1,
     "External Temperature sensor connection": 1,
+    "Wireless Wire nRAY (nRAYG-60adpair)": 1,
     "Aim tool usage": 1,
     "OmniTIK 5 PoE ac (RBOmniTikPG-5HacD)": 1,
     "LED lights and PoE switch": 1,
@@ -233,9 +271,12 @@
     "Country List": 1,
     "LE-LAN device restriction": 1,
     "Important Notice to OEM integrators": 1,
+    "RB2011UiAS-2HnD-IN (RB2011UiAS-2HnD-IN)": 1,
     "Power Output": 1,
+    "RB4011iGS+5HacQ2HnD-IN (RB4011iGS+5HacQ2HnD-IN)": 1,
     "Model: RB951G-2HnD": 1,
     "Model: RB951Ui-2HnDr2": 1,
+    "First steps": 1,
     "MiniPCIe slot": 1,
     "USB jumper": 1,
     "Boot configuration jumpers": 1,
@@ -257,16 +298,23 @@
     "Installing": 1,
     "Configuration and connecting": 1,
     "Included items": 1,
+    "wAP ac (RBwAPG-5HacD2HnD)": 1,
+    "wAP ax (wAPG-5HaxD2HaxD)": 1,
+    "Mounting on the ceiling": 1,
     "wAP ax LTE7 kit (wAPGR-5HaxD2HaxD&R11e-LTE7)": 1,
+    "Operating System Support": 1,
     "wAP LTE kit (2024) (RBwAPR-2nD&EC200A-EU)": 1,
     "wAP R (RBwAPR-2nD)": 1,
     "wAP R ac (RBwAPGR-5HacD2HnD)": 1,
+    "Wireless Wire Cube (CubeG-5ac60adpair)": 1,
+    "Wireless Wire Dish (RBLHGG-60adkit)": 1,
     "First startup": 1,
     "WEB interface": 1,
     "Settings": 1,
     "Upgrade firmware": 1,
     "Telnet access": 1,
-    "Button functionality": 1
+    "Button functionality": 1,
+    "wsAP ac lite (RBwsAP-5Hac2nD)": 1
   },
   "pagesWithNonDefaultIp": [
     {
@@ -282,7 +330,67 @@
       ]
     },
     {
+      "slug": "ccr1009-7g-1c-1s-plus",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr1009-7g-1c-1s-plus-pc",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr1009-7g-1c-pc",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr1016-12g",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr1016-12s-1s-plus",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr1036-12g-4s-series",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr1036-8g-2s-plus-series",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr1072-1g-8s-plus",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
       "slug": "ccr2004-16g-2s-plus",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr2004-16g-2s-plus-pc",
+      "ips": [
+        "192.168.88.2"
+      ]
+    },
+    {
+      "slug": "ccr2004-1g-12s-plus-2xs",
       "ips": [
         "192.168.88.2"
       ]
@@ -675,14 +783,6 @@
     }
   ],
   "linklessSeriesInferredMembers": [
-    {
-      "slug": "ccr1036-12g-4s-series",
-      "inferredMatrixNames": []
-    },
-    {
-      "slug": "ccr1036-8g-2s-plus-series",
-      "inferredMatrixNames": []
-    },
     {
       "slug": "crs-series",
       "inferredMatrixNames": []
@@ -1145,10 +1245,11 @@
       "slug": "audience",
       "title": "Audience",
       "url": "https://manual.mikrotik.com/hardware/audience",
-      "wordCount": 3068,
+      "wordCount": 3158,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
+        "RBD25G-5HPacQD2HPnD",
         "audience"
       ],
       "tableModelCodes": [
@@ -1212,8 +1313,8 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "RB912UAG-5HPnD-OUT",
         "RB912UAG-2HPnD-OUT",
+        "RB912UAG-5HPnD-OUT",
         "basebox_6"
       ],
       "tableModelCodes": [
@@ -1274,7 +1375,7 @@
       "slug": "cap",
       "title": "cAP",
       "url": "https://manual.mikrotik.com/hardware/cap",
-      "wordCount": 2534,
+      "wordCount": 2725,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -1299,7 +1400,7 @@
       "slug": "cap-ac",
       "title": "cAP ac",
       "url": "https://manual.mikrotik.com/hardware/cap-ac",
-      "wordCount": 3208,
+      "wordCount": 3322,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -1328,7 +1429,7 @@
       "slug": "cap-ax",
       "title": "cAP ax",
       "url": "https://manual.mikrotik.com/hardware/cap-ax",
-      "wordCount": 3316,
+      "wordCount": 3491,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -1357,7 +1458,7 @@
       "slug": "cap-lite",
       "title": "cAP lite",
       "url": "https://manual.mikrotik.com/hardware/cap-lite",
-      "wordCount": 1994,
+      "wordCount": 2317,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -1416,7 +1517,7 @@
       "slug": "cap-xl-ac",
       "title": "cAP XL ac",
       "url": "https://manual.mikrotik.com/hardware/cap-xl-ac",
-      "wordCount": 2419,
+      "wordCount": 2743,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -1453,7 +1554,7 @@
       "slug": "ccr1009-7g-1c-1s-plus",
       "title": "CCR1009-7G-1C-1S+",
       "url": "https://manual.mikrotik.com/hardware/ccr1009-7g-1c-1s-plus",
-      "wordCount": 1094,
+      "wordCount": 1290,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1461,7 +1562,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
@@ -1474,7 +1577,7 @@
       "slug": "ccr1009-7g-1c-1s-plus-pc",
       "title": "CCR1009-7G-1C-1S+PC",
       "url": "https://manual.mikrotik.com/hardware/ccr1009-7g-1c-1s-plus-pc",
-      "wordCount": 1116,
+      "wordCount": 1312,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1482,7 +1585,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
@@ -1495,7 +1600,7 @@
       "slug": "ccr1009-7g-1c-pc",
       "title": "CCR1009-7G-1C-PC",
       "url": "https://manual.mikrotik.com/hardware/ccr1009-7g-1c-pc",
-      "wordCount": 1116,
+      "wordCount": 1312,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1503,7 +1608,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
@@ -1516,7 +1623,7 @@
       "slug": "ccr1016-12g",
       "title": "CCR1016-12G",
       "url": "https://manual.mikrotik.com/hardware/ccr1016-12g",
-      "wordCount": 1390,
+      "wordCount": 1460,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1524,7 +1631,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
@@ -1537,7 +1646,7 @@
       "slug": "ccr1016-12s-1s-plus",
       "title": "CCR1016-12S-1S+",
       "url": "https://manual.mikrotik.com/hardware/ccr1016-12s-1s-plus",
-      "wordCount": 1350,
+      "wordCount": 1450,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1545,7 +1654,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
@@ -1558,15 +1669,20 @@
       "slug": "ccr1036-12g-4s-series",
       "title": "CCR1036-12G-4S-series",
       "url": "https://manual.mikrotik.com/hardware/ccr1036-12g-4s-series",
-      "wordCount": 1435,
+      "wordCount": 1473,
       "tableCount": 0,
       "isSeries": true,
-      "productLinks": [],
+      "productLinks": [
+        "CCR1036-12G-4S-149",
+        "CCR1036-12G-4S-EM"
+      ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
-      "cause": "no-product-link",
+      "cause": "unmatched",
       "matchedMatrixNames": [],
       "ownMatrixNames": [],
       "mentionedCodes": [],
@@ -1577,15 +1693,20 @@
       "slug": "ccr1036-8g-2s-plus-series",
       "title": "CCR1036-8G-2S+-series",
       "url": "https://manual.mikrotik.com/hardware/ccr1036-8g-2s-plus-series",
-      "wordCount": 1490,
+      "wordCount": 1464,
       "tableCount": 0,
       "isSeries": true,
-      "productLinks": [],
+      "productLinks": [
+        "CCR1036-8G-2Splus",
+        "CCR1036-8G-2SplusEM"
+      ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
-      "cause": "no-product-link",
+      "cause": "unmatched",
       "matchedMatrixNames": [],
       "ownMatrixNames": [],
       "mentionedCodes": [],
@@ -1596,7 +1717,7 @@
       "slug": "ccr1072-1g-8s-plus",
       "title": "CCR1072-1G-8S+",
       "url": "https://manual.mikrotik.com/hardware/ccr1072-1g-8s-plus",
-      "wordCount": 1241,
+      "wordCount": 1388,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1604,7 +1725,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "unmatched",
       "matchedMatrixNames": [],
@@ -1617,7 +1740,7 @@
       "slug": "ccr2004-16g-2s-plus",
       "title": "CCR2004-16G-2S+",
       "url": "https://manual.mikrotik.com/hardware/ccr2004-16g-2s-plus",
-      "wordCount": 797,
+      "wordCount": 862,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1644,7 +1767,7 @@
       "slug": "ccr2004-16g-2s-plus-pc",
       "title": "CCR2004-16G-2S+PC",
       "url": "https://manual.mikrotik.com/hardware/ccr2004-16g-2s-plus-pc",
-      "wordCount": 1407,
+      "wordCount": 1534,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -1652,7 +1775,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
@@ -1673,7 +1798,7 @@
       "slug": "ccr2004-1g-12s-plus-2xs",
       "title": "CCR2004-1G-12S+2XS",
       "url": "https://manual.mikrotik.com/hardware/ccr2004-1g-12s-plus-2xs",
-      "wordCount": 1450,
+      "wordCount": 1568,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1681,7 +1806,9 @@
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
-      "nonDefaultIps": [],
+      "nonDefaultIps": [
+        "192.168.88.2"
+      ],
       "category": "Ethernet routers",
       "cause": "matched-by-slug",
       "matchedMatrixNames": [
@@ -1702,7 +1829,7 @@
       "slug": "ccr2004-1g-2xs-pcie",
       "title": "CCR2004-1G-2XS-PCIe",
       "url": "https://manual.mikrotik.com/hardware/ccr2004-1g-2xs-pcie",
-      "wordCount": 1279,
+      "wordCount": 1280,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -1762,7 +1889,7 @@
       "slug": "ccr2216-1g-12xs-2xq",
       "title": "CCR2216-1G-12XS-2XQ",
       "url": "https://manual.mikrotik.com/hardware/ccr2216-1g-12xs-2xq",
-      "wordCount": 1035,
+      "wordCount": 1065,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2106,7 +2233,7 @@
       "slug": "chateau-pro-ax",
       "title": "Chateau PRO ax",
       "url": "https://manual.mikrotik.com/hardware/chateau-pro-ax",
-      "wordCount": 1237,
+      "wordCount": 1375,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -2405,7 +2532,7 @@
       "slug": "crs310-8g-plus-2s-plus-in",
       "title": "CRS310-8G+2S+IN",
       "url": "https://manual.mikrotik.com/hardware/crs310-8g-plus-2s-plus-in",
-      "wordCount": 1027,
+      "wordCount": 1114,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -3215,12 +3342,12 @@
       "slug": "cube-lite60",
       "title": "Cube Lite60",
       "url": "https://manual.mikrotik.com/hardware/cube-lite60",
-      "wordCount": 2451,
+      "wordCount": 2454,
       "tableCount": 3,
       "isSeries": false,
       "productLinks": [
-        "qm_x",
-        "cube_lite60"
+        "cube_lite60",
+        "qm_x"
       ],
       "tableModelCodes": [
         "RBCube-60ad"
@@ -3651,7 +3778,7 @@
       "slug": "hap",
       "title": "hAP",
       "url": "https://manual.mikrotik.com/hardware/hap",
-      "wordCount": 2675,
+      "wordCount": 2813,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -3676,7 +3803,7 @@
       "slug": "hap-ac",
       "title": "hAP ac",
       "url": "https://manual.mikrotik.com/hardware/hap-ac",
-      "wordCount": 2820,
+      "wordCount": 2924,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -3701,7 +3828,7 @@
       "slug": "hap-ac-2",
       "title": "hAP ac²",
       "url": "https://manual.mikrotik.com/hardware/hap-ac-2",
-      "wordCount": 2362,
+      "wordCount": 2394,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -3726,7 +3853,7 @@
       "slug": "hap-ac-lite",
       "title": "hAP ac lite",
       "url": "https://manual.mikrotik.com/hardware/hap-ac-lite",
-      "wordCount": 2763,
+      "wordCount": 2900,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -3751,11 +3878,12 @@
       "slug": "hap-ac-lite-tc",
       "title": "hAP ac lite TC",
       "url": "https://manual.mikrotik.com/hardware/hap-ac-lite-tc",
-      "wordCount": 2976,
+      "wordCount": 3163,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "RB952Ui-5ac2nD"
+        "RB952Ui-5ac2nD",
+        "RB952Ui-5ac2nD-TC"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -3769,19 +3897,15 @@
       "ownMatrixNames": [
         "hAP ac lite TC"
       ],
-      "mentionedCodes": [
-        "RB952Ui-5ac2nD-TC"
-      ],
-      "inferredMatrixNames": [
-        "hAP ac lite TC"
-      ],
+      "mentionedCodes": [],
+      "inferredMatrixNames": [],
       "mentionsLifecycleKeyword": false
     },
     {
       "slug": "hap-ac3",
       "title": "hAP ac3",
       "url": "https://manual.mikrotik.com/hardware/hap-ac3",
-      "wordCount": 2806,
+      "wordCount": 2890,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -3852,7 +3976,7 @@
       "slug": "hap-ax-2",
       "title": "hAP ax²",
       "url": "https://manual.mikrotik.com/hardware/hap-ax-2",
-      "wordCount": 2917,
+      "wordCount": 3065,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -3889,7 +4013,7 @@
       "slug": "hap-ax-3",
       "title": "hAP ax³",
       "url": "https://manual.mikrotik.com/hardware/hap-ax-3",
-      "wordCount": 3063,
+      "wordCount": 3138,
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
@@ -3918,7 +4042,7 @@
       "slug": "hap-ax-lite",
       "title": "hAP ax lite",
       "url": "https://manual.mikrotik.com/hardware/hap-ax-lite",
-      "wordCount": 1182,
+      "wordCount": 1274,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -3947,7 +4071,7 @@
       "slug": "hap-ax-lite-lte6",
       "title": "hAP ax lite LTE6",
       "url": "https://manual.mikrotik.com/hardware/hap-ax-lite-lte6",
-      "wordCount": 748,
+      "wordCount": 1053,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -3972,7 +4096,7 @@
       "slug": "hap-ax-s",
       "title": "hAP ax S",
       "url": "https://manual.mikrotik.com/hardware/hap-ax-s",
-      "wordCount": 1193,
+      "wordCount": 1194,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -4001,7 +4125,7 @@
       "slug": "hap-be-lite",
       "title": "hAP be lite",
       "url": "https://manual.mikrotik.com/hardware/hap-be-lite",
-      "wordCount": 1058,
+      "wordCount": 1057,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -4030,7 +4154,7 @@
       "slug": "hap-be-media",
       "title": "hAP be³ Media",
       "url": "https://manual.mikrotik.com/hardware/hap-be-media",
-      "wordCount": 1314,
+      "wordCount": 1316,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -4057,7 +4181,7 @@
       "slug": "hap-lite",
       "title": "hAP lite",
       "url": "https://manual.mikrotik.com/hardware/hap-lite",
-      "wordCount": 2227,
+      "wordCount": 2399,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -4082,7 +4206,7 @@
       "slug": "hap-lite-tc",
       "title": "hAP lite TC",
       "url": "https://manual.mikrotik.com/hardware/hap-lite-tc",
-      "wordCount": 2499,
+      "wordCount": 2662,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -4111,7 +4235,7 @@
       "slug": "hap-mini",
       "title": "hAP mini",
       "url": "https://manual.mikrotik.com/hardware/hap-mini",
-      "wordCount": 2440,
+      "wordCount": 2517,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -4455,8 +4579,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr8",
-        "knot"
+        "knot",
+        "knot_lr8"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4479,12 +4603,12 @@
       "slug": "knot-lr8g-kit",
       "title": "KNOT LR8G kit",
       "url": "https://manual.mikrotik.com/hardware/knot-lr8g-kit",
-      "wordCount": 4290,
+      "wordCount": 4159,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr8g_kit",
-        "knot"
+        "knot",
+        "knot_lr8g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4518,8 +4642,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr9",
-        "knot"
+        "knot",
+        "knot_lr9"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4542,12 +4666,12 @@
       "slug": "knot-lr9g-kit",
       "title": "KNOT LR9G kit",
       "url": "https://manual.mikrotik.com/hardware/knot-lr9g-kit",
-      "wordCount": 4287,
+      "wordCount": 4156,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "knot_lr9g_kit",
-        "knot"
+        "knot",
+        "knot_lr9g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -4577,7 +4701,7 @@
       "slug": "l009uigs-2haxd-in",
       "title": "L009UiGS-2HaxD-IN",
       "url": "https://manual.mikrotik.com/hardware/l009uigs-2haxd-in",
-      "wordCount": 1296,
+      "wordCount": 1446,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -4693,7 +4817,7 @@
       "slug": "lamp-5g-r16",
       "title": "LAMP 5G R16",
       "url": "https://manual.mikrotik.com/hardware/lamp-5g-r16",
-      "wordCount": 1837,
+      "wordCount": 1899,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -4844,7 +4968,7 @@
       "slug": "lhg-60g",
       "title": "LHG 60G",
       "url": "https://manual.mikrotik.com/hardware/lhg-60g",
-      "wordCount": 2016,
+      "wordCount": 2024,
       "tableCount": 3,
       "isSeries": false,
       "productLinks": [
@@ -4900,10 +5024,12 @@
       "slug": "lhg-lite60",
       "title": "LHG Lite60",
       "url": "https://manual.mikrotik.com/hardware/lhg-lite60",
-      "wordCount": 1367,
+      "wordCount": 1371,
       "tableCount": 2,
       "isSeries": false,
-      "productLinks": [],
+      "productLinks": [
+        "lhg_lite60"
+      ],
       "tableModelCodes": [
         "RBLHG-60ad"
       ],
@@ -4991,9 +5117,9 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "lhg_2",
-        "RBLHG-5nD",
         "RBLHG-5HPnD",
+        "RBLHG-5nD",
+        "lhg_2",
         "lhg_5_ac"
       ],
       "tableModelCodes": [
@@ -5334,8 +5460,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "ltap_lr8_lte_kit",
-        "lora_antenna_kit"
+        "lora_antenna_kit",
+        "ltap_lr8_lte_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -5408,10 +5534,10 @@
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
-        "ltap_mini",
-        "dinrail_pro",
         "acgpsa",
-        "acsmaufl"
+        "acsmaufl",
+        "dinrail_pro",
+        "ltap_mini"
       ],
       "tableModelCodes": [
         "RB912R-2nD-LTm"
@@ -5448,11 +5574,11 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "ltap_mini_lte_kit_2024",
-        "dinrail_pro",
         "acgpsa",
         "acsmaufl",
-        "ltap_mini_lte_kit"
+        "dinrail_pro",
+        "ltap_mini_lte_kit",
+        "ltap_mini_lte_kit_2024"
       ],
       "tableModelCodes": [
         "RB912R-2nD-LTm&R11e-LTE",
@@ -5592,8 +5718,8 @@
       "isSeries": true,
       "productLinks": [
         "RB921GS-5HPacD-15S",
-        "mantbox_2_12s",
-        "RB921GS-5HPacD-19S"
+        "RB921GS-5HPacD-19S",
+        "mantbox_2_12s"
       ],
       "tableModelCodes": [
         "RB921GS-5HPacD-15S",
@@ -5632,7 +5758,7 @@
       "slug": "map",
       "title": "mAP",
       "url": "https://manual.mikrotik.com/hardware/map",
-      "wordCount": 2503,
+      "wordCount": 2704,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -5657,7 +5783,7 @@
       "slug": "map-lite",
       "title": "mAP lite",
       "url": "https://manual.mikrotik.com/hardware/map-lite",
-      "wordCount": 1915,
+      "wordCount": 2146,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -5750,8 +5876,8 @@
       "tableCount": 1,
       "isSeries": true,
       "productLinks": [
-        "mtp250_53v47_od",
-        "mtp250_26v94_od"
+        "mtp250_26v94_od",
+        "mtp250_53v47_od"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -5772,8 +5898,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "RB911G-5HPacD-NB",
-        "ACRPSMA"
+        "ACRPSMA",
+        "RB911G-5HPacD-NB"
       ],
       "tableModelCodes": [
         "RBDisc-5nD"
@@ -5802,8 +5928,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "netbox_5_ax",
-        "ACRPSMA"
+        "ACRPSMA",
+        "netbox_5_ax"
       ],
       "tableModelCodes": [
         "RBDisc-5nD"
@@ -5926,10 +6052,10 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "RB922UAGS-5HPacD-NM",
         "RB921UAGS-5SHPacD-NM",
-        "RB922UAGS-5HPacT-NM",
-        "RB921UAGS-5SHPacT-NM"
+        "RB921UAGS-5SHPacT-NM",
+        "RB922UAGS-5HPacD-NM",
+        "RB922UAGS-5HPacT-NM"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6104,10 +6230,10 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "rbomnitikg_5hacd",
-        "rbomnitikpg_5hacd",
+        "RBOmniTikU-5HnDr2",
         "RBOmniTikUPA-5HnDr2",
-        "RBOmniTikU-5HnDr2"
+        "rbomnitikg_5hacd",
+        "rbomnitikpg_5hacd"
       ],
       "tableModelCodes": [
         "RBOmniTikG-5HacD",
@@ -6516,8 +6642,8 @@
       "tableCount": 0,
       "isSeries": true,
       "productLinks": [
-        "rb1100ahx4",
-        "RB1100Dx4"
+        "RB1100Dx4",
+        "rb1100ahx4"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6541,8 +6667,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "RBWMK",
-        "RB2011iL-IN"
+        "RB2011iL-IN",
+        "RBWMK"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6584,8 +6710,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "RBWMK",
-        "RB2011iLS-IN"
+        "RB2011iLS-IN",
+        "RBWMK"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6602,7 +6728,7 @@
       "slug": "rb2011uias-2hnd-in",
       "title": "RB2011UiAS-2HnD-IN",
       "url": "https://manual.mikrotik.com/hardware/rb2011uias-2hnd-in",
-      "wordCount": 2703,
+      "wordCount": 2892,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
@@ -6627,8 +6753,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "RBWMK",
-        "RB2011UiAS-IN"
+        "RB2011UiAS-IN",
+        "RBWMK"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -6718,7 +6844,7 @@
       "slug": "rb4011igs-plus-5hacq2hnd-in",
       "title": "RB4011iGS+5HacQ2HnD-IN",
       "url": "https://manual.mikrotik.com/hardware/rb4011igs-plus-5hacq2hnd-in",
-      "wordCount": 2987,
+      "wordCount": 3085,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -6928,8 +7054,8 @@
       "tableCount": 3,
       "isSeries": true,
       "productLinks": [
-        "RB912UAG-5HPnD",
-        "RB912UAG-2HPnD"
+        "RB912UAG-2HPnD",
+        "RB912UAG-5HPnD"
       ],
       "tableModelCodes": [
         "RB912UAG-5HPnD",
@@ -6988,7 +7114,7 @@
       "slug": "rb951-series",
       "title": "RB951-series",
       "url": "https://manual.mikrotik.com/hardware/rb951-series",
-      "wordCount": 2720,
+      "wordCount": 2915,
       "tableCount": 5,
       "isSeries": true,
       "productLinks": [
@@ -7290,8 +7416,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "sxtsq_5ax",
-        "qm_x"
+        "qm_x",
+        "sxtsq_5ax"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -7390,11 +7516,11 @@
       "tableCount": 4,
       "isSeries": true,
       "productLinks": [
-        "sxtsq_5_high_power",
-        "qm_x",
-        "sxtsq_lite2",
         "RBSXTsq5nD",
-        "sxtsq_5_ac"
+        "qm_x",
+        "sxtsq_5_ac",
+        "sxtsq_5_high_power",
+        "sxtsq_lite2"
       ],
       "tableModelCodes": [
         "SXTsq Lite5",
@@ -7573,13 +7699,13 @@
       "slug": "wap-60g-series",
       "title": "wAP 60G series",
       "url": "https://manual.mikrotik.com/hardware/wap-60g-series",
-      "wordCount": 2128,
+      "wordCount": 2127,
       "tableCount": 3,
       "isSeries": true,
       "productLinks": [
-        "wireless_wire",
         "wap_60g",
-        "wap_60g_ap"
+        "wap_60g_ap",
+        "wireless_wire"
       ],
       "tableModelCodes": [
         "RBwAPG-60adkit",
@@ -7624,7 +7750,7 @@
       "slug": "wap-ac",
       "title": "wAP ac",
       "url": "https://manual.mikrotik.com/hardware/wap-ac",
-      "wordCount": 3077,
+      "wordCount": 3168,
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
@@ -7715,7 +7841,7 @@
       "slug": "wap-ax",
       "title": "wAP ax",
       "url": "https://manual.mikrotik.com/hardware/wap-ax",
-      "wordCount": 1733,
+      "wordCount": 1818,
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
@@ -7823,8 +7949,8 @@
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [
-        "wap_lr2",
-        "tof_2400_8v_4"
+        "tof_2400_8v_4",
+        "wap_lr2"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -7855,8 +7981,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "wap_lr8g_kit",
-        "868_omni_antenna"
+        "868_omni_antenna",
+        "wap_lr8g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -7887,8 +8013,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "wap_lr9_kit",
-        "lora_antenna_kit"
+        "lora_antenna_kit",
+        "wap_lr9_kit"
       ],
       "tableModelCodes": [
         "RBwAPR-2nD&R11e-LoRa9"
@@ -7928,8 +8054,8 @@
       "tableCount": 0,
       "isSeries": false,
       "productLinks": [
-        "wap_lr9g_kit",
-        "915_omni_antenna"
+        "915_omni_antenna",
+        "wap_lr9g_kit"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -8037,7 +8163,7 @@
       "slug": "wap-series",
       "title": "wAP-series",
       "url": "https://manual.mikrotik.com/hardware/wap-series",
-      "wordCount": 2767,
+      "wordCount": 2845,
       "tableCount": 2,
       "isSeries": true,
       "productLinks": [],
@@ -8064,8 +8190,8 @@
       "tableCount": 5,
       "isSeries": false,
       "productLinks": [
-        "wireless_wire_cube",
-        "qm_x"
+        "qm_x",
+        "wireless_wire_cube"
       ],
       "tableModelCodes": [
         "CubeG-5ac60adpair"
@@ -8097,8 +8223,8 @@
       "tableCount": 4,
       "isSeries": false,
       "productLinks": [
-        "wireless_wire_cube_pro",
-        "cube_60pro_ac"
+        "cube_60pro_ac",
+        "wireless_wire_cube_pro"
       ],
       "tableModelCodes": [],
       "regulatoryIds": [],
@@ -8129,7 +8255,7 @@
       "slug": "wireless-wire-dish",
       "title": "Wireless Wire Dish",
       "url": "https://manual.mikrotik.com/hardware/wireless-wire-dish",
-      "wordCount": 2285,
+      "wordCount": 2294,
       "tableCount": 1,
       "isSeries": false,
       "productLinks": [
@@ -8186,7 +8312,7 @@
       "slug": "wsap-ac-lite",
       "title": "wsAP ac lite",
       "url": "https://manual.mikrotik.com/hardware/wsap-ac-lite",
-      "wordCount": 2913,
+      "wordCount": 3163,
       "tableCount": 2,
       "isSeries": false,
       "productLinks": [

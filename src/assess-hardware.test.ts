@@ -17,6 +17,7 @@ import {
   isBogusProductToken,
   type MatrixRow,
   type PageInfo,
+  parsePage,
   suppressLinkOnlyClaims,
 } from "./assess-hardware.ts";
 
@@ -221,5 +222,20 @@ describe("own-slug collision guard", () => {
       rows,
     );
     expect(c.matchedMatrixNames).toContain("hAP ac lite TC");
+  });
+});
+
+// ── productLinks are sorted at parse time so DOM reorders don't churn the artifact (PR #228) ──
+
+describe("productLinks sort order", () => {
+  test("parsePage emits productLinks sorted regardless of DOM order", () => {
+    // cube-lite60's links flipped order upstream between runs with no set change; sorting
+    // (mirroring the slugs / category-members sorts) keeps the artifact diff to real changes.
+    const html = `<html><body><article><h1>Cube Lite60</h1>
+      <a href="https://mikrotik.com/product/qm_x">QuickMount X</a>
+      <a href="https://mikrotik.com/product/cube_lite60">Cube Lite60</a>
+    </article></body></html>`;
+    const p = parsePage("cube-lite60", "https://manual.mikrotik.com/hardware/cube-lite60", html);
+    expect(p.productLinks).toEqual(["cube_lite60", "qm_x"]);
   });
 });

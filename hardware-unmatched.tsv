@@ -28,8 +28,8 @@ ccr1009-7g-1c-1s-plus-pc	device	Ethernet routers	CCR1009-7G-1C-1SplusPC	40		unma
 ccr1009-7g-1c-pc	device	Ethernet routers	CCR1009-7G-1C-PC	36		unmatched	https://manual.mikrotik.com/hardware/ccr1009-7g-1c-pc	
 ccr1016-12g	device	Ethernet routers	CCR1016-12G	32		unmatched	https://manual.mikrotik.com/hardware/ccr1016-12g	
 ccr1016-12s-1s-plus	device	Ethernet routers	CCR1016-12S-1Splus	36		unmatched	https://manual.mikrotik.com/hardware/ccr1016-12s-1s-plus	
-ccr1036-12g-4s-series	series-or-doc	Ethernet routers		0	yes	no-product-link	https://manual.mikrotik.com/hardware/ccr1036-12g-4s-series	
-ccr1036-8g-2s-plus-series	series-or-doc	Ethernet routers		0	yes	no-product-link	https://manual.mikrotik.com/hardware/ccr1036-8g-2s-plus-series	
+ccr1036-12g-4s-series	series-or-doc	Ethernet routers		0	yes	unmatched	https://manual.mikrotik.com/hardware/ccr1036-12g-4s-series	
+ccr1036-8g-2s-plus-series	series-or-doc	Ethernet routers		0	yes	unmatched	https://manual.mikrotik.com/hardware/ccr1036-8g-2s-plus-series	
 ccr1072-1g-8s-plus	device	Ethernet routers	CCR1072-1G-8Splus	36		unmatched	https://manual.mikrotik.com/hardware/ccr1072-1g-8s-plus	
 powerbox	device	Ethernet routers	RB750P-PBr2	32		unmatched	https://manual.mikrotik.com/hardware/powerbox	
 rb2011il-in	device	Ethernet routers	RB2011iL-IN	28		unmatched	https://manual.mikrotik.com/hardware/rb2011il-in	
