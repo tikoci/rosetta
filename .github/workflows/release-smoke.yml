@@ -9,8 +9,10 @@ run-name: Release smoke • ${{ inputs.version }}
 #
 # The channel comes from the version: a -next.N prerelease resolves through the
 # `next` dist-tag, a bare version through `latest`. bunx-upgrade-smoke runs the
-# tag form, so dispatching it for a version that is no longer its tag's head waits
-# out its budget and fails — dispatch the current head, or leave previous_version
+# explicit-tag form (@latest/@next — decision B, #226; the bare form serves a
+# warm cache with zero registry requests and is deliberately not gated), so
+# dispatching it for a version that is no longer its tag's head waits out its
+# budget and fails — dispatch the current head, or leave previous_version
 # empty to run bunx-smoke only.
 
 on:
@@ -73,8 +75,8 @@ jobs:
           # Poll what Bun reads (Accept: application/vnd.npm.install-v1+json),
           # not the full packument `npm view` sees — the abbreviated manifest
           # can lag it, and a full-metadata-only match is not readiness (#202).
-          # Same 900s budget as before (#176). The upgrade path's bare/tag
-          # contract is deliberately separate (undecided — see #226).
+          # Same 900s budget as before (#176). The upgrade path's contract is
+          # deliberately separate (decided: explicit-tag form — see #226).
           bun scripts/wait-for-registry.ts "@tikoci/rosetta" "$NPM_VER" --timeout-s 900 --interval-s 5
 
       - name: bunx --refresh exits 0 (DB downloads + opens cleanly)
@@ -148,12 +150,15 @@ jobs:
 
   # End-to-end DB-freshness upgrade smoke — the actual bug #76/#23 traced and
   # #78 fixed: a bunx cache + DB seeded by the PREVIOUS published version on
-  # this same dist-tag, then a bare (no --refresh) invocation of the version
-  # THIS run just published, proving ensureDbReady()'s checkDbFreshness
+  # this same dist-tag, then an explicit-tag (no --refresh) invocation of the
+  # version THIS run just published, proving ensureDbReady()'s checkDbFreshness
   # release-tag comparison auto-refreshes the DB instead of silently leaving
   # it stale. bunx-smoke above only ever installs fresh onto an empty cache,
-  # so it can't catch this class of bug at all. Skipped when there's no prior
-  # publish on this channel yet (inputs.previous_version empty).
+  # so it can't catch this class of bug at all. The invocation is the
+  # explicit-tag form (@latest/@next), never bare: a warm bare bunx serves its
+  # cache with zero registry requests, so the bare form cannot be gated and is
+  # accepted, documented behavior instead (decision B, #226). Skipped when
+  # there's no prior publish on this channel yet (inputs.previous_version empty).
   bunx-upgrade-smoke:
     if: inputs.previous_version != ''
     defaults:
@@ -165,33 +170,29 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Wait for npm registry to resolve this channel to ${{ inputs.version }}
+      - run: bun install --frozen-lockfile
+
+      - name: Wait for the channel tag to resolve to ${{ inputs.version }} in the abbreviated install manifest
         env:
           VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           NPM_VER="${VERSION#v}"
-          NPM_SPEC="@tikoci/rosetta"
+          NPM_TAG="latest"
           # A -next.N prerelease resolves through the next dist-tag; a bare version through latest.
-          case "$NPM_VER" in *-*) NPM_SPEC="${NPM_SPEC}@next" ;; esac
-          echo "Waiting for ${NPM_SPEC} to resolve to ${NPM_VER} on npm registry..."
-          # This one waits on the dist-tag itself, so it gets verify-dist-tags'
-          # budget, not the 150s exact-version wait (#176).
-          for i in {1..180}; do
-            if [ "$(npm view "$NPM_SPEC" version 2>/dev/null || true)" = "$NPM_VER" ]; then
-              echo "✓ ${NPM_SPEC} resolves to ${NPM_VER} (attempt $i)"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::error::npm registry did not resolve ${NPM_SPEC} to ${NPM_VER} within 900s"
-          exit 1
+          case "$NPM_VER" in *-*) NPM_TAG="next" ;; esac
+          # Poll what Bun reads (Accept: application/vnd.npm.install-v1+json),
+          # not the full packument `npm view` sees — same lag class #202 fixed
+          # on the fresh-install path. This one waits on the dist-tag itself,
+          # so it gets verify-dist-tags' budget (#176).
+          bun scripts/wait-for-registry.ts "@tikoci/rosetta" "$NPM_VER" --tag "$NPM_TAG" --timeout-s 900 --interval-s 5
 
-      - name: Bare bunx of the new version auto-refreshes a DB seeded by the previous version (no --refresh)
+      - name: Explicit-tag bunx of the new version auto-refreshes a DB seeded by the previous version (no --refresh)
         env:
           DB_PATH: ${{ runner.temp }}/rosetta-upgrade.db
           VERSION: ${{ inputs.version }}
@@ -200,9 +201,9 @@ jobs:
           set -euo pipefail
           NPM_VER="${VERSION#v}"
           PREV_NPM_VER="${PREV_VERSION#v}"
-          NPM_SPEC="@tikoci/rosetta"
+          NPM_SPEC="@tikoci/rosetta@latest"
           # A -next.N prerelease resolves through the next dist-tag; a bare version through latest.
-          case "$NPM_VER" in *-*) NPM_SPEC="${NPM_SPEC}@next" ;; esac
+          case "$NPM_VER" in *-*) NPM_SPEC="@tikoci/rosetta@next" ;; esac
 
           echo "── bunx @tikoci/rosetta@${PREV_NPM_VER} --refresh (seed pre-upgrade DB) ──"
           bunx "@tikoci/rosetta@${PREV_NPM_VER}" --refresh
@@ -210,7 +211,7 @@ jobs:
           PORT=18766
           LOG="${RUNNER_TEMP}/rosetta-upgrade-smoke-${{ matrix.os }}.log"
           rm -f "$LOG"
-          echo "── bunx ${NPM_SPEC} --http (bare/tag form — proves the real client path, not an exact pin) ──"
+          echo "── bunx ${NPM_SPEC} --http (explicit-tag form, decision B #226 — warm bare bunx serves its cache and is not gated) ──"
           bunx "$NPM_SPEC" --http --port "$PORT" --host 127.0.0.1 > "$LOG" 2>&1 &
           PID=$!
           trap 'kill "$PID" 2>/dev/null || true' EXIT
@@ -257,9 +258,9 @@ jobs:
           set -euo pipefail
           NPM_VER="${VERSION#v}"
           PREV_NPM_VER="${PREV_VERSION#v}"
-          NPM_SPEC="@tikoci/rosetta"
+          NPM_SPEC="@tikoci/rosetta@latest"
           # A -next.N prerelease resolves through the next dist-tag; a bare version through latest.
-          case "$NPM_VER" in *-*) NPM_SPEC="${NPM_SPEC}@next" ;; esac
+          case "$NPM_VER" in *-*) NPM_SPEC="@tikoci/rosetta@next" ;; esac
 
           # The previous step proved that this DB was refreshed by the current
           # release. Record its schema before replacing it with the old DB
