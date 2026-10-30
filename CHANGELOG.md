@@ -24,24 +24,6 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **Each release publishes the CLI Reference dataset as its own asset, and keeps trees
-  MikroTik stops serving.** `rosetta-cli-reference.tar.gz` (the `cli-reference/`
-  directory of export format 2, about 3.5 MB) and its `.sha256` sit next to
-  `ros-help.db.gz`, and the release notes repeat the digest; pin the tag and the digest.
-  The release build downloads the newest earlier release's copy and passes it to the new
-  `extract-cliref --archive=DIR`. A tree whose `/docs/<v>/llms.txt` now returns 404 is
-  re-parsed from that archive with its original `fetched_at` and `retained = 1`, instead
-  of disappearing. A former default tree is stored under `/docs/<v>/` (#188 slice 4).
-
-- **The DB stores each manual version's CLI Reference landing page.** That page
-  documents what every menu page leaves out: argument types, standard list entry
-  properties (`comment`, `disabled`, `copy-from`, `place-before`), standard print
-  modifiers and address flags. Each tree keeps the page verbatim in `cliref_trees`.
-  Its four sections are parsed into `cliref_standard`, one row per item, with
-  descriptions kept word for word. A tree that's served without the page, or whose
-  sections change shape, fails extraction. The export writes them to
-  `cli-reference/standard.tsv`; MCP answers don't use them yet (#193; #188 slice 2).
-
 - **The DB holds the CLI Reference for every manual version MikroTik serves.** It
   stores the 7.24 and 7.25 trees plus the default tree (7.26 today), each under the
   version its `llms.txt` declares, in a new `cliref_trees` table. `cliref_pages`
@@ -50,11 +32,37 @@ uses [Semantic Versioning](https://semver.org/).
   a served tree that's incomplete or declares the wrong version fails the build.
   MCP and TUI answers read the default tree only, so they are unchanged. This is
   slice 1 of #188, and it adds no per-version answers.
+- **The DB stores each manual version's CLI Reference landing page.** That page
+  documents what every menu page leaves out: argument types, standard list entry
+  properties (`comment`, `disabled`, `copy-from`, `place-before`), standard print
+  modifiers and address flags. Each tree keeps the page verbatim in `cliref_trees`.
+  Its four sections are parsed into `cliref_standard`, one row per item, with
+  descriptions kept word for word. A tree that's served without the page, or whose
+  sections change shape, fails extraction. The export writes them to
+  `cli-reference/standard.tsv`; MCP answers don't use them yet (#193; #188 slice 2).
+- **Each release publishes the CLI Reference dataset as its own asset, and keeps trees
+  MikroTik stops serving.** `rosetta-cli-reference.tar.gz` (the `cli-reference/`
+  directory of export format 2, about 3.5 MB) and its `.sha256` sit next to
+  `ros-help.db.gz`, and the release notes repeat the digest; pin the tag and the digest.
+  The release build downloads the newest earlier release's copy and passes it to the new
+  `extract-cliref --archive=DIR`. A tree whose `/docs/<v>/llms.txt` now returns 404 is
+  re-parsed from that archive with its original `fetched_at` and `retained = 1`, instead
+  of disappearing. A former default tree is stored under `/docs/<v>/` (#188 slice 4).
 - **Each build checks the CLI Reference against MikroTik's own version diffs.** It
   compares the changes between trees it computes from its own rows with
   `cli-compare.json` and writes `cli-compare-reconcile.tsv`. A mismatch doesn't fail
   the release: it opens or updates one tracking issue, and the first clean release
   closes it. Each tree's count is stored in `cliref_trees.cli_compare_mismatches`.
+- **Command-version answers say which arches a version's data came from (#91).** 39 of
+  the 68 versions with command data come from x86-only `inspect.json` builds, so they lack
+  every arm64-only path: 7.24rc2 → 7.24rc3 diffed as 1,387 removals that never happened.
+  `routeros_command_diff` now returns `from_arches`/`to_arches` and says when they differ
+  (`arch=x86` gives that diff 0 changes). `routeros_command_version_check` returns
+  `absent_in_single_arch_versions` with a note, and its "earliest tracked version" note
+  now fires, since the range it checks is the one with command data. `routeros_stats`
+  groups versions in `command_version_arches`, and the TUI shows the same. Extracting one
+  version's arches in separate runs now merges their paths instead of keeping only the
+  last run's.
 - **`routeros_stats` names the manual version the docs came from.** A new
   `manual_version` block (`docs`, `cli_reference`) reports the version each
   manual.mikrotik.com tree declares in its `llms.txt` header. The browse TUI's
@@ -111,11 +119,58 @@ uses [Semantic Versioning](https://semver.org/).
   channel-head lookup took `upgrade.mikrotik.com`'s whole answer (`7.25 1792678320`,
   version plus build time) as the version, so each head 404'd and next.123 shipped
   without 7.25 or 7.26beta4 changelogs. A local run now picks up both (6,950 entries).
+- **`browse --once .<tool>` stdout is now exactly one JSON document.** The args
+  echo banner moved to stderr and excerpt highlighting no longer injects ANSI
+  escapes into the JSON, so shell consumers can pipe straight into `jq` or
+  `JSON.parse`. Unknown dot-commands, missing required args, and tool errors
+  now exit non-zero with the diagnostic on stderr instead of exiting 0.
+- **Piped `browse` output is plain text; `NO_COLOR` is honored.** Human-rendered
+  commands (`browse --once stats`, `search`, …) no longer emit ANSI escapes or
+  OSC 8 hyperlinks when stdout is not a TTY, so piped output needs no stripping
+  (links render as `text (url)`). Setting `NO_COLOR` forces plain output even on
+  a terminal. Interactive TTY output is unchanged, and `--once` dot-command JSON
+  was already escape-free.
+- **Manual extraction works with manual.mikrotik.com's new Markdown layout.** On
+  2026-10-06 the site moved category pages from `<dir>/index.md` to `<dir>.md`,
+  CLI Reference menu pages from `<dir>/<dir>.md` to `<dir>.md`, and dropped the MDX
+  `import` preamble from CLI Reference pages. The release build failed on all three
+  (74 prose pages 404'd; the CLI Reference discovery gate tripped). The extractors
+  now accept both layouts, so the corpus picks up the new CMR pages (RouterOS
+  7.26beta1) with no other entries lost.
+- **CLI Reference extraction skips MikroTik's new CLI-compare tool page.** On
+  2026-10-20 the site added `/docs/cli-reference/compare-versions`, listed in
+  `llms.txt` and in the sitemap (with a trailing slash). It documents no CLI
+  path, but discovery took it for a menu, which failed every live extraction.
+  It is now excluded by name, with the old `index` landing page. Each excluded
+  page that `llms.txt` lists is still fetched, and extraction fails if it ever
+  gains a `**Type:**` entry, so a page that becomes a real menu can't be
+  dropped silently.
+- **Version ordering understands `alpha` prereleases.** `compareVersions` handled
+  only `beta` and `rc`, so a label like `7.26alpha1` compared as `NaN` and kept
+  whatever position it arrived in. It now sorts `alpha` < `beta` < `rc` < release.
+  The CLI Reference extractor accepts `alpha` tree labels, so the export's tree
+  order depends on it.
 - **Changelog extraction fails loudly instead of shipping an empty table (#231).**
   Fetches retry like the test-results scrape (#218); the run exits non-zero, with the
   previous table kept, on 0 entries, over 10% fetch errors, over 15% missing versions,
   or 5 consecutive errors. Previously a download.mikrotik.com outage wiped the table
   and exited 0.
+- **Device-benchmark extraction fails the release instead of shipping an empty
+  or gapped table (#218).** v0.12.0-next.123 shipped 0 `device_test_results`
+  rows after mikrotik.com 503'd the whole scrape, and nothing caught it:
+  `routeros_search_tests` answered nothing while its description still claimed
+  thousands of rows. The extractor now retries 5xx, 429 (honoring Retry-After
+  up to 30s), network, and timeout failures — other statuses, including 403,
+  fail at once — sends an identifying User-Agent, distinguishes gone pages
+  (404) from host failures, and treats a 200 page with no benchmark rows and
+  no block diagram as a host failure rather than a quiet zero-row success. It
+  exits non-zero on an empty result, over 10% hard fetch errors, over 15%
+  missing pages, or a 15-minute global fetch deadline
+  (`ROSETTA_EXTRACT_DEADLINE_MS` overrides it); a failed run leaves the
+  previous table untouched instead of wiped or partial. The release db-content
+  gate additionally floors `device_test_results` at 2,000 rows, and the tool
+  description reads its counts from the served DB so the claim can't drift
+  again.
 - **Release DB floors cover every shipped corpus (#231).** The release content gate
   now also fails on fewer than 80 block diagrams, 2,500 sections, 600 callouts, 4,000
   changelog entries, 600 videos, 50 Dude pages, or 10 skills. `make extract` and
@@ -139,72 +194,19 @@ uses [Semantic Versioning](https://semver.org/).
   smoke invokes `@latest`/`@next` with no `--refresh`, still asserting the new-release
   DB banner. Bare-form staleness is accepted, documented behavior (MANUAL "How Updates
   Work"), not something CI gates.
-- **Piped `browse` output is plain text; `NO_COLOR` is honored.** Human-rendered
-  commands (`browse --once stats`, `search`, …) no longer emit ANSI escapes or
-  OSC 8 hyperlinks when stdout is not a TTY, so piped output needs no stripping
-  (links render as `text (url)`). Setting `NO_COLOR` forces plain output even on
-  a terminal. Interactive TTY output is unchanged, and `--once` dot-command JSON
-  was already escape-free.
-
-- Clarify first-run MCP pre-download with the same package version and DB path,
+- **Clarify first-run MCP pre-download** with the same package version and DB path,
   including the need to preserve pins and overrides when adapting setup snippets.
   Correct obsolete release-planning, manual-version, and bare-`bunx` auto-update
   guidance; a cached bare invocation need not see a just-published version.
-- Correct contributor setup docs that still described the retired Confluence-first
+- **Correct contributor setup docs** that still described the retired Confluence-first
   build: the default pipeline is live Docusaurus (`make db-sync` is the fast path),
   rebuilds require `make clean` first, and skill extraction needs `GITHUB_TOKEN`.
-
-- **Command-version answers say which arches a version's data came from (#91).** 39 of
-  the 68 versions with command data come from x86-only `inspect.json` builds, so they lack
-  every arm64-only path: 7.24rc2 → 7.24rc3 diffed as 1,387 removals that never happened.
-  `routeros_command_diff` now returns `from_arches`/`to_arches` and says when they differ
-  (`arch=x86` gives that diff 0 changes). `routeros_command_version_check` returns
-  `absent_in_single_arch_versions` with a note, and its "earliest tracked version" note
-  now fires, since the range it checks is the one with command data. `routeros_stats`
-  groups versions in `command_version_arches`, and the TUI shows the same. Extracting one
-  version's arches in separate runs now merges their paths instead of keeping only the
-  last run's.
-- **Version ordering understands `alpha` prereleases.** `compareVersions` handled
-  only `beta` and `rc`, so a label like `7.26alpha1` compared as `NaN` and kept
-  whatever position it arrived in. It now sorts `alpha` < `beta` < `rc` < release.
-  The CLI Reference extractor accepts `alpha` tree labels, so the export's tree
-  order depends on it.
-- **CLI Reference extraction skips MikroTik's new CLI-compare tool page.** On
-  2026-10-20 the site added `/docs/cli-reference/compare-versions`, listed in
-  `llms.txt` and in the sitemap (with a trailing slash). It documents no CLI
-  path, but discovery took it for a menu, which failed every live extraction.
-  It is now excluded by name, with the old `index` landing page. Each excluded
-  page that `llms.txt` lists is still fetched, and extraction fails if it ever
-  gains a `**Type:**` entry, so a page that becomes a real menu can't be
-  dropped silently.
-- **Manual extraction works with manual.mikrotik.com's new Markdown layout.** On
-  2026-10-06 the site moved category pages from `<dir>/index.md` to `<dir>.md`,
-  CLI Reference menu pages from `<dir>/<dir>.md` to `<dir>.md`, and dropped the MDX
-  `import` preamble from CLI Reference pages. The release build failed on all three
-  (74 prose pages 404'd; the CLI Reference discovery gate tripped). The extractors
-  now accept both layouts, so the corpus picks up the new CMR pages (RouterOS
-  7.26beta1) with no other entries lost.
-- **`browse --once .<tool>` stdout is now exactly one JSON document.** The args
-  echo banner moved to stderr and excerpt highlighting no longer injects ANSI
-  escapes into the JSON, so shell consumers can pipe straight into `jq` or
-  `JSON.parse`. Unknown dot-commands, missing required args, and tool errors
-  now exit non-zero with the diagnostic on stderr instead of exiting 0.
-- **Device-benchmark extraction fails the release instead of shipping an empty
-  or gapped table (#218).** v0.12.0-next.123 shipped 0 `device_test_results`
-  rows after mikrotik.com 503'd the whole scrape, and nothing caught it:
-  `routeros_search_tests` answered nothing while its description still claimed
-  thousands of rows. The extractor now retries 5xx, 429 (honoring Retry-After
-  up to 30s), network, and timeout failures — other statuses, including 403,
-  fail at once — sends an identifying User-Agent, distinguishes gone pages
-  (404) from host failures, and treats a 200 page with no benchmark rows and
-  no block diagram as a host failure rather than a quiet zero-row success. It
-  exits non-zero on an empty result, over 10% hard fetch errors, over 15%
-  missing pages, or a 15-minute global fetch deadline
-  (`ROSETTA_EXTRACT_DEADLINE_MS` overrides it); a failed run leaves the
-  previous table untouched instead of wiped or partial. The release db-content
-  gate additionally floors `device_test_results` at 2,000 rows, and the tool
-  description reads its counts from the served DB so the claim can't drift
-  again.
+- **README install links point at the current manual, and MANUAL documents the CLI
+  Reference tables.** The `/app` and Container links had 404'd since MikroTik's URL
+  change; they now go to `/docs/containers/apps/` and `/docs/containers/`. MANUAL's table
+  summary and logical schema reference gain the `cliref_*` tables (schema 12), and a
+  "Refreshing the product matrix" procedure replaces the stale "update the extractor
+  default" step.
 
 ## [0.11.3] — 2026-10-05
 
