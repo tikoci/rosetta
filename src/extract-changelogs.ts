@@ -1,8 +1,9 @@
 /**
  * extract-changelogs.ts — Fetch and parse MikroTik changelogs into the changelogs table.
  *
- * Idempotent: deletes all existing changelog rows, then fetches and inserts.
- * FTS5 index auto-populated via triggers defined in db.ts.
+ * Idempotent: on a passing verdict, atomically replaces all changelog rows.
+ * A failing verdict exits 1 with the table untouched. FTS5 index
+ * auto-populated via triggers defined in db.ts.
  *
  * Usage:
  *   bun run src/extract-changelogs.ts                     # fetch for all ros_versions
@@ -11,9 +12,25 @@
  */
 
 import { db, initDb } from "./db.ts";
+import { fetchTextWithRetry, type RetryOptions } from "./restraml.ts";
 
 const CHANGELOG_BASE = "https://download.mikrotik.com/routeros";
 const FETCH_DELAY_MS = 200; // polite delay between requests
+
+// Same shared 5xx/429/network retry as extract-test-results (#218): a changelog
+// is a few KB, so 30s without a byte is already a sick host.
+const FETCH_RETRY: RetryOptions = { timeoutMs: 30_000 };
+
+// Fail-loud thresholds, same shape as extract-test-results (#218). A healthy
+// run has 0 hard errors and ~2% genuine 404s (2/98 in next.123: 7.11.3,
+// 7.12.2). Before these, a host outage turned every version into a skip, the
+// table was wiped and committed empty, and the run exited 0.
+export const MAX_HARD_ERROR_RATE = 0.10;
+export const MAX_MISSING_RATE = 0.15;
+
+// Consecutive hard errors that mean the host is down rather than flaky: stop
+// fetching instead of spending 4 attempts × 30s on each of ~100 versions.
+export const MAX_CONSECUTIVE_HARD_ERRORS = 5;
 const VERSION_CHANNELS = ["stable", "long-term", "testing", "development"] as const;
 
 // Oldest RouterOS v7 versions that use the current changelog header/entry format.
@@ -121,20 +138,60 @@ export function parseChangelog(text: string, expectedVersion?: string): Changelo
 
 // ── Fetch ──
 
-async function fetchChangelog(version: string): Promise<string | null> {
+/** `missing` is a genuine 404 (no changelog for that version); `error` is a
+ *  transport failure or non-404 status that survived retries. */
+export type ChangelogFetchResult =
+  | { status: "ok"; text: string }
+  | { status: "missing" }
+  | { status: "error"; detail: string };
+
+export async function fetchChangelog(version: string, retry: RetryOptions = {}): Promise<ChangelogFetchResult> {
   const url = `${CHANGELOG_BASE}/${encodeURIComponent(version)}/CHANGELOG`;
   try {
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      if (resp.status === 404) return null;
-      console.warn(`  ${version}: HTTP ${resp.status}`);
-      return null;
-    }
-    return await resp.text();
+    const resp = await fetchTextWithRetry(url, {}, { ...FETCH_RETRY, ...retry });
+    if (resp.ok) return { status: "ok", text: resp.text };
+    if (resp.status === 404) return { status: "missing" };
+    return { status: "error", detail: `HTTP ${resp.status}` };
   } catch (err) {
-    console.warn(`  ${version}: fetch error — ${err}`);
-    return null;
+    return { status: "error", detail: `fetch failed: ${(err as Error).message}` };
   }
+}
+
+/** End-of-run counts for the fail-loud verdict. */
+export interface ChangelogOutcome {
+  /** Versions the run was asked to fetch. */
+  versionCount: number;
+  totalEntries: number;
+  hardErrors: number;
+  /** 404s plus fetched changelogs that parsed to 0 entries. */
+  missing: number;
+  /** The run stopped early on MAX_CONSECUTIVE_HARD_ERRORS. */
+  abandoned: boolean;
+}
+
+/** Returns an error message when the run must fail, null when it may proceed. */
+export function evaluateChangelogOutcome(o: ChangelogOutcome): string | null {
+  if (o.abandoned) {
+    return `extract-changelogs: ${MAX_CONSECUTIVE_HARD_ERRORS} consecutive versions failed ` +
+      `with transport/HTTP errors — download.mikrotik.com may be blocking or down; ` +
+      `refusing to ship partial changelogs`;
+  }
+  if (o.totalEntries === 0) {
+    return `extract-changelogs: 0 changelog entries for ${o.versionCount} versions ` +
+      `(${o.hardErrors} unreachable, ${o.missing} missing or unparsed) — ` +
+      `refusing to ship an empty changelogs table`;
+  }
+  if (o.versionCount > 0 && o.hardErrors / o.versionCount > MAX_HARD_ERROR_RATE) {
+    return `extract-changelogs: ${o.hardErrors}/${o.versionCount} versions failed with ` +
+      `transport/HTTP errors (over the ${MAX_HARD_ERROR_RATE * 100}% threshold) — ` +
+      `refusing to ship partial changelogs`;
+  }
+  if (o.versionCount > 0 && o.missing / o.versionCount > MAX_MISSING_RATE) {
+    return `extract-changelogs: ${o.missing}/${o.versionCount} versions 404'd or parsed ` +
+      `to 0 entries (over the ${MAX_MISSING_RATE * 100}% threshold) — the URL scheme or ` +
+      `changelog format may have changed; refusing to ship partial changelogs`;
+  }
+  return null;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -155,6 +212,12 @@ export function buildChangelogVersionSet(knownVersions: string[], channelHeadVer
   return [...all];
 }
 
+/** NEWESTa7.<channel> answers "<version> <unix build time>" (e.g. "7.25 1792678320");
+ *  the whole line as a version 404'd, so 7.25 stable never got its changelog. */
+export function parseChannelHead(body: string): string {
+  return body.trim().split(/\s+/)[0] ?? "";
+}
+
 async function fetchCurrentChannelVersions(): Promise<string[]> {
   const versions = new Set<string>();
   for (const channel of VERSION_CHANNELS) {
@@ -164,7 +227,7 @@ async function fetchCurrentChannelVersions(): Promise<string[]> {
         console.warn(`  channel ${channel}: HTTP ${resp.status}`);
         continue;
       }
-      const version = (await resp.text()).trim();
+      const version = parseChannelHead(await resp.text());
       if (version) {
         versions.add(version);
       }
@@ -200,9 +263,10 @@ async function probePatchVersions(): Promise<string[]> {
         patches.push(patchVersion);
         continue;
       }
-      // Probe by fetching
-      const text = await fetchChangelog(patchVersion);
-      if (text) {
+      // Probe by fetching; anything but a changelog ends this minor's probe
+      const result = await fetchChangelog(patchVersion);
+      if (result.status === "error") console.warn(`  ${patchVersion}: ${result.detail} — stopping probe for ${minor}`);
+      if (result.status === "ok") {
         patches.push(patchVersion);
         console.log(`  Discovered patch: ${patchVersion}`);
       } else {
@@ -252,19 +316,33 @@ if (versions.length === 0) {
 // Fetch all changelogs into memory first, then delete+insert in one transaction.
 // This avoids leaving the table partially populated if a network failure occurs mid-run.
 const fetched: Array<{ version: string; entries: ChangelogEntry[] }> = [];
-let versionsFailed = 0;
+let hardErrors = 0;
+let missing = 0;
+let consecutiveHardErrors = 0;
+let abandoned = false;
 
 for (const version of versions) {
-  const text = await fetchChangelog(version);
-  if (!text) {
-    versionsFailed++;
+  const result = await fetchChangelog(version);
+  if (result.status === "error") {
+    console.warn(`  ${version}: ${result.detail}`);
+    hardErrors++;
+    if (++consecutiveHardErrors >= MAX_CONSECUTIVE_HARD_ERRORS) {
+      abandoned = true;
+      break;
+    }
+    continue;
+  }
+  consecutiveHardErrors = 0;
+  if (result.status === "missing") {
+    console.warn(`  ${version}: 404`);
+    missing++;
     continue;
   }
 
-  const entries = parseChangelog(text, version);
+  const entries = parseChangelog(result.text, version);
   if (entries.length === 0) {
     console.warn(`  ${version}: no entries parsed`);
-    versionsFailed++;
+    missing++;
     continue;
   }
 
@@ -272,6 +350,19 @@ for (const version of versions) {
   console.log(`  ${version}: ${entries.length} entries${entries.some((e) => e.is_breaking) ? ` (${entries.filter((e) => e.is_breaking).length} breaking)` : ""}`);
 
   await sleep(FETCH_DELAY_MS);
+}
+
+const totalEntries = fetched.reduce((sum, f) => sum + f.entries.length, 0);
+const verdict = evaluateChangelogOutcome({
+  versionCount: versions.length,
+  totalEntries,
+  hardErrors,
+  missing,
+  abandoned,
+});
+if (verdict) {
+  console.error(verdict);
+  process.exit(1);
 }
 
 // Atomic: delete all + insert all in one transaction
@@ -295,7 +386,6 @@ const commitAll = db.transaction(() => {
 });
 commitAll();
 
-const totalEntries = fetched.reduce((sum, f) => sum + f.entries.length, 0);
-console.log(`\nChangelogs: ${totalEntries} entries from ${fetched.length} versions (${versionsFailed} failed/skipped)`);
+console.log(`\nChangelogs: ${totalEntries} entries from ${fetched.length} versions (${missing} missing/unparsed, ${hardErrors} errors)`);
 
 } // end if (import.meta.main)

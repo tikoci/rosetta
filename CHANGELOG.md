@@ -90,6 +90,19 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Changelogs include the current stable and development releases again.** The
+  channel-head lookup took `upgrade.mikrotik.com`'s whole answer (`7.25 1792678320`,
+  version plus build time) as the version, so each head 404'd and next.123 shipped
+  without 7.25 or 7.26beta4 changelogs. A local run now picks up both (6,950 entries).
+- **Changelog extraction fails loudly instead of shipping an empty table (#231).**
+  Fetches retry like the test-results scrape (#218); the run exits non-zero, with the
+  previous table kept, on 0 entries, over 10% fetch errors, over 15% missing versions,
+  or 5 consecutive errors. Previously a download.mikrotik.com outage wiped the table
+  and exited 0.
+- **Release DB floors cover every shipped corpus (#231).** The release content gate
+  now also fails on fewer than 80 block diagrams, 2,500 sections, 600 callouts, 4,000
+  changelog entries, 600 videos, 50 Dude pages, or 10 skills. `make extract` and
+  `make extract-full` now import the committed video cache, matching the release build.
 - **Release smoke waits on the install metadata Bun reads, not `npm view`
   (#202).** `bunx-smoke` polled the full packument, which can serve a
   just-published version before the abbreviated install manifest Bun resolves
