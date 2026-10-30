@@ -556,6 +556,16 @@
       "sourceWwwCode": "cube_60pro_ac"
     },
     {
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "deviceProductName": null,
+      "name": "CubeSA 60Pro ac",
+      "category": "60 GHz products",
+      "discontinued": 1,
+      "specsJson": "{\"Product code\":\"CubeG-5ac60ay-SA\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"448-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Dimensions\":\"115 x 211 x 90 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"64 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"13 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"Wireless 5 GHz Max data rate\":\"433 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"1\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"11.5\",\"Wireless 5 GHz chip model\":\"IPQ4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"1\",\"GNSS standards\":\"GPS\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"CubeSA 60Pro ac\",\"_www_tagline\":\"A powerful sector antenna to connect multiple 60 GHz devices. Quick and easy networking for all kinds of pop-up events and distances up to 800m.\",\"_hardware_title\":\"Wireless Wire Cube Pro, Cube 60Pro ac\"}",
+      "sourceHardwareSlug": "wireless-wire-cube-pro-cube-60pro-ac",
+      "sourceWwwCode": "cubesa_60pro_ac"
+    },
+    {
       "rosettaDeviceId": "fiberbox-plus",
       "deviceProductName": "FiberBox Plus",
       "name": "FiberBox Plus",
@@ -604,6 +614,16 @@
       "specsJson": "{\"Product code\":\"CSS606-1G-2Gi-3S+OUT\",\"Suggested price\":\"$139.00\",\"Switch chip model\":\"88E6193X\",\"Operating System\":\"SwOS\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"2 (DC jack, PoE-IN)\",\"DC jack input Voltage\":\"12-57 V\",\"Max power consumption\":\"160 W\",\"Max power consumption without attachments\":\"6 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"42-57 V\",\"PoE-out ports\":\"Ether2-Ether3\",\"PoE out\":\"Passive PoE up to 57V\",\"Low voltage PoE-Out current limit\":\"1.2 A\",\"High voltage PoE-Out current limit\":\"0.625 A\",\"Max total out (A)\":\"2.4 A\",\"Total output power\":\"150\",\"10/100/1000 Ethernet ports\":\"3\",\"Number of 1G Ethernet ports with Reverse PoE (PoE-in)\":\"1\",\"Number of 1G Ethernet ports with PoE-out\":\"2\",\"SFP+ ports\":\"3\",\"CPU temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"GPERx6\",\"_www_tagline\":\"Cut the cable clutter – extend power and fiber together, anywhere – with a single hybrid cable. At the far end, the GPERx6 splits it all neatly: SFP+ for further long-distance uplinks, PoE-out for powering other switches or access points, and DC outputs for IoT gear or specialized devices.\",\"_hardware_title\":\"GPERx6\"}",
       "sourceHardwareSlug": "gperx6",
       "sourceWwwCode": "gperx6"
+    },
+    {
+      "rosettaDeviceId": "groove-52",
+      "deviceProductName": null,
+      "name": "Groove 52",
+      "category": "Wireless systems",
+      "discontinued": 1,
+      "specsJson": "{\"Product code\":\"RBGroove52HPn\",\"Suggested price\":\"$59.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"AR9342\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"600 MHz\",\"Dimensions\":\"180x49x44mm, 193g\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"6 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"9-30 V\",\"Wireless 2.4 GHz/5 GHz Max data rate\":\"150 Mbit/s\",\"Wireless 2.4 GHz/5 GHz Number of chains\":\"1\",\"Wireless 2.4 GHz/5 GHz standards\":\"802.11a/b/g/n\",\"Wireless 2.4 GHz/5 GHz chip model\":\"AR9342\",\"Wireless 2.4 GHz/5 GHz generation\":\"Wi-Fi 4\",\"10/100 Ethernet ports\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"_www_title\":\"Groove 52\",\"_www_tagline\":\"2.4GHz/5GHz Backbone/CPE,\\r\\nN-male connector\",\"_hardware_title\":\"Groove-series\"}",
+      "sourceHardwareSlug": "groove-series",
+      "sourceWwwCode": "RBGroove52HPnr2"
     },
     {
       "rosettaDeviceId": "groovea-52",
@@ -2444,6 +2464,16 @@
       "specsJson": "{\"Product code\":\"RBSXTG-5HPacD-SA\",\"Suggested price\":\"$119.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9557\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"720 MHz\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"128 MB\",\"Storage type\":\"NAND\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Supported Voltage\":\"15-60V\",\"Max power consumption\":\"12 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"12-57 V\",\"Wireless 5 GHz Max data rate\":\"867 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"14\",\"Wireless 5 GHz chip model\":\"QCA9892\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"1\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Beeper\":\"Yes\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"IP54\",\"_www_title\":\"SXT SA5 ac\",\"_www_tagline\":\"802.11ac up to 540Mbit, high output, wide beamwidth sector antenna\",\"_hardware_title\":\"SXTSA-series\"}",
       "sourceHardwareSlug": "sxtsa-series",
       "sourceWwwCode": "RBSXTG-5HPacD-SAr2"
+    },
+    {
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "deviceProductName": null,
+      "name": "SXTsq 5 ac",
+      "category": "Wireless systems",
+      "discontinued": 1,
+      "specsJson": "{\"Product code\":\"RBSXTsqG-5acD\",\"Suggested price\":\"$65.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4018\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"488-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Dimensions\":\"129 x 129 x 34 mm\",\"RouterOS license\":\"3\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"7 W\",\"PoE in\":\"Passive PoE\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"10-28 V\",\"Wireless 5 GHz Max data rate\":\"867 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"2\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"16\",\"Wireless 5 GHz chip model\":\"IPQ-4018\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"1\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"55\",\"_www_title\":\"SXTsq 5 ac\",\"_www_tagline\":\"Low-cost small-size 16dBi 5GHz dual chain integrated CPE/Backbone with AC support and Gigabit Ethernet\",\"_hardware_title\":\"SXTsq-series\"}",
+      "sourceHardwareSlug": "sxtsq-series",
+      "sourceWwwCode": "sxtsq_5_ac"
     },
     {
       "rosettaDeviceId": "sxtsq-5-ax",
@@ -4318,6 +4348,11 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "cubeg-5ac60ay-sa",
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "source": "www-declared-code"
+    },
+    {
       "alias": "cubeg-5ac60aypair",
       "rosettaDeviceId": "wireless-wire-cube-pro",
       "source": "matrix.csv"
@@ -4333,8 +4368,28 @@
       "source": "collapsed"
     },
     {
+      "alias": "cubeg5ac60aysa",
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "cubelite60",
       "rosettaDeviceId": "hw-cube-lite60",
+      "source": "collapsed"
+    },
+    {
+      "alias": "cubesa 60pro ac",
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "source": "www-title"
+    },
+    {
+      "alias": "cubesa_60pro_ac",
+      "rosettaDeviceId": "cubesa-60pro-ac",
+      "source": "www-code"
+    },
+    {
+      "alias": "cubesa60proac",
+      "rosettaDeviceId": "cubesa-60pro-ac",
       "source": "collapsed"
     },
     {
@@ -4748,9 +4803,19 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "groove 52",
+      "rosettaDeviceId": "groove-52",
+      "source": "www-title"
+    },
+    {
       "alias": "groove-series",
       "rosettaDeviceId": "groovea-52",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "groove52",
+      "rosettaDeviceId": "groove-52",
+      "source": "collapsed"
     },
     {
       "alias": "groovea 52",
@@ -7623,6 +7688,16 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "rbgroove52hpn",
+      "rosettaDeviceId": "groove-52",
+      "source": "www-declared-code"
+    },
+    {
+      "alias": "rbgroove52hpnr2",
+      "rosettaDeviceId": "groove-52",
+      "source": "www-code"
+    },
+    {
       "alias": "rbgroovea-52hpn",
       "rosettaDeviceId": "groovea-52",
       "source": "www-declared-code"
@@ -8013,6 +8088,26 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "rbsxtsqg-5acd",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "www-declared-code"
+    },
+    {
+      "alias": "rbsxtsqg-5acdr2",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "www-compare-id"
+    },
+    {
+      "alias": "rbsxtsqg5acd",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "collapsed"
+    },
+    {
+      "alias": "rbsxtsqg5acdr2",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "collapsed"
+    },
+    {
       "alias": "rbwapg-5hacd2hnd",
       "rosettaDeviceId": "hw-wap-ac",
       "source": "www-declared-code"
@@ -8368,6 +8463,11 @@
       "source": "matrix.csv"
     },
     {
+      "alias": "sxtsq 5 ac",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "www-title"
+    },
+    {
       "alias": "sxtsq 5 ax",
       "rosettaDeviceId": "sxtsq-5-ax",
       "source": "matrix.csv"
@@ -8391,6 +8491,11 @@
       "alias": "sxtsq lite5",
       "rosettaDeviceId": "sxtsq-lite5",
       "source": "matrix.csv"
+    },
+    {
+      "alias": "sxtsq_5_ac",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "www-code"
     },
     {
       "alias": "sxtsq_5ax",
@@ -8431,6 +8536,11 @@
       "alias": "sxtsq-series",
       "rosettaDeviceId": "sxtsq-lite2",
       "source": "hardware-slug"
+    },
+    {
+      "alias": "sxtsq5ac",
+      "rosettaDeviceId": "sxtsq-5-ac",
+      "source": "collapsed"
     },
     {
       "alias": "sxtsq5ax",
@@ -9081,11 +9191,6 @@
     },
     {
       "kind": "www-product",
-      "id": "cubesa_60pro_ac",
-      "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
-    },
-    {
-      "kind": "www-product",
       "id": "dinrail_pro",
       "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
@@ -9261,11 +9366,6 @@
     },
     {
       "kind": "www-product",
-      "id": "RBGroove52HPnr2",
-      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
-    },
-    {
-      "kind": "www-product",
       "id": "RBLHG-5HPnD",
       "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
@@ -9328,11 +9428,6 @@
       "kind": "www-product",
       "id": "sxt_lte6_kit_us",
       "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
-    },
-    {
-      "kind": "www-product",
-      "id": "sxtsq_5_ac",
-      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
     {
       "kind": "www-product",
@@ -10053,6 +10148,13 @@
       "keptSource": "matrix.csv",
       "dropped": "sxtsq-embedded-lte4-global",
       "droppedSource": "www-declared-code"
+    },
+    {
+      "alias": "sxtsq_5_ac",
+      "kept": "sxtsq-5-ac",
+      "keptSource": "www-code",
+      "dropped": "sxt-sa5-ac",
+      "droppedSource": "hardware-link"
     },
     {
       "alias": "sxtsq-series",

@@ -82,6 +82,7 @@ crossref
 crs
 csman
 ctx
+cubeg
 cubesa
 customisation
 cutover

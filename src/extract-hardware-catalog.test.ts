@@ -177,6 +177,8 @@ describe("buildCatalog — an ordinary product page must not leak its slug onto 
       ambiguousTokens: [],
       dropLedger: [],
       aliasCollisions: [],
+      curatedRowIds: [],
+      curatedRowMisses: [],
     };
     expect(checkInvariants(leaked, []).some((f) => f.includes("page-slug leak"))).toBe(true);
   });
@@ -323,6 +325,8 @@ describe("INVARIANT — a device only takes a www product whose identity agrees 
       ambiguousTokens: [],
       dropLedger: [],
       aliasCollisions: [],
+      curatedRowIds: [],
+      curatedRowMisses: [],
     };
     const failures = checkInvariants(corrupt, [mkWww("foreign", { specs: { "Product code": "FOREIGN-CODE" } })]);
     expect(failures.some((f) => f.includes("declared code is not among their own aliases"))).toBe(true);
@@ -374,6 +378,8 @@ describe("INVARIANT — a www product attaches to at most one row, save the shar
       ambiguousTokens: [],
       dropLedger: [{ kind: "www-product", id: "shared", reason: "x" }],
       aliasCollisions: [],
+      curatedRowIds: [],
+      curatedRowMisses: [],
     };
     const failures = checkInvariants(corrupt, [mkWww("shared")]);
     expect(failures.some((f) => f.includes("attached to >1 row outside the allowlist"))).toBe(true);
@@ -578,6 +584,8 @@ describe("buildCatalog — drops cross-sell hardware-link aliases that name a dr
       ambiguousTokens: [],
       dropLedger: [{ kind: "www-product", id: "qm_x", reason: "x" }],
       aliasCollisions: [],
+      curatedRowIds: [],
+      curatedRowMisses: [],
     };
     expect(checkInvariants(base, []).some((f) => f.includes("cross-sell pollution"))).toBe(true);
 
@@ -615,6 +623,8 @@ describe("buildCatalog — _non_default_ips filtered to genuine subnet deviation
       ambiguousTokens: [],
       dropLedger: [],
       aliasCollisions: [],
+      curatedRowIds: [],
+      curatedRowMisses: [],
     };
     expect(checkInvariants(corrupt, []).some((f) => f.includes("default subnet"))).toBe(true);
   });
@@ -647,6 +657,64 @@ describe("buildCatalog — compound (kit) declared codes", () => {
 
     expect(byAlias.get("eg18-ea")).toBe("eg18-modem-kit");
     expect(byAlias.get("somebase&eg18-ea")).toBe("some-router-kit");
+  });
+});
+
+describe("buildCatalog — curated www_rows keep a product that left the matrix", () => {
+  // CubeSA 60Pro ac's only /hardware page is shared with Cube 60Pro ac and links only the other
+  // product. Once it left matrix.csv (2026-10-29) nothing gave it a row, so its www product sat in
+  // the drop ledger and lookups lost it. hardware-www-map.toml `www_rows` restores it.
+  const matrixRows = [mkMatrixRow("Cube 60Pro ac", "CubeG-5ac60ay")];
+  const page = mkPage({
+    slug: "wireless-wire-cube-pro-cube-60pro-ac",
+    title: "Wireless Wire Cube Pro, Cube 60Pro ac",
+    productLinks: ["cube_60pro_ac"],
+    matchedMatrixNames: ["Cube 60Pro ac"],
+    ownMatrixNames: ["Cube 60Pro ac"],
+    cause: "matched-by-slug",
+    category: "60 GHz products",
+  });
+  const www = [
+    mkWww("cube_60pro_ac", { title: "Cube 60Pro ac", specs: { "Product code": "CubeG-5ac60ay" } }),
+    mkWww("cubesa_60pro_ac", { title: "CubeSA 60Pro ac", discontinued: true, specs: { "Product code": "CubeG-5ac60ay-SA" } }),
+  ];
+  const curated = [{ slug: "wireless-wire-cube-pro-cube-60pro-ac", code: "cubesa_60pro_ac" }];
+
+  test("without the entry the product only reaches the drop ledger", () => {
+    const result = buildCatalog(matrixRows, new Map(), [page], www);
+    expect(result.catalogRows.map((r) => r.rosettaDeviceId)).toEqual(["cube-60pro-ac"]);
+    expect(result.dropLedger.map((d) => d.id)).toEqual(["cubesa_60pro_ac"]);
+  });
+
+  test("with it the product gets its own discontinued row on the shared page, under its old matrix id", () => {
+    const result = buildCatalog(matrixRows, new Map(), [page], www, curated);
+    const row = must(result.catalogRows.find((r) => r.sourceWwwCode === "cubesa_60pro_ac"), "curated row");
+    expect(row).toMatchObject({
+      rosettaDeviceId: "cubesa-60pro-ac",
+      deviceProductName: null,
+      name: "CubeSA 60Pro ac",
+      category: "60 GHz products",
+      discontinued: 1,
+      sourceHardwareSlug: "wireless-wire-cube-pro-cube-60pro-ac",
+    });
+    expect(result.curatedRowIds).toEqual(["cubesa-60pro-ac"]);
+    expect(result.dropLedger).toEqual([]);
+    const aliases = result.aliasRows.filter((a) => a.rosettaDeviceId === "cubesa-60pro-ac").map((a) => a.alias);
+    expect(aliases).toContain("cubesa 60pro ac"); // its name resolves by exact alias
+    expect(aliases).toContain("cubeg-5ac60ay-sa"); // and by its declared product code
+    // The shared non-series slug now backs two rows; the curated row is exempt from #6.
+    expect(checkInvariants(result, www)).toEqual([]);
+  });
+
+  test("an entry whose product wasn't fetched fails invariant #10 instead of vanishing", () => {
+    const result = buildCatalog(matrixRows, new Map(), [page], [www[0]], curated);
+    expect(result.curatedRowMisses).toEqual(["cubesa_60pro_ac on wireless-wire-cube-pro-cube-60pro-ac"]);
+    expect(checkInvariants(result, [www[0]]).some((f) => f.includes("curated www_rows"))).toBe(true);
+  });
+
+  test("a product back on the matrix collides with its curated row loudly", () => {
+    const back = [...matrixRows, mkMatrixRow("CubeSA 60Pro ac", "CubeG-5ac60ay-SA")];
+    expect(() => buildCatalog(back, new Map(), [page], www, curated)).toThrow(/rosetta_device_id collision/);
   });
 });
 
@@ -698,6 +766,8 @@ describe("computeValidationStats", () => {
       ambiguousTokens: [],
       dropLedger: [],
       aliasCollisions: [],
+      curatedRowIds: [],
+      curatedRowMisses: [],
     };
     const hw = { matrixRowCount: 0, matchedByCode: 0, matchedByTable: 0, matchedBySlug: 0, categories: [], uncategorizedPages: [], pages: [] };
     const www = { candidateCount: 0, notFoundCount: 0, fieldFrequency: {}, products: [] };
@@ -814,6 +884,8 @@ describe("writeCatalog", () => {
       ambiguousTokens: [],
       dropLedger: [],
       aliasCollisions: [],
+      curatedRowIds: [],
+      curatedRowMisses: [],
     };
     expect(() => writeCatalog(serializeCatalog(result, counts()))).toThrow(/stale/);
   });

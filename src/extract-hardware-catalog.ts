@@ -57,7 +57,7 @@ import { resolve } from "node:path";
 import { canon, loadMatrixRows, type MatrixRow, normCode, slugify } from "./assess-hardware.ts";
 import { db, initDb, setDbMeta } from "./db.ts";
 import { exceptionWwwCodeForDevice } from "./device-exceptions.ts";
-import { curatedWwwCodeForSlug } from "./hardware-www-map.ts";
+import { curatedWwwCodeForSlug, curatedWwwRows } from "./hardware-www-map.ts";
 import { MATRIX_CSV_RELATIVE_PATH } from "./paths.ts";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
@@ -184,6 +184,10 @@ export interface BuildResult {
   ambiguousTokens: Array<{ page: string; token: string; candidates: string[] }>;
   dropLedger: DropEntry[];
   aliasCollisions: AliasCollision[];
+  /** Ids of the rows made from curated `www_rows` entries (hardware-www-map.toml). */
+  curatedRowIds: string[];
+  /** Curated `www_rows` entries that made no row: page or www product missing (`<code> on <slug>`). */
+  curatedRowMisses: string[];
 }
 
 /** Deterministic, committed intermediate that writeCatalog() consumes — the review gate. */
@@ -415,7 +419,7 @@ const RANK_COLLAPSED = 6; // derived concatenations — always lose to an explic
  * AKA_NAME_SOURCES in query.ts, which is also why the derived rows get the distinct
  * source `collapsed`: they resolve lookups but never surface in also_known_as.
  */
-const COLLAPSIBLE_SOURCES = new Set(["matrix.csv", "www-code", "www-declared-code", "www-compare-id", "hardware-link"]);
+const COLLAPSIBLE_SOURCES = new Set(["matrix.csv", "www-title", "www-code", "www-declared-code", "www-compare-id", "hardware-link"]);
 function isCollapsible(a: AliasRow): boolean {
   if (COLLAPSIBLE_SOURCES.has(a.source)) return true;
   return a.source === "hardware-slug" && a.rosettaDeviceId.startsWith("hw-");
@@ -508,6 +512,7 @@ export function buildCatalog(
   devicesByName: Map<string, number>,
   hwPages: HardwarePage[],
   wwwProducts: WwwProduct[],
+  curatedRows: Array<{ slug: string; code: string }> = [],
 ): BuildResult {
   const sortedMatrix = [...matrixRows].sort((a, b) => a.name.localeCompare(b.name));
   const sortedPages = [...hwPages].sort((a, b) => a.slug.localeCompare(b.slug));
@@ -736,6 +741,42 @@ export function buildCatalog(
     addWwwAliases(stage, www, id);
   }
 
+  // ── Curated www-only rows (hardware-www-map.toml `www_rows`): a product that left the matrix
+  //    but whose only /hardware page is shared — a combined page (CubeSA 60Pro ac on the Cube
+  //    60Pro ac page) or a series page that matched other matrix rows (Groove 52 on
+  //    groove-series). Neither pass above gives it a row, so it would vanish into the drop ledger.
+  //    The id is slugify(www title), the id a matrix row of that name gets, so a device keeps
+  //    its rosetta_device_id when it leaves the matrix (and claimId fails loudly if it returns).
+  //    A missing page or a code assess-www did not fetch makes no row; checkInvariants (10) fails the run on it.
+  const curatedRowIds: string[] = [];
+  const curatedRowMisses: string[] = [];
+  for (const { slug, code } of curatedRows) {
+    const page = pageBySlug.get(slug);
+    const www = wwwByKey.get(normCode(code)) ?? null;
+    if (!page || !www) {
+      curatedRowMisses.push(`${code} on ${slug}`);
+      continue;
+    }
+    const id = slugify(www.title);
+    claimId(id);
+    curatedRowIds.push(id);
+    recordWww(www);
+    catalogRows.push({
+      rosettaDeviceId: id,
+      deviceProductName: null,
+      name: www.title,
+      category: page.category,
+      discontinued: www.discontinued ? 1 : 0,
+      // The page's IPs and regulatory tables describe the page's other devices too, so only
+      // the product's own declared code is used for regulatory ids.
+      specsJson: buildSpecsJson(www, page.title, metaFor([www.specs["Product code"] ?? ""], [])),
+      sourceHardwareSlug: slug,
+      sourceWwwCode: www.code,
+    });
+    stage(www.title, id, "www-title", RANK_WWW);
+    addWwwAliases(stage, www, id);
+  }
+
   const dropLedger = buildDropLedger(sortedPages, sortedMatrix, wwwProducts, attachedWwwCodes);
 
   // Replay every staged alias into the book in exact add-order, dropping any hardware-link alias
@@ -765,6 +806,8 @@ export function buildCatalog(
     ambiguousTokens,
     dropLedger,
     aliasCollisions: book.collisions,
+    curatedRowIds,
+    curatedRowMisses,
   };
 }
 
@@ -903,9 +946,13 @@ export function checkInvariants(result: BuildResult, wwwProducts: WwwProduct[]):
   //     source_hardware_slug of more than one row. A multi-match product page fanning its slug
   //     (and thus its title) onto unrelated siblings is the leak that mis-named chateau-lte12-2025
   //     "Chateau LTE6-US"; genuine series pages fan out legitimately and are exempt.
+  //     Curated `www_rows` rows are exempt: a maintainer vouched that the page documents that
+  //     product too, and the row's name comes from its own www title, not the page's.
+  const curatedIds = new Set(result.curatedRowIds);
   const slugRows = new Map<string, string[]>();
   for (const row of result.catalogRows) {
     if (!row.sourceHardwareSlug || row.sourceHardwareSlug.endsWith("-series")) continue;
+    if (curatedIds.has(row.rosettaDeviceId)) continue;
     getOrInit(slugRows, row.sourceHardwareSlug, () => []).push(row.rosettaDeviceId);
   }
   const leaked = [...slugRows].filter(([, rows]) => rows.length > 1);
@@ -951,6 +998,14 @@ export function checkInvariants(result: BuildResult, wwwProducts: WwwProduct[]):
   }
   if (inSubnetIps.length > 0) {
     failures.push(`${inSubnetIps.length} _non_default_ips value(s) inside the default subnet (should be filtered): ${inSubnetIps.slice(0, 10).join(", ")}`);
+  }
+
+  // (10) Every curated `www_rows` product has its own row: a missing /hardware page or a not-fetched
+  //      (or now-404) www product would otherwise drop it silently — the loss the field exists to stop.
+  if (result.curatedRowMisses.length > 0) {
+    failures.push(
+      `${result.curatedRowMisses.length} curated www_rows product(s) with no catalog row (page missing from the hardware assessment, or product not fetched by assess-www): ${result.curatedRowMisses.join(", ")}`,
+    );
   }
 
   void rowById;
@@ -1117,7 +1172,7 @@ async function main() {
   const deviceRows = db.prepare("SELECT id, product_name FROM devices").all() as Array<{ id: number; product_name: string }>;
   const devicesByName = new Map(deviceRows.map((r) => [r.product_name, r.id]));
 
-  const result = buildCatalog(matrixRows, devicesByName, hw.pages, www.products);
+  const result = buildCatalog(matrixRows, devicesByName, hw.pages, www.products, curatedWwwRows());
   const stats = computeValidationStats(hw, www, result);
   const catalog = serializeCatalog(result, {
     matrixRows: matrixRows.length,

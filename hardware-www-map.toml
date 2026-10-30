@@ -28,6 +28,13 @@
 #   status     — "no-www" (verified absent from mikrotik.com) | "skip" (not a product page at
 #                all) | "verify" (maintainer flagged for a second look). A status entry needs no
 #                code.
+#   www_rows   — products this page documents that get a standalone catalog row of their own,
+#                sourced from their www product page (name, specs, discontinued flag). For a
+#                product that left the matrix whose only /hardware page is shared — a combined
+#                page, or a series page that matched other matrix rows. Without it the product
+#                has no row and its www product sits in the drop ledger. The page may be
+#                matrix-linked; the code is seeded for fetch, and extract-hardware-catalog fails
+#                if a listed product makes no row (page gone, or the product page 404s).
 #   note       — maintainer commentary (verbatim where it was a judgement call).
 #
 # Source: 2026-07 maintainer review of hardware-unmatched.tsv. Keep entries only for pages the
@@ -160,6 +167,20 @@ note = "Direct match — sitemap lists r11e_lr8g (earlier no-www flag was wrong;
 www_code = "ltap_lr8g_lte6_kit"
 seed_only = true
 note = "Bare LR8 page shares the LR8G kit product: sitemap lists only ltap_lr8g_lte6_kit. seed_only: hw-ltap-lr8g-lte6-kit already owns that product, so force-attaching here would multi-attach it. Assume same product (#70)."
+
+# ── Products that left the matrix, documented only on a shared page (www_rows) ──
+
+["wireless-wire-cube-pro-cube-60pro-ac"]
+www_rows = ["cubesa_60pro_ac"]
+note = "MikroTik combines two products on one /hardware page, which links only cube_60pro_ac and wireless_wire_cube_pro. CubeSA 60Pro ac left the matrix in the 2026-10-29 snapshot (www: discontinued); until then device-exceptions.toml attached it to its matrix row."
+
+["groove-series"]
+www_rows = ["RBGroove52HPnr2"]
+note = "Groove 52 left the matrix in the 2026-10-03 snapshot (www: discontinued). The series page matches the GrooveA 52 / GrooveA 52 ac matrix rows, so Groove 52 had no row of its own."
+
+["sxtsq-series"]
+www_rows = ["sxtsq_5_ac"]
+note = "SXTsq 5 ac left the matrix in the 2026-10-03 snapshot (www: discontinued). Linked from sxtsq-series (matched SXTsq Lite2 / Lite5) and sxtsa-series; neither gave it a row."
 
 # ── Skip: not a product page at all ──
 
