@@ -30,6 +30,7 @@ atlgmandeg
 attackable
 autoincrement
 awk
+axand
 axd
 backticked
 bak
@@ -37,10 +38,12 @@ basebox
 baselined
 bdi
 bdo
+beamwidth
 behavioural
 behaviours
 bfd
 blackhole
+boresight
 bridgingand
 browserbase
 bsr
@@ -86,6 +89,7 @@ cwd
 cwmp
 datapath
 datasheet
+datasheets
 dbi
 ddl
 ddns
@@ -99,6 +103,7 @@ dfn
 dfstest
 dhcpv
 diffable
+directivity
 dispatchable
 dlc
 dlna
@@ -116,6 +121,7 @@ easyops
 ebusy
 editsection
 eexist
+EIRP
 elif
 elr
 emb
@@ -134,8 +140,10 @@ etl
 euo
 evals
 evpn
+farfield
 fastpath
 fasttrack
+fccid
 fcntl
 fdb
 fiberboxplus
@@ -156,6 +164,7 @@ gpen
 gper
 gperx
 gpt
+GRANTDTS
 gre
 greppability
 greppable
@@ -169,7 +178,10 @@ hax
 heresafe
 hexs
 hnd
+HORIZONT
 hotspot
+HPACD
+HPD
 hpn
 htb
 hwcat
@@ -206,6 +218,7 @@ ledgered
 lfs
 lhg
 lhgg
+LHGXL
 linkedom
 linkless
 livewire
@@ -256,6 +269,7 @@ mrr
 mrz
 msrp
 msti
+MTAS
 mtbf
 mtimes
 mtp
@@ -300,6 +314,7 @@ oci
 oid
 oldswitch
 ollama
+omnitik
 onsessioninitialized
 oob
 oom
@@ -315,6 +330,9 @@ pathify
 pathifying
 pci
 pcq
+pdfimages
+pdftoppm
+pdftotext
 persistable
 phy
 pickable
@@ -325,6 +343,7 @@ pipestatus
 pivotable
 pmp
 poesettings
+poppler
 powerlines
 ppp
 pppoe

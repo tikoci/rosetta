@@ -90,6 +90,19 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **Changelogs include the current stable and development releases again.** The
+  channel-head lookup took `upgrade.mikrotik.com`'s whole answer (`7.25 1792678320`,
+  version plus build time) as the version, so each head 404'd and next.123 shipped
+  without 7.25 or 7.26beta4 changelogs. A local run now picks up both (6,950 entries).
+- **Changelog extraction fails loudly instead of shipping an empty table (#231).**
+  Fetches retry like the test-results scrape (#218); the run exits non-zero, with the
+  previous table kept, on 0 entries, over 10% fetch errors, over 15% missing versions,
+  or 5 consecutive errors. Previously a download.mikrotik.com outage wiped the table
+  and exited 0.
+- **Release DB floors cover every shipped corpus (#231).** The release content gate
+  now also fails on fewer than 80 block diagrams, 2,500 sections, 600 callouts, 4,000
+  changelog entries, 600 videos, 50 Dude pages, or 10 skills. `make extract` and
+  `make extract-full` now import the committed video cache, matching the release build.
 - **Release smoke waits on the install metadata Bun reads, not `npm view`
   (#202).** `bunx-smoke` polled the full packument, which can serve a
   just-published version before the abbreviated install manifest Bun resolves
@@ -97,8 +110,18 @@ uses [Semantic Versioning](https://semver.org/).
   with "No version matching". A new `scripts/wait-for-registry.ts` gate polls
   the abbreviated manifest for the exact version plus a usable tarball
   reference on the same 900s budget, and the `--version` probe now asserts the
-  exact executed version instead of a substring match. The bare/tag upgrade
-  path is unchanged; its warm-cache contract is still undecided (see #226).
+  exact executed version instead of a substring match. The upgrade path follows
+  its own contract (see #226).
+- **The release upgrade smoke gates the channel tag and invokes the explicit-tag
+  form (#226).** `bunx-upgrade-smoke` waited on `npm view` (full packument) and
+  invoked the bare client form — but a warm bare `bunx` serves its cache with zero
+  registry requests, so no metadata probe could gate it, and the full-packument wait
+  carried the same lag class #202 fixed on the fresh-install path. The wait now
+  requires the channel tag (`latest`/`next`) to resolve to the just-published version
+  with a servable tarball through the abbreviated install manifest Bun reads, and the
+  smoke invokes `@latest`/`@next` with no `--refresh`, still asserting the new-release
+  DB banner. Bare-form staleness is accepted, documented behavior (MANUAL "How Updates
+  Work"), not something CI gates.
 - **Piped `browse` output is plain text; `NO_COLOR` is honored.** Human-rendered
   commands (`browse --once stats`, `search`, …) no longer emit ANSI escapes or
   OSC 8 hyperlinks when stdout is not a TTY, so piped output needs no stripping
