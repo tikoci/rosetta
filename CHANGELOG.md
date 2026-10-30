@@ -78,6 +78,17 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Release binaries and OCI images compile with current Bun, not a pinned 1.3.14.**
+  The #142 pin hid a real incompatibility: Bun 1.4's `--bytecode` compile turned the
+  default `bun:sqlite` import into "Object is not a constructor" at HTTP startup. The
+  code now uses the named `Database` import, and the release workflow and
+  `Dockerfile.release` track current Bun, so a future compiler regression fails the
+  release smoke instead of hiding behind a pin.
+- **A Release OCI image that fails its smoke no longer moves `:next` or `:latest`.**
+  The publish job used to push the version and floating tags in the same build that
+  the smoke later tested. It now pushes only `sha-<short>`, smokes that, and then
+  promotes the same multi-arch manifest to `v<version>` and any floating tag.
+
 - **`rosetta export` format 2 carries every CLI Reference tree (breaking for
   `cli-reference/` readers).** Every `cli-reference/*.tsv` gains a leading
   `manual_version` column and rows for each stored tree, oldest first. New

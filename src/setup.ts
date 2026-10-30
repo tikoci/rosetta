@@ -170,8 +170,8 @@ export function probeDb(dbPath: string): DbProbe | null {
 
   let check: SQLiteDatabase | null = null;
   try {
-    const { default: sqlite } = require("bun:sqlite") as { default: SQLiteConstructor };
-    check = new sqlite(dbPath);
+    const { Database } = require("bun:sqlite") as { Database: SQLiteConstructor };
+    check = new Database(dbPath);
     const ver = sqliteGet<{ user_version: number }>(check, "PRAGMA user_version");
     const pages = sqliteGet<{ c: number }>(check, "SELECT COUNT(*) AS c FROM pages");
     const cmds = sqliteGet<{ c: number }>(check, "SELECT COUNT(*) AS c FROM commands");

@@ -217,19 +217,29 @@ describe("build-release.ts", () => {
     expect(src).toContain("ros-help.db.gz");
   });
 
-  test("release build and publish jobs pin the compiled-binary toolchain", () => {
+  test("release build and publish jobs compile with current Bun, not a pin", () => {
     const src = readText(".github/workflows/release.yml");
     const buildJob = src.slice(mustIndex(src, "\n  build:"), mustIndex(src, "\n  qa:"));
     const publishJob = src.slice(mustIndex(src, "\n  publish:"), mustIndex(src, "\n  verify-dist-tags:"));
-    expect(buildJob).toContain("bun-version: 1.3.14");
-    expect(publishJob).toContain("bun-version: 1.3.14");
+    expect(buildJob).toContain("bun-version: latest");
+    expect(publishJob).toContain("bun-version: latest");
+  });
+
+  test("compiled code imports bun:sqlite by name, never as a default import", () => {
+    // `bun build --compile --bytecode` on Bun 1.4 turns `new <default import>()`
+    // into "Object is not a constructor" at startup (#142's crash). The named
+    // `Database` export compiles correctly on every Bun we've tried.
+    const offenders = [...new Bun.Glob("{src,scripts}/**/*.ts").scanSync(ROOT)]
+      .filter((f) => !f.endsWith(".test.ts"))
+      .filter((f) => /import\s+\w+\s+from\s+["']bun:sqlite["']|default\s*:\s*\w+\s*\}\s*=\s*require\(["']bun:sqlite["']\)/.test(readText(f)));
+    expect(offenders).toEqual([]);
   });
 
   test("OCI tags keep v prefix while the compiled runtime receives bare semver", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toMatch(/VERSION="v\$\{RUNTIME_VERSION\}"/);
-    expect(src).toMatch(/tags\+=\(--tag "\$\{registry\}:\$\{VERSION\}"/);
-    expect(src).not.toMatch(/tags\+=\(--tag "\$\{registry\}:\$\{RUNTIME_VERSION\}"/);
+    expect(src).toMatch(/tags=\(--tag "\$\{registry\}:\$\{VERSION\}"/);
+    expect(src).not.toMatch(/--tag "\$\{registry\}:\$\{RUNTIME_VERSION\}"/);
     expect(src).toContain('--build-arg VERSION="$RUNTIME_VERSION"');
   });
 });
@@ -378,7 +388,7 @@ describe("setup.ts", () => {
     for (const file of ["src/mcp.ts", "src/setup.ts"]) {
       expect(strip(file)).not.toMatch(/readonly\s*:\s*true/);
     }
-    expect(strip("src/db.ts")).toContain("DB_READONLY ? new sqlite(DB_PATH, { readonly: true }) : new sqlite(DB_PATH)");
+    expect(strip("src/db.ts")).toContain("DB_READONLY ? new Database(DB_PATH, { readonly: true }) : new Database(DB_PATH)");
     const setup = strip("src/setup.ts");
     expect(setup.indexOf("convertToRollbackJournal(tmpPath)")).toBeGreaterThan(-1);
     expect(setup.indexOf("convertToRollbackJournal(tmpPath)")).toBeLessThan(setup.indexOf("probeDb(tmpPath)"));
@@ -688,19 +698,32 @@ describe("release.yml", () => {
       expect(readBackBlock).toMatch(/::error::npm dist-tags did not settle/);
     });
 
-    test("OCI tags align with npm scheme: version+sha always, floating next for prerelease, latest (+next when moved) for latest channel, republish never moves floating tags", () => {
-      const ociIdx = mustIndex(src, "Build and push OCI images");
-      const smokeIdx = mustIndex(src, "Smoke test published OCI images");
-      const ociBlock = src.slice(ociIdx, smokeIdx);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${VERSION}" --tag "\${registry}:sha-\${SHORT_SHA}")`);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:next")`);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
-      expect(ociBlock).toContain('if [ "$MOVE_NEXT" = "true" ]; then');
-      expect(ociBlock).not.toContain("STAGE");
+    test("OCI tags align with npm scheme: version always, floating next for prerelease, latest (+next when moved) for latest channel, republish never moves floating tags", () => {
+      const promoteIdx = mustIndex(src, "- name: Promote smoke-tested OCI images");
+      const releaseIdx = mustIndex(src, "Create or update GitHub Release");
+      const promoteBlock = src.slice(promoteIdx, releaseIdx);
+      expect(promoteBlock).toContain(`tags=(--tag "\${registry}:\${VERSION}")`);
+      expect(promoteBlock).toContain(`tags+=(--tag "\${registry}:next")`);
+      expect(promoteBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
+      expect(promoteBlock).toContain('if [ "$MOVE_NEXT" = "true" ]; then');
+      expect(promoteBlock).not.toContain("STAGE");
       // republish_assets is read via env: (template-injection guard), not
       // interpolated directly into the `if [ ... ]` shell test.
-      expect(ociBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
-      expect(ociBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" != "true" \]/);
+      expect(promoteBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
+      expect(promoteBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" != "true" \]/);
+      expect(promoteBlock).toContain(`docker buildx imagetools create "\${tags[@]}" "\${registry}:sha-\${SHORT_SHA}"`);
+    });
+
+    test("only the sha tag pushes before the OCI smoke; version and floating tags are promoted after it passes", () => {
+      const ociIdx = mustIndex(src, "Build and push OCI images");
+      const smokeIdx = mustIndex(src, "Smoke test published OCI images");
+      const promoteIdx = mustIndex(src, "- name: Promote smoke-tested OCI images");
+      expect(ociIdx).toBeLessThan(smokeIdx);
+      expect(smokeIdx).toBeLessThan(promoteIdx);
+      const ociBlock = src.slice(ociIdx, smokeIdx);
+      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:sha-\${SHORT_SHA}")`);
+      expect(ociBlock).not.toMatch(/--tag "\$\{registry\}:(\$\{VERSION\}|next|latest)"/);
+      expect(src.slice(smokeIdx, promoteIdx)).toContain(`for image in "ammo74/rosetta:\${SHA_TAG}" "ghcr.io/tikoci/rosetta:\${SHA_TAG}"`);
     });
 
     test("GitHub Release is created with --prerelease for prerelease channel runs", () => {
@@ -1498,9 +1521,8 @@ describe("Dockerfile.release", () => {
     expect(src).not.toMatch(/'\\"\$\{REPO_URL\}\\"'/);
   });
 
-  test("pins the Bun compiler used by the last successful OCI smoke", () => {
+  test("compiles with current Bun 1.x, like the release workflow, not a pinned patch", () => {
     const src = readText("Dockerfile.release");
-    expect(src).toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1\.3\.14 AS builder$/m);
-    expect(src).not.toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1 AS builder$/m);
+    expect(src).toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1 AS builder$/m);
   });
 });
