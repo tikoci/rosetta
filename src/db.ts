@@ -37,7 +37,7 @@
  *   skill_references — reference documents for each skill
  */
 
-import sqlite from "bun:sqlite";
+import { Database } from "bun:sqlite";
 import { classifyDbGrounding, detectMode, isManagedDbPath, newerLocalVersions, resolveDbPath, resolveVersion, SCHEMA_VERSION } from "./paths.ts";
 import { compareVersions } from "./version-compare.ts";
 
@@ -76,7 +76,7 @@ export const DB_PATH = resolveDbPath(import.meta.dirname);
 /** Package-managed generations are immutable at runtime: read-only, rollback mode, owner-locked (#151). */
 export const DB_READONLY = isManagedDbPath(DB_PATH);
 
-export const db = DB_READONLY ? new sqlite(DB_PATH, { readonly: true }) : new sqlite(DB_PATH);
+export const db = DB_READONLY ? new Database(DB_PATH, { readonly: true }) : new Database(DB_PATH);
 
 export function initDb() {
   if (DB_READONLY) {

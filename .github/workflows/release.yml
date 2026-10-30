@@ -82,9 +82,9 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          # Keep the release build aligned with its compiled artifacts. Upgrade
-          # only after the compiled HTTP-server smoke passes on Linux.
-          bun-version: 1.3.14
+          # Unpinned on purpose: release on the Bun users run. A compiler
+          # regression should fail the OCI/HTTP smoke, not hide behind a pin.
+          bun-version: latest
 
       - uses: actions/setup-node@v7
         with:
@@ -644,9 +644,8 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          # Keep release compilation aligned with Dockerfile.release. Upgrade
-          # only after the compiled HTTP-server smoke passes on Linux.
-          bun-version: 1.3.14
+          # Unpinned like the build job and Dockerfile.release's oven/bun:1.
+          bun-version: latest
 
       - uses: actions/setup-node@v7
         with:

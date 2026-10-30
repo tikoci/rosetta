@@ -3,7 +3,7 @@
 # the database (ros-help.db must exist in the build context).
 # Used by release.yml CI. Not for local dev (DB is 200MB+).
 
-FROM --platform=$BUILDPLATFORM oven/bun:1.3.14 AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1 AS builder
 WORKDIR /build
 COPY package.json bun.lock* ./
 RUN bun install --frozen-lockfile

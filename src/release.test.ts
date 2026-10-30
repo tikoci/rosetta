@@ -217,12 +217,22 @@ describe("build-release.ts", () => {
     expect(src).toContain("ros-help.db.gz");
   });
 
-  test("release build and publish jobs pin the compiled-binary toolchain", () => {
+  test("release build and publish jobs compile with current Bun, not a pin", () => {
     const src = readText(".github/workflows/release.yml");
     const buildJob = src.slice(mustIndex(src, "\n  build:"), mustIndex(src, "\n  qa:"));
     const publishJob = src.slice(mustIndex(src, "\n  publish:"), mustIndex(src, "\n  verify-dist-tags:"));
-    expect(buildJob).toContain("bun-version: 1.3.14");
-    expect(publishJob).toContain("bun-version: 1.3.14");
+    expect(buildJob).toContain("bun-version: latest");
+    expect(publishJob).toContain("bun-version: latest");
+  });
+
+  test("compiled code imports bun:sqlite by name, never as a default import", () => {
+    // `bun build --compile --bytecode` on Bun 1.4 turns `new <default import>()`
+    // into "Object is not a constructor" at startup (#142's crash). The named
+    // `Database` export compiles correctly on every Bun we've tried.
+    const offenders = [...new Bun.Glob("{src,scripts}/**/*.ts").scanSync(ROOT)]
+      .filter((f) => !f.endsWith(".test.ts"))
+      .filter((f) => /import\s+\w+\s+from\s+["']bun:sqlite["']|default\s*:\s*\w+\s*\}\s*=\s*require\(["']bun:sqlite["']\)/.test(readText(f)));
+    expect(offenders).toEqual([]);
   });
 
   test("OCI tags keep v prefix while the compiled runtime receives bare semver", () => {
@@ -378,7 +388,7 @@ describe("setup.ts", () => {
     for (const file of ["src/mcp.ts", "src/setup.ts"]) {
       expect(strip(file)).not.toMatch(/readonly\s*:\s*true/);
     }
-    expect(strip("src/db.ts")).toContain("DB_READONLY ? new sqlite(DB_PATH, { readonly: true }) : new sqlite(DB_PATH)");
+    expect(strip("src/db.ts")).toContain("DB_READONLY ? new Database(DB_PATH, { readonly: true }) : new Database(DB_PATH)");
     const setup = strip("src/setup.ts");
     expect(setup.indexOf("convertToRollbackJournal(tmpPath)")).toBeGreaterThan(-1);
     expect(setup.indexOf("convertToRollbackJournal(tmpPath)")).toBeLessThan(setup.indexOf("probeDb(tmpPath)"));
@@ -1498,9 +1508,8 @@ describe("Dockerfile.release", () => {
     expect(src).not.toMatch(/'\\"\$\{REPO_URL\}\\"'/);
   });
 
-  test("pins the Bun compiler used by the last successful OCI smoke", () => {
+  test("compiles with current Bun 1.x, like the release workflow, not a pinned patch", () => {
     const src = readText("Dockerfile.release");
-    expect(src).toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1\.3\.14 AS builder$/m);
-    expect(src).not.toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1 AS builder$/m);
+    expect(src).toMatch(/^FROM --platform=\$BUILDPLATFORM oven\/bun:1 AS builder$/m);
   });
 });

@@ -16,7 +16,7 @@
  * Idempotent — running twice with the same args produces the same DB.
  */
 
-import sqlite from "bun:sqlite";
+import { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 
 function getArg(name: string): string | undefined {
@@ -37,7 +37,7 @@ if (!existsSync(dbPath)) {
   process.exit(1);
 }
 
-const db = new sqlite(dbPath);
+const db = new Database(dbPath);
 db.run("PRAGMA foreign_keys=ON;");
 db.run(`CREATE TABLE IF NOT EXISTS db_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
 
