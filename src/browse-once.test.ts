@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
@@ -178,5 +179,45 @@ describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
       expect(r.exitCode).toBe(0);
       expect(r.stdout).toContain("\x1b]8;;");
     });
+  },
+);
+
+// `--db <path>` is a global option: it must select the DB wherever it sits,
+// including before the subcommand. DB_PATH outranks --db, so it is removed.
+function runCli(args: string[]): { exitCode: number | null; stdout: string; stderr: string } {
+  const env: Record<string, string | undefined> = { ...process.env, ROSETTA_OFFLINE: "1" };
+  delete env.DB_PATH;
+  const proc = Bun.spawnSync(["bun", "src/mcp.ts", ...args], { cwd: ROOT, env, stdout: "pipe", stderr: "pipe" });
+  return { exitCode: proc.exitCode, stdout: proc.stdout.toString(), stderr: proc.stderr.toString() };
+}
+
+describe.skipIf(!hasTestDb && !dbWasExplicitlyConfigured)(
+  hasTestDb || dbWasExplicitlyConfigured
+    ? "--db is honored before, inside, and after the subcommand"
+    : `--db is honored before, inside, and after the subcommand [skipped: ${skipReason}]`,
+  () => {
+    for (const args of [
+      ["--db", DB_PATH, "browse", "--once", ".routeros_stats"],
+      ["browse", "--db", DB_PATH, "--once", ".routeros_stats"],
+      ["browse", "--once", ".routeros_stats", "--db", DB_PATH],
+    ]) {
+      test(args.join(" "), () => {
+        const r = runCli(args);
+        expect(r.exitCode).toBe(0);
+        expect(JSON.parse(r.stdout).provenance.db_path).toBe(DB_PATH);
+      });
+    }
+
+    test("export skips the --db pair when it looks for its output directory", () => {
+      const out = mkdtempSync(path.join(tmpdir(), "rosetta-export-db-"));
+      try {
+        const dir = path.join(out, "dataset");
+        const r = runCli(["export", "--db", DB_PATH, dir]);
+        expect(r.exitCode).toBe(0);
+        expect(existsSync(path.join(dir, "manifest.toml"))).toBe(true);
+      } finally {
+        rmSync(out, { recursive: true, force: true });
+      }
+    }, 60_000);
   },
 );
