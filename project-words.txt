@@ -91,6 +91,7 @@ datapath
 datasheet
 datasheets
 dbi
+dbstat
 ddl
 ddns
 dedup
