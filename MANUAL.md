@@ -139,7 +139,7 @@ The database combines multiple MikroTik data sources into a single SQLite file w
 
 - **Archived Dude Wiki** — Wayback Machine snapshots cached in `dude/pages/`, exposed through separate Dude tools because the retired GUI docs are not part of current RouterOS v7 help.
 
-- **Agent Skills** — Community-created agent guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) (8 skills, ~30K words). NOT official MikroTik documentation — AI-generated, human-reviewed, served with provenance attribution. Practical domain knowledge for topics like containers, QEMU CHR, netinstall, and RouterOS fundamentals.
+- **Agent Skills** — Community-created agent guides from [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) (18 skills, ~30K words). NOT official MikroTik documentation — AI-generated, human-reviewed, served with provenance attribution. Practical domain knowledge for topics like containers, QEMU CHR, netinstall, and RouterOS fundamentals.
 
 Documentation covers RouterOS **v7 only**. v6 had different syntax and major subsystems — answers for v6 are unreliable. Prose is now sourced live from <https://manual.mikrotik.com>; its CLI Reference is ingested separately as the source-faithful overlay described above.
 

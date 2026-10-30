@@ -22,7 +22,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 144 devices with tests, 127 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 | YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 746 videos, ~2,374 non-empty transcript segments |
-| Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 8 skills, ~30K words (community content) |
+| Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 18 skills, ~30K words (community content) |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
@@ -70,7 +70,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 - **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
 - **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.
 - **Matrix = the *current* core-device set (load-bearing assumption).** MikroTik's product matrix lists actively-sold routers/switches/APs, so matrix membership is treated as the authoritative "current core device" signal — as distinct from the wider off-matrix universe (`hardware_catalog`), which is mostly discontinued gear plus accessories/modules/series pages. Grounded 2026-07-13 against the `discontinued` flag on `mikrotik.com/product` pages: **0 of 74** matrix-linked www products are discontinued, vs **54%** of off-matrix www products and **~95%** of off-matrix `kind = device` pages. This is why downstream surfaces can default to matrix-only ("current") and treat off-matrix as an opt-in legacy/derivative tier. See `briefings/B-0021-off-matrix-nomenclature-derivative-parts.md` and issue #70.
-- **Leaving the matrix is not leaving the catalog.** A product MikroTik stops listing leaves `devices` but should stay in `hardware_catalog` as discontinued, with specs from its www page and its old `rosetta_device_id`, so lookups by name or code still answer. A product with its own /hardware page gets that row automatically. One documented only on a shared page (a combined page, or a series page matched by other matrix rows) needs a curated `www_rows` entry in `hardware-www-map.toml`; without it the product only reaches the drop ledger, which is how Groove 52 and SXTsq 5 ac went missing after the 2026-10-03 snapshot (#240).
+- **Leaving the matrix is not leaving the catalog.** A product MikroTik stops listing leaves `devices` but should stay in `hardware_catalog` as discontinued, with specs from its www page, so lookups by name or code still answer. A product with its own /hardware page gets that row automatically, under that page's `hw-<slug>` id (LHG XL 5 ac became `hw-lhg-xl-5-ac`), so its old matrix `rosetta_device_id` is not kept. One documented only on a shared page (a combined page, or a series page matched by other matrix rows) needs a curated `www_rows` entry in `hardware-www-map.toml`, which keeps the old matrix id; without it the product only reaches the drop ledger, which is how Groove 52 and SXTsq 5 ac went missing after the 2026-10-03 snapshot (#240).
 
 ### Product test results and block diagrams
 
@@ -83,7 +83,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 ### Agent skills (`tikoci/routeros-skills`)
 
 - **Source:** [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills), a community-created and human-reviewed corpus for agents.
-- **Content:** 8 skills, roughly 30K words total, with YAML frontmatter and optional `references/` documents.
+- **Content:** 18 skills, roughly 30K words total, with YAML frontmatter and optional `references/` documents.
 - **Attribution boundary:** Skills are explicitly **not** official MikroTik docs. Every resource read prepends provenance so agents can distinguish textbook facts from guide-style advice.
 - **Extraction:** `src/extract-skills.ts` supports GitHub API fetch, `--local`, and `--from-cache`. CI builds fetch from GitHub; cached `skills/` content supports offline rebuilds.
 
@@ -411,7 +411,7 @@ Current lean:
 | Project | Relationship |
 |---------|-------------|
 | [tikoci/restraml](https://github.com/tikoci/restraml) | Source of `inspect.json` command tree + RAML schema. GitHub Actions run CHR under QEMU to extract command AST via `/console/inspect`, daily checks for new versions. PR #35 adds deep-inspect. Also publishes [GitHub Pages tools](https://tikoci.github.io/restraml/) (see below). |
-| [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | Source of agent skill guides. Community-created RouterOS domain knowledge for AI agents. 8 skills with YAML frontmatter + markdown body. Embedded in rosetta DB via `extract-skills.ts`. |
+| [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | Source of agent skill guides. Community-created RouterOS domain knowledge for AI agents. 18 skills with YAML frontmatter + markdown body. Embedded in rosetta DB via `extract-skills.ts`. |
 | [tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook) | RouterOS script notebook for VSCode. Potential consumer of this DB for Copilot-assisted scripting. |
 | [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) | Consumer: hover help, property docs, command path → URL mapping. |
 | [tikoci/netinstall](https://github.com/tikoci/netinstall) | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |
