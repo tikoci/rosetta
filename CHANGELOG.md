@@ -84,6 +84,10 @@ uses [Semantic Versioning](https://semver.org/).
   code now uses the named `Database` import, and the release workflow and
   `Dockerfile.release` track current Bun, so a future compiler regression fails the
   release smoke instead of hiding behind a pin.
+- **A Release OCI image that fails its smoke no longer moves `:next` or `:latest`.**
+  The publish job used to push the version and floating tags in the same build that
+  the smoke later tested. It now pushes only `sha-<short>`, smokes that, and then
+  promotes the same multi-arch manifest to `v<version>` and any floating tag.
 
 - **`rosetta export` format 2 carries every CLI Reference tree (breaking for
   `cli-reference/` readers).** Every `cli-reference/*.tsv` gains a leading

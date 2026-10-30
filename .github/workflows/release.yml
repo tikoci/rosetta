@@ -735,20 +735,12 @@ jobs:
             echo "✓ next ($CURRENT) is already ≥ $NEW — leaving it"
           fi
 
-      # OCI tags mirror the npm dist-tag scheme: $VERSION and sha-$SHORT_SHA
-      # always push. republish_assets: true pushes ONLY those two — no
-      # floating tag ever moves during a republish, so a re-run of an older
-      # version can't regress what a floating tag currently points testers
-      # at. Otherwise: prerelease runs get a floating :next; latest-channel
-      # runs get the bare :latest tag, plus :next when the decision step above
-      # moves npm's next. :latest never pushes on a prerelease run — this is
-      # the fix for the OCI-latest-clobber risk (an unguarded prerelease dispatch
-      # would otherwise silently overwrite the production /app container's
-      # :latest with an unfinished prerelease DB).
+      # Only the immutable sha-$SHORT_SHA tag pushes here. The smoke step below
+      # tests that tag, and "Promote smoke-tested OCI images" adds $VERSION and
+      # any floating tag afterwards, so an image that fails the smoke never
+      # moves :next or :latest (#142's v0.11.2 image did, before this order).
       - name: Build and push OCI images (Docker Hub + GHCR)
-        env:
-          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
-          MOVE_NEXT: ${{ steps.next_tag.outputs.move }}
+        id: oci
         run: |
           set -euo pipefail
           SHORT_SHA="${{ needs.build.outputs.short_sha }}"
@@ -758,21 +750,11 @@ jobs:
             RUNTIME_VERSION="${RUNTIME_VERSION#v}"
           done
           VERSION="v${RUNTIME_VERSION}"
-          CHANNEL="${{ needs.build.outputs.channel }}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
           tags=()
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
-            tags+=(--tag "${registry}:${VERSION}" --tag "${registry}:sha-${SHORT_SHA}")
-            if [ "$REPUBLISH_ASSETS" != "true" ]; then
-              if [ "$CHANNEL" = "prerelease" ]; then
-                tags+=(--tag "${registry}:next")
-              else
-                tags+=(--tag "${registry}:latest")
-                if [ "$MOVE_NEXT" = "true" ]; then
-                  tags+=(--tag "${registry}:next")
-                fi
-              fi
-            fi
+            tags+=(--tag "${registry}:sha-${SHORT_SHA}")
           done
 
           # Inject DB into the build context so it gets baked into the image
@@ -836,6 +818,43 @@ jobs:
               echo "::error::Smoke test failed for $image"
               exit 1
             }
+          done
+
+      # OCI tags mirror the npm dist-tag scheme: $VERSION always.
+      # republish_assets: true adds ONLY that — no floating tag ever moves
+      # during a republish, so a re-run of an older version can't regress what
+      # a floating tag currently points testers at. Otherwise: prerelease runs
+      # get a floating :next; latest-channel runs get the bare :latest tag,
+      # plus :next when the decision step above moves npm's next. :latest never
+      # pushes on a prerelease run — this is the fix for the OCI-latest-clobber
+      # risk (an unguarded prerelease dispatch would otherwise silently
+      # overwrite the production /app container's :latest with an unfinished
+      # prerelease DB). imagetools copies the smoke-tested multi-arch manifest
+      # as-is; nothing is rebuilt.
+      - name: Promote smoke-tested OCI images
+        env:
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
+          MOVE_NEXT: ${{ steps.next_tag.outputs.move }}
+          VERSION: ${{ steps.oci.outputs.version }}
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${{ needs.build.outputs.short_sha }}"
+          CHANNEL="${{ needs.build.outputs.channel }}"
+
+          for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
+            tags=(--tag "${registry}:${VERSION}")
+            if [ "$REPUBLISH_ASSETS" != "true" ]; then
+              if [ "$CHANNEL" = "prerelease" ]; then
+                tags+=(--tag "${registry}:next")
+              else
+                tags+=(--tag "${registry}:latest")
+                if [ "$MOVE_NEXT" = "true" ]; then
+                  tags+=(--tag "${registry}:next")
+                fi
+              fi
+            fi
+            docker buildx imagetools create "${tags[@]}" "${registry}:sha-${SHORT_SHA}"
+            echo "✓ ${registry}:sha-${SHORT_SHA} → ${tags[*]}"
           done
 
       - name: Create or update GitHub Release

@@ -238,8 +238,8 @@ describe("build-release.ts", () => {
   test("OCI tags keep v prefix while the compiled runtime receives bare semver", () => {
     const src = readText(".github/workflows/release.yml");
     expect(src).toMatch(/VERSION="v\$\{RUNTIME_VERSION\}"/);
-    expect(src).toMatch(/tags\+=\(--tag "\$\{registry\}:\$\{VERSION\}"/);
-    expect(src).not.toMatch(/tags\+=\(--tag "\$\{registry\}:\$\{RUNTIME_VERSION\}"/);
+    expect(src).toMatch(/tags=\(--tag "\$\{registry\}:\$\{VERSION\}"/);
+    expect(src).not.toMatch(/--tag "\$\{registry\}:\$\{RUNTIME_VERSION\}"/);
     expect(src).toContain('--build-arg VERSION="$RUNTIME_VERSION"');
   });
 });
@@ -698,19 +698,32 @@ describe("release.yml", () => {
       expect(readBackBlock).toMatch(/::error::npm dist-tags did not settle/);
     });
 
-    test("OCI tags align with npm scheme: version+sha always, floating next for prerelease, latest (+next when moved) for latest channel, republish never moves floating tags", () => {
-      const ociIdx = mustIndex(src, "Build and push OCI images");
-      const smokeIdx = mustIndex(src, "Smoke test published OCI images");
-      const ociBlock = src.slice(ociIdx, smokeIdx);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:\${VERSION}" --tag "\${registry}:sha-\${SHORT_SHA}")`);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:next")`);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
-      expect(ociBlock).toContain('if [ "$MOVE_NEXT" = "true" ]; then');
-      expect(ociBlock).not.toContain("STAGE");
+    test("OCI tags align with npm scheme: version always, floating next for prerelease, latest (+next when moved) for latest channel, republish never moves floating tags", () => {
+      const promoteIdx = mustIndex(src, "- name: Promote smoke-tested OCI images");
+      const releaseIdx = mustIndex(src, "Create or update GitHub Release");
+      const promoteBlock = src.slice(promoteIdx, releaseIdx);
+      expect(promoteBlock).toContain(`tags=(--tag "\${registry}:\${VERSION}")`);
+      expect(promoteBlock).toContain(`tags+=(--tag "\${registry}:next")`);
+      expect(promoteBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
+      expect(promoteBlock).toContain('if [ "$MOVE_NEXT" = "true" ]; then');
+      expect(promoteBlock).not.toContain("STAGE");
       // republish_assets is read via env: (template-injection guard), not
       // interpolated directly into the `if [ ... ]` shell test.
-      expect(ociBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
-      expect(ociBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" != "true" \]/);
+      expect(promoteBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
+      expect(promoteBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" != "true" \]/);
+      expect(promoteBlock).toContain(`docker buildx imagetools create "\${tags[@]}" "\${registry}:sha-\${SHORT_SHA}"`);
+    });
+
+    test("only the sha tag pushes before the OCI smoke; version and floating tags are promoted after it passes", () => {
+      const ociIdx = mustIndex(src, "Build and push OCI images");
+      const smokeIdx = mustIndex(src, "Smoke test published OCI images");
+      const promoteIdx = mustIndex(src, "- name: Promote smoke-tested OCI images");
+      expect(ociIdx).toBeLessThan(smokeIdx);
+      expect(smokeIdx).toBeLessThan(promoteIdx);
+      const ociBlock = src.slice(ociIdx, smokeIdx);
+      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:sha-\${SHORT_SHA}")`);
+      expect(ociBlock).not.toMatch(/--tag "\$\{registry\}:(\$\{VERSION\}|next|latest)"/);
+      expect(src.slice(smokeIdx, promoteIdx)).toContain(`for image in "ammo74/rosetta:\${SHA_TAG}" "ghcr.io/tikoci/rosetta:\${SHA_TAG}"`);
     });
 
     test("GitHub Release is created with --prerelease for prerelease channel runs", () => {
