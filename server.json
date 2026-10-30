@@ -6,12 +6,12 @@
     "url": "https://github.com/tikoci/rosetta",
     "source": "github"
   },
-  "version": "0.11.3",
+  "version": "0.12.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@tikoci/rosetta",
-      "version": "0.11.3",
+      "version": "0.12.0",
       "transport": {
         "type": "stdio"
       }

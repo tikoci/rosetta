@@ -22,6 +22,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-10-30
+
 ### Added
 
 - **The DB holds the CLI Reference for every manual version MikroTik serves.** It
@@ -53,8 +55,8 @@ uses [Semantic Versioning](https://semver.org/).
   `cli-compare.json` and writes `cli-compare-reconcile.tsv`. A mismatch doesn't fail
   the release: it opens or updates one tracking issue, and the first clean release
   closes it. Each tree's count is stored in `cliref_trees.cli_compare_mismatches`.
-- **Command-version answers say which arches a version's data came from (#91).** 39 of
-  the 68 versions with command data come from x86-only `inspect.json` builds, so they lack
+- **Command-version answers say which arches a version's data came from (#91).** 38 of
+  the 67 versions with command data come from x86-only `inspect.json` builds, so they lack
   every arm64-only path: 7.24rc2 → 7.24rc3 diffed as 1,387 removals that never happened.
   `routeros_command_diff` now returns `from_arches`/`to_arches` and says when they differ
   (`arch=x86` gives that diff 0 changes). `routeros_command_version_check` returns
@@ -132,8 +134,9 @@ uses [Semantic Versioning](https://semver.org/).
   if a listed product makes no row.
 - **Changelogs include the current stable and development releases again.** The
   channel-head lookup took `upgrade.mikrotik.com`'s whole answer (`7.25 1792678320`,
-  version plus build time) as the version, so each head 404'd and next.123 shipped
-  without 7.25 or 7.26beta4 changelogs. A local run now picks up both (6,950 entries).
+  version plus build time) as the version, so each head 404'd and a build could ship
+  without the newest stable or development changelogs (7.25 and 7.26beta4 at the
+  time). A local run now picks up both (6,950 entries).
 - **`browse --once .<tool>` stdout is now exactly one JSON document.** The args
   echo banner moved to stderr and excerpt highlighting no longer injects ANSI
   escapes into the JSON, so shell consumers can pipe straight into `jq` or
@@ -171,7 +174,7 @@ uses [Semantic Versioning](https://semver.org/).
   or 5 consecutive errors. Previously a download.mikrotik.com outage wiped the table
   and exited 0.
 - **Device-benchmark extraction fails the release instead of shipping an empty
-  or gapped table (#218).** v0.12.0-next.123 shipped 0 `device_test_results`
+  or gapped table (#218).** A prerelease shipped 0 `device_test_results`
   rows after mikrotik.com 503'd the whole scrape, and nothing caught it:
   `routeros_search_tests` answered nothing while its description still claimed
   thousands of rows. The extractor now retries 5xx, 429 (honoring Retry-After
@@ -959,7 +962,8 @@ Initial public release.
   dev / package at `~/.rosetta/`).
 - Bun tests for the query planner + schema health.
 
-[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.11.3...HEAD
+[Unreleased]: https://github.com/tikoci/rosetta/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/tikoci/rosetta/compare/v0.11.3...v0.12.0
 [0.11.3]: https://github.com/tikoci/rosetta/compare/v0.11.2...v0.11.3
 [0.11.2]: https://github.com/tikoci/rosetta/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/tikoci/rosetta/compare/v0.11.0...v0.11.1
