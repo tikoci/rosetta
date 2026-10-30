@@ -1,6 +1,6 @@
 {
   "generatedFrom": {
-    "matrixRows": 155,
+    "matrixRows": 154,
     "hardwarePages": 246,
     "wwwProducts": 316
   },
@@ -311,7 +311,7 @@
       "name": "CRS312-4C+8XG-RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS312-4C+8XG-RM\",\"Suggested price\":\"$699.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8212\",\"Dimensions\":\"443 x 183 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-30°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"60 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of Combo 10G Ethernet/ SFP+ ports\":\"4\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"8\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS312-4C+8XG-RM\",\"_www_tagline\":\"Switch of the future: the first MikroTik product with 10G RJ45 Ethernet ports and SFP+\",\"_hardware_title\":\"CRS312-4C+8XG-RM\"}",
+      "specsJson": "{\"Product code\":\"CRS312-4C+8XG-RM\",\"Suggested price\":\"$699.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8212\",\"Dimensions\":\"443 x 183 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7 / SwitchOS\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-30°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Frequency (Hz)\":\"50-60\",\"Max power consumption\":\"60 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of Combo 10G Ethernet/ SFP+ ports\":\"4\",\"Number of 1G/2.5G/5G/10G Ethernet ports\":\"8\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS312-4C+8XG-RM\",\"_www_tagline\":\"Switch of the future: the first MikroTik product with 10G RJ45 Ethernet ports and SFP+\",\"_hardware_title\":\"CRS312-4C+8XG-RM\"}",
       "sourceHardwareSlug": "crs312-4c-plus-8xg-rm",
       "sourceWwwCode": "crs312_4c_8xg_rm"
     },
@@ -441,7 +441,7 @@
       "name": "CRS504-4XQ-IN",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS504-4XQ-IN\",\"Suggested price\":\"$799.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"Dimensions\":\"320 x 185 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"Number of PSU slots\":\"2\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"41 W\",\"Max power consumption without attachments\":\"25 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"2 fans\",\"PoE in input Voltage\":\"43-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 100G QSFP28 ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS504-4XQ-IN\",\"_www_tagline\":\"Your most affordable, compact, energy-efficient\\r\\ndoorway to the world of 100 Gigabit networking.\\r\\nThis switch is the next step in upgrading existing 10 or 25 Gigabit networks. Multiple powering options, dual hot-swap power supplies.\",\"_hardware_title\":\"CRS504-4XQ-IN\"}",
+      "specsJson": "{\"Product code\":\"CRS504-4XQ-IN\",\"Suggested price\":\"$799.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX4310\",\"Dimensions\":\"320 x 185 x 44 mm\",\"RouterOS license\":\"5\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of DC inputs\":\"3 (DC jack, PoE-IN, 2-pin terminal)\",\"DC jack input Voltage\":\"36-57 V\",\"Number of PSU slots\":\"2\",\"2-pin terminal input Voltage\":\"36-57 V\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"41 W\",\"Max power consumption without attachments\":\"25 W\",\"PoE in\":\"802.3 bt\",\"Cooling type\":\"2 fans\",\"PoE in input Voltage\":\"43-57 V\",\"10/100 Ethernet ports\":\"1\",\"Number of 100G QSFP28 ports\":\"4\",\"Serial console port\":\"RJ45\",\"PCB temperature monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS504-4XQ-IN\",\"_www_tagline\":\"Your most affordable, compact, energy-efficient\\r\\ndoorway to the world of 100 Gigabit networking.\\r\\nThis switch is the next step in upgrading existing 10 or 25 Gigabit networks. Multiple powering options, dual hot-swap power supplies.\",\"_hardware_title\":\"CRS504-4XQ-IN\"}",
       "sourceHardwareSlug": "crs504-4xq-in",
       "sourceWwwCode": "crs504_4xq_in"
     },
@@ -471,7 +471,7 @@
       "name": "CRS518-16XS-2XQ-RM",
       "category": "Switches",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CRS518-16XS-2XQ-RM\",\"Suggested price\":\"$1,595.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8525\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"64 MB\",\"Storage size\":\"16 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"95 W\",\"Max power consumption without attachments\":\"45 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"16\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS518-16XS-2XQ-RM\",\"_www_tagline\":\"A 100 Gigabit switch for enterprise networks and data centers.\\r\\nHot-swappable parts and insane port density with 1.2 Tbps switching\\r\\ncapacity!\",\"_hardware_title\":\"CRS518-16XS-2XQ-RM\"}",
+      "specsJson": "{\"Product code\":\"CRS518-16XS-2XQ-RM\",\"Suggested price\":\"$1,595.00\",\"Architecture\":\"MIPSBE\",\"CPU\":\"QCA9531\",\"CPU core count\":\"1\",\"CPU nominal frequency\":\"650 MHz\",\"Switch chip model\":\"98DX8525\",\"RouterOS license\":\"6\",\"Operating System\":\"RouterOS v7\",\"Size of RAM\":\"128 MB\",\"Storage size\":\"32 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of AC inputs\":\"2\",\"AC input range\":\"100-240\",\"Number of PSU slots\":\"2\",\"Frequency (Hz)\":\"47-63\",\"Max power consumption\":\"95 W\",\"Max power consumption without attachments\":\"45 W\",\"Cooling type\":\"4 fans\",\"10/100 Ethernet ports\":\"1\",\"Number of 25G SFP28 ports\":\"16\",\"Number of 100G QSFP28 ports\":\"2\",\"Serial console port\":\"RJ45\",\"Number of USB ports\":\"1\",\"USB Power Reset\":\"Yes\",\"USB slot type\":\"USB type A\",\"Max USB current (A)\":\"1\",\"PCB temperature monitor\":\"Yes\",\"Voltage Monitor\":\"Yes\",\"Certification\":\"CE, EAC, ROHS\",\"IP\":\"20\",\"_www_title\":\"CRS518-16XS-2XQ-RM\",\"_www_tagline\":\"A 100 Gigabit switch for enterprise networks and data centers.\\r\\nHot-swappable parts and insane port density with 1.2 Tbps switching\\r\\ncapacity!\",\"_hardware_title\":\"CRS518-16XS-2XQ-RM\"}",
       "sourceHardwareSlug": "crs518-16xs-2xq-rm",
       "sourceWwwCode": "crs518_16xs_2xq"
     },
@@ -554,16 +554,6 @@
       "specsJson": "{\"Product code\":\"CubeG-5ac60ay\",\"Suggested price\":\"$149.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"448-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Dimensions\":\"115 x 95 x 82 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"64 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"10 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"Wireless 5 GHz Max data rate\":\"433 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"1\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"11.5\",\"Wireless 5 GHz chip model\":\"IPQ4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"1\",\"GNSS standards\":\"GPS\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"Cube 60Pro ac\",\"_www_tagline\":\"A powerful point-to-point 60 GHz 802.11ay CPE for bridging distances up to 2.4 km.\"}",
       "sourceHardwareSlug": null,
       "sourceWwwCode": "cube_60pro_ac"
-    },
-    {
-      "rosettaDeviceId": "cubesa-60pro-ac",
-      "deviceProductName": "CubeSA 60Pro ac",
-      "name": "CubeSA 60Pro ac",
-      "category": null,
-      "discontinued": 0,
-      "specsJson": "{\"Product code\":\"CubeG-5ac60ay-SA\",\"Suggested price\":\"$199.00\",\"Architecture\":\"ARM 32bit\",\"CPU\":\"IPQ-4019\",\"CPU core count\":\"4\",\"CPU nominal frequency\":\"448-896 (auto) MHz\",\"CPU Threads count\":\"4\",\"Dimensions\":\"115 x 211 x 90 mm\",\"RouterOS license\":\"4\",\"Operating System\":\"RouterOS\",\"Size of RAM\":\"256 MB\",\"Storage size\":\"64 MB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 200'000 hours at 25C\",\"Tested ambient temperature\":\"-40°C to 70°C\",\"Number of DC inputs\":\"1 (PoE-IN)\",\"Max power consumption\":\"13 W\",\"PoE in\":\"802.3af/at\",\"Cooling type\":\"Passive\",\"PoE in input Voltage\":\"18-57 V\",\"Wireless 5 GHz Max data rate\":\"433 Mbit/s\",\"Wireless 5 GHz Number of chains\":\"1\",\"Wireless 5 GHz standards\":\"802.11a/n/ac\",\"Antenna gain dBi for 5 GHz\":\"11.5\",\"Wireless 5 GHz chip model\":\"IPQ4019\",\"Wireless 5 GHz generation\":\"Wi-Fi 5\",\"10/100/1000 Ethernet ports\":\"1\",\"GNSS standards\":\"GPS\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"66\",\"_www_title\":\"CubeSA 60Pro ac\",\"_www_tagline\":\"A powerful sector antenna to connect multiple 60 GHz devices. Quick and easy networking for all kinds of pop-up events and distances up to 800m.\"}",
-      "sourceHardwareSlug": null,
-      "sourceWwwCode": "cubesa_60pro_ac"
     },
     {
       "rosettaDeviceId": "fiberbox-plus",
@@ -1671,7 +1661,7 @@
       "name": "S-3553LC20D",
       "category": "Interfaces",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"S-3553LC20D\",\"Suggested price\":\"$79.00\",\"Connector\":\"Single LC UPC\",\"Data Rate\":\"1.25G\",\"Distance\":\"20km\",\"Format\":\"SFP\",\"Mode\":\"SM\",\"Tested ambient temperature\":\"-40 to +70C\",\"Wavelength\":\"1310nm / 1550nm\",\"_www_title\":\"S-3553LC20D\",\"_www_tagline\":\"Two SFP (1.25G) module kit,\\r\\n20Km, single mode\",\"_hardware_title\":\"S-3553LC20D\"}",
+      "specsJson": "{\"Product code\":\"S-3553LC20D\",\"Suggested price\":\"$79.00\",\"Connector\":\"Single LC UPC\",\"Data Rate\":\"1.25G\",\"Distance\":\"20km\",\"Format\":\"SFP\",\"Mode\":\"SM\",\"Tested ambient temperature\":\"-40 to +70C\",\"Wavelength\":\"1310nm / 1550nm\",\"_www_title\":\"S-3553LC20D\",\"_www_tagline\":\"Two SFP module kit / \\r\\nSimplex LC connector / \\r\\n1310nm/ \\r\\n1550nm / \\r\\nSingle-mode / \\r\\n1G / \\r\\n20km\",\"_hardware_title\":\"S-3553LC20D\"}",
       "sourceHardwareSlug": "s-3553lc20d",
       "sourceWwwCode": "S-3553LC20D"
     },
@@ -1721,7 +1711,7 @@
       "name": "TG-BT5-IN",
       "category": "IoT products",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"TG-BT5-IN\",\"Suggested price\":\"$10.00\",\"Storage size\":\"352 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Bluetooth version\":\"5.2\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"54\",\"_www_title\":\"TG-BT5-IN\",\"_www_tagline\":\"Indoor Bluetooth tags for the MikroTik KNOT or other IoT asset-tracking/telemetry setups.\",\"_hardware_title\":\"TG-BT5-IN\",\"_fcc_id\":[\"TV7-TB5I\"]}",
+      "specsJson": "{\"Product code\":\"TG-BT5-IN\",\"Suggested price\":\"$10.00\",\"Dimensions\":\"37x22x6\",\"Storage size\":\"352 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Bluetooth version\":\"5.2\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"54\",\"_www_title\":\"TG-BT5-IN\",\"_www_tagline\":\"Indoor Bluetooth tags for the MikroTik KNOT or other IoT asset-tracking/telemetry setups.\",\"_hardware_title\":\"TG-BT5-IN\",\"_fcc_id\":[\"TV7-TB5I\"]}",
       "sourceHardwareSlug": "tg-bt5-in",
       "sourceWwwCode": "tg_bt5_in"
     },
@@ -1731,7 +1721,7 @@
       "name": "TG-BT5-OUT",
       "category": "IoT products",
       "discontinued": 0,
-      "specsJson": "{\"Product code\":\"TG-BT5-OUT\",\"Suggested price\":\"$18.00\",\"Storage size\":\"512 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Bluetooth version\":\"5.2\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"69K\",\"_www_title\":\"TG-BT5-OUT\",\"_www_tagline\":\"An outdoor heavy-duty Bluetooth tag for the MikroTik KNOT or other IoT asset-tracking/telemetry setups. Built-in temperature sensors and accelerometer. Cast in industrial grade molds for maximum protection.\",\"_hardware_title\":\"TG-BT5-OUT\",\"_fcc_id\":[\"TV7-TB5O\"]}",
+      "specsJson": "{\"Product code\":\"TG-BT5-OUT\",\"Suggested price\":\"$18.00\",\"Dimensions\":\"38x32x16\",\"Storage size\":\"512 KB\",\"Storage type\":\"FLASH\",\"MTBF\":\"Approximately 100'000 hours at 25C\",\"Bluetooth version\":\"5.2\",\"Certification\":\"CE, FCC, IC, EAC, ROHS\",\"IP\":\"69K\",\"_www_title\":\"TG-BT5-OUT\",\"_www_tagline\":\"An outdoor heavy-duty Bluetooth tag for the MikroTik KNOT or other IoT asset-tracking/telemetry setups. Built-in temperature sensors and accelerometer. Cast in industrial grade molds for maximum protection.\",\"_hardware_title\":\"TG-BT5-OUT\",\"_fcc_id\":[\"TV7-TB5O\"]}",
       "sourceHardwareSlug": "tg-bt5-out",
       "sourceWwwCode": "tg_bt5_out"
     },
@@ -2983,6 +2973,16 @@
       "source": "collapsed"
     },
     {
+      "alias": "ccr1036-12g-4s-149",
+      "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
+      "source": "hardware-link"
+    },
+    {
+      "alias": "ccr1036-12g-4s-em",
+      "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
+      "source": "hardware-link"
+    },
+    {
       "alias": "ccr1036-12g-4s-series",
       "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
       "source": "hardware-slug"
@@ -2993,8 +2993,38 @@
       "source": "hardware-slug"
     },
     {
+      "alias": "ccr1036-8g-2splus",
+      "rosettaDeviceId": "hw-ccr1036-8g-2s-plus-series",
+      "source": "hardware-link"
+    },
+    {
+      "alias": "ccr1036-8g-2splusem",
+      "rosettaDeviceId": "hw-ccr1036-8g-2s-plus-series",
+      "source": "hardware-link"
+    },
+    {
+      "alias": "ccr103612g4s149",
+      "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr103612g4sem",
+      "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
+      "source": "collapsed"
+    },
+    {
       "alias": "ccr103612g4sseries",
       "rosettaDeviceId": "hw-ccr1036-12g-4s-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr10368g2splus",
+      "rosettaDeviceId": "hw-ccr1036-8g-2s-plus-series",
+      "source": "collapsed"
+    },
+    {
+      "alias": "ccr10368g2splusem",
+      "rosettaDeviceId": "hw-ccr1036-8g-2s-plus-series",
       "source": "collapsed"
     },
     {
@@ -4288,11 +4318,6 @@
       "source": "matrix.csv"
     },
     {
-      "alias": "cubeg-5ac60ay-sa",
-      "rosettaDeviceId": "cubesa-60pro-ac",
-      "source": "matrix.csv"
-    },
-    {
       "alias": "cubeg-5ac60aypair",
       "rosettaDeviceId": "wireless-wire-cube-pro",
       "source": "matrix.csv"
@@ -4308,28 +4333,8 @@
       "source": "collapsed"
     },
     {
-      "alias": "cubeg5ac60aysa",
-      "rosettaDeviceId": "cubesa-60pro-ac",
-      "source": "collapsed"
-    },
-    {
       "alias": "cubelite60",
       "rosettaDeviceId": "hw-cube-lite60",
-      "source": "collapsed"
-    },
-    {
-      "alias": "cubesa 60pro ac",
-      "rosettaDeviceId": "cubesa-60pro-ac",
-      "source": "matrix.csv"
-    },
-    {
-      "alias": "cubesa_60pro_ac",
-      "rosettaDeviceId": "cubesa-60pro-ac",
-      "source": "www-code"
-    },
-    {
-      "alias": "cubesa60proac",
-      "rosettaDeviceId": "cubesa-60pro-ac",
       "source": "collapsed"
     },
     {
@@ -5665,7 +5670,7 @@
     {
       "alias": "lhg_lite60",
       "rosettaDeviceId": "hw-lhg-lite60",
-      "source": "www-code"
+      "source": "hardware-link"
     },
     {
       "alias": "lhg_lte_kit",
@@ -7445,7 +7450,7 @@
     {
       "alias": "rbd25g-5hpacqd2hpnd",
       "rosettaDeviceId": "hw-audience",
-      "source": "www-declared-code"
+      "source": "hardware-link"
     },
     {
       "alias": "rbd25g-5hpacqd2hpnd-us",
@@ -9017,22 +9022,22 @@
     {
       "kind": "www-product",
       "id": "CCR1036-12G-4S-149",
-      "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
+      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
     {
       "kind": "www-product",
       "id": "CCR1036-12G-4S-EM",
-      "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
+      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
     {
       "kind": "www-product",
       "id": "CCR1036-8G-2Splus",
-      "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
+      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
     {
       "kind": "www-product",
       "id": "CCR1036-8G-2SplusEM",
-      "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
+      "reason": "referenced by a /hardware page or matrix row but not selected as spec source (identity disagreed, or lost an allowlisted multi-attach)"
     },
     {
       "kind": "www-product",
@@ -9072,6 +9077,11 @@
     {
       "kind": "www-product",
       "id": "CRS212-1G-10S-1SplusIN",
+      "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
+    },
+    {
+      "kind": "www-product",
+      "id": "cubesa_60pro_ac",
       "reason": "not referenced by any /hardware page or matrix row (accessory/legacy product outside catalog scope)"
     },
     {

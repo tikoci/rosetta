@@ -87,6 +87,13 @@ uses [Semantic Versioning](https://semver.org/).
   rebuild it. A complete live run removes pre-#188 flat-layout pages and any tree no
   longer served. The release build's CLI-Reference step fetches about three times as
   many pages.
+- **Product matrix refreshed to the 2026-10-29 snapshot.** `devices` and the hardware
+  overlay now read `matrix/2026-10-29/matrix.csv` (154 products). It drops CubeSA 60Pro
+  ac (`CubeG-5ac60ay-SA`), which MikroTik no longer lists, along with that product's
+  curated device-map exception. It corrects CRS312-4C+8XG-RM, CRS504-4XQ-IN and
+  CRS518-16XS-2XQ-RM to 128 MB RAM and 32 MB storage (previously 64 MB and 16 MB). The
+  hardware and product-page assessments were re-scraped the same day; `device-map.tsv`
+  changes only by the dropped row.
 
 ### Fixed
 
