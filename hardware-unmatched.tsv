@@ -58,8 +58,8 @@ r11e-lr8	module	IoT products		0		no-product-link	https://manual.mikrotik.com/har
 r11e-lr8g	module	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr8g	R11e-LR8G
 r11e-lr9	module	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr9	
 r11e-lr9g	module	IoT products		0		no-product-link	https://manual.mikrotik.com/hardware/r11e-lr9g	R11e-LR9G
-tg-bt5-in	module	IoT products	tg_bt5_in	8		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-in	
-tg-bt5-out	module	IoT products	tg_bt5_out	8		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-out	
+tg-bt5-in	module	IoT products	tg_bt5_in	9		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-in	
+tg-bt5-out	module	IoT products	tg_bt5_out	9		unmatched	https://manual.mikrotik.com/hardware/tg-bt5-out	
 tg-lr82	module	IoT products	tg_lr82	6		unmatched	https://manual.mikrotik.com/hardware/tg-lr82	
 tg-lr92	module	IoT products	tg_lr92	6		unmatched	https://manual.mikrotik.com/hardware/tg-lr92	
 wap-lr9-kit	device	IoT products	wap_lr9_kit	33		unmatched	https://manual.mikrotik.com/hardware/wap-lr9-kit	RB912R-2nD-LTm RBwAPR-2nD

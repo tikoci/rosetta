@@ -87,9 +87,26 @@ uses [Semantic Versioning](https://semver.org/).
   rebuild it. A complete live run removes pre-#188 flat-layout pages and any tree no
   longer served. The release build's CLI-Reference step fetches about three times as
   many pages.
+- **Product matrix refreshed to the 2026-10-29 snapshot.** `devices` and the hardware
+  overlay now read `matrix/2026-10-29/matrix.csv` (154 products). MikroTik no longer
+  lists CubeSA 60Pro ac (`CubeG-5ac60ay-SA`), so it leaves `devices`, but it stays in
+  the hardware catalog as discontinued (see Fixed). It corrects CRS312-4C+8XG-RM,
+  CRS504-4XQ-IN and CRS518-16XS-2XQ-RM to 128 MB RAM and 32 MB storage (previously 64 MB
+  and 16 MB). The hardware and product-page assessments were re-scraped the same day;
+  `device-map.tsv` changes only by the dropped row.
 
 ### Fixed
 
+- **A device that leaves the product matrix stays findable as discontinued, even when
+  its only /hardware page is shared.** The hardware catalog gave a row only to matrix
+  devices and /hardware pages, so a former matrix device documented only on a combined
+  page or on a series page that matched other devices lost its row. Its product page
+  then reached only the drop ledger. Groove 52 and SXTsq 5 ac had been lost this way
+  since the 2026-10-03 matrix, and CubeSA 60Pro ac would have followed. A new
+  `hardware-www-map.toml` field, `www_rows`, gives each such product a catalog row
+  under its old id, with name, specs and discontinued flag from its product page.
+  `routeros_device_lookup` resolves all three by name or product code. Extraction fails
+  if a listed product makes no row.
 - **Changelogs include the current stable and development releases again.** The
   channel-head lookup took `upgrade.mikrotik.com`'s whole answer (`7.25 1792678320`,
   version plus build time) as the version, so each head 404'd and next.123 shipped

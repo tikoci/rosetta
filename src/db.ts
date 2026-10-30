@@ -807,7 +807,8 @@ export function initDb() {
   // — spec-field coverage falls off sharply outside a small universal core).
   //
   // rosetta_device_id is a rosetta-curated stable key (slugified matrix product name for
-  // devices-linked rows, `hw-<hardware-slug>` for hardware/www-only rows) — not any one
+  // devices-linked rows, `hw-<hardware-slug>` for hardware/www-only rows, the slugified www
+  // title for a curated `www_rows` product that left the matrix, so it keeps its id) — not any one
   // source's own slug, since MikroTik does rename products (`hEX` -> `hEX refresh`) and
   // www/`/hardware` carry independently-drifting slugs (see extract-hardware-catalog.ts).
   //

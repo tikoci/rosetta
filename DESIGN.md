@@ -18,7 +18,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Docusaurus manual `/docs` prose | <https://manual.mikrotik.com>, discovered via `sitemap.xml` | Raw Markdown (`{page}.md`; category pages `{category}.md`, falling back to `{category}/index.md`) | Current default prose source (T-0035); 360 in-scope `/docs` pages as of 2026-07-07, matching `llms.txt` exactly |
 | Legacy Confluence HTML | `box/latest/ROS/` | 317 HTML files | March 2026 export, frozen; kept only for `make extract-legacy-confluence` historical rebuilds |
 | inspect.json | [tikoci/restraml GitHub Pages](https://tikoci.github.io/restraml/) `<version>/extra/inspect.json` | JSON tree per version | Per-version command history; query `command_versions` for the built artifact's range |
-| Product matrix | `matrix/2026-10-03/matrix.csv` | CSV, 34 columns | Committed October 2026 snapshot; query the built DB for counts |
+| Product matrix | `matrix/2026-10-29/matrix.csv` | CSV, 34 columns | Committed late-October 2026 snapshot; query the built DB for counts |
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 144 devices with tests, 127 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 | YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 746 videos, ~2,374 non-empty transcript segments |
@@ -65,7 +65,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 
 - **Source:** Manual browser export from <https://mikrotik.com/products/matrix>.
 - **Format:** UTF-8 BOM CSV, 34 columns. `routeros_stats` reports the built DB's device count.
-- **Location:** `matrix/2026-10-03/matrix.csv`; snapshots are date-stamped and committed. The path lives in exactly one place in code — `MATRIX_CSV_RELATIVE_PATH` in `src/paths.ts` — because five entry points read it and must agree; committing a new `matrix/YYYY-MM-DD/` without bumping that constant is a silent no-op.
+- **Location:** `matrix/2026-10-29/matrix.csv`; snapshots are date-stamped and committed. The path lives in exactly one place in code — `MATRIX_CSV_RELATIVE_PATH` in `src/paths.ts` — because five entry points read it and must agree; committing a new `matrix/YYYY-MM-DD/` without bumping that constant is a silent no-op.
 - **Download path:** Use the site's export/download control, choose **All**, and save to `matrix/<ISODATE>/matrix.csv`.
 - **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
 - **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.

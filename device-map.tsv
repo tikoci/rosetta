@@ -54,7 +54,6 @@ CSS326-24G-2S+RM	CSS326-24G-2S+RM	Switches	auto	https://manual.mikrotik.com/hard
 CSS610-8G-2S+IN	CSS610-8G-2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/css610-8g-2s-plus-in	https://mikrotik.com/product/css610_8g_2s_in		
 CSS610-8P-2S+IN	CSS610-8P-2S+IN	Switches	auto	https://manual.mikrotik.com/hardware/css610-8p-2s-plus-in	https://mikrotik.com/product/css610_8p_2s_in		
 Cube 60Pro ac	CubeG-5ac60ay	60 GHz products	auto	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/cube_60pro_ac		
-CubeSA 60Pro ac	CubeG-5ac60ay-SA		curated-alias	https://manual.mikrotik.com/hardware/wireless-wire-cube-pro-cube-60pro-ac	https://mikrotik.com/product/cubesa_60pro_ac		MikroTik combines two products on one /hardware page; this SA variant's own www product is cubesa_60pro_ac.
 FiberBox Plus	CRS305-1G-4S+OUTr2	Switches	auto	https://manual.mikrotik.com/hardware/fiberbox-plus	https://mikrotik.com/product/fiberboxplus		
 FTC11XG	FTC11XG	Accessories	auto	https://manual.mikrotik.com/hardware/ftc11xg	https://mikrotik.com/product/ftc11xg		
 FTC21-ups	FTC21-ups		no-hardware-page		https://mikrotik.com/product/ftc21_ups	no-hardware-page	www product ftc21_ups exists (was never a fetch candidate); the /hardware/ftc21 page is the non-ups variant, so there is no /hardware page for the -ups SKU.

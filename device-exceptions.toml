@@ -30,12 +30,6 @@
 # matrix row past the identity-agreement gate, so the row gets specs_json + product-code aliases
 # even with no /hardware page. Only list a www_code a human has verified is THIS device's product.
 
-["CubeSA 60Pro ac"]
-class = "curated-alias"
-hardware_slug = "wireless-wire-cube-pro-cube-60pro-ac"
-www_code = "cubesa_60pro_ac"
-note = "MikroTik combines two products on one /hardware page; this SA variant's own www product is cubesa_60pro_ac."
-
 ["KNOT Embedded LTE4 Global"]
 class = "curated-alias"
 hardware_slug = "knot-embedded-lte4-global-eg25-g-and-kne"

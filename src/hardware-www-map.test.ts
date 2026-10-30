@@ -6,7 +6,7 @@
  * mikrotik.com/sitemap.xml at capture time — see the TOML header). See #70 / B-0018.
  */
 import { describe, expect, test } from "bun:test";
-import { curatedWwwCodeForSlug, curatedWwwCodes, hardwareWwwMap } from "./hardware-www-map.ts";
+import { curatedWwwCodeForSlug, curatedWwwCodes, curatedWwwRows, hardwareWwwMap } from "./hardware-www-map.ts";
 
 describe("hardware-www-map loader", () => {
   test("a single-code slug force-attaches its curated code", () => {
@@ -49,6 +49,17 @@ describe("hardware-www-map loader", () => {
     // declares RB924iR-2nD-BT5&BG77&R11e-LR9, so the module code is a kit subcode too (PR #154).
     expect(curatedWwwCodeForSlug("r11e-lr9")).toBe(undefined);
     expect(curatedWwwCodes()).toContain("r11e_lr9");
+  });
+
+  test("www_rows products are seeded for fetch and listed per page", () => {
+    // Products that left the matrix but are documented only on a shared page (#240).
+    const rows = curatedWwwRows();
+    expect(rows).toContainEqual({ slug: "wireless-wire-cube-pro-cube-60pro-ac", code: "cubesa_60pro_ac" });
+    expect(rows).toContainEqual({ slug: "groove-series", code: "RBGroove52HPnr2" });
+    expect(rows).toContainEqual({ slug: "sxtsq-series", code: "sxtsq_5_ac" });
+    for (const { code } of rows) expect(curatedWwwCodes()).toContain(code);
+    // A www_rows-only entry has no single code to force-attach.
+    expect(curatedWwwCodeForSlug("groove-series")).toBe(undefined);
   });
 
   test("no two force-attachable entries share a www_code (one-product-one-row)", () => {

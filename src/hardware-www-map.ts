@@ -11,7 +11,8 @@
  *   - assess-www.ts seeds `curatedWwwCodes()` into its candidate fetch so the product
  *     pages actually get scraped into ros-www-assessment.json.
  *   - extract-hardware-catalog.ts calls `curatedWwwCodeForSlug()` to force-attach a
- *     single curated product to a hardware row, past the identity-agreement gate.
+ *     single curated product to a hardware row, past the identity-agreement gate, and
+ *     `curatedWwwRows()` to give each `www_rows` product a catalog row of its own.
  */
 
 import curated from "../hardware-www-map.toml";
@@ -32,6 +33,14 @@ export interface HardwareWwwEntry {
    * specs still land in ros-www-assessment.json for the future module cross-link work (#70).
    */
   seed_only?: boolean;
+  /**
+   * Products this page documents that get a standalone catalog row of their own, sourced from
+   * their www product page. For a product that left the matrix but whose only /hardware page
+   * is shared (a combined page or a series page that matched other matrix rows): without this
+   * it has no row and its www product falls into the drop ledger. The page itself can be
+   * matrix-linked; the code is also seeded for fetch.
+   */
+  www_rows?: string[];
   note?: string;
 }
 
@@ -43,9 +52,9 @@ export function hardwareWwwMap(): Record<string, HardwareWwwEntry> {
 }
 
 /**
- * Every product code the map vouches for — `www_code` plus every `www_codes` member,
- * flattened and de-duplicated across all slugs. Status-only entries (no code) contribute
- * nothing. This is the seed set for assess-www's candidate fetch.
+ * Every product code the map vouches for — `www_code`, every `www_codes` member and every
+ * `www_rows` product, flattened and de-duplicated across all slugs. Status-only entries (no
+ * code) contribute nothing. This is the seed set for assess-www's candidate fetch.
  */
 export function curatedWwwCodes(): string[] {
   const out = new Set<string>();
@@ -53,6 +62,7 @@ export function curatedWwwCodes(): string[] {
     if (e.status) continue; // status-only entry a maintainer marked non-fetchable — never seed it
     if (e.www_code) out.add(e.www_code);
     for (const c of e.www_codes ?? []) out.add(c);
+    for (const c of e.www_rows ?? []) out.add(c);
   }
   return [...out];
 }
@@ -72,4 +82,14 @@ export function curatedWwwCodeForSlug(slug: string): string | undefined {
   // if some future edit also set `www_code` on it.
   if (!e || e.seed_only || e.status || e.www_codes) return undefined;
   return e.www_code;
+}
+
+/**
+ * Every `www_rows` product as `{ slug, code }`, sorted by slug then code: the products that get a
+ * standalone catalog row attached to that /hardware page.
+ */
+export function curatedWwwRows(): Array<{ slug: string; code: string }> {
+  const out: Array<{ slug: string; code: string }> = [];
+  for (const [slug, e] of Object.entries(MAP)) for (const code of e.www_rows ?? []) out.push({ slug, code });
+  return out.sort((a, b) => a.slug.localeCompare(b.slug) || a.code.localeCompare(b.code));
 }
