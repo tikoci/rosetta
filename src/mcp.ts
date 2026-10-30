@@ -40,6 +40,13 @@ const RESOLVED_VERSION = resolveVersion(import.meta.dirname);
 
 const args = process.argv.slice(2);
 
+// `--db <path>` is a global option, so it may come before the subcommand
+// (`rosetta --db X browse`). Subcommand and positional parsing skip that pair.
+const dbArgIdx = args.indexOf("--db");
+const isDbPair = (i: number) => dbArgIdx !== -1 && (i === dbArgIdx || i === dbArgIdx + 1);
+const commandIdx = args.findIndex((_, i) => !isDbPair(i));
+const command = commandIdx === -1 ? undefined : args[commandIdx];
+
 /** Extract the value following a named flag (e.g. --port 8080 → "8080") */
 function getArg(name: string): string | undefined {
   const idx = args.indexOf(name);
@@ -273,16 +280,16 @@ if (args.includes("--help") || args.includes("-h")) {
 // Wrap in async IIFE — bun build --compile does not support top-level await
 (async () => {
 
-if (args[0] === "browse") {
+if (command === "browse") {
   await ensureDbReady((msg) => process.stderr.write(`${msg}\n`));
   // Strip "browse" from argv so browse.ts only sees flags/queries
-  process.argv.splice(2, 1);
+  process.argv.splice(2 + commandIdx, 1);
   await import("./browse.ts");
   return;
 }
 
-if (args[0] === "export") {
-  const rest = args.slice(1);
+if (command === "export") {
+  const rest = args.filter((_, i) => i !== commandIdx && !isDbPair(i));
   const force = rest.includes("--force");
   const outDir = rest.find((a) => !a.startsWith("-"));
   if (!outDir) {

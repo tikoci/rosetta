@@ -1360,7 +1360,7 @@ describe("CLI flags", () => {
   });
 
   test("browse mode bootstraps database before importing browse.ts", () => {
-    expect(src).toContain('if (args[0] === "browse")');
+    expect(src).toContain('if (command === "browse")');
     expect(src).toContain("await ensureDbReady");
   });
 

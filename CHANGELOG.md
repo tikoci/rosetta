@@ -116,6 +116,10 @@ uses [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`--db <path>` works before the subcommand.** `rosetta --db X browse --once …` started
+  the stdio MCP server instead of running the command, printed nothing and exited 0, and
+  `rosetta --db X export <dir>` did the same. `rosetta export --db X <dir>` used the DB path
+  as the output directory. `--db` now selects the DB wherever it appears, as `--help` says.
 - **A device that leaves the product matrix stays findable as discontinued, even when
   its only /hardware page is shared.** The hardware catalog gave a row only to matrix
   devices and /hardware pages, so a former matrix device documented only on a combined
