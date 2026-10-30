@@ -30,7 +30,7 @@ Documentation covers RouterOS **v7 only**. Prose is extracted live from <https:/
 
 ## Install on MikroTik (/app)
 
-RouterOS 7.22+ includes the [/app](https://manual.mikrotik.com/docs/CLI%20Reference/container/app) feature for running containers directly on the router. This is the simplest way to deploy rosetta — install once, and any AI assistant on your network can connect to the MCP endpoint URL shown in the router UI.
+RouterOS 7.22+ includes the [/app](https://manual.mikrotik.com/docs/containers/apps/) feature for running containers directly on the router. This is the simplest way to deploy rosetta — install once, and any AI assistant on your network can connect to the MCP endpoint URL shown in the router UI.
 
 **Requirements:** RouterOS 7.22+, x86 or ARM64 architecture (CCR, RB5009, hAP ax series, CHR, etc.), container package installed, device-mode enabled.
 
@@ -52,7 +52,7 @@ After reboot:
 /system/device-mode/update mode=advanced container=yes
 ```
 
-See MikroTik's [Container documentation](https://manual.mikrotik.com/docs/Extended%20features/Container/) for full prerequisites and troubleshooting.
+See MikroTik's [Container documentation](https://manual.mikrotik.com/docs/containers/) for full prerequisites and troubleshooting.
 
 ### 2. Add the rosetta app
 

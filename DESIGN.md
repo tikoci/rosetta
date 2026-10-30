@@ -22,7 +22,7 @@ This pattern is used across several `tikoci` projects (forum archives, documenta
 | Product test results | `mikrotik.com/product/<slug>` | HTML (server-rendered) | 144 devices with tests, 127 with block diagrams |
 | Changelogs | `https://download.mikrotik.com/routeros/{version}/CHANGELOG` | Plain text per version | All versions in ros_versions |
 | YouTube transcripts | `https://www.youtube.com/@MikroTik/videos` via yt-dlp; cached in `transcripts/YYYY-MM-DD/videos.ndjson` | NDJSON cache (one `VideoCacheEntry` per line) | 746 videos, ~2,374 non-empty transcript segments |
-| Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 8 skills, ~30K words (community content) |
+| Agent skills | [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | YAML frontmatter + markdown | 18 skills, ~30K words (community content) |
 
 **restraml dependency:** Version discovery uses 1 GitHub API call (`api.github.com/repos/tikoci/restraml/contents/docs`); actual inspect.json files are fetched from GitHub Pages (no rate limit). For offline workflows, `extract-all-versions.ts` accepts a local docs directory and `extract-commands.ts` accepts a local file path.
 
@@ -70,11 +70,12 @@ Directional options and the full research trail are recorded in `briefings/B-001
 - **Normalized fields:** RAM and storage are parsed to integer MB columns during extraction for structured filters.
 - **Naming caveat:** Product names differ across the matrix, product codes, product-page slugs, and docs. Alias coverage is intentionally iterative rather than treated as solved.
 - **Matrix = the *current* core-device set (load-bearing assumption).** MikroTik's product matrix lists actively-sold routers/switches/APs, so matrix membership is treated as the authoritative "current core device" signal — as distinct from the wider off-matrix universe (`hardware_catalog`), which is mostly discontinued gear plus accessories/modules/series pages. Grounded 2026-07-13 against the `discontinued` flag on `mikrotik.com/product` pages: **0 of 74** matrix-linked www products are discontinued, vs **54%** of off-matrix www products and **~95%** of off-matrix `kind = device` pages. This is why downstream surfaces can default to matrix-only ("current") and treat off-matrix as an opt-in legacy/derivative tier. See `briefings/B-0021-off-matrix-nomenclature-derivative-parts.md` and issue #70.
+- **Leaving the matrix is not leaving the catalog.** A product MikroTik stops listing leaves `devices` but should stay in `hardware_catalog` as discontinued, with specs from its www page, so lookups by name or code still answer. A product with its own /hardware page gets that row automatically, under that page's `hw-<slug>` id (LHG XL 5 ac became `hw-lhg-xl-5-ac`), so its old matrix `rosetta_device_id` is not kept. One documented only on a shared page (a combined page, or a series page matched by other matrix rows) needs a curated `www_rows` entry in `hardware-www-map.toml`, which keeps the old matrix id; without it the product only reaches the drop ledger, which is how Groove 52 and SXTsq 5 ac went missing after the 2026-10-03 snapshot (#240).
 
 ### Product test results and block diagrams
 
 - **Source:** Individual product pages at `https://mikrotik.com/product/<slug>`, parsed server-side with linkedom.
-- **Coverage:** 144 of 155 devices have benchmark tables; 127 expose block diagram URLs.
+- **Coverage:** most matrix devices have benchmark tables (about 140 of 155 when last counted) and most expose block diagram URLs; `routeros_stats` has current counts, and the release gate floors `device_test_results` at 2,000 rows and block diagrams at 80 devices.
 - **Benchmarks:** Ethernet bridging/routing at 64/512/1518-byte packets and IPSec throughput at 64/512/1400-byte packets with multiple cipher/config combinations.
 - **URL slugs:** Slug discovery is the fragile part. The extractor tries several generated variants per product, including product-code forms, `plus` substitutions, and Unicode superscript normalization.
 - **Storage shape:** Benchmarks live in normalized `device_test_results` rows, not JSON blobs, so cross-device filtering/sorting stays SQL-native.
@@ -82,7 +83,7 @@ Directional options and the full research trail are recorded in `briefings/B-001
 ### Agent skills (`tikoci/routeros-skills`)
 
 - **Source:** [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills), a community-created and human-reviewed corpus for agents.
-- **Content:** 8 skills, roughly 30K words total, with YAML frontmatter and optional `references/` documents.
+- **Content:** 18 skills, roughly 30K words total, with YAML frontmatter and optional `references/` documents.
 - **Attribution boundary:** Skills are explicitly **not** official MikroTik docs. Every resource read prepends provenance so agents can distinguish textbook facts from guide-style advice.
 - **Extraction:** `src/extract-skills.ts` supports GitHub API fetch, `--local`, and `--from-cache`. CI builds fetch from GitHub; cached `skills/` content supports offline rebuilds.
 
@@ -311,7 +312,7 @@ MikroTik publishes per-version changelogs at `https://download.mikrotik.com/rout
 
 Agent skills from tikoci/routeros-skills are community-created supplemental guides, not official MikroTik documentation. The integration maintains a clear **attribution boundary**: every skill response (MCP resource read, TUI display) prepends a provenance header explaining the content is AI-generated, human-reviewed, may contain errors, and should be verified against official docs via `routeros_search`/`routeros_get_page`.
 
-**Why resources, not tools:** Skills are complete documents (~2K–8K words each), not search results. With only 8 skills, there's nothing to search — agents browse a listing and read one. MCP Resources (`rosetta://skills/{name}`) are the right surface: deliberate context attachment, like the schema and CSV resources. This avoids adding tool #17, aligning with the North Star consolidation direction. If the corpus grows beyond ~20 skills, FTS5 is pre-built for future integration into the unified `routeros_search` via `related.skills`.
+**Why resources, not tools:** Skills are complete documents (~2K–8K words each), not search results. With under 20 skills, there's nothing to search — agents browse a listing and read one. MCP Resources (`rosetta://skills/{name}`) are the right surface: deliberate context attachment, like the schema and CSV resources. This avoids adding tool #17, aligning with the North Star consolidation direction. If the corpus grows beyond ~20 skills, FTS5 is pre-built for future integration into the unified `routeros_search` via `related.skills`.
 
 **Why include community content in an "unopinionated" project:** Rosetta's primary corpus is authoritative MikroTik docs. Skills are opinionated guides written for agents. The provenance system keeps them clearly separated — agents can choose how much weight to give each. The pattern is textbook + study guide: the system labels which is which. Since RouterOS training data is limited, having curated practical guidance available (with appropriate caveats) is net positive for agent effectiveness.
 
@@ -410,7 +411,7 @@ Current lean:
 | Project | Relationship |
 |---------|-------------|
 | [tikoci/restraml](https://github.com/tikoci/restraml) | Source of `inspect.json` command tree + RAML schema. GitHub Actions run CHR under QEMU to extract command AST via `/console/inspect`, daily checks for new versions. PR #35 adds deep-inspect. Also publishes [GitHub Pages tools](https://tikoci.github.io/restraml/) (see below). |
-| [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | Source of agent skill guides. Community-created RouterOS domain knowledge for AI agents. 8 skills with YAML frontmatter + markdown body. Embedded in rosetta DB via `extract-skills.ts`. |
+| [tikoci/routeros-skills](https://github.com/tikoci/routeros-skills) | Source of agent skill guides. Community-created RouterOS domain knowledge for AI agents. 18 skills with YAML frontmatter + markdown body. Embedded in rosetta DB via `extract-skills.ts`. |
 | [tikoci/vscode-tikbook](https://github.com/tikoci/vscode-tikbook) | RouterOS script notebook for VSCode. Potential consumer of this DB for Copilot-assisted scripting. |
 | [tikoci/lsp-routeros-ts](https://github.com/tikoci/lsp-routeros-ts) | Consumer: hover help, property docs, command path → URL mapping. |
 | [tikoci/netinstall](https://github.com/tikoci/netinstall) | RouterOS REST API gotchas (HTTP verb mapping, property name differences). |
