@@ -110,8 +110,18 @@ uses [Semantic Versioning](https://semver.org/).
   with "No version matching". A new `scripts/wait-for-registry.ts` gate polls
   the abbreviated manifest for the exact version plus a usable tarball
   reference on the same 900s budget, and the `--version` probe now asserts the
-  exact executed version instead of a substring match. The bare/tag upgrade
-  path is unchanged; its warm-cache contract is still undecided (see #226).
+  exact executed version instead of a substring match. The upgrade path follows
+  its own contract (see #226).
+- **The release upgrade smoke gates the channel tag and invokes the explicit-tag
+  form (#226).** `bunx-upgrade-smoke` waited on `npm view` (full packument) and
+  invoked the bare client form — but a warm bare `bunx` serves its cache with zero
+  registry requests, so no metadata probe could gate it, and the full-packument wait
+  carried the same lag class #202 fixed on the fresh-install path. The wait now
+  requires the channel tag (`latest`/`next`) to resolve to the just-published version
+  with a servable tarball through the abbreviated install manifest Bun reads, and the
+  smoke invokes `@latest`/`@next` with no `--refresh`, still asserting the new-release
+  DB banner. Bare-form staleness is accepted, documented behavior (MANUAL "How Updates
+  Work"), not something CI gates.
 - **Piped `browse` output is plain text; `NO_COLOR` is honored.** Human-rendered
   commands (`browse --once stats`, `search`, …) no longer emit ANSI escapes or
   OSC 8 hyperlinks when stdout is not a TTY, so piped output needs no stripping

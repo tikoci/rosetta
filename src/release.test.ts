@@ -1097,22 +1097,29 @@ exit $?`,
     expect(buildBlock).not.toContain("2>/dev/null || true");
   });
 
-  test("bunx-upgrade-smoke seeds a stale DB from the previous version, then proves a bare bunx auto-refreshes it (#76/#23/#78)", () => {
+  test("bunx-upgrade-smoke seeds a stale DB from the previous version, then proves an explicit-tag bunx auto-refreshes it (#76/#23/#78, #226)", () => {
     const src = readText(".github/workflows/release-smoke.yml");
     const upgradeIdx = mustIndex(src, "\n  bunx-upgrade-smoke:");
     const upgradeBlock = src.slice(upgradeIdx);
 
     // Skipped (not failed) when there's no prior publish on this channel yet.
     expect(upgradeBlock).toMatch(/if: inputs\.previous_version != ''/);
-    // The channel comes from the version: a prerelease resolves through @next.
-    expect(upgradeBlock).toContain(`case "$NPM_VER" in *-*) NPM_SPEC="\${NPM_SPEC}@next" ;; esac`);
-    // It waits on the dist-tag itself, so it gets the long budget (#176).
-    expect(upgradeBlock).toContain("for i in {1..180}; do");
+    // The channel comes from the version: a prerelease resolves through @next,
+    // a bare version through an explicit @latest (never the bare form — a warm
+    // bare bunx serves its cache with zero registry requests, #226).
+    expect(upgradeBlock).toContain('NPM_SPEC="@tikoci/rosetta@latest"');
+    expect(upgradeBlock).toContain(`case "$NPM_VER" in *-*) NPM_SPEC="@tikoci/rosetta@next" ;; esac`);
+    // The tag wait polls what Bun reads, not the full packument `npm view`
+    // sees — same lag class #202 fixed on the fresh-install path. (The
+    // negative matches a real `npm view "…"` invocation, not the prose above.)
+    expect(upgradeBlock).toContain('bun scripts/wait-for-registry.ts "@tikoci/rosetta" "$NPM_VER" --tag "$NPM_TAG"');
+    expect(upgradeBlock).not.toContain('npm view "');
+    // The gate script lives in the repo, so the job must check it out first.
+    expect(upgradeBlock).toContain("uses: actions/checkout@v7");
 
     // Seeds with the OLD version, then invokes the NEW version through the
-    // real bare/tag client form (never an exact-version pin or --refresh).
+    // explicit-tag client form (never an exact-version pin or --refresh).
     expect(upgradeBlock).toContain(`bunx "@tikoci/rosetta@\${PREV_NPM_VER}" --refresh`);
-    expect(upgradeBlock).toContain('NPM_SPEC="@tikoci/rosetta"');
     expect(upgradeBlock).toContain(`bunx "$NPM_SPEC" --http`);
     // The new version must never be invoked by exact pin or with --refresh:
     // neither would exercise an ordinary MCP client's dist-tag resolution.

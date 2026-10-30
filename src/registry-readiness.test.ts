@@ -14,9 +14,12 @@ import { join } from "node:path";
 import {
   ABBREVIATED_MANIFEST_ACCEPT,
   checkAbbreviatedManifest,
+  checkTagManifest,
+  isDistTag,
   isExactVersion,
   manifestUrl,
   waitForExactVersion,
+  waitForTagVersion,
 } from "./registry-readiness.ts";
 
 describe("isExactVersion", () => {
@@ -29,6 +32,19 @@ describe("isExactVersion", () => {
   test("rejects dist-tags, ranges, and the v prefix", () => {
     for (const spec of ["latest", "next", "^1.2.3", ">=1.0.0", "*", "", "v1.2.3", "1.2", "1.2.3.4"]) {
       expect(isExactVersion(spec)).toBe(false);
+    }
+  });
+});
+
+describe("isDistTag", () => {
+  test("accepts channel tags", () => {
+    expect(isDistTag("latest")).toBe(true);
+    expect(isDistTag("next")).toBe(true);
+  });
+
+  test("rejects exact versions, ranges, and empty/whitespace specs", () => {
+    for (const spec of ["1.0.1", "0.12.0-next.123", "^1.2.3", "*", "", "a b", "v1.2.3"]) {
+      expect(isDistTag(spec)).toBe(false);
     }
   });
 });
@@ -83,6 +99,61 @@ describe("checkAbbreviatedManifest", () => {
   test("not ready on malformed documents", () => {
     for (const doc of [null, [], "x", 42, {}, { versions: null }, { versions: [] }, { versions: { "1.0.1": null } }]) {
       expect(checkAbbreviatedManifest(doc, "1.0.1").ready).toBe(false);
+    }
+  });
+});
+
+describe("checkTagManifest", () => {
+  const entry = (tarball: unknown) => ({ name: "pkg", version: "1.0.1", dist: { tarball } });
+  const tagged = (tag: string, resolved: unknown, versions: Record<string, unknown>) => ({
+    name: "pkg",
+    "dist-tags": { [tag]: resolved },
+    versions,
+  });
+
+  test("ready when the tag resolves to the expected version with a usable tarball", () => {
+    const check = checkTagManifest(
+      tagged("next", "1.0.1", { "1.0.0": entry("http://x/1.0.0.tgz"), "1.0.1": entry("http://x/1.0.1.tgz") }),
+      "next",
+      "1.0.1",
+    );
+    expect(check.ready).toBe(true);
+    expect(check.tarball).toBe("http://x/1.0.1.tgz");
+    expect(check.resolved).toBe("1.0.1");
+  });
+
+  test("not ready when the tag is missing or points at another version", () => {
+    const missing = checkTagManifest(tagged("latest", "1.0.0", { "1.0.0": entry("http://x/1.0.0.tgz") }), "next", "1.0.1");
+    expect(missing.ready).toBe(false);
+    expect(missing.reason).toContain("next");
+
+    const lagging = checkTagManifest(
+      tagged("next", "1.0.0", { "1.0.0": entry("http://x/1.0.0.tgz"), "1.0.1": entry("http://x/1.0.1.tgz") }),
+      "next",
+      "1.0.1",
+    );
+    expect(lagging.ready).toBe(false);
+    expect(lagging.reason).toContain("1.0.0");
+    expect(lagging.reason).toContain("1.0.1");
+    expect(lagging.resolved).toBe("1.0.0");
+  });
+
+  test("a tag match without a servable version body is NOT readiness", () => {
+    // The tag moved but the version entry is missing or has no tarball —
+    // bunx would still fail, so the gate must not pass.
+    const noBody = checkTagManifest(tagged("next", "1.0.1", { "1.0.0": entry("http://x/1.0.0.tgz") }), "next", "1.0.1");
+    expect(noBody.ready).toBe(false);
+
+    const noTarball = checkTagManifest(tagged("next", "1.0.1", { "1.0.1": entry(undefined) }), "next", "1.0.1");
+    expect(noTarball.ready).toBe(false);
+    expect(noTarball.reason).toContain("dist.tarball");
+  });
+
+  test("not ready on malformed documents", () => {
+    const noTags = { name: "pkg", versions: { "1.0.1": entry("http://x/1.0.1.tgz") } };
+    expect(checkTagManifest(noTags, "next", "1.0.1").ready).toBe(false);
+    for (const doc of [null, [], "x", 42, {}, { "dist-tags": null }, { "dist-tags": [] }]) {
+      expect(checkTagManifest(doc, "next", "1.0.1").ready).toBe(false);
     }
   });
 });
@@ -217,6 +288,105 @@ describe("waitForExactVersion against a mock registry", () => {
   });
 });
 
+describe("waitForTagVersion against a mock registry (#226)", () => {
+  function serve(fetchImpl: (req: Request) => Response | Promise<Response>) {
+    const requests: string[] = [];
+    const server = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch(req) {
+        const path = new URL(req.url).pathname;
+        requests.push(`${req.method} ${path} accept=${req.headers.get("accept")}`);
+        return fetchImpl(req);
+      },
+    });
+    return { url: `http://127.0.0.1:${server.port}/`, requests, stop: () => server.stop(true) };
+  }
+
+  const doc = (tag: string, resolved: string, versions: string[]) => {
+    const map: Record<string, unknown> = {};
+    for (const version of versions) {
+      map[version] = { name: "pkg", version, dist: { tarball: `http://127.0.0.1/x/${version}.tgz` } };
+    }
+    return Response.json({ name: "pkg", "dist-tags": { [tag]: resolved }, versions: map });
+  };
+
+  test("ready immediately when the tag resolves to the expected version", async () => {
+    const mock = serve(() => doc("next", "1.0.1", ["1.0.0", "1.0.1"]));
+    try {
+      const outcome = await waitForTagVersion({
+        name: "pkg",
+        tag: "next",
+        version: "1.0.1",
+        registry: mock.url,
+        intervalMs: 10,
+      });
+      expect(outcome.ready).toBe(true);
+      expect(outcome.attempts).toBe(1);
+      expect(outcome.tarball).toContain("1.0.1.tgz");
+      // The probe must read what Bun reads — the abbreviated install manifest.
+      expect(mock.requests[0]).toContain(ABBREVIATED_MANIFEST_ACCEPT);
+    } finally {
+      mock.stop();
+    }
+  });
+
+  test("a lagging tag is NOT readiness; the flip to the expected version is", async () => {
+    let resolved = "1.0.0";
+    const mock = serve(() => doc("next", resolved, ["1.0.0", "1.0.1"]));
+    try {
+      const lagging = await waitForTagVersion({
+        name: "pkg",
+        tag: "next",
+        version: "1.0.1",
+        registry: mock.url,
+        timeoutMs: 120,
+        intervalMs: 20,
+      });
+      expect(lagging.ready).toBe(false);
+      expect(lagging.lastFailure).toContain("1.0.0");
+      expect(lagging.lastFailure).toContain("1.0.1");
+
+      resolved = "1.0.1";
+      const ready = await waitForTagVersion({ name: "pkg", tag: "next", version: "1.0.1", registry: mock.url, intervalMs: 10 });
+      expect(ready.ready).toBe(true);
+      expect(ready.tarball).toContain("1.0.1.tgz");
+    } finally {
+      mock.stop();
+    }
+  });
+
+  test("times out bounded with diagnostics naming the endpoint, tag, version, and last failure", async () => {
+    const mock = serve(() => new Response("nope", { status: 404 }));
+    try {
+      const started = Date.now();
+      const outcome = await waitForTagVersion({
+        name: "pkg",
+        tag: "next",
+        version: "9.9.9",
+        registry: mock.url,
+        timeoutMs: 150,
+        intervalMs: 20,
+      });
+      expect(Date.now() - started).toBeLessThan(10_000);
+      expect(outcome.ready).toBe(false);
+      expect(outcome.attempts).toBeGreaterThan(1);
+      expect(outcome.lastFailure).toContain("HTTP 404");
+      expect(outcome.lastFailure).toContain(mock.url.replace(/\/+$/, ""));
+    } finally {
+      mock.stop();
+    }
+  });
+
+  test("refuses a non-tag or a non-exact version instead of waiting on it", async () => {
+    await expect(waitForTagVersion({ name: "pkg", tag: "1.0.1", version: "1.0.1" })).rejects.toThrow(
+      "expected a dist-tag",
+    );
+    await expect(waitForTagVersion({ name: "pkg", tag: "", version: "1.0.1" })).rejects.toThrow("expected a dist-tag");
+    await expect(waitForTagVersion({ name: "pkg", tag: "next", version: "next" })).rejects.toThrow("exact-version-only");
+  });
+});
+
 describe("waitForExactVersion with an injected fetch", () => {
   test("a stalled connection fails the attempt instead of hanging the wait", async () => {
     // A fetch that never settles and ignores its signal: without a
@@ -308,10 +478,43 @@ describe("wait-for-registry.ts CLI", () => {
     }
   }, 30_000);
 
+  test("--tag waits for the tag to resolve to the version (#226)", async () => {
+    let resolved = "1.0.0";
+    const server = Bun.serve({
+      port: 0,
+      hostname: "127.0.0.1",
+      fetch: () =>
+        Response.json({
+          name: "pkg",
+          "dist-tags": { next: resolved },
+          versions: {
+            "1.0.0": { version: "1.0.0", dist: { tarball: "http://127.0.0.1/x/1.0.0.tgz" } },
+            "1.0.1": { version: "1.0.1", dist: { tarball: "http://127.0.0.1/x/1.0.1.tgz" } },
+          },
+        }),
+    });
+    const registry = `http://127.0.0.1:${server.port}/`;
+    try {
+      const lagging = await runCli(["pkg", "1.0.1", "--tag", "next", "--registry", registry, "--timeout-s", "0.3", "--interval-s", "0.1"]);
+      expect(lagging.exit).toBe(1);
+      expect(lagging.stderr).toContain("::error::");
+      expect(lagging.stderr).toContain("pkg@next");
+      expect(lagging.stderr).toContain("1.0.1");
+
+      resolved = "1.0.1";
+      const ok = await runCli(["pkg", "v1.0.1", "--tag", "next", "--registry", registry]);
+      expect(ok.exit).toBe(0);
+      expect(ok.stdout).toContain("✓ pkg@next resolves to 1.0.1");
+    } finally {
+      server.stop(true);
+    }
+  }, 30_000);
+
   test("fail-closed branches exit 1 with usage; --help exits 0", async () => {
     const failures: Array<{ args: string[]; stderr: string }> = [
       { args: ["pkg", "1.0.1", "--registry"], stderr: "--registry needs a value" },
       { args: ["pkg", "1.0.1", "--timeout-s", "--registry", "http://x/"], stderr: "--timeout-s needs a value" },
+      { args: ["pkg", "1.0.1", "--tag"], stderr: "--tag needs a value" },
       { args: ["pkg", "1.0.1", "--bogus"], stderr: "Unknown flag --bogus" },
       { args: [], stderr: "Missing <package>" },
       { args: ["pkg"], stderr: "Missing <package>" },
@@ -319,6 +522,7 @@ describe("wait-for-registry.ts CLI", () => {
       { args: ["pkg", "1.0.1", "--timeout-s", "0"], stderr: "must be positive numbers" },
       { args: ["pkg", "1.0.1", "--interval-s", "-1"], stderr: "must be positive numbers" },
       { args: ["pkg", "latest"], stderr: "exact-version-only" },
+      { args: ["pkg", "1.0.1", "--tag", "1.0.1"], stderr: "expected a dist-tag" },
     ];
     for (const { args, stderr } of failures) {
       const r = await runCli(args);
@@ -351,6 +555,7 @@ describe("bunx cache behavior against a mock registry (#202 probe)", () => {
     registry: string;
     requests: string[];
     setLatest: (version: "1.0.0" | "1.0.1") => void;
+    setNext: (version: "1.0.0" | "1.0.1" | null) => void;
     run: (spec: string) => Promise<BunxRun>;
     stop: () => void;
   }
@@ -367,6 +572,7 @@ describe("bunx cache behavior against a mock registry (#202 probe)", () => {
       if (await archive.exited) throw new Error("tar failed");
     }
     let latest: "1.0.0" | "1.0.1" = "1.0.0";
+    let nextTag: "1.0.0" | "1.0.1" | null = null;
     const requests: string[] = [];
     const server = Bun.serve({
       port: 0,
@@ -375,8 +581,10 @@ describe("bunx cache behavior against a mock registry (#202 probe)", () => {
         const path = new URL(req.url).pathname;
         requests.push(`${latest}: ${req.method} ${path} accept=${req.headers.get("accept")}`);
         if (path.endsWith(".tgz")) return new Response(Bun.file(join(root, path.split("/").pop() ?? "")));
+        const served = ["1.0.0"];
+        if (latest === "1.0.1" || nextTag === "1.0.1") served.push("1.0.1");
         const versions: Record<string, unknown> = {};
-        for (const version of latest === "1.0.0" ? ["1.0.0"] : ["1.0.0", "1.0.1"]) {
+        for (const version of served) {
           versions[version] = {
             name,
             version,
@@ -384,7 +592,9 @@ describe("bunx cache behavior against a mock registry (#202 probe)", () => {
             dist: { tarball: `http://127.0.0.1:${server.port}/${version}.tgz` },
           };
         }
-        return Response.json({ name, "dist-tags": { latest }, versions });
+        const distTags: Record<string, string> = { latest };
+        if (nextTag !== null) distTags.next = nextTag;
+        return Response.json({ name, "dist-tags": distTags, versions });
       },
     });
     const client = join(root, "client");
@@ -419,6 +629,9 @@ describe("bunx cache behavior against a mock registry (#202 probe)", () => {
       setLatest: (version) => {
         latest = version;
       },
+      setNext: (version) => {
+        nextTag = version;
+      },
       run,
       stop: () => {
         server.stop(true);
@@ -451,13 +664,72 @@ describe("bunx cache behavior against a mock registry (#202 probe)", () => {
       expect(exact.stdout).toBe("1.0.1");
       expect(exact.newRequests.length).toBeGreaterThan(0);
 
-      // Boundary (NOT covered by the gate): a warm bare invocation still
-      // executes the cached OLD version with zero registry requests. This
-      // documents why the upgrade path needs its own contract decision.
+      // Boundary (deliberately NOT covered by any gate, #226 decision B): a
+      // warm bare invocation still executes the cached OLD version with zero
+      // registry requests. The upgrade smoke uses the explicit-tag form below
+      // instead; bare-form staleness is accepted, documented behavior.
       const bare = await fx.run(fx.name);
       expect(bare.exit).toBe(0);
       expect(bare.stdout).toBe("1.0.0");
       expect(bare.newRequests).toEqual([]);
+    } finally {
+      fx.stop();
+    }
+  }, 120_000);
+
+  test("explicit @latest fetches the new version past a warm cache once the tag gate passes (#226)", async () => {
+    const fx = await setup();
+    try {
+      // Seed a warm cache the way a real user gets one: a bare invocation.
+      const seed = await fx.run(fx.name);
+      expect(seed.exit).toBe(0);
+      expect(seed.stdout).toBe("1.0.0");
+
+      // Publish 1.0.1 on latest, then gate on it exactly like
+      // release-smoke.yml's bunx-upgrade-smoke does for stable releases.
+      fx.setLatest("1.0.1");
+      const gate = await waitForTagVersion({
+        name: fx.name,
+        tag: "latest",
+        version: "1.0.1",
+        registry: fx.registry,
+        intervalMs: 10,
+      });
+      expect(gate.ready).toBe(true);
+
+      const tagged = await fx.run(`${fx.name}@latest`);
+      expect(tagged.exit).toBe(0);
+      expect(tagged.stdout).toBe("1.0.1");
+      expect(tagged.newRequests.length).toBeGreaterThan(0);
+    } finally {
+      fx.stop();
+    }
+  }, 120_000);
+
+  test("explicit @next fetches the new version past a warm cache once the tag gate passes (#226)", async () => {
+    const fx = await setup();
+    try {
+      // Seed a warm cache the way a real user gets one: a bare invocation.
+      const seed = await fx.run(fx.name);
+      expect(seed.exit).toBe(0);
+      expect(seed.stdout).toBe("1.0.0");
+
+      // Publish 1.0.1 on the next channel only, then gate on it exactly
+      // like release-smoke.yml's bunx-upgrade-smoke does for prereleases.
+      fx.setNext("1.0.1");
+      const gate = await waitForTagVersion({
+        name: fx.name,
+        tag: "next",
+        version: "1.0.1",
+        registry: fx.registry,
+        intervalMs: 10,
+      });
+      expect(gate.ready).toBe(true);
+
+      const tagged = await fx.run(`${fx.name}@next`);
+      expect(tagged.exit).toBe(0);
+      expect(tagged.stdout).toBe("1.0.1");
+      expect(tagged.newRequests.length).toBeGreaterThan(0);
     } finally {
       fx.stop();
     }
