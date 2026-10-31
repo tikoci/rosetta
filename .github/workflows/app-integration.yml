@@ -19,11 +19,6 @@ name: App Integration
 # are no leg conditions).
 
 on:
-  # TEMP (pre-merge proof only — remove before merge): workflow_dispatch cannot
-  # be dispatched until this file exists on main, so rehearse via a
-  # branch-filtered push trigger once, then delete this block.
-  push:
-    branches: [feat/app-integration]
   workflow_dispatch:
     inputs:
       image:
@@ -101,10 +96,9 @@ jobs:
         timeout-minutes: ${{ matrix.step-timeout }}
         run: |
           set -eo pipefail
-          # TEMP (pre-merge proof only — push events carry no inputs, so the
-          # candidate is hardcoded here; the shipped revision takes inputs.*).
           bun scripts/app-integration.ts --arch ${{ matrix.arch }} \
-            --image ghcr.io/tikoci/rosetta:v0.12.0 --ros-version 7.25 --version ""
+            --image ${{ inputs.image }} --ros-version ${{ inputs.ros_version }} \
+            --version "${{ inputs.version }}"
 
       - name: Upload diagnostics bundle
         if: always()
