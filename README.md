@@ -54,7 +54,17 @@ After reboot:
 
 See MikroTik's [Container documentation](https://manual.mikrotik.com/docs/containers/) for full prerequisites and troubleshooting.
 
-### 2. Add the rosetta app
+### 2. Give /app a storage disk
+
+The `/app` system cannot install anything until a storage disk is selected: without one, `/app/add` succeeds but the app sits idle with no status and no error. Run MikroTik's setup wizard (WebFig: App → Setup, or `/app/setup` on the CLI) and pick a disk, or point `/app/settings` at an already-mounted disk directly:
+
+```routeros
+/app/settings/set disk=<disk-name>
+```
+
+Allow at least 2 GB of free space on that disk — the extracted app is up to ~1 GB, and RouterOS copies the ~415 MB database aside when the container first writes to it. No LAN bridge is required: without one the app runs on an internal NAT network with automatic port redirects. (On CHR, attach a second disk first — the system disk cannot be used for `/app` storage.)
+
+### 3. Add the rosetta app
 
 ```routeros
 /app/add use-https=yes disabled=no yaml="name: rosetta
@@ -74,9 +84,9 @@ services:
 "
 ```
 
-That's it. RouterOS downloads the container image, configures networking and firewall redirects, and starts the MCP server. The `auto-update: true` setting pulls the latest image on each boot.
+The inner double quotes must stay backslash-escaped, as shown — an unescaped `"` ends the `yaml` string early and the command fails. With storage configured, that's it: RouterOS downloads the container image, configures networking and firewall redirects, and starts the MCP server. The `auto-update: true` setting pulls the latest image on each boot.
 
-### 3. Get the MCP endpoint URL
+### 4. Get the MCP endpoint URL
 
 The URL to use with your AI assistant is shown as **UI URL** in WebFig (App → rosetta), or from the CLI:
 
@@ -86,7 +96,7 @@ The URL to use with your AI assistant is shown as **UI URL** in WebFig (App → 
 
 This URL includes the `/mcp` path and is ready to paste into any MCP client that supports HTTP transport. With `use-https=yes`, the URL uses HTTPS with a MikroTik-managed `*.routingthecloud.net` certificate.
 
-### 4. Configure your AI assistant
+### 5. Configure your AI assistant
 
 Point any HTTP-capable MCP client at the URL from the previous step:
 

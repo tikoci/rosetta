@@ -93,6 +93,36 @@ docker run --rm -p 8080:8080 ghcr.io/tikoci/rosetta:latest
 
 These are the same images used by the [MikroTik /app install](README.md#install-on-mikrotik-app). Tags: `latest`, version (e.g., `v0.2.1`), and `sha-<commit>`.
 
+### Disk sizing for /app installs
+
+The `/app` install needs its storage disk to have room to spare (see the README prerequisites). Measured on CHR (RouterOS 7.25, `v0.12.0` image):
+
+- Extracted app footprint: ~1 GB on x86, ~600 MB on arm64.
+- First start copies the ~415 MB database aside (the image layer is read-only, so the first write duplicates the file into writable storage). The disk needs that much free *beyond* the extracted size: with under ~250 MB free the container crash-loops (`attempt to write a readonly database` is the symptom — the underlying failure is out-of-space on that copy), while ~450 MB free was enough. A 4 GB app disk leaves comfortable headroom on both architectures.
+- A swap file roughly matching RAM (~500 MB on a 512 MB CHR, ~1 GB on a 1 GB CHR) may also be created on the app disk automatically; allow for it.
+- No LAN bridge is required: without one the app runs on an internal NAT network with automatic port redirects to the container's port 8080.
+- With `use-https=no` the endpoint is plain HTTP through those redirects, not through the reverse proxy (which only serves `use-https=yes` apps).
+
+### App integration runs (local + CI)
+
+`scripts/app-integration.ts` (#245) proves the README install end to end: it boots a fresh disposable CHR, runs the README's own `/app/add` block (exactly two substitutions: `use-https=no` for CHR, the candidate image ref), and completes a real MCP session through the app's ui-url. The same script runs locally and in CI (`app-integration.yml`); the workflow only adds runner setup. Local prerequisites: QEMU with `qemu-img`, Bun, and exactly quickchr 0.5.4 (`bun install -g @tikoci/quickchr@0.5.4` — the script asserts the pin).
+
+```sh
+make app-integration ARCH=x86 IMAGE=ghcr.io/tikoci/rosetta:v0.12.0
+make app-integration ARCH=arm64 IMAGE=ghcr.io/tikoci/rosetta:sha-abc123 VERSION=0.12.0
+```
+
+`ARCH` is `x86` or `arm64` (one leg per invocation); `ROS_VERSION` defaults to 7.25. `VERSION` is required for floating/sha tags (it is the provenance the smoke asserts) and defaults to the version parsed from a `vX.Y.Z` tag. Each run writes `app-integration-<machine>.json` (redacted evidence bundle: digests, timings, app/container state, smoke output) and removes its VM unless `--keep` is passed.
+
+Dispatch CI from the Actions tab or:
+
+```sh
+gh workflow run app-integration.yml \
+  -f image=ghcr.io/tikoci/rosetta:sha-abc123 -f version=0.12.0
+```
+
+Both legs (x86 on `ubuntu-latest` with KVM, arm64 on `ubuntu-24.04-arm` with TCG) must run and pass; a skipped leg is not a pass. The workflow is dispatch-only — release gating is #246's job. A green run proves the HTTP port-redirect path only (see Disk sizing above): it says nothing about certificate issuance or the reverse-proxy path, which need a real router with `/ip/cloud`.
+
 ## MCP Resources
 
 If your MCP client supports resources, rosetta exposes datasets and supplemental content:

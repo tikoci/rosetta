@@ -52,3 +52,6 @@ coverage/lcov.info
 # Experimental CLI-Reference extraction (experiments/cliref-*.ts) — regenerable
 experiments/cliref.db
 experiments/out/
+
+# /app integration evidence bundles (scripts/app-integration.ts) — CI uploads as artifacts
+app-integration-*.json

@@ -22,6 +22,10 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The README `/app` install steps now cover the storage-disk prerequisite (`/app/setup` or `/app/settings`, with sizing guidance): without a selected disk `/app/add` succeeds but the app sits idle with no error. The steps also note that the inline YAML's inner quotes must stay backslash-escaped. Phase 1 of #245.
+
 ## [0.12.0] — 2026-10-30
 
 ### Added

@@ -1,0 +1,96 @@
+name: App Integration
+
+# RouterOS /app integration (#245 Phase 2): boots a fresh disposable CHR per
+# leg (x86 + arm64), runs the README's own /app/add block against it, and
+# completes a real MCP session through the app's ui-url. All logic lives in
+# scripts/app-integration.ts so local (`make app-integration`) and CI runs are
+# identical — this file only adds runner setup.
+#
+# Dispatch-only: release gating is #246's job. Dispatch with the candidate
+# image and its release version, e.g.:
+#
+#   gh workflow run app-integration.yml \
+#     -f image=ghcr.io/tikoci/rosetta:sha-abc123 -f version=0.12.0
+#
+# A green run proves the HTTP port-redirect path only (use-https=no): it says
+# nothing about certificate issuance or the reverse-proxy/SNI path. Each leg
+# logs host arch, guest arch, the accelerator actually selected, and the
+# container platform; a skipped leg is not a pass (fail-fast is off and there
+# are no leg conditions).
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Candidate image ref, e.g. ghcr.io/tikoci/rosetta:sha-abc123 or :v0.12.0"
+        required: true
+        default: "ghcr.io/tikoci/rosetta:latest"
+      ros_version:
+        description: "RouterOS version for both legs (one stable >= 7.22)"
+        required: false
+        default: "7.25"
+      version:
+        description: "Expected release version for provenance (e.g. 0.12.0); required for floating/sha tags"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  leg:
+    name: App integration (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # x86 CHR needs KVM: the Bun binary SIGILLs under TCG (Phase 1), and
+          # hosted x64 runners ship /dev/kvm. quickchr auto-selects it.
+          - arch: x86
+            runs-on: ubuntu-latest
+            timeout: 30
+            step-timeout: 20
+          # Hosted arm64 has no usable KVM (quickchr integration.yml: 12/12
+          # runs fell back), so this leg is same-arch TCG and gets the long
+          # budget. Same-arch TCG is much faster than the cross-arch TCG the
+          # Mac rehearsal used, but still the slow leg.
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
+            timeout: 60
+            step-timeout: 50
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: ${{ matrix.timeout }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Install QEMU
+        run: |
+          set -eo pipefail
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-system-arm qemu-utils qemu-efi-aarch64
+
+      # Pinned to match QUICKCHR_PIN in scripts/app-integration.ts (the script
+      # asserts the pin; src/app-integration.test.ts asserts they agree).
+      - name: Install pinned quickchr
+        run: bun install -g @tikoci/quickchr@0.5.4
+
+      - name: Run integration leg
+        timeout-minutes: ${{ matrix.step-timeout }}
+        run: |
+          set -eo pipefail
+          bun scripts/app-integration.ts --arch ${{ matrix.arch }} \
+            --image ${{ inputs.image }} --ros-version ${{ inputs.ros_version }} \
+            --version "${{ inputs.version }}"
+
+      - name: Upload diagnostics bundle
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-integration-${{ matrix.arch }}
+          path: app-integration-*.json
