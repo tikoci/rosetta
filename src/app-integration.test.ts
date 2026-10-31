@@ -248,6 +248,11 @@ describe("app-integration.yml", () => {
     expect(yml).toContain(`@tikoci/quickchr@${QUICKCHR_PIN}`);
   });
 
+  test("x86 leg enables KVM (the Bun binary SIGILLs under TCG)", () => {
+    expect(yml).toContain("Enable KVM (x86 leg)");
+    expect(yml).toContain("chmod 666 /dev/kvm");
+  });
+
   test("takes the candidate image, ros version, and expected version inputs", () => {
     for (const input of ["image:", "ros_version:", "version:"]) {
       expect(yml).toContain(input);

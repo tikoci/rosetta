@@ -80,6 +80,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y qemu-system-x86 qemu-system-arm qemu-utils qemu-efi-aarch64
 
+      # The x86 leg needs KVM: the Bun binary SIGILLs under TCG (Phase 1), and
+      # hosted x64 runners ship /dev/kvm without runner write access — without
+      # this step quickchr falls back to TCG and the leg fails at the harness
+      # accel gate instead of running.
+      - name: Enable KVM (x86 leg)
+        if: matrix.arch == 'x86'
+        run: |
+          set -eo pipefail
+          ls -la /dev/kvm || { echo "::error::No /dev/kvm on this runner — the x86 leg needs nested KVM"; exit 1; }
+          sudo chmod 666 /dev/kvm
+          ls -la /dev/kvm
+
       # Pinned to match QUICKCHR_PIN in scripts/app-integration.ts (the script
       # asserts the pin; src/app-integration.test.ts asserts they agree).
       - name: Install pinned quickchr
