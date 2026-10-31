@@ -123,6 +123,7 @@ easyops
 ebusy
 editsection
 eexist
+efi
 EIRP
 elif
 elr
@@ -186,6 +187,7 @@ HPACD
 HPD
 hpn
 htb
+hvf
 hwcat
 hwmp
 idx
@@ -213,6 +215,7 @@ joineui
 kbd
 kne
 kpps
+kvm
 laravel
 ldf
 ldp
@@ -417,6 +420,7 @@ slugified
 sma
 smips
 smsc
+sni
 snmp
 snp
 socksify
@@ -448,6 +452,7 @@ sxtsq
 syntaxhighlighter
 syscap
 tabl
+tcg
 tek
 thirdparty
 tik

@@ -14,7 +14,8 @@ VERSION    ?=
         extract-hardware-catalog search browse serve \
 	typecheck lint test preflight verify \
         db-doctor db-sync \
-        install setup clean eval eval-update eval-self eval-self-update
+        install setup clean eval eval-update eval-self eval-self-update \
+        app-integration
 
 # ── Development ──
 
@@ -86,6 +87,21 @@ extract-hardware-catalog:
 	bun run src/extract-hardware-catalog.ts
 
 # ── Quality ──
+
+# RouterOS /app integration leg (#245): boots a fresh disposable CHR, runs the
+# README's own /app/add block against it, and completes a real MCP session
+# through the app's ui-url. Same script CI runs (app-integration.yml).
+# Requires quickchr 0.5.4 and QEMU (see MANUAL "App integration runs").
+# Example: make app-integration ARCH=arm64 IMAGE=ghcr.io/tikoci/rosetta:v0.12.0
+ARCH ?= x86
+IMAGE ?=
+ROS_VERSION ?= 7.25
+VERSION ?=
+app-integration:
+ifndef IMAGE
+	$(error IMAGE is required, e.g. make app-integration ARCH=x86 IMAGE=ghcr.io/tikoci/rosetta:v0.12.0)
+endif
+	bun run scripts/app-integration.ts --arch $(ARCH) --image $(IMAGE) --ros-version $(ROS_VERSION) $(if $(VERSION),--version $(VERSION))
 
 typecheck:
 	bun run typecheck
