@@ -127,7 +127,7 @@ export function parseImageRef(ref: string): ParsedImageRef {
   let reference = "";
   let isDigest = false;
   if (at !== -1) {
-    repo = rest.slice(0, at);
+    repo = rest.slice(0, at).replace(/:[^/]*$/, "");
     reference = rest.slice(at + 1);
     isDigest = true;
   } else if (colon !== -1) {
@@ -148,6 +148,23 @@ export function deriveVersionFromTag(tag: string): string | null {
 /** Registry API host for a parsed ref (Docker Hub's API host differs). */
 export function registryApiHost(registry: string): string {
   return registry === "docker.io" ? "registry-1.docker.io" : registry;
+}
+
+/**
+ * GitHub tokens authenticate only to GitHub's registry. A local run can point
+ * --image at any registry, and those credentials must never leave ghcr.io.
+ */
+export function registryCredential(registry: string, envToken: string): string {
+  return registry === "ghcr.io" ? envToken : "";
+}
+
+/** A Bearer challenge realm is trusted for credentials only on the API host itself. */
+export function isTrustedChallengeRealm(realm: string, apiHost: string): boolean {
+  try {
+    return new URL(realm).host === apiHost;
+  } catch {
+    return false;
+  }
 }
 
 const SECRET_KEY = /password|passwd|secret|token|authorization|auth|credential|header/i;
@@ -284,15 +301,24 @@ async function resolveDigests(image: ParsedImageRef): Promise<DigestRecord> {
     return fetch(manifestUrl, { headers, signal: AbortSignal.timeout(30_000) });
   }
 
-  let res = await getManifest(envToken ? `Bearer ${envToken}` : undefined);
+  // Anonymous first, always. A GitHub token is only ever attached for ghcr.io,
+  // and only to a challenge realm on the API host itself — never to a
+  // third-party registry or a registry-chosen host.
+  const credential = registryCredential(image.registry, envToken);
+  let res = await getManifest();
   if (res.status === 401) {
     const challenge = parseWwwAuthenticate(res.headers.get("www-authenticate") ?? "");
     if (!challenge) fail(`Registry ${host} refused anonymous access without a Bearer challenge`);
     const scope = challenge.scope || `repository:${image.repo}:pull`;
     const tokenUrl = `${challenge.realm}?service=${encodeURIComponent(challenge.service)}&scope=${encodeURIComponent(scope)}`;
-    const tokenHeaders: Record<string, string> = {};
-    if (envToken) tokenHeaders.Authorization = `Basic ${Buffer.from(`oauth2:${envToken}`).toString("base64")}`;
-    const tokenRes = await fetch(tokenUrl, { headers: tokenHeaders, signal: AbortSignal.timeout(30_000) });
+    const trusted = credential !== "" && isTrustedChallengeRealm(challenge.realm, host);
+    let tokenRes = await fetch(tokenUrl, { signal: AbortSignal.timeout(30_000) });
+    if (!tokenRes.ok && trusted) {
+      tokenRes = await fetch(tokenUrl, {
+        headers: { Authorization: `Basic ${Buffer.from(`oauth2:${credential}`).toString("base64")}` },
+        signal: AbortSignal.timeout(30_000),
+      });
+    }
     if (!tokenRes.ok) fail(`Registry token request failed: HTTP ${tokenRes.status}`);
     const { token, access_token } = (await tokenRes.json()) as { token?: string; access_token?: string };
     const bearer = token ?? access_token;
@@ -407,6 +433,40 @@ async function inspectMachine(name: string): Promise<{ endpoint: RestEndpoint; p
   return { endpoint: { url: rest.url, authHeader }, pid: parsed.pid, raw: parsed };
 }
 
+// Signal-safe shutdown shares these with main(): the machine name is recorded
+// only after *this* run creates it, so a signal (or the finally block) never
+// touches a VM it does not own. Cleared after normal completion.
+let ownedMachineName: string | null = null;
+let activeBundle: Record<string, unknown> | null = null;
+let activeBundlePath: string | null = null;
+let keepMachineOnSignal = false;
+let signalShuttingDown = false;
+
+async function cleanupMachine(name: string): Promise<void> {
+  const stop = await runCmd(["quickchr", "stop", name]).catch(() => null);
+  if (stop && stop.exitCode !== 0) log(`cleanup stop warning: ${(stop.stderr || stop.stdout).slice(0, 300)}`);
+  const remove = await runCmd(["quickchr", "remove", name]).catch(() => null);
+  if (remove && remove.exitCode !== 0) log(`cleanup remove warning: ${(remove.stderr || remove.stdout).slice(0, 300)}`);
+}
+
+async function shutdownOnSignal(code: number): Promise<never> {
+  if (signalShuttingDown) process.exit(1);
+  signalShuttingDown = true;
+  try {
+    if (activeBundle && activeBundlePath) {
+      activeBundle.outcome = "cancelled";
+      activeBundle.failure = `interrupted by ${code === 130 ? "SIGINT" : "SIGTERM"}`;
+      await Bun.write(activeBundlePath, `${JSON.stringify(activeBundle, null, 2)}\n`);
+    }
+    if (ownedMachineName && !keepMachineOnSignal) {
+      console.log(`interrupted — cleaning up ${ownedMachineName}...`);
+      await cleanupMachine(ownedMachineName);
+    }
+  } finally {
+    process.exit(code);
+  }
+}
+
 async function main(): Promise<void> {
   const config = parseArgs(process.argv.slice(2));
   const repoRoot = path.resolve(import.meta.dir, "..");
@@ -436,6 +496,9 @@ async function main(): Promise<void> {
   };
 
   let endpoint: RestEndpoint | undefined;
+  activeBundle = bundle;
+  activeBundlePath = config.diagnosticsFile;
+  keepMachineOnSignal = config.keep;
   const noteFailure = (message: string): never => {
     bundle.failure = message;
     throw new Error(message);
@@ -480,6 +543,7 @@ async function main(): Promise<void> {
         "--forward", `mcp:${config.hostPort}:${GUEST_WEB_PORT}/tcp`,
       ]);
       if (add.exitCode !== 0) noteFailure(`quickchr add failed: ${(add.stderr || add.stdout).slice(0, 800)}`);
+      ownedMachineName = config.machineName;
       log(`quickchr start ${config.machineName}`);
       const start = await runCmd(["quickchr", "start", config.machineName], {
         timeoutMs: START_TIMEOUT_MS[config.arch],
@@ -603,14 +667,18 @@ async function main(): Promise<void> {
     log(`diagnostics bundle: ${config.diagnosticsFile}`);
     appendStepSummary(config, bundle as { outcome: string; failure?: string; config?: Record<string, unknown>; digestsBefore?: DigestRecord });
     if (!config.keep) {
-      log(`cleanup: quickchr stop/remove ${config.machineName}`);
-      const stop = await runCmd(["quickchr", "stop", config.machineName]).catch(() => null);
-      if (stop && stop.exitCode !== 0) log(`cleanup stop warning: ${(stop.stderr || stop.stdout).slice(0, 300)}`);
-      const remove = await runCmd(["quickchr", "remove", config.machineName]).catch(() => null);
-      if (remove && remove.exitCode !== 0) log(`cleanup remove warning: ${(remove.stderr || remove.stdout).slice(0, 300)}`);
+      if (ownedMachineName) {
+        log(`cleanup: quickchr stop/remove ${ownedMachineName}`);
+        await cleanupMachine(ownedMachineName);
+      } else {
+        log("cleanup skipped: this run never created its VM");
+      }
     } else {
       log(`--keep: machine ${config.machineName} left running`);
     }
+    ownedMachineName = null;
+    activeBundle = null;
+    activeBundlePath = null;
   }
 
   if (bundle.outcome !== "pass") process.exit(1);
@@ -653,10 +721,13 @@ function appendStepSummary(
   Bun.write(summaryFile, `\n## app-integration (${config.arch})\n\n${table}\n`).catch(() => {});
 }
 
-process.on("SIGINT", () => process.exit(130));
-process.on("SIGTERM", () => process.exit(143));
-
 if (import.meta.main) {
+  process.on("SIGINT", () => {
+    void shutdownOnSignal(130);
+  });
+  process.on("SIGTERM", () => {
+    void shutdownOnSignal(143);
+  });
   await main();
 }
 

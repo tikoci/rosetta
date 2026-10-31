@@ -24,7 +24,6 @@ on:
       image:
         description: "Candidate image ref, e.g. ghcr.io/tikoci/rosetta:sha-abc123 or :v0.12.0"
         required: true
-        default: "ghcr.io/tikoci/rosetta:latest"
       ros_version:
         description: "RouterOS version for both legs (one stable >= 7.22)"
         required: false
@@ -94,11 +93,15 @@ jobs:
 
       - name: Run integration leg
         timeout-minutes: ${{ matrix.step-timeout }}
+        env:
+          APP_IMAGE: ${{ inputs.image }}
+          APP_ROS_VERSION: ${{ inputs.ros_version }}
+          APP_VERSION: ${{ inputs.version }}
         run: |
           set -eo pipefail
-          bun scripts/app-integration.ts --arch ${{ matrix.arch }} \
-            --image ${{ inputs.image }} --ros-version ${{ inputs.ros_version }} \
-            --version "${{ inputs.version }}"
+          bun scripts/app-integration.ts --arch "${{ matrix.arch }}" \
+            --image "$APP_IMAGE" --ros-version "$APP_ROS_VERSION" \
+            --version "$APP_VERSION"
 
       - name: Upload diagnostics bundle
         if: always()

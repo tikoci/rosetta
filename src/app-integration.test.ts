@@ -14,6 +14,7 @@ import {
   applyAppAddSubstitutions,
   deriveVersionFromTag,
   extractAppAddBlock,
+  isTrustedChallengeRealm,
   logShowsContainerExit,
   parseImageRef,
   parseQemuAccel,
@@ -21,8 +22,10 @@ import {
   ROS_VERSION_DEFAULT,
   redactCredentials,
   registryApiHost,
+  registryCredential,
   rewriteUiUrl,
 } from "../scripts/app-integration.ts";
+import { searchPageCount } from "../scripts/smoke-oci.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -138,6 +141,13 @@ describe("parseImageRef", () => {
     expect(parsed.reference).toBe("sha256:9fbf37e0");
   });
 
+  test("strips a tag from repo:tag@digest", () => {
+    const parsed = parseImageRef("ghcr.io/tikoci/rosetta:v0.12.0@sha256:9fbf37e0");
+    expect(parsed.repo).toBe("tikoci/rosetta");
+    expect(parsed.reference).toBe("sha256:9fbf37e0");
+    expect(parsed.isDigest).toBe(true);
+  });
+
   test("requires a tag or digest", () => {
     expect(() => parseImageRef("ghcr.io/tikoci/rosetta")).toThrow(/must include a tag or digest/);
   });
@@ -165,6 +175,39 @@ describe("registryApiHost", () => {
   test("maps docker.io to its API host, leaves others alone", () => {
     expect(registryApiHost("docker.io")).toBe("registry-1.docker.io");
     expect(registryApiHost("ghcr.io")).toBe("ghcr.io");
+  });
+});
+
+describe("registryCredential", () => {
+  test("GitHub tokens authenticate only to ghcr.io", () => {
+    expect(registryCredential("ghcr.io", "secret")).toBe("secret");
+    expect(registryCredential("registry-1.docker.io", "secret")).toBe("");
+    expect(registryCredential("example.com", "secret")).toBe("");
+    expect(registryCredential("ghcr.io", "")).toBe("");
+  });
+});
+
+describe("isTrustedChallengeRealm", () => {
+  test("trusts a realm on the API host itself, nothing else", () => {
+    expect(isTrustedChallengeRealm("https://ghcr.io/token", "ghcr.io")).toBe(true);
+    expect(isTrustedChallengeRealm("https://evil.example/token", "ghcr.io")).toBe(false);
+    expect(isTrustedChallengeRealm("not a url", "ghcr.io")).toBe(false);
+  });
+});
+
+describe("searchPageCount", () => {
+  test("counts pages in a search response", () => {
+    expect(searchPageCount(JSON.stringify({ pages: [{ id: 1 }, { id: 2 }] }))).toBe(2);
+  });
+
+  test("empty pages count zero (metadata alone is not a result)", () => {
+    expect(
+      searchPageCount(JSON.stringify({ query: "firewall", pages: [], total_pages: 0, related: {}, next_steps: [] })),
+    ).toBe(0);
+  });
+
+  test("non-JSON content throws", () => {
+    expect(() => searchPageCount("plain prose, no results")).toThrow(/non-JSON/);
   });
 });
 
@@ -257,7 +300,14 @@ describe("app-integration.yml", () => {
     for (const input of ["image:", "ros_version:", "version:"]) {
       expect(yml).toContain(input);
     }
-    expect(yml).toContain("--image $" + "{{ inputs.image }}");
+    // Inputs cross into the shell via env:, never by ${{ }} expansion in run:.
+    expect(yml).toContain("APP_IMAGE: $" + "{{ inputs.image }}");
+    expect(yml).toContain('--image "$APP_IMAGE"');
+    expect(yml).not.toContain("--image $" + "{{ inputs.image }}");
+  });
+
+  test("image input has no floating default (defaults must not fail)", () => {
+    expect(yml).not.toContain('default: "ghcr.io/tikoci/rosetta:latest"');
   });
 
   test("diagnostics upload always runs", () => {
