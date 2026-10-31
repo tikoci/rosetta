@@ -189,8 +189,9 @@ describe("registryCredential", () => {
 });
 
 describe("isTrustedChallengeRealm", () => {
-  test("trusts a realm on the API host itself, nothing else", () => {
+  test("trusts an HTTPS realm on the API host itself, nothing else", () => {
     expect(isTrustedChallengeRealm("https://ghcr.io/token", "ghcr.io")).toBe(true);
+    expect(isTrustedChallengeRealm("http://ghcr.io/token", "ghcr.io")).toBe(false);
     expect(isTrustedChallengeRealm("https://evil.example/token", "ghcr.io")).toBe(false);
     expect(isTrustedChallengeRealm("not a url", "ghcr.io")).toBe(false);
   });

@@ -158,10 +158,11 @@ export function registryCredential(registry: string, envToken: string): string {
   return registry === "ghcr.io" ? envToken : "";
 }
 
-/** A Bearer challenge realm is trusted for credentials only on the API host itself. */
+/** A Bearer challenge realm is trusted for credentials only over HTTPS on the API host itself. */
 export function isTrustedChallengeRealm(realm: string, apiHost: string): boolean {
   try {
-    return new URL(realm).host === apiHost;
+    const url = new URL(realm);
+    return url.protocol === "https:" && url.host === apiHost;
   } catch {
     return false;
   }
