@@ -670,7 +670,6 @@ describe("release.yml", () => {
     test("a stable publish moves next only when next is semver-lower; one decision drives npm and OCI (#152)", () => {
       const decideIdx = mustIndex(src, "Decide whether this run moves next");
       const ociIdx = mustIndex(src, "Build and push OCI images");
-      const publishIdx = mustIndex(src, "Publish to npm");
       expect(decideIdx).toBeLessThan(ociIdx);
       const decideBlock = src.slice(decideIdx, ociIdx);
       expect(decideBlock).toContain("id: next_tag");
@@ -678,9 +677,15 @@ describe("release.yml", () => {
       expect(decideBlock).toContain("Bun.semver.order('$NEW', '$CURRENT')");
       expect(decideBlock).toContain("code E404");
       expect(decideBlock).toContain('echo "move=false"');
-      const moveEnv = `MOVE_NEXT: \${{ steps.next_tag.outputs.move }}`;
-      expect(src.slice(ociIdx, publishIdx)).toContain(moveEnv);
-      expect(src.slice(publishIdx)).toContain(moveEnv);
+      // npm reads the decision in-job; the promote-oci job reads it through
+      // the publish job's move_next output (#246 moved promotion out of publish).
+      const publishIdx = mustIndex(src, "\n  publish:");
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const publishBlock = src.slice(publishIdx, smokeOciIdx);
+      expect(publishBlock).toContain(`MOVE_NEXT: \${{ steps.next_tag.outputs.move }}`);
+      expect(publishBlock).toContain(`move_next: \${{ steps.next_tag.outputs.move }}`);
+      const promoteBlock = src.slice(mustIndex(src, "\n  promote-oci:"));
+      expect(promoteBlock).toContain(`MOVE_NEXT: \${{ needs.publish.outputs.move_next }}`);
     });
 
     test("after publishing, a read-back fails the run unless this run's tag resolves to it and next ≥ latest (#152)", () => {
@@ -700,8 +705,8 @@ describe("release.yml", () => {
 
     test("OCI tags align with npm scheme: version always, floating next for prerelease, latest (+next when moved) for latest channel, republish never moves floating tags", () => {
       const promoteIdx = mustIndex(src, "- name: Promote smoke-tested OCI images");
-      const releaseIdx = mustIndex(src, "Create or update GitHub Release");
-      const promoteBlock = src.slice(promoteIdx, releaseIdx);
+      const verifyIdx = mustIndex(src, "\n  verify-dist-tags:");
+      const promoteBlock = src.slice(promoteIdx, verifyIdx);
       expect(promoteBlock).toContain(`tags=(--tag "\${registry}:\${VERSION}")`);
       expect(promoteBlock).toContain(`tags+=(--tag "\${registry}:next")`);
       expect(promoteBlock).toContain(`tags+=(--tag "\${registry}:latest")`);
@@ -712,18 +717,95 @@ describe("release.yml", () => {
       expect(promoteBlock).toContain(`REPUBLISH_ASSETS: \${{ inputs.republish_assets }}`);
       expect(promoteBlock).toMatch(/if \[ "\$REPUBLISH_ASSETS" != "true" \]/);
       expect(promoteBlock).toContain(`docker buildx imagetools create "\${tags[@]}" "\${registry}:sha-\${SHORT_SHA}"`);
+      // The promote-oci job recomputes the v-prefixed VERSION from the build
+      // version it receives via env: (no template interpolation in run:).
+      expect(promoteBlock).toContain(`BUILD_VERSION: \${{ needs.build.outputs.version }}`);
+      expect(promoteBlock).toContain(`CHANNEL: \${{ needs.build.outputs.channel }}`);
+      expect(promoteBlock).toContain(`SHORT_SHA: \${{ needs.build.outputs.short_sha }}`);
+      expect(promoteBlock).toContain(`VERSION="v\${RUNTIME_VERSION}"`);
+      const runBlock = promoteBlock.slice(mustIndex(promoteBlock, "run: |"));
+      expect(runBlock).not.toContain("${{");
     });
 
     test("only the sha tag pushes before the OCI smoke; version and floating tags are promoted after it passes", () => {
-      const ociIdx = mustIndex(src, "Build and push OCI images");
-      const smokeIdx = mustIndex(src, "Smoke test published OCI images");
-      const promoteIdx = mustIndex(src, "- name: Promote smoke-tested OCI images");
-      expect(ociIdx).toBeLessThan(smokeIdx);
-      expect(smokeIdx).toBeLessThan(promoteIdx);
-      const ociBlock = src.slice(ociIdx, smokeIdx);
-      expect(ociBlock).toContain(`tags+=(--tag "\${registry}:sha-\${SHORT_SHA}")`);
-      expect(ociBlock).not.toMatch(/--tag "\$\{registry\}:(\$\{VERSION\}|next|latest)"/);
-      expect(src.slice(smokeIdx, promoteIdx)).toContain(`for image in "ammo74/rosetta:\${SHA_TAG}" "ghcr.io/tikoci/rosetta:\${SHA_TAG}"`);
+      const publishIdx = mustIndex(src, "\n  publish:");
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const promoteOciIdx = mustIndex(src, "\n  promote-oci:");
+      const verifyIdx = mustIndex(src, "\n  verify-dist-tags:");
+      expect(publishIdx).toBeLessThan(smokeOciIdx);
+      expect(smokeOciIdx).toBeLessThan(promoteOciIdx);
+      const publishBlock = src.slice(publishIdx, smokeOciIdx);
+      expect(publishBlock).toContain(`tags+=(--tag "\${registry}:sha-\${SHORT_SHA}")`);
+      expect(publishBlock).not.toMatch(/--tag "\$\{registry\}:(\$\{VERSION\}|next|latest)"/);
+      expect(publishBlock).not.toContain("imagetools create");
+      const smokeBlock = src.slice(smokeOciIdx, promoteOciIdx);
+      expect(smokeBlock).toContain(`for image in "ammo74/rosetta:\${SHA_TAG}" "ghcr.io/tikoci/rosetta:\${SHA_TAG}"`);
+      expect(src.slice(promoteOciIdx, verifyIdx)).toContain("imagetools create");
+    });
+
+    test("promotion needs both smoke-oci legs: floating tags can't move on a red leg (#246)", () => {
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const promoteOciIdx = mustIndex(src, "\n  promote-oci:");
+      const smokeBlock = src.slice(smokeOciIdx, promoteOciIdx);
+      expect(smokeBlock).toMatch(/needs:\s*\[build,\s*publish\]/);
+      const promoteBlock = src.slice(promoteOciIdx);
+      expect(promoteBlock).toMatch(/needs:\s*\[build,\s*publish,\s*smoke-oci\]/);
+    });
+
+    test("smoke-oci runs one native leg per arch: amd64 on ubuntu-latest, arm64 on ubuntu-24.04-arm (#246)", () => {
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const promoteOciIdx = mustIndex(src, "\n  promote-oci:");
+      const smokeBlock = src.slice(smokeOciIdx, promoteOciIdx);
+      expect(smokeBlock).toContain("fail-fast: false");
+      expect(smokeBlock).toContain("- arch: amd64");
+      expect(smokeBlock).toContain("runs-on: ubuntu-latest");
+      expect(smokeBlock).toContain("- arch: arm64");
+      expect(smokeBlock).toContain("runs-on: ubuntu-24.04-arm");
+      expect(smokeBlock).toContain(`runs-on: \${{ matrix.runs-on }}`);
+      // Native Docker on both legs — no QEMU/binfmt emulation.
+      expect(smokeBlock).not.toContain("qemu");
+      expect(smokeBlock).not.toContain("binfmt");
+    });
+
+    test("each smoke-oci leg asserts the pulled image is its own architecture (#246)", () => {
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const promoteOciIdx = mustIndex(src, "\n  promote-oci:");
+      const smokeBlock = src.slice(smokeOciIdx, promoteOciIdx);
+      expect(smokeBlock).toContain(`EXPECTED_ARCH: \${{ matrix.arch }}`);
+      expect(smokeBlock).toContain(`docker image inspect "$image" --format '{{.Architecture}}'`);
+      expect(smokeBlock).toContain('if [ "$pulled_arch" != "$EXPECTED_ARCH" ]; then');
+      expect(smokeBlock).toMatch(/::error::.*pulled .*expected/);
+    });
+
+    test("the smoke-oci verdict comes from a real MCP session, never from HTTP status (#246)", () => {
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const promoteOciIdx = mustIndex(src, "\n  promote-oci:");
+      const smokeBlock = src.slice(smokeOciIdx, promoteOciIdx);
+      expect(smokeBlock).toContain(`BUILD_VERSION: \${{ needs.build.outputs.version }}`);
+      expect(smokeBlock).toContain(`bun scripts/smoke-oci.ts "http://127.0.0.1:\${port}/mcp" "$BUILD_VERSION"`);
+      // curl remains only as a readiness gate ahead of the session; the old
+      // HTTP-code pass ("✓ … (HTTP $code)") is gone.
+      expect(smokeBlock).toContain("Readiness wait only");
+      expect(smokeBlock).not.toContain("(HTTP $code)");
+    });
+
+    test("smoke-oci records the tested manifest + platform digests in the job summary (#246)", () => {
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const promoteOciIdx = mustIndex(src, "\n  promote-oci:");
+      const smokeBlock = src.slice(smokeOciIdx, promoteOciIdx);
+      expect(smokeBlock).toContain("Record tested manifest digests");
+      expect(smokeBlock).toContain(`docker buildx imagetools inspect "\${registry}:sha-\${SHORT_SHA}"`);
+      expect(smokeBlock).toContain('>> "$GITHUB_STEP_SUMMARY"');
+    });
+
+    test("smoke-oci keeps container diagnostics on failure: inspect state/exit/OOM plus logs (#246)", () => {
+      const smokeOciIdx = mustIndex(src, "\n  smoke-oci:");
+      const promoteOciIdx = mustIndex(src, "\n  promote-oci:");
+      const smokeBlock = src.slice(smokeOciIdx, promoteOciIdx);
+      const inspectLine = `docker inspect "$name" --format 'Status={{.State.Status}} Exit={{.State.ExitCode}} Error={{.State.Error}} OOMKilled={{.State.OOMKilled}}'`;
+      // Both failure paths (never-ready and MCP-session failure) dump them.
+      expect(smokeBlock.split(inspectLine).length - 1).toBe(2);
+      expect(smokeBlock.split('docker logs "$name"').length - 1).toBe(2);
     });
 
     test("GitHub Release is created with --prerelease for prerelease channel runs", () => {
