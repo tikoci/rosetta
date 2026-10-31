@@ -25,6 +25,7 @@ uses [Semantic Versioning](https://semver.org/).
 ### Fixed
 
 - The README `/app` install steps now cover the storage-disk prerequisite (`/app/setup` or `/app/settings`, with sizing guidance): without a selected disk `/app/add` succeeds but the app sits idle with no error. The steps also note that the inline YAML's inner quotes must stay backslash-escaped. Phase 1 of #245.
+- Release OCI images are smoke-tested with a real MCP session on both architectures before any version or floating tag moves. Each release runs `scripts/smoke-oci.ts` (initialize → tools/list → provenance match → search → chained get_page → command_tree → device_lookup) against the pushed image on native amd64 and arm64 Docker, asserting each leg pulled its own architecture; `:latest` / `:next` promote only after both legs pass. Previously only the amd64 image ran, and any non-404 HTTP response passed (#246).
 
 ## [0.12.0] — 2026-10-30
 

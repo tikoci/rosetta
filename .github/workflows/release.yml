@@ -42,7 +42,8 @@ permissions:
   contents: write
   packages: write
 
-# Phase B (#42) job graph: build → qa → publish → {verify-dist-tags, smoke}.
+# Phase B (#42) job graph with the #246 OCI smoke legs:
+#   build → qa → publish → {smoke-oci → promote-oci, verify-dist-tags, smoke}.
 #
 #   build    extracts + stamps the DB once, runs the fast-fail + preflight gates,
 #            and hands the DB (and the workspace-rewritten package.json) to the
@@ -52,8 +53,15 @@ permissions:
 #            DB-content floors, db-meta) now runs here, against the exact DB build
 #            produced. No inline copy of those gates (or the floors) lives in this
 #            file anymore, so there is nothing to drift.
-#   publish  side effects only — OCI push, GitHub Release, npm publish — gated
-#            behind `needs: [build, qa]` so nothing ships unless qa is green.
+#   publish  side effects only — sha-tagged OCI push, GitHub Release, npm
+#            publish — gated behind `needs: [build, qa]` so nothing ships
+#            unless qa is green.
+#   smoke-oci  real MCP sessions (`scripts/smoke-oci.ts`) against the pushed
+#            sha tag on native amd64 + arm64 Docker, one leg per arch. Both
+#            legs must pass before any version/floating OCI tag moves.
+#   promote-oci  copies the smoke-tested multi-arch manifest onto $VERSION
+#            (+ `:next`/`:latest` per the npm scheme) via imagetools — needs
+#            both smoke-oci legs, so a red leg leaves floating tags untouched.
 #   verify-dist-tags  reads the npm dist-tags back after publish (slow registry
 #            propagation fails here without blocking the smoke).
 #   smoke    `uses: ./.github/workflows/release-smoke.yml` — end-to-end install +
@@ -639,6 +647,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ needs.build.outputs.version }}
+      move_next: ${{ steps.next_tag.outputs.move }}
     steps:
       - uses: actions/checkout@v7
 
@@ -735,12 +744,12 @@ jobs:
             echo "✓ next ($CURRENT) is already ≥ $NEW — leaving it"
           fi
 
-      # Only the immutable sha-$SHORT_SHA tag pushes here. The smoke step below
-      # tests that tag, and "Promote smoke-tested OCI images" adds $VERSION and
-      # any floating tag afterwards, so an image that fails the smoke never
-      # moves :next or :latest (#142's v0.11.2 image did, before this order).
+      # Only the immutable sha-$SHORT_SHA tag pushes here. The smoke-oci job
+      # below tests that tag with a real MCP session on both architectures,
+      # and the promote-oci job adds $VERSION and any floating tag afterwards,
+      # so an image that fails the smoke never moves :next or :latest (#142's
+      # v0.11.2 image did, before this order).
       - name: Build and push OCI images (Docker Hub + GHCR)
-        id: oci
         run: |
           set -euo pipefail
           SHORT_SHA="${{ needs.build.outputs.short_sha }}"
@@ -749,8 +758,6 @@ jobs:
           while [[ "$RUNTIME_VERSION" == v* ]]; do
             RUNTIME_VERSION="${RUNTIME_VERSION#v}"
           done
-          VERSION="v${RUNTIME_VERSION}"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
           tags=()
           for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
@@ -766,96 +773,6 @@ jobs:
             --push \
             -f Dockerfile.release \
             .
-
-      - name: Smoke test published OCI images
-        run: |
-          set -euo pipefail
-          SHA_TAG="sha-${{ needs.build.outputs.short_sha }}"
-
-          smoke_test_container() {
-            local image="$1"
-            local name="$2"
-            local port="$3"
-
-            docker rm -f "$name" >/dev/null 2>&1 || true
-            echo "Starting: docker run -d --name $name -p ${port}:8080 $image"
-            docker run -d --name "$name" -p "${port}:8080" "$image"
-
-            ok=0
-            for i in $(seq 1 20); do
-              state=$(docker inspect "$name" --format '{{.State.Status}}' 2>/dev/null || echo gone)
-              if [ "$state" = exited ] || [ "$state" = gone ]; then
-                echo "Container exited early (state=$state, attempt=$i)"
-                break
-              fi
-              code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/mcp" || true)
-              if [ "$code" != 000 ] && [ "$code" != 404 ]; then
-                ok=1
-                break
-              fi
-              sleep 1
-            done
-
-            if [ "$ok" -ne 1 ]; then
-              echo "::group::Diagnostic info for $image"
-              docker inspect "$name" --format 'Status={{.State.Status}} Exit={{.State.ExitCode}} Error={{.State.Error}} OOMKilled={{.State.OOMKilled}}' 2>&1 || true
-              docker logs "$name" 2>&1 || true
-              echo "::endgroup::"
-              docker rm -f "$name" >/dev/null 2>&1 || true
-              return 1
-            fi
-
-            docker rm -f "$name" >/dev/null 2>&1 || true
-            echo "✓ $image OK (HTTP $code)"
-          }
-
-          port=18080
-          for image in "ammo74/rosetta:${SHA_TAG}" "ghcr.io/tikoci/rosetta:${SHA_TAG}"; do
-            echo "── Smoke testing $image ──"
-            docker pull "$image"
-            name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
-            smoke_test_container "$image" "$name" "$port" || {
-              echo "::error::Smoke test failed for $image"
-              exit 1
-            }
-          done
-
-      # OCI tags mirror the npm dist-tag scheme: $VERSION always.
-      # republish_assets: true adds ONLY that — no floating tag ever moves
-      # during a republish, so a re-run of an older version can't regress what
-      # a floating tag currently points testers at. Otherwise: prerelease runs
-      # get a floating :next; latest-channel runs get the bare :latest tag,
-      # plus :next when the decision step above moves npm's next. :latest never
-      # pushes on a prerelease run — this is the fix for the OCI-latest-clobber
-      # risk (an unguarded prerelease dispatch would otherwise silently
-      # overwrite the production /app container's :latest with an unfinished
-      # prerelease DB). imagetools copies the smoke-tested multi-arch manifest
-      # as-is; nothing is rebuilt.
-      - name: Promote smoke-tested OCI images
-        env:
-          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
-          MOVE_NEXT: ${{ steps.next_tag.outputs.move }}
-          VERSION: ${{ steps.oci.outputs.version }}
-        run: |
-          set -euo pipefail
-          SHORT_SHA="${{ needs.build.outputs.short_sha }}"
-          CHANNEL="${{ needs.build.outputs.channel }}"
-
-          for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
-            tags=(--tag "${registry}:${VERSION}")
-            if [ "$REPUBLISH_ASSETS" != "true" ]; then
-              if [ "$CHANNEL" = "prerelease" ]; then
-                tags+=(--tag "${registry}:next")
-              else
-                tags+=(--tag "${registry}:latest")
-                if [ "$MOVE_NEXT" = "true" ]; then
-                  tags+=(--tag "${registry}:next")
-                fi
-              fi
-            fi
-            docker buildx imagetools create "${tags[@]}" "${registry}:sha-${SHORT_SHA}"
-            echo "✓ ${registry}:sha-${SHORT_SHA} → ${tags[*]}"
-          done
 
       - name: Create or update GitHub Release
         env:
@@ -1001,6 +918,206 @@ jobs:
       - name: Skip npm publish (republish_assets mode)
         if: inputs.republish_assets == true
         run: echo "republish_assets=true → skipping npm publish (npm versions are immutable; bump package.json for a new npm package)"
+
+  # Real MCP sessions against the just-pushed sha tag (#246): one leg per
+  # architecture on native Docker (no QEMU/BINFMT emulation — ubuntu-24.04-arm runs
+  # arm64 containers natively). Each leg pulls both registries, asserts the
+  # pulled image is its own architecture (so a manifest/platform mix-up can't
+  # pass silently), and runs scripts/smoke-oci.ts — HTTP status alone no
+  # longer passes. Both legs must be green before promote-oci moves any tag.
+  smoke-oci:
+    needs: [build, publish]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runs-on: ubuntu-latest
+          - arch: arm64
+            runs-on: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ammo74
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # What was tested: the multi-arch manifest digest + each platform
+      # digest for both registries, recorded before the sessions run.
+      - name: Record tested manifest digests
+        env:
+          SHORT_SHA: ${{ needs.build.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## smoke-oci (${{ matrix.arch }})"
+            echo ""
+            for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
+              echo "### ${registry}:sha-${SHORT_SHA}"
+              echo ""
+              echo '```'
+              docker buildx imagetools inspect "${registry}:sha-${SHORT_SHA}"
+              echo '```'
+              echo ""
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test published OCI images (real MCP session)
+        env:
+          EXPECTED_ARCH: ${{ matrix.arch }}
+          BUILD_VERSION: ${{ needs.build.outputs.version }}
+          SHORT_SHA: ${{ needs.build.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          SHA_TAG="sha-${SHORT_SHA}"
+
+          smoke_test_container() {
+            local image="$1"
+            local name="$2"
+            local port="$3"
+
+            docker rm -f "$name" >/dev/null 2>&1 || true
+            echo "Starting: docker run -d --name $name -p ${port}:8080 $image"
+            docker run -d --name "$name" -p "${port}:8080" "$image"
+
+            # Readiness wait only — the pass/fail verdict comes from the MCP
+            # session below, never from HTTP status.
+            ready=0
+            for i in $(seq 1 60); do
+              state=$(docker inspect "$name" --format '{{.State.Status}}' 2>/dev/null || echo gone)
+              if [ "$state" = exited ] || [ "$state" = gone ]; then
+                echo "Container exited early (state=$state, attempt=$i)"
+                break
+              fi
+              code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/mcp" || true)
+              if [ "$code" != 000 ] && [ "$code" != 404 ]; then
+                ready=1
+                break
+              fi
+              sleep 2
+            done
+
+            if [ "$ready" -ne 1 ]; then
+              echo "::group::Diagnostic info for $image"
+              echo "container never became ready"
+              docker inspect "$name" --format 'Status={{.State.Status}} Exit={{.State.ExitCode}} Error={{.State.Error}} OOMKilled={{.State.OOMKilled}}' 2>&1 || true
+              docker logs "$name" 2>&1 || true
+              echo "::endgroup::"
+              docker rm -f "$name" >/dev/null 2>&1 || true
+              return 1
+            fi
+
+            if ! bun scripts/smoke-oci.ts "http://127.0.0.1:${port}/mcp" "$BUILD_VERSION" 2>&1; then
+              echo "::group::Diagnostic info for $image"
+              docker inspect "$name" --format 'Status={{.State.Status}} Exit={{.State.ExitCode}} Error={{.State.Error}} OOMKilled={{.State.OOMKilled}}' 2>&1 || true
+              docker logs "$name" 2>&1 || true
+              echo "::endgroup::"
+              docker rm -f "$name" >/dev/null 2>&1 || true
+              return 1
+            fi
+
+            docker rm -f "$name" >/dev/null 2>&1 || true
+            echo "✓ $image OK"
+          }
+
+          port=18080
+          for image in "ammo74/rosetta:${SHA_TAG}" "ghcr.io/tikoci/rosetta:${SHA_TAG}"; do
+            echo "── Smoke testing $image (${EXPECTED_ARCH}) ──"
+            docker pull "$image"
+            pulled_arch=$(docker image inspect "$image" --format '{{.Architecture}}')
+            if [ "$pulled_arch" != "$EXPECTED_ARCH" ]; then
+              echo "::error::${image} pulled ${pulled_arch}, expected ${EXPECTED_ARCH}"
+              exit 1
+            fi
+            echo "✓ ${image} is ${pulled_arch}"
+            name="rosetta-smoke-$(echo "$image" | tr '/:.' '-')"
+            smoke_test_container "$image" "$name" "$port" || {
+              echo "::error::Smoke test failed for $image"
+              exit 1
+            }
+          done
+
+  # OCI tags mirror the npm dist-tag scheme: $VERSION always.
+  # republish_assets: true adds ONLY that — no floating tag ever moves
+  # during a republish, so a re-run of an older version can't regress what
+  # a floating tag currently points testers at. Otherwise: prerelease runs
+  # get a floating :next; latest-channel runs get the bare :latest tag,
+  # plus :next when the decision step moves npm's next. :latest never
+  # pushes on a prerelease run — this is the fix for the OCI-latest-clobber
+  # risk (an unguarded prerelease dispatch would otherwise silently
+  # overwrite the production /app container's :latest with an unfinished
+  # prerelease DB). imagetools copies the smoke-tested multi-arch manifest
+  # as-is; nothing is rebuilt. This job needs both smoke-oci legs, so a
+  # failure in either leaves :latest / :next untouched.
+  promote-oci:
+    needs: [build, publish, smoke-oci]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ammo74
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Promote smoke-tested OCI images
+        env:
+          REPUBLISH_ASSETS: ${{ inputs.republish_assets }}
+          MOVE_NEXT: ${{ needs.publish.outputs.move_next }}
+          BUILD_VERSION: ${{ needs.build.outputs.version }}
+          CHANNEL: ${{ needs.build.outputs.channel }}
+          SHORT_SHA: ${{ needs.build.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          RUNTIME_VERSION="$BUILD_VERSION"
+          while [[ "$RUNTIME_VERSION" == v* ]]; do
+            RUNTIME_VERSION="${RUNTIME_VERSION#v}"
+          done
+          VERSION="v${RUNTIME_VERSION}"
+
+          for registry in ammo74/rosetta ghcr.io/tikoci/rosetta; do
+            tags=(--tag "${registry}:${VERSION}")
+            if [ "$REPUBLISH_ASSETS" != "true" ]; then
+              if [ "$CHANNEL" = "prerelease" ]; then
+                tags+=(--tag "${registry}:next")
+              else
+                tags+=(--tag "${registry}:latest")
+                if [ "$MOVE_NEXT" = "true" ]; then
+                  tags+=(--tag "${registry}:next")
+                fi
+              fi
+            fi
+            docker buildx imagetools create "${tags[@]}" "${registry}:sha-${SHORT_SHA}"
+            echo "✓ ${registry}:sha-${SHORT_SHA} → ${tags[*]}"
+          done
 
   # Read back what the registry actually serves: this run's dist-tag must resolve
   # to the version just published, and next must be ≥ latest. Its own job (#176):

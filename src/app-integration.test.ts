@@ -26,7 +26,14 @@ import {
   rewriteUiUrl,
   writeDiagnosticsBundle,
 } from "../scripts/app-integration.ts";
-import { searchPageCount } from "../scripts/smoke-oci.ts";
+import {
+  commandTreeChildCount,
+  deviceLookupCount,
+  firstSearchPageId,
+  pageSectionCount,
+  pageTextLength,
+  searchPageCount,
+} from "../scripts/smoke-oci.ts";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -210,6 +217,62 @@ describe("searchPageCount", () => {
 
   test("non-JSON content throws", () => {
     expect(() => searchPageCount("plain prose, no results")).toThrow(/non-JSON/);
+  });
+});
+
+describe("smoke-oci chained checks (#246)", () => {
+  test("firstSearchPageId returns the first result id", () => {
+    expect(firstSearchPageId(JSON.stringify({ pages: [{ id: 42 }, { id: 7 }] }))).toBe(42);
+  });
+
+  test("firstSearchPageId throws on empty pages, a missing id, or non-JSON", () => {
+    expect(() => firstSearchPageId(JSON.stringify({ pages: [] }))).toThrow(/no numeric id/);
+    expect(() => firstSearchPageId(JSON.stringify({ pages: [{}] }))).toThrow(/no numeric id/);
+    expect(() => firstSearchPageId(JSON.stringify({}))).toThrow(/no numeric id/);
+    expect(() => firstSearchPageId("not json")).toThrow(/non-JSON/);
+  });
+
+  test("pageTextLength sums text + code, missing fields count zero", () => {
+    expect(pageTextLength(JSON.stringify({ text: "abc", code: "de" }))).toBe(5);
+    expect(pageTextLength(JSON.stringify({ text: "abc" }))).toBe(3);
+    expect(pageTextLength(JSON.stringify({ sections: [{ heading: "TOC only" }] }))).toBe(0);
+    expect(() => pageTextLength("not json")).toThrow(/non-JSON/);
+  });
+
+  test("pageSectionCount counts TOC entries, missing counts zero", () => {
+    expect(pageSectionCount(JSON.stringify({ text: "", sections: [{ heading: "a" }, { heading: "b" }] }))).toBe(2);
+    expect(pageSectionCount(JSON.stringify({ text: "full text, no TOC" }))).toBe(0);
+    expect(() => pageSectionCount("not json")).toThrow(/non-JSON/);
+  });
+
+  test("commandTreeChildCount counts array children; the empty prose answer counts zero", () => {
+    expect(commandTreeChildCount(JSON.stringify([{ name: "filter" }, { name: "nat" }]))).toBe(2);
+    expect(commandTreeChildCount(JSON.stringify([]))).toBe(0);
+    expect(commandTreeChildCount("No commands found under: /ip/firewall")).toBe(0);
+  });
+
+  test("deviceLookupCount sums matrix results + catalog rows; a hard miss counts zero", () => {
+    expect(deviceLookupCount(JSON.stringify({ results: [{ product_name: "RB5009" }], mode: "exact" }))).toBe(1);
+    expect(
+      deviceLookupCount(JSON.stringify({ results: [{ product_name: "a" }], catalog: [{ name: "b" }] })),
+    ).toBe(2);
+    expect(deviceLookupCount(JSON.stringify({ results: [], mode: "like" }))).toBe(0);
+    expect(deviceLookupCount('No devices matched: "RB5009"')).toBe(0);
+  });
+
+  test("the smoke runs the full chain: search → get_page (chained id) → command_tree → device_lookup", () => {
+    const src = readText("scripts/smoke-oci.ts");
+    // tools/list must carry every tool the session calls.
+    for (const tool of ["routeros_stats", "routeros_search", "routeros_get_page", "routeros_command_tree", "routeros_device_lookup"]) {
+      expect(src).toContain(`"${tool}"`);
+    }
+    // get_page chains off the search result — no hardcoded page ids.
+    expect(src).toContain("firstSearchPageId(text)");
+    expect(src).toContain('{ page: String(firstId) }');
+    expect(src).toContain('{ path: "/ip/firewall" }');
+    expect(src).toContain('{ query: "RB5009" }');
+    // Every call is isError-gated.
+    expect(src.match(/\.isError\) throw/g)?.length).toBe(5);
   });
 });
 
