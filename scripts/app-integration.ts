@@ -169,6 +169,19 @@ export function isTrustedChallengeRealm(realm: string, apiHost: string): boolean
 
 const SECRET_KEY = /password|passwd|secret|token|authorization|auth|credential|header/i;
 
+/**
+ * Write the diagnostics bundle, returning false instead of throwing: an
+ * evidence-write failure must never skip the VM cleanup that follows it.
+ */
+export async function writeDiagnosticsBundle(filePath: string, bundle: unknown): Promise<boolean> {
+  try {
+    await Bun.write(filePath, `${JSON.stringify(bundle, null, 2)}\n`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Deep-clone with credential-shaped values replaced (diagnostics bundle). */
 export function redactCredentials<T>(value: T): T {
   if (Array.isArray(value)) return value.map(redactCredentials) as T;
@@ -456,7 +469,9 @@ async function shutdownOnSignal(code: number): Promise<never> {
     if (activeBundle && activeBundlePath) {
       activeBundle.outcome = "cancelled";
       activeBundle.failure = `interrupted by ${code === 130 ? "SIGINT" : "SIGTERM"}`;
-      await Bun.write(activeBundlePath, `${JSON.stringify(activeBundle, null, 2)}\n`);
+      if (!(await writeDiagnosticsBundle(activeBundlePath, activeBundle))) {
+        console.log(`WARNING: could not write diagnostics bundle to ${activeBundlePath}`);
+      }
     }
     if (ownedMachineName && !keepMachineOnSignal) {
       console.log(`interrupted — cleaning up ${ownedMachineName}...`);
@@ -663,8 +678,11 @@ async function main(): Promise<void> {
     log(`APP-INTEGRATION FAIL: ${bundle.failure}`);
   } finally {
     bundle.config = redactCredentials(bundle.config);
-    await Bun.write(config.diagnosticsFile, `${JSON.stringify(bundle, null, 2)}\n`);
-    log(`diagnostics bundle: ${config.diagnosticsFile}`);
+    if (await writeDiagnosticsBundle(config.diagnosticsFile, bundle)) {
+      log(`diagnostics bundle: ${config.diagnosticsFile}`);
+    } else {
+      log(`WARNING: could not write diagnostics bundle to ${config.diagnosticsFile}`);
+    }
     appendStepSummary(config, bundle as { outcome: string; failure?: string; config?: Record<string, unknown>; digestsBefore?: DigestRecord });
     if (!config.keep) {
       if (ownedMachineName) {

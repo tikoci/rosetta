@@ -24,6 +24,7 @@ import {
   registryApiHost,
   registryCredential,
   rewriteUiUrl,
+  writeDiagnosticsBundle,
 } from "../scripts/app-integration.ts";
 import { searchPageCount } from "../scripts/smoke-oci.ts";
 
@@ -208,6 +209,22 @@ describe("searchPageCount", () => {
 
   test("non-JSON content throws", () => {
     expect(() => searchPageCount("plain prose, no results")).toThrow(/non-JSON/);
+  });
+});
+
+describe("writeDiagnosticsBundle", () => {
+  test("writes JSON on success, returns false instead of throwing on failure", async () => {
+    const { mkdtempSync, readFileSync, rmSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const dir = mkdtempSync(path.join(tmpdir(), "app-integration-"));
+    try {
+      const okPath = path.join(dir, "bundle.json");
+      expect(await writeDiagnosticsBundle(okPath, { outcome: "pass" })).toBe(true);
+      expect(JSON.parse(readFileSync(okPath, "utf-8"))).toEqual({ outcome: "pass" });
+      expect(await writeDiagnosticsBundle(dir, {})).toBe(false);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 
